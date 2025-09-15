@@ -1,0 +1,73 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dcterms: <http://purl.org/dc/terms#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?c ?p WHERE {
+    ?c a rdfs:Class .
+    FILTER NOT EXISTS { ?c rdfs:label ?lbl   }
+}
+
+
+# 1.66
+SELECT (AVG(?connectivity) AS ?averageConnectivity)
+WHERE {
+  {
+    SELECT ?class (COUNT(DISTINCT ?link) AS ?connectivity)
+    WHERE {
+      ?class a owl:Class .
+      {
+        # subclass relationships
+        { ?class rdfs:subClassOf ?link }
+        UNION
+        { ?link rdfs:subClassOf ?class }
+        # object property domain/range usage
+        UNION
+        { ?prop a owl:ObjectProperty .
+          ?prop rdfs:domain|rdfs:range ?class .
+          BIND(?prop AS ?link)
+        }
+      }
+    }
+    GROUP BY ?class
+  }
+}
+
+SELECT (AVG(?connectivity) AS ?averageConnectivity)
+WHERE {
+  {
+    SELECT ?class (COUNT(DISTINCT ?link) AS ?connectivity)
+    WHERE {
+      ?class a owl:Class .
+      {
+        # subclass relationships
+        { ?class rdfs:subClassOf ?link }
+        UNION
+        { ?link rdfs:subClassOf ?class }
+        # object property domain/range usage
+        UNION
+        { ?prop a owl:ObjectProperty .
+          ?prop rdfs:domain|rdfs:range ?class .
+          BIND(?prop AS ?link)
+        }
+      }
+    }
+    GROUP BY ?class
+  }
+}
+
+# Jeremy's connectivity
+SELECT ?class (COUNT(DISTINCT ?prop) AS ?connectivity)
+WHERE {
+	VALUES ?type { owl:Class rdfs:Class }
+	?class a ?type .
+	OPTIONAL { ?prop rdfs:range ?class . }
+	OPTIONAL {
+		?class rdfs:subClassOf ?superClass .
+		?superClass a owl:Class .
+		?prop rdfs:range ?superClass
+	}
+} group by ?class
+

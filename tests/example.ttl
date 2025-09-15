@@ -1,0 +1,52 @@
+@prefix : <http://my.ont.example/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+
+:Dog a rdfs:Class ;
+     rdfs:subClassOf :Animal .
+
+:Cat a rdfs:Class ;
+     rdfs:subClassOf :Animal .
+
+:Animal a rdfs:Class ;
+        rdfs:subClassOf :Organism ;
+        rdfs:label "Animal" .
+
+:Fish a rdfs:Class ;
+      rdfs:subClassOf :Animal ;
+      skos:prefLabel "Fish" .
+
+:fin a rdfs:Class .
+
+:hasFins a owl:ObjectProperty ;
+  rdfs:domain :Fish ;
+  rdfs:range :fin .
+
+:myIsolatedClass a owl:Class ;
+  rdfs:label "Isolated Class"@en ;
+  rdfs:comment "This is a comment"@en .
+
+:Trout a rdfs:Class ;
+      rdfs:subClassOf :Animal ;
+      skos:altLabel "Fish" .
+
+:hasTail a owl:ObjectProperty ;
+  rdfs:domain :Dog, :Cat .
+
+# violation detected
+# :myIsolatedClass a owl:DatatypeProperty .
+
+# violation NOT detected
+# :myIsolatedClass a rdfs:Class .
+
+# violation NOT detected
+:hasScales a owl:ObjectProperty .
+:hasScales a rdf:Property .
+
+# violation detected
+#:Organism a owl:Class ;
+#     rdfs:subClassOf :Dog .
+
