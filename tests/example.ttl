@@ -3,6 +3,7 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
 @base <http://my.ont.example#> .
 
 :Dog a rdfs:Class ;
@@ -58,3 +59,28 @@
 # namespace hijacking: violation detected
 skos:Creature a rdfs:Class ;
     owl:equivalentClass :Organism .
+
+# SHACL Shapes
+:ShrimpShape a sh:NodeShape;
+  rdfs:label     "Shrimp";
+  sh:targetClass :Shrimp;
+  sh:property    :hasClaws . # ignore for now
+
+:Shrimp a owl:Class ;
+  rdfs:subClassOf :Animal .
+
+:hasClawsShape a sh:PropertyShape ;
+  sh:path  :hasClaws ; # target property
+  sh:class :Claw ;
+  sh:name  "Has Claws" .
+
+:hasClaws a owl:ObjectProperty ;
+  rdfs:domain :Shrimp ;
+  rdfs:label  "Has Claws" ;
+  rdfs:range  :Claw .
+
+:Crab a sh:NodeShape ;
+  a owl:Class ;
+  sh:name         "Crab" ;
+  rdfs:subClassOf :Animal ;
+  sh:property     :hasClaws .

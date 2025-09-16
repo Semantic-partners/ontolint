@@ -34,7 +34,7 @@ WHERE {
 }
 """
 
-# Domain or Range violations.
+# Domain or Range violations of data.
 validation_query = """
 SELECT ?s ?p ?o ?domain ?range WHERE {
     ?s ?p ?o .
@@ -259,7 +259,7 @@ WHERE {
 class_missing_label = """
 SELECT DISTINCT ?c
 WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
+  VALUES ?type { owl:Class rdfs:Class sh:NodeShape }
   ?c a ?type .
   FILTER NOT EXISTS { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
@@ -500,6 +500,28 @@ WHERE {
 }
 """
 
+# Count SHACL Shapes
+node_shapes = """
+SELECT (COUNT(DISTINCT ?s) AS ?shapeCount)
+WHERE {
+  ?s a sh:NodeShape .
+}
+"""
+property_shapes = """
+SELECT (COUNT(DISTINCT ?s) AS ?shapeCount)
+WHERE {
+  ?s a sh:PropertyShape .
+}
+"""
+
+# nodeshapes and property shapes use different predicates: sh:name and sh:description
+# also we can do another profiling.. number of classes that are specified in nodeshapes.
+# basically here you need to check either if a class is both a class and nodeshape, or a class is defined in the object of sh:targetClass
+# similar for properties.. the % of properties defined in property shapes through sh:path
+# that will give us a clearer idea of what classes have constraints attached to them
+
+# TODO: add SHACL metrics at the bottom; implement Node profilings.
+
 def get_namespace(uri):
     """Extract namespace from a URIRef."""
     if '#' in uri:
@@ -570,7 +592,23 @@ def main():
         print(f"Found {row.classCount} classes and {row.propertyCount} properties.")
         qa_metrics['classCount']= row.classCount
         qa_metrics['propertyCount'] = row.propertyCount
-        
+  
+    results = g.query(node_shapes)
+    if results:
+        (row,) = results
+        print(f"Found {row.shapeCount} SHACL Node Shapes.")
+        qa_metrics['nodeShapes'] = row.shapeCount
+    else:
+        qa_metrics['nodeShapes'] = 0
+
+    results = g.query(property_shapes)
+    if results:
+        (row,) = results
+        print(f"Found {row.shapeCount} SHACL Property Shapes.")
+        qa_metrics['propertyShapes'] = row.shapeCount
+    else:
+        qa_metrics['propertyShapes'] = 0
+    
     print("-" * 20)
 
     # List all used prefixes
