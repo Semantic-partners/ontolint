@@ -382,9 +382,19 @@ WHERE {
    { ?s rdfs:range ?c . }
   # Exclude built-in vocabulary
   FILTER (
-    !regex(STR(?c), "^http://www.w3.org/2002/07/owl#") &&
-    !regex(STR(?c), "^http://www.w3.org/2000/01/rdf-schema#") &&
-    !regex(STR(?c), "^http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+    !regex(STR(?c), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") &&
+    !regex(STR(?c), "^http://www.w3.org/2000/01/rdf-schema") &&
+    !regex(STR(?c), "^http://www.w3.org/2001/XMLSchema") &&
+    !regex(STR(?c), "^http://www.w3.org/2002/07/owl") &&
+    !regex(STR(?c), "^http://www.w3.org/2004/02/skos/core") &&
+    !regex(STR(?c), "^http://www.w3.org/ns/shacl") &&
+    !regex(STR(?c), "^http://www.w3.org/XML/1998/namespace") &&
+    !regex(STR(?c), "^http://purl.org/dc/terms") &&
+    !regex(STR(?c), "^http://purl.org/dc/elements/1.1") &&
+    !regex(STR(?c), "^http://purl.org/vocab/vann") &&
+    !regex(STR(?c), "^http://purl.org/ontology/bibo/status") &&
+    !regex(STR(?c), "^http://xmlns.com/foaf/0.1") &&
+    !regex(STR(?c), "^http://www.linkedmodel.org/1.2/schema/vaem")
   )
   # Exclude classes that are explicitly typed as owl:Class or rdfs:Class
   FILTER ( NOT EXISTS { ?c rdf:type owl:Class . } && NOT EXISTS { ?c rdf:type rdfs:Class . } )
@@ -401,12 +411,19 @@ WHERE {
 
   # Exclude built-in vocabulary
   FILTER (
-    !regex(STR(?p), "^http://www.w3.org/2002/07/owl#") &&
-    !regex(STR(?p), "^http://www.w3.org/2000/01/rdf-schema#") &&
-    !regex(STR(?p), "^http://www.w3.org/1999/02/22-rdf-syntax-ns#") &&
-    !regex(STR(?p), "^http://www.w3.org/2004/02/skos/core#") &&
-    !regex(STR(?p), "^http://www.w3.org/2001/XMLSchema#") &&
-    !regex(STR(?p), "^http://purl.org/dc/terms#")
+    !regex(STR(?p), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") &&
+    !regex(STR(?p), "^http://www.w3.org/2000/01/rdf-schema") &&
+    !regex(STR(?p), "^http://www.w3.org/2001/XMLSchema") &&
+    !regex(STR(?p), "^http://www.w3.org/2002/07/owl") &&
+    !regex(STR(?p), "^http://www.w3.org/2004/02/skos/core") &&
+    !regex(STR(?p), "^http://www.w3.org/ns/shacl") &&
+    !regex(STR(?p), "^http://www.w3.org/XML/1998/namespace") &&
+    !regex(STR(?p), "^http://purl.org/dc/terms") &&
+    !regex(STR(?p), "^http://purl.org/dc/elements/1.1") &&
+    !regex(STR(?p), "^http://purl.org/ontology/bibo/status") &&
+    !regex(STR(?p), "^http://purl.org/vocab/vann") &&
+    !regex(STR(?p), "^http://xmlns.com/foaf/0.1") &&
+    !regex(STR(?p), "^http://www.linkedmodel.org/1.2/schema/vaem")
   )
 
   # Exclude properties that are explicitly typed
@@ -440,15 +457,19 @@ WHERE {
   }
   # Detect if the class URI starts with a known external namespace
   FILTER (
-    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns#") ||
-    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema#") ||
-    regex(STR(?resource), "^http://www.w3.org/2002/07/owl#") ||
+    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") ||
+    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema") ||
+    regex(STR(?resource), "^http://www.w3.org/2001/XMLSchema") ||
+    regex(STR(?resource), "^http://www.w3.org/2002/07/owl") ||
     regex(STR(?resource), "^http://www.w3.org/2004/02/skos/core") ||
+    regex(STR(?resource), "^http://www.w3.org/ns/shacl") ||
     regex(STR(?resource), "^http://www.w3.org/XML/1998/namespace") ||
-    regex(STR(?resource), "^http://purl.org/dc/elements/1.1/") ||
-    regex(STR(?resource), "^http://purl.org/dc/terms/") ||
-    regex(STR(?resource), "^http://purl.org/vocab/vann/") ||
-    regex(STR(?resource), "^http://xmlns.com/foaf/0.1/")
+    regex(STR(?resource), "^http://purl.org/dc/terms") ||
+    regex(STR(?resource), "^http://purl.org/dc/elements/1.1") ||
+    regex(STR(?resource), "^http://purl.org/vocab/vann") ||
+    regex(STR(?resource), "^http://purl.org/ontology/bibo/status") ||
+    regex(STR(?resource), "^http://xmlns.com/foaf/0.1") ||
+    regex(STR(?resource), "^http://www.linkedmodel.org/1.2/schema/vaem")
   )
 }
 """
@@ -462,15 +483,19 @@ WHERE {
   ?resource a ?type .
   # Detect if the class URI starts with a known external namespace
   FILTER (
-    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns#") ||
-    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema#") ||
-    regex(STR(?resource), "^http://www.w3.org/2002/07/owl#") ||
+    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") ||
+    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema") ||
+    regex(STR(?resource), "^http://www.w3.org/2001/XMLSchema") ||
+    regex(STR(?resource), "^http://www.w3.org/2002/07/owl") ||
     regex(STR(?resource), "^http://www.w3.org/2004/02/skos/core") ||
+    regex(STR(?resource), "^http://www.w3.org/ns/shacl") ||
     regex(STR(?resource), "^http://www.w3.org/XML/1998/namespace") ||
-    regex(STR(?resource), "^http://purl.org/dc/elements/1.1/") ||
-    regex(STR(?resource), "^http://purl.org/dc/terms/") ||
-    regex(STR(?resource), "^http://purl.org/vocab/vann/") ||
-    regex(STR(?resource), "^http://xmlns.com/foaf/0.1/")
+    regex(STR(?resource), "^http://purl.org/dc/terms") ||
+    regex(STR(?resource), "^http://purl.org/dc/elements/1.1") ||
+    regex(STR(?resource), "^http://purl.org/vocab/vann") ||
+    regex(STR(?resource), "^http://purl.org/ontology/bibo/status") ||
+    regex(STR(?resource), "^http://xmlns.com/foaf/0.1") ||
+    regex(STR(?resource), "^http://www.linkedmodel.org/1.2/schema/vaem")
   )
 }
 """
