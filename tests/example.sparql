@@ -71,3 +71,20 @@ WHERE {
 	}
 } group by ?class
 
+
+SELECT DISTINCT ?c
+WHERE {
+   { ?s rdf:type ?c . }
+   UNION
+   { ?s rdfs:domain ?c . }
+   UNION
+   { ?s rdfs:range ?c . }
+  # Exclude built-in vocabulary
+  FILTER (
+    !regex(STR(?c), "http://www.w3.org/2002/07/owl#") &&
+    !regex(STR(?c), "http://www.w3.org/2000/01/rdf-schema#") &&
+    !regex(STR(?c), "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+  )
+  # Exclude classes that are explicitly typed as owl:Class or rdfs:Class
+  FILTER ( NOT EXISTS { ?c rdf:type owl:Class . } && NOT EXISTS { ?c rdf:type rdfs:Class . } )
+}

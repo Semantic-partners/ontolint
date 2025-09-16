@@ -1,9 +1,9 @@
-@prefix : <http://my.ont.example/> .
+@prefix : <http://my.ont.example#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-
+@base <http://my.ont.example#> .
 
 :Dog a rdfs:Class ;
      rdfs:subClassOf :Animal .
@@ -46,7 +46,15 @@
 :hasScales a owl:ObjectProperty .
 :hasScales a rdf:Property .
 
-# violation detected
+# Including Cycles in a Class Hierarchy: violation detected
 #:Organism a owl:Class ;
 #     rdfs:subClassOf :Dog .
 
+# untyped class test: violation detected
+:hasFur a owl:ObjectProperty ;
+  rdfs:domain :Dog, :Cat ;
+  rdfs:range :Fur .
+
+# namespace hijacking: violation detected
+skos:Creature a rdfs:Class ;
+    owl:equivalentClass :Organism .
