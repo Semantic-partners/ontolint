@@ -426,32 +426,51 @@ HAVING (COUNT(DISTINCT ?ps) > 1)
 
 # Untyped class
 # Class without rdf:type owl:Class or rdfs:Class declaration
+# untyped_class = """
+# SELECT DISTINCT ?c
+# WHERE {
+#    { ?s rdf:type ?c . }
+#    UNION
+#    { ?s rdfs:domain ?c . }
+#    UNION
+#    { ?s rdfs:range ?c . }
+#   # Exclude built-in vocabulary
+#   FILTER (
+#     !regex(STR(?c), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") &&
+#     !regex(STR(?c), "^http://www.w3.org/2000/01/rdf-schema") &&
+#     !regex(STR(?c), "^http://www.w3.org/2001/XMLSchema") &&
+#     !regex(STR(?c), "^http://www.w3.org/2002/07/owl") &&
+#     !regex(STR(?c), "^http://www.w3.org/2004/02/skos/core") &&
+#     !regex(STR(?c), "^http://www.w3.org/ns/shacl") &&
+#     !regex(STR(?c), "^http://www.w3.org/XML/1998/namespace") &&
+#     !regex(STR(?c), "^http://purl.org/dc/terms") &&
+#     !regex(STR(?c), "^http://purl.org/dc/elements/1.1") &&
+#     !regex(STR(?c), "^http://purl.org/vocab/vann") &&
+#     !regex(STR(?c), "^http://purl.org/ontology/bibo/status") &&
+#     !regex(STR(?c), "^http://xmlns.com/foaf/0.1") &&
+#     !regex(STR(?c), "^http://www.linkedmodel.org/1.2/schema/vaem")
+#   )
+#   # Exclude classes that are explicitly typed as owl:Class or rdfs:Class
+#   FILTER ( NOT EXISTS { ?c rdf:type owl:Class . } && NOT EXISTS { ?c rdf:type rdfs:Class . } )
+# }
+# """
+
+# Refined version: only consider classes in the ontology namespace.
 untyped_class = """
 SELECT DISTINCT ?c
 WHERE {
-   { ?s rdf:type ?c . }
-   UNION
-   { ?s rdfs:domain ?c . }
-   UNION
-   { ?s rdfs:range ?c . }
-  # Exclude built-in vocabulary
-  FILTER (
-    !regex(STR(?c), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") &&
-    !regex(STR(?c), "^http://www.w3.org/2000/01/rdf-schema") &&
-    !regex(STR(?c), "^http://www.w3.org/2001/XMLSchema") &&
-    !regex(STR(?c), "^http://www.w3.org/2002/07/owl") &&
-    !regex(STR(?c), "^http://www.w3.org/2004/02/skos/core") &&
-    !regex(STR(?c), "^http://www.w3.org/ns/shacl") &&
-    !regex(STR(?c), "^http://www.w3.org/XML/1998/namespace") &&
-    !regex(STR(?c), "^http://purl.org/dc/terms") &&
-    !regex(STR(?c), "^http://purl.org/dc/elements/1.1") &&
-    !regex(STR(?c), "^http://purl.org/vocab/vann") &&
-    !regex(STR(?c), "^http://purl.org/ontology/bibo/status") &&
-    !regex(STR(?c), "^http://xmlns.com/foaf/0.1") &&
-    !regex(STR(?c), "^http://www.linkedmodel.org/1.2/schema/vaem")
-  )
-  # Exclude classes that are explicitly typed as owl:Class or rdfs:Class
-  FILTER ( NOT EXISTS { ?c rdf:type owl:Class . } && NOT EXISTS { ?c rdf:type rdfs:Class . } )
+  { ?s rdfs:domain ?c . }
+  UNION
+  { ?s rdfs:range ?c . }
+  UNION
+  { ?s sh:class ?c . }
+  OPTIONAL { ?ontologyIRI a owl:Ontology . }
+
+  # Only consider entities in the ontology namespace.
+  FILTER ( regex( STR(?c), STR(?ontologyIRI) ) )
+
+  # Exclude classes that are explicitly typed
+  FILTER ( NOT EXISTS { ?c rdf:type owl:Class } && NOT EXISTS { ?c rdf:type rdfs:Class } )
 }
 """
 
@@ -462,23 +481,10 @@ SELECT DISTINCT ?p
 WHERE {
   # Find resources used as predicates
   ?s ?p ?o .
+  OPTIONAL { ?ontologyIRI a owl:Ontology . }
 
-  # Exclude built-in vocabulary
-  FILTER (
-    !regex(STR(?p), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") &&
-    !regex(STR(?p), "^http://www.w3.org/2000/01/rdf-schema") &&
-    !regex(STR(?p), "^http://www.w3.org/2001/XMLSchema") &&
-    !regex(STR(?p), "^http://www.w3.org/2002/07/owl") &&
-    !regex(STR(?p), "^http://www.w3.org/2004/02/skos/core") &&
-    !regex(STR(?p), "^http://www.w3.org/ns/shacl") &&
-    !regex(STR(?p), "^http://www.w3.org/XML/1998/namespace") &&
-    !regex(STR(?p), "^http://purl.org/dc/terms") &&
-    !regex(STR(?p), "^http://purl.org/dc/elements/1.1") &&
-    !regex(STR(?p), "^http://purl.org/ontology/bibo/status") &&
-    !regex(STR(?p), "^http://purl.org/vocab/vann") &&
-    !regex(STR(?p), "^http://xmlns.com/foaf/0.1") &&
-    !regex(STR(?p), "^http://www.linkedmodel.org/1.2/schema/vaem")
-  )
+  # Only consider entities in the ontology namespace.
+  FILTER ( regex( STR(?p), STR(?ontologyIRI) ) )
 
   # Exclude properties that are explicitly typed
   FILTER (
@@ -1059,6 +1065,8 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without rdf:type owl:Class or rdfs:Class declaration:")
         for row in results:
             print(f" - {row.c}")
+    if not qa_metrics['ontologyDeclared']:
+      print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
     print("-" * 20)
 
      # Untyped property
@@ -1072,6 +1080,8 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without rdf:Property, owl:ObjectProperty, or owl:DatatypeProperty declaration:")
         for row in results:
             print(f" - {row.p}")
+    if not qa_metrics['ontologyDeclared']:
+      print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
     print("-" * 20)
 
      # Namespace hijacking
