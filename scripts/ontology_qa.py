@@ -588,13 +588,13 @@ WHERE {
 """
 
 # Number of properties specified in PropertyShapes through sh:path
-# What about the sh:property in NodeShapes that point to blank nodes?
+# The blank nodes created by sh:property in NodeShapes are also counted.
 property_in_property_shape = """
 SELECT DISTINCT ?ps ?prop
 WHERE {
   ?ps a sh:PropertyShape .
   ?ps sh:path ?prop .
-  VALUES ?type { owl:ObjectProperty rdf:Property }
+  VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
   ?prop a ?type .
 }
 """

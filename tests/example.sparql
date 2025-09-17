@@ -4,6 +4,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX dcterms: <http://purl.org/dc/terms#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 
 SELECT DISTINCT ?c ?p WHERE {
     ?c a rdfs:Class .
@@ -87,4 +88,20 @@ WHERE {
   )
   # Exclude classes that are explicitly typed as owl:Class or rdfs:Class
   FILTER ( NOT EXISTS { ?c rdf:type owl:Class . } && NOT EXISTS { ?c rdf:type rdfs:Class . } )
+}
+
+
+# Property Shape Count
+SELECT (COUNT(DISTINCT ?ps) AS ?shapeCount)
+WHERE {
+  ?ps a sh:PropertyShape .
+}
+
+
+SELECT DISTINCT ?ps ?prop
+WHERE {
+  ?ps a sh:PropertyShape .
+  ?ps sh:path ?prop .
+  VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
+  ?prop a ?type .
 }
