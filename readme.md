@@ -43,17 +43,17 @@ And QA metrics:
 | Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives rdf:Property, owl:ObjectProperty or owl:DatatypeProperty. The value refers to the actual number of untyped properties, as they do not apper in the total class count. |
 | Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. |
 
-For example, the test ontology [`example.ttl`](tests/example.ttl) returns the following metrics:
+For example, the test ontology [`example.ttl`](tests/example.ttl) returns the following results:
 
-Profiling Metrics
+#### Profiling Metrics
 
-| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Classes in NodeShapes | Properties specified in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabulary Used | 
+| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Classes in NodeShapes | Properties in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | 
 |--|--|--|--|--|--|--|--|--|--|--|
 | tests/example.ttl | 59 | 10 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 5 |
 
-Quality Metrics
+#### Quality Metrics
 
 | Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Missing Domain/Range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| tests/example.ttl | no | 0 | 0.700 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 2 | 3 | 0 | 0 | 2 | 0 | 1 |
+| tests/example.ttl | no | 0 | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.600 | 0 | 0 | 2 | 0 | 1 |
 

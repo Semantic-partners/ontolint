@@ -1106,8 +1106,10 @@ def main():
     print(f"| {normalise(qa_metrics['nonUniquePropertyLabels'],qa_metrics['propertyCount'])} ", end="")
     print(f"| {normalise(qa_metrics['nonUniqueNSLabels'],qa_metrics['nodeShapes'])} ", end="")
     print(f"| {normalise(qa_metrics['nonUniquePSLabels'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {qa_metrics['isolatedClasses']} | {qa_metrics['missingDomainRange']} ", end="")
-    print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} | {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
+    print(f"| {normalise(qa_metrics['isolatedClasses'],qa_metrics['classCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingDomainRange'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} ", end="")
+    print(f"| {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
 
     # Domain or Range violations (From original Simon's script)
     #print("\nRunning validation query to find violations...")
