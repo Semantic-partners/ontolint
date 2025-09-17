@@ -641,6 +641,8 @@ def normalise(count, total):
     total = float(total)
     if total > 0:
         out = count / total
+    else:
+        out = 0
     if out > 0:
       out = f"{out:.3f}"
     else:
@@ -1081,7 +1083,7 @@ def main():
     
     # Profiling
     print("\nProfiling Metrics\n")
-    print("| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Classes in NodeShapes | Properties specified in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | ")
+    print("| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Classes in NodeShapes | Properties in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | ")
     print("|--|--|--|--|--|--|--|--|--|--|--|")
     print(f"| {name} | {qa_metrics['triples']} | {qa_metrics['classCount']} | {qa_metrics['propertyCount']} | {qa_metrics['nodeShapes']} | {qa_metrics['propertyShapes']} | {qa_metrics['classesInNodeShapes']} | {qa_metrics['propertiesInPropertyShapes']} | {qa_metrics['deprecatedClasses']} | {qa_metrics['deprecatedProperties']} | {qa_metrics['vocabulariesUsed']} |")
 
