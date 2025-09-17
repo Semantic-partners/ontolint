@@ -36,7 +36,8 @@ And QA metrics:
 | NodeShapes with the same label                | Same as above.                                               |
 | PropertyShapes with the same label            | Same as above.                                               |
 | Number of isolated classes                    | Classes declared but never used in any triple that connects them to the rest of the ontology. |
-| Missing Domain or Range in Properties         | Properties without rdfs:domain or rdfs:range declaration. The value goes from 0 (no violations) to 2 (all domain and range missing) |
+| Property without domain                       | Property without rdfs:domain declaration.                    |
+| Property without range                        | Property without rdfs:range declaration.                     |
 | Non-unique identifiers                        | The same identifier is used to define multiple owl:Class, rdfs:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, or owl:AnnotationProperty. The value refers to the total count. |
 | Subclass Cycles                               | Classes involved in a rdfs:subClassOf+ cycle.  The value refers to the total count. |
 | Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives owl:Class or rdfs:Class. The value refers to the actual number of untyped classes, as they do not apper in the total class count. |
@@ -53,7 +54,7 @@ For example, the test ontology [`example.ttl`](tests/example.ttl) returns the fo
 
 #### Quality Metrics
 
-| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Missing Domain/Range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| tests/example.ttl | no | 0 | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.600 | 0 | 0 | 2 | 0 | 1 |
+| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+| tests/example.ttl | no | 0 | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.200 | 0.600 | 0 | 0 | 2 | 0 | 1 |
 

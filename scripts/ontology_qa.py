@@ -996,6 +996,8 @@ def main():
     # Missing Domain or Range in Properties
     qan = qa_check_results("Missing Domain or Range in Properties",qan)
     results = g.query(ic2_missing_dr_property)
+    dCount = 0
+    rCount = 0
     if not results:
         print("PASS - All properties have domain and range defined.")
         qa_metrics['missingDomainRange'] = 0
@@ -1004,7 +1006,20 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingDomainRange']} properties without rdfs:domain or rdfs:range declaration:")
         print(f"Property","Domain","Range",sep="\t")
         for row in results:
-            print(f"{row.p}","\t",f"{row.domain if row.domain else 'None'}","\t",f"{row.range if row.range else 'None'}",sep="")
+            predicate = row.p
+            if row.domain:
+                domain = row.domain
+            else:
+                domain = 'None'
+                dCount += 1
+            if row.range:
+                range = row.range
+            else:
+                range = 'None'
+                rCount += 1
+            print(f"{predicate}\t{domain}\t{range}", sep="")
+    qa_metrics['missingDomain'] = dCount
+    qa_metrics['missingRange']  = rCount
     print("-" * 20)
 
     # Non-unique identifiers
@@ -1091,9 +1106,10 @@ def main():
     print("\nQuality Metrics\n")
     print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
     print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
-    print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Missing Domain/Range ", end="")
+    print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
+    print(f"| Property without domain | Property without range ", end="")
     print(f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |")
-    print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
+    print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
     print(f"| {name} | {ont} | {qa_metrics['ontologyDescription']} | {normalise(qa_metrics['missingClassLabel'],qa_metrics['classCount'])} ", end="")
     print(f"| {normalise(qa_metrics['missingPropertyLabel'],qa_metrics['propertyCount'])} ", end="")
     print(f"| {normalise(qa_metrics['missingNSLabel'],qa_metrics['nodeShapes'])} ", end="")
@@ -1107,7 +1123,8 @@ def main():
     print(f"| {normalise(qa_metrics['nonUniqueNSLabels'],qa_metrics['nodeShapes'])} ", end="")
     print(f"| {normalise(qa_metrics['nonUniquePSLabels'],qa_metrics['propertyShapes'])} ", end="")
     print(f"| {normalise(qa_metrics['isolatedClasses'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingDomainRange'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingDomain'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingRange'],qa_metrics['propertyCount'])} ", end="")
     print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} ", end="")
     print(f"| {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
 
