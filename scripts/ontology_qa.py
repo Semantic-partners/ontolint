@@ -259,7 +259,7 @@ WHERE {
 class_missing_label = """
 SELECT DISTINCT ?c
 WHERE {
-  VALUES ?type { owl:Class rdfs:Class sh:NodeShape }
+  VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   FILTER NOT EXISTS { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
