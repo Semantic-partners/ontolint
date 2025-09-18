@@ -229,27 +229,21 @@ isu1_missing_annotations = """
 SELECT DISTINCT ?c ?p
 WHERE {
   {
+    VALUES ?type { owl:Class rdfs:Class }
     ?c a ?type .
-    FILTER( ?type IN (
-        owl:Class,
-        rdfs:Class
-    ))
+    FILTER(isIRI(?c))
     FILTER (
-      NOT EXISTS { ?c rdfs:label   ?lbl   }
-      ||
+      NOT EXISTS { ?c rdfs:label   ?lbl   } ||
       NOT EXISTS { ?c rdfs:comment ?cmt   }
     )
   }
   UNION
   {
+    VALUES ?ptype { owl:ObjectProperty rdf:Property }
     ?p a ?ptype .
-    FILTER( ?ptype IN (
-          rdf:Property,
-          owl:ObjectProperty
-    ))
+    FILTER(isIRI(?p))
     FILTER (
-      NOT EXISTS { ?p rdfs:label   ?lbl2  }
-      ||
+      NOT EXISTS { ?p rdfs:label   ?lbl2  } ||
       NOT EXISTS { ?p rdfs:comment ?cmt2  }
     )
   }
@@ -270,6 +264,7 @@ SELECT DISTINCT ?p
 WHERE {
   VALUES ?type { owl:ObjectProperty rdf:Property }
   ?p a ?type .
+  FILTER(isIRI(?p))
   FILTER NOT EXISTS { ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
@@ -278,6 +273,7 @@ node_shape_missing_label = """
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
+  FILTER(isIRI(?ns))
   FILTER NOT EXISTS { ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
@@ -286,6 +282,7 @@ property_shape_missing_label = """
 SELECT ?ps
 WHERE {
   ?ps a sh:PropertyShape .
+  FILTER(isIRI(?ps))
   FILTER NOT EXISTS { ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
@@ -295,6 +292,7 @@ SELECT DISTINCT ?c
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
+  FILTER(isIRI(?c))
   FILTER NOT EXISTS { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
@@ -304,6 +302,7 @@ SELECT DISTINCT ?p
 WHERE {
   VALUES ?type { owl:ObjectProperty rdf:Property }
   ?p a ?type .
+  FILTER(isIRI(?p))
   FILTER NOT EXISTS { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
@@ -312,6 +311,7 @@ node_shape_missing_comment = """
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
+  FILTER(isIRI(?ns))
   FILTER NOT EXISTS { ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
@@ -320,6 +320,7 @@ property_shape_missing_comment = """
 SELECT DISTINCT ?ps
 WHERE {
   ?ps a sh:PropertyShape .
+  FILTER(isIRI(?ps))
   FILTER NOT EXISTS { ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
@@ -336,6 +337,7 @@ WHERE {
    WHERE {
     VALUES ?type { owl:Class rdfs:Class }
     ?c a ?type .
+    FILTER(isIRI(?c))
    }
  }
  {
@@ -343,6 +345,7 @@ WHERE {
    WHERE {
     VALUES ?type { owl:ObjectProperty rdf:Property }
     ?p a ?type .
+    FILTER(isIRI(?p))
    }
  }
 }
@@ -358,6 +361,7 @@ WHERE {
     WHERE {
       VALUES ?type { owl:Class rdfs:Class }
       ?c a ?type .
+      FILTER(isIRI(?c))
       {
         # subclass and superclass relationships
         { ?class rdfs:subClassOf ?link }
@@ -464,9 +468,12 @@ WHERE {
   { ?s rdfs:range ?c . }
   UNION
   { ?s sh:class ?c . }
-  OPTIONAL { ?ontologyIRI a owl:Ontology . }
+  
+  # exclude blank nodes
+  FILTER(isIRI(?c))
 
   # Only consider entities in the ontology namespace.
+  OPTIONAL { ?ontologyIRI a owl:Ontology . }
   FILTER ( regex( STR(?c), STR(?ontologyIRI) ) )
 
   # Exclude classes that are explicitly typed
@@ -481,9 +488,12 @@ SELECT DISTINCT ?p
 WHERE {
   # Find resources used as predicates
   ?s ?p ?o .
-  OPTIONAL { ?ontologyIRI a owl:Ontology . }
+
+  # exclude blank nodes
+  FILTER(isIRI(?s))
 
   # Only consider entities in the ontology namespace.
+  OPTIONAL { ?ontologyIRI a owl:Ontology . }
   FILTER ( regex( STR(?p), STR(?ontologyIRI) ) )
 
   # Exclude properties that are explicitly typed
@@ -517,19 +527,10 @@ WHERE {
   }
   # Detect if the class URI starts with a known external namespace
   FILTER (
-    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") ||
-    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema") ||
-    regex(STR(?resource), "^http://www.w3.org/2001/XMLSchema") ||
-    regex(STR(?resource), "^http://www.w3.org/2002/07/owl") ||
-    regex(STR(?resource), "^http://www.w3.org/2004/02/skos/core") ||
-    regex(STR(?resource), "^http://www.w3.org/ns/shacl") ||
-    regex(STR(?resource), "^http://www.w3.org/XML/1998/namespace") ||
-    regex(STR(?resource), "^http://purl.org/dc/terms") ||
-    regex(STR(?resource), "^http://purl.org/dc/elements/1.1") ||
-    regex(STR(?resource), "^http://purl.org/vocab/vann") ||
-    regex(STR(?resource), "^http://purl.org/ontology/bibo/status") ||
-    regex(STR(?resource), "^http://xmlns.com/foaf/0.1") ||
-    regex(STR(?resource), "^http://www.linkedmodel.org/1.2/schema/vaem")
+    regex(STR(?resource), "^http://www.w3.org/") ||
+    regex(STR(?resource), "^http://purl.org/") ||
+    regex(STR(?resource), "^http://xmlns.com/") ||
+    regex(STR(?resource), "^http://www.linkedmodel.org/")
   )
 }
 """
@@ -543,19 +544,10 @@ WHERE {
   ?resource a ?type .
   # Detect if the class URI starts with a known external namespace
   FILTER (
-    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") ||
-    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema") ||
-    regex(STR(?resource), "^http://www.w3.org/2001/XMLSchema") ||
-    regex(STR(?resource), "^http://www.w3.org/2002/07/owl") ||
-    regex(STR(?resource), "^http://www.w3.org/2004/02/skos/core") ||
-    regex(STR(?resource), "^http://www.w3.org/ns/shacl") ||
-    regex(STR(?resource), "^http://www.w3.org/XML/1998/namespace") ||
-    regex(STR(?resource), "^http://purl.org/dc/terms") ||
-    regex(STR(?resource), "^http://purl.org/dc/elements/1.1") ||
-    regex(STR(?resource), "^http://purl.org/vocab/vann") ||
-    regex(STR(?resource), "^http://purl.org/ontology/bibo/status") ||
-    regex(STR(?resource), "^http://xmlns.com/foaf/0.1") ||
-    regex(STR(?resource), "^http://www.linkedmodel.org/1.2/schema/vaem")
+    regex(STR(?resource), "^http://www.w3.org/") ||
+    regex(STR(?resource), "^http://purl.org/") ||
+    regex(STR(?resource), "^http://xmlns.com/") ||
+    regex(STR(?resource), "^http://www.linkedmodel.org/")
   )
 }
 """
@@ -571,6 +563,7 @@ property_shape = """
 SELECT (COUNT(DISTINCT ?ps) AS ?shapeCount)
 WHERE {
   ?ps a sh:PropertyShape .
+  FILTER(isIRI(?ps))
 }
 """
 
@@ -593,12 +586,23 @@ WHERE {
 } GROUP BY ?ns
 """
 
-# Number of properties specified in PropertyShapes through sh:path
+# Number of locally defined properties specified in PropertyShapes through sh:path
 # The blank nodes created by sh:property in NodeShapes are also counted.
+# This behaviour can be disabled with FILTER(isIRI(?ps)) 
 property_in_property_shape = """
 SELECT DISTINCT ?ps ?prop
 WHERE {
-  ?ps a sh:PropertyShape .
+  {
+    ?ps a sh:PropertyShape .
+  }
+  UNION
+  {
+    # Include blank nodes that are not explicitly declared as a sh:PropertyShape
+    ?ns a sh:NodeShape .
+    ?ns sh:property ?propertyShape .
+    ?propertyShape sh:path ?prop .
+    BIND(?propertyShape AS ?ps)
+  } 
   ?ps sh:path ?prop .
   VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
   ?prop a ?type .
@@ -655,6 +659,9 @@ def normalise(count, total):
         out = 0
     return out
 
+def sep():
+    print("\n","-" * 20)
+
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
@@ -682,13 +689,12 @@ def main():
         except Exception as e:
             print(f"Failed to parse {f} ({fmt if fmt else 'auto'}): {e}")
             continue
-    print("")
 
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
-    print("-" * 20)
-    print(f"Profiling Metrics")
-    print("-" * 20)
+    sep()
+    print(f"## Profiling Metrics")
+    sep()
     print(f"\nInitial graph size: {qa_metrics['triples']} triples")
 
     # Count initial classes, properties, and shapes.
@@ -722,9 +728,9 @@ def main():
     results = g.query(classes_in_node_shape)
     if results:
         total_classes_in_shapes = sum(int(row.classCount) for row in results)
-        print(f"\nClasses specified in Node Shapes: {total_classes_in_shapes}")
+        print(f"\nLocal classes in Node Shapes: {total_classes_in_shapes}")
         qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
-        print(f"NodeShape\tClasses:")
+        print(f"NodeShape\tClass count:")
         for row in results:
             print(f" - {row.ns}\t{row.classCount}")
     else:
@@ -735,20 +741,13 @@ def main():
     results = g.query(property_in_property_shape)
     if results:
         total_properties_in_shapes = len(results)
-        print(f"Properties specified in Property Shapes: {total_properties_in_shapes}")
+        print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
         qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-        print(f"PropertyShape\tProperty:")
+        print(f"PropertyShape\tLocal Property:")
         for row in results:
             print(f" - {row.ps}\t{row.prop}")
     else:
         qa_metrics['propertiesInPropertyShapes'] = 0
-
-    # List all used prefixes
-    active_prefixes = prefixes(g)
-    qa_metrics['vocabulariesUsed'] = len(active_prefixes)
-    print(f"\nExternal vocabularies declared: {qa_metrics['vocabulariesUsed']}")
-    for pfx, ns in active_prefixes.items():
-        print(f" - {pfx}: {ns}")
 
     # Number of Deprecated Classes and Properties
     print(f"\nDeprecated classes:", end=" ")
@@ -763,10 +762,10 @@ def main():
       for row in results:
           print(f" - {row.c}")
 
-    print(f"\nDeprecated properties:", end=" ")
+    print(f"Deprecated properties:", end=" ")
     results = g.query(deprecated_property)
     if not results:
-      print("0\n")
+      print(" 0")
       qa_metrics['deprecatedProperties'] = 0
     else:
       qa_metrics['deprecatedProperties'] = len(results)
@@ -774,7 +773,25 @@ def main():
       print(f"List of deprecated properties:")
       for row in results:
           print(f" - {row.p}")
-    print("-" * 20)
+
+    # List all used prefixes
+    active_prefixes = prefixes(g)
+    results = g.query(ism1_no_owl_declaration)
+    if results:
+        for row in results:
+            # Remove ontology namespace from active_prefixes
+            to_remove = []
+            for row in results:
+                for pfx, ns in active_prefixes.items():
+                    if str(row.ont) == ns: to_remove.append(pfx)
+            for pfx in to_remove:
+                del active_prefixes[pfx]
+
+    qa_metrics['vocabulariesUsed'] = len(active_prefixes)
+    print(f"\nExternal vocabularies declared: {qa_metrics['vocabulariesUsed']}")
+    for pfx, ns in active_prefixes.items():
+        print(f" - {pfx}: {ns}")
+    sep()
 
     # 2. Simulate Inference
     print("\nApplying Subclass inference rule iteratively...")
@@ -796,14 +813,14 @@ def main():
             print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
 
     print(f"Final graph size after inference: {len(g)} triples.\n")
-    print("-" * 20)
-    print(f"Running QA Metrics")
-    print("-" * 20)
+    sep()
+    print(f"## QA Metrics")
+    sep()
 
     # ISM1 No OWL ontology declaration
     qan = 1
     qan = qa_check_results("OWL ontology declaration",qan)
-    results = g.query(ism1_no_owl_declaration)
+    # results = g.query(ism1_no_owl_declaration) # moved before the dictionary count.
     if not results:
         print(f"VIOLATION - No owl:Ontology declaration found.")
         qa_metrics['ontologyDeclared'] = 0
@@ -817,7 +834,7 @@ def main():
             print(f" - {row.ont}")
             qa_metrics['ontologyDeclared'] += " {row.ont}"
     
-    print("-" * 20)
+    sep()
 
     # Missing ontology description.
     if len(results) > 0:
@@ -835,7 +852,7 @@ def main():
         print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
         qan += 1
         qa_metrics['ontologyDescription'] = 0 
-    print("-" * 20)
+    sep()
 
     # Missing Annotations
     qan = qa_check_results("Classes missing label annotations",qan)
@@ -848,7 +865,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
         for t in results:
           print(f" - {t[0]}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("Properties missing label annotations",qan)
     results = g.query(property_missing_label)
@@ -860,7 +877,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingPropertyLabel']} properties missing a label annotation.")
         for t in results:
           print(f" - {t[0]}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("NodeShape missing label annotations",qan)
     results = g.query(node_shape_missing_label)
@@ -872,7 +889,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingNSLabel']} NodeShape missing a label annotation.")
         for row in results:
           print(f" - {row.ns}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("PropertyShape missing label annotations",qan)
     results = g.query(property_shape_missing_label)
@@ -884,7 +901,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingPSLabel']} PropertyShape missing a label annotation.")
         for row in results:
           print(f" - {row.ps}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("Classes missing description annotations",qan)
     results = g.query(class_missing_comment)
@@ -896,7 +913,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingClassDescription']} classes missing a description annotation:")
         for t in results:
           print(f" - {t[0]}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("Properties missing description annotations",qan)
     results = g.query(property_missing_comment)
@@ -908,7 +925,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingPropertyDescription']} properties missing a description annotation.")
         for t in results:
           print(f" - {t[0]}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("NodeShape missing description annotations",qan)
     results = g.query(node_shape_missing_comment)
@@ -920,7 +937,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingNSDescription']} NodeShape missing a description annotation:")
         for row in results:
           print(f" - {row.ns}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("PropertyShape missing description annotations",qan)
     results = g.query(property_shape_missing_comment)
@@ -932,7 +949,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['missingPSDescription']} PropertyShape missing a description annotation:")
         for row in results:
           print(f" - {row.ps}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("Classes with the same label",qan)
     results = g.query(class_same_label)
@@ -945,7 +962,7 @@ def main():
         print(f"- Label\t\tClasses")
         for row in results:
             print(f" - \"{row.label}\"\t{row.classes}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("Properties with the same label",qan)
     results = g.query(property_same_label)
@@ -958,7 +975,7 @@ def main():
         print(f"- Label\t\tProperties")
         for row in results:
             print(f" - \"{row.label}\"\t{row.properties}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("NodeShapes with the same label",qan)
     results = g.query(node_shape_same_label)
@@ -971,7 +988,7 @@ def main():
         print(f"- Label\t\tNodeShapes")
         for row in results:
             print(f" - \"{row.label}\"\t{row.nsList}")
-    print("-" * 20)
+    sep()
 
     qan = qa_check_results("PropertyShapes with the same label",qan)
     results = g.query(node_shape_same_label)
@@ -984,7 +1001,7 @@ def main():
         print(f"- Label\t\PropertyShapes")
         for row in results:
             print(f" - \"{row.label}\"\t{row.nsList}")
-    print("-" * 20)
+    sep()
 
     # Number of Isolated Classes
     qan = qa_check_results("Number of isolated classes",qan)
@@ -997,7 +1014,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['isolatedClasses']} isolated classes:")
         for row in results:
           print(f" - {row[0]}")
-    print("-" * 20)
+    sep()
 
     # Missing Domain or Range in Properties
     qan = qa_check_results("Missing Domain or Range in Properties",qan)
@@ -1026,7 +1043,7 @@ def main():
             print(f"{predicate}\t{domain}\t{range}", sep="")
     qa_metrics['missingDomain'] = dCount
     qa_metrics['missingRange']  = rCount
-    print("-" * 20)
+    sep()
 
     # Non-unique identifiers
     qan = qa_check_results("Non-unique identifiers",qan)
@@ -1039,7 +1056,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers:")
         for row in results:
             print(f"IRI: {row.iri} - Declared as: {row.declaredAs}")
-    print("-" * 20)
+    sep()
 
     # IO2 Including Cycles in a Class Hierarchy
     qan = qa_check_results("Including Cycles in a Class Hierarchy",qan)
@@ -1052,7 +1069,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['subclassCycles']} classes involved in subclass cycles:")
         for row in results:
             print(f" - {row.c}")
-    print("-" * 20)
+    sep()
 
     # Untyped class
     qan = qa_check_results("Untyped class",qan)
@@ -1067,7 +1084,7 @@ def main():
             print(f" - {row.c}")
     if not qa_metrics['ontologyDeclared']:
       print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
-    print("-" * 20)
+    sep()
 
      # Untyped property
     qan = qa_check_results("Untyped property",qan)
@@ -1082,7 +1099,7 @@ def main():
             print(f" - {row.p}")
     if not qa_metrics['ontologyDeclared']:
       print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
-    print("-" * 20)
+    sep()
 
      # Namespace hijacking
     qan = qa_check_results("Namespace hijacking",qan)
@@ -1095,7 +1112,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
         for row in results:
             print(f" - {row.resource}")
-    print("-" * 20)
+    sep()
 
     ################################################################################
     # Print a summary of the quality metrics in a markdown table.
@@ -1107,13 +1124,13 @@ def main():
       ont = "no"
     
     # Profiling
-    print("\nProfiling Metrics\n")
-    print("| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Classes in NodeShapes | Properties in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | ")
+    print("\n## Profiling Metrics\n")
+    print("| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Local classes in NodeShapes | Local properties in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | ")
     print("|--|--|--|--|--|--|--|--|--|--|--|")
     print(f"| {name} | {qa_metrics['triples']} | {qa_metrics['classCount']} | {qa_metrics['propertyCount']} | {qa_metrics['nodeShapes']} | {qa_metrics['propertyShapes']} | {qa_metrics['classesInNodeShapes']} | {qa_metrics['propertiesInPropertyShapes']} | {qa_metrics['deprecatedClasses']} | {qa_metrics['deprecatedProperties']} | {qa_metrics['vocabulariesUsed']} |")
 
     # QA metrics
-    print("\nQuality Metrics\n")
+    print("\n## Quality Metrics\n")
     print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
     print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
     print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
