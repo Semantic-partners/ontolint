@@ -11,7 +11,7 @@ A collection of scripts to assess the quality of ontologies.
 | Property count                                | Count number of owl:ObjectProperty or rdf:Property           |
 | NodeShape count                               | Count number of sh:NodeShape                                 |
 | PropertyShape count                           | Count number of sh:PropertyShape                             |
-| Local classes constrained in NodeShapes       | Number of elements defined as both a (rfds:Class or owl:Class) and sh:NodeShape, or a class defined in sh:NodeShape as the object of sh:targetClass |
+| Local classes constrained in NodeShapes       | Number of elements defined as both a (rdfs:Class or owl:Class) and sh:NodeShape, or a class defined in sh:NodeShape as the object of sh:targetClass |
 | Local properties constrained in PropertyShape | Number of (rdf:Property, owl:ObjectProperty, or owl:DatatypeProperty) defined in sh:PropertyShapes as the object of sh:path |
 | Number of deprecated classes                  | Elements marked as owl:DeprecatedClass                       |
 | Number of deprecated properties               | Elements marked as owl:DeprecatedProperty                    |
@@ -40,7 +40,7 @@ And QA metrics:
 | Property without range                        | Property without rdfs:range declaration.                     |
 | Non-unique identifiers                        | The same identifier is used to define multiple owl:Class, rdfs:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, or owl:AnnotationProperty. The value refers to the total count. |
 | Subclass cycles                               | Classes involved in a rdfs:subClassOf+ cycle.  The value refers to the total count. |
-| Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives owl:Class or rdfs:Class. The value refers to the actual number of untyped classes, as they do not apper in the total class count. |
+| Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives owl:Class or rdfs:Class. The value refers to the actual number of untyped classes, as they do not appear in the total class count. |
 | Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives rdf:Property, owl:ObjectProperty or owl:DatatypeProperty. The value refers to the actual number of untyped properties, as they do not appear in the total class count. |
 | Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. |
 

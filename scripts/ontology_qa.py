@@ -91,6 +91,7 @@ SELECT DISTINCT ?c
 WHERE {  
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
+  FILTER(isIRI(?c))
   FILTER NOT EXISTS {
     ?s rdfs:subClassOf|rdfs:domain|rdfs:range ?o .
     FILTER(?c IN (?s, ?o))
@@ -602,7 +603,7 @@ WHERE {
     ?ns sh:property ?propertyShape .
     ?propertyShape sh:path ?prop .
     BIND(?propertyShape AS ?ps)
-  } 
+  }
   ?ps sh:path ?prop .
   VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
   ?prop a ?type .
