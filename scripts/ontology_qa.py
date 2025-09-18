@@ -843,16 +843,20 @@ def main():
         results = g.query(no_ont_description)
         if not results:
             print("PASS - All ontologies have a description.")
-            qa_metrics['ontologyDescription'] = 0 
+            qa_metrics['ontologyDescription'] = "yes"
         else:
-            qa_metrics['ontologyDescription'] = len(results)
+            owd = len(results)
+            if owd == 1:
+                qa_metrics['ontologyDescription'] = "no"
+            else:
+                qa_metrics['ontologyDescription'] = f"{len(results)} violations"
             print(f"VIOLATION - Found {qa_metrics['ontologyDescription']} ontologies without any description:")
             for row in results:
                 print(f" - {row.ont}")
     else:
         print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
         qan += 1
-        qa_metrics['ontologyDescription'] = 0 
+        qa_metrics['ontologyDescription'] = "no"
     sep()
 
     # Missing Annotations
@@ -1054,9 +1058,10 @@ def main():
         qa_metrics['nonUniqueIdentifiers'] = 0
     else:
         qa_metrics['nonUniqueIdentifiers'] = len(results)
-        print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers:")
+        print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
+        print(f"URI\t\tDeclared as:")
         for row in results:
-            print(f"IRI: {row.iri} - Declared as: {row.declaredAs}")
+            print(f"{row.iri} - {row.declaredAs}")
     sep()
 
     # IO2 Including Cycles in a Class Hierarchy
