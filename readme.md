@@ -48,7 +48,7 @@ For example, the test ontology [`example.ttl`](tests/example.ttl) returns the fo
 
 #### Profiling Metrics
 
-| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Local classes in NodeShapes | Local properties in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | 
+| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | 
 |--|--|--|--|--|--|--|--|--|--|--|
 | tests/example.ttl | 59 | 10 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 5 |
 

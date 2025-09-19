@@ -661,7 +661,7 @@ def normalise(count, total):
     return out
 
 def sep():
-    print("\n","-" * 20)
+    print("\n","-"*20, sep="")
 
 def main():
     # Set up argument parser
@@ -831,10 +831,11 @@ def main():
         qa_metrics['ontologyDeclared'] = row.ont
     elif len(results) > 1:
         print(f"WARNING - Found {len(results)} owl:Ontology declarations:")
+        qa_metrics['ontologyDeclared'] = ""
         for row in results:
             print(f" - {row.ont}")
-            qa_metrics['ontologyDeclared'] += " {row.ont}"
-    
+            qa_metrics['ontologyDeclared'] = f"{row.ont}, {qa_metrics['ontologyDeclared']}"
+        qa_metrics['ontologyDeclared'] = qa_metrics['ontologyDeclared'][:-2]
     sep()
 
     # Missing ontology description.
@@ -850,7 +851,7 @@ def main():
                 qa_metrics['ontologyDescription'] = "no"
             else:
                 qa_metrics['ontologyDescription'] = f"{len(results)} violations"
-            print(f"VIOLATION - Found {qa_metrics['ontologyDescription']} ontologies without any description:")
+            print(f"VIOLATION - Found {len(results)} ontologies without any description:")
             for row in results:
                 print(f" - {row.ont}")
     else:
@@ -1131,7 +1132,8 @@ def main():
     
     # Profiling
     print("\n## Profiling Metrics\n")
-    print("| Name | Number of Triples | Class Count | Property Count | NodeShapes count | PropertyShapes count | Local classes in NodeShapes | Local properties in PropertyShape |  Deprecated Classes | Deprecated Properties | Vocabularies Used | ")
+    print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
+    print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
     print("|--|--|--|--|--|--|--|--|--|--|--|")
     print(f"| {name} | {qa_metrics['triples']} | {qa_metrics['classCount']} | {qa_metrics['propertyCount']} | {qa_metrics['nodeShapes']} | {qa_metrics['propertyShapes']} | {qa_metrics['classesInNodeShapes']} | {qa_metrics['propertiesInPropertyShapes']} | {qa_metrics['deprecatedClasses']} | {qa_metrics['deprecatedProperties']} | {qa_metrics['vocabulariesUsed']} |")
 
