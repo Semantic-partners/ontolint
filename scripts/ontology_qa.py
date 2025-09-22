@@ -312,7 +312,6 @@ node_shape_missing_comment = """
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
-  FILTER(isIRI(?ns))
   FILTER NOT EXISTS { ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
@@ -320,9 +319,13 @@ WHERE {
 property_shape_missing_comment = """
 SELECT DISTINCT ?ps
 WHERE {
-  ?ps a sh:PropertyShape .
-  FILTER(isIRI(?ps))
-  FILTER NOT EXISTS { ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
+    FILTER NOT EXISTS { ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
 
