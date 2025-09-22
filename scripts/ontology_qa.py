@@ -495,16 +495,9 @@ WHERE {
   # exclude blank nodes
   FILTER(isIRI(?s))
 
-  # Only consider entities in the ontology namespace.
-  OPTIONAL { ?ontologyIRI a owl:Ontology . }
-  FILTER ( regex( STR(?p), STR(?ontologyIRI) ) )
-
-  # Exclude properties that are explicitly typed
-  FILTER (
-    NOT EXISTS { ?p rdf:type rdf:Property } &&
-    NOT EXISTS { ?p rdf:type owl:ObjectProperty } &&
-    NOT EXISTS { ?p rdf:type owl:DatatypeProperty }
-  )
+  MINUS { ?p a rdf:Property }
+  MINUS { ?p a owl:ObjectProperty }
+  MINUS { ?p a owl:DatatypeProperty }
 }
 """
 
