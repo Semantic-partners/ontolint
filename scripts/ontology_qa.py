@@ -402,7 +402,7 @@ HAVING (COUNT(DISTINCT ?class) > 1)
 property_same_label = """
 SELECT ?label (GROUP_CONCAT(DISTINCT ?p; separator=", ") AS ?properties)
 WHERE {
-  VALUES ?type { owl:ObjectProperty rdf:Property }
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
   ?p a ?type .
   ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
 }
