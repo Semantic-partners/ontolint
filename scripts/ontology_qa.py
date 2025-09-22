@@ -129,20 +129,18 @@ unique_identifiers = """
 SELECT ?iri
   (GROUP_CONCAT(DISTINCT REPLACE(STR(?type), ".*/", ""); separator=", ") AS ?declaredAs)
 WHERE {
-  VALUES ?type { owl:Class rdfs:Class owl:ObjectProperty rdf:Property owl:ObjectProperty owl:DatatypeProperty  owl:AnnotationProperty }
+  VALUES ?type { owl:Class rdfs:Class owl:ObjectProperty rdf:Property owl:DatatypeProperty  owl:AnnotationProperty }
   ?iri a ?type .
-  FILTER(
-    !(
-      ?type = rdfs:Class &&
-      EXISTS { ?iri a owl:Class }
-    )
-  )
-  FILTER(
-    !(
-      ?type = rdf:Property &&
-      EXISTS { ?iri a owl:ObjectProperty }
-    )
-  )
+
+  FILTER NOT EXISTS { 
+      ?iri a owl:Class . 
+      FILTER(?type = rdfs:Class) 
+  }
+  FILTER NOT EXISTS { 
+      ?iri a ?specificProperty .
+      VALUES ?specificProperty { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty }
+      FILTER(?type = rdf:Property) 
+  }
 }
 GROUP BY ?iri
 HAVING (COUNT(DISTINCT ?type) > 1)
