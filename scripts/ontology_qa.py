@@ -425,8 +425,13 @@ HAVING (COUNT(DISTINCT ?ns) > 1)
 property_shape_same_label = """
 SELECT ?label (GROUP_CONCAT(DISTINCT ?ps; separator=", ") AS ?psList)
 WHERE {
-  ?ps a sh:PropertyShape .
-  ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
+    ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
 }
 GROUP BY ?label
 HAVING (COUNT(DISTINCT ?ps) > 1)
