@@ -73,7 +73,7 @@ skos:Creature a rdfs:Class ;
 
 :hasClawsShape a sh:PropertyShape ;
   sh:path  :hasClaws ; # target property
-  sh:class :Claw ;
+  sh:class :Claw ;     # target property object.
   sh:name  "Has Claws" .
 
 :hasClaws a owl:ObjectProperty ;
@@ -89,3 +89,9 @@ skos:Creature a rdfs:Class ;
   sh:name      "Animal-Shape" ;
   sh:description "Make sure the entity belongs to the animal kingdom." ;
   sh:targetClass :Shrimp, :Crab, :Fish, :Dog, :Cat .
+
+# Example of data suffering from unclear semantics.
+:Fuffy a :Dog ;
+  :hasClaws :dogClaws .
+  
+:dogClaws a :Claw .
