@@ -273,7 +273,6 @@ node_shape_missing_label = """
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
-  FILTER(isIRI(?ns))
   FILTER NOT EXISTS { ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
