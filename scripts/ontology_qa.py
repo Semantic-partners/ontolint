@@ -265,7 +265,6 @@ SELECT DISTINCT ?p
 WHERE {
   VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
   ?p a ?type .
-  FILTER(isIRI(?p))
   FILTER NOT EXISTS { ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
