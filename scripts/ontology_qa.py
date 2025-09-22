@@ -543,27 +543,17 @@ WHERE {
 # Namespace hijacking
 # Define a class in the namespace using an external vocabulary prefix.
 hijacking = """
-SELECT DISTINCT ?resource
+SELECT ?namespace (COUNT(DISTINCT ?resource) AS ?count)
 WHERE {
-  VALUES ?type { owl:Class rdfs:Class owl:ObjectProperty rdf:Property owl:DatatypeProperty sh:NodeShape sh:PropertyShape }
-  ?resource a ?type .
-  # Detect if the class URI starts with a known external namespace
-  FILTER (
-    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") ||
-    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema") ||
-    regex(STR(?resource), "^http://www.w3.org/2001/XMLSchema") ||
-    regex(STR(?resource), "^http://www.w3.org/2002/07/owl") ||
-    regex(STR(?resource), "^http://www.w3.org/2004/02/skos/core") ||
-    regex(STR(?resource), "^http://www.w3.org/ns/shacl") ||
-    regex(STR(?resource), "^http://www.w3.org/XML/1998/namespace") ||
-    regex(STR(?resource), "^http://purl.org/dc/terms") ||
-    regex(STR(?resource), "^http://purl.org/dc/elements/1.1") ||
-    regex(STR(?resource), "^http://purl.org/vocab/vann") ||
-    regex(STR(?resource), "^http://purl.org/ontology/bibo/status") ||
-    regex(STR(?resource), "^http://xmlns.com/foaf/0.1") ||
-    regex(STR(?resource), "^http://www.linkedmodel.org/1.2/schema/vaem")
-  )
+    {
+        ?resource a ?type . 
+    } UNION {
+     	?resource ?property ?value 
+    }
+    FILTER(isIRI(?resource))
+    BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
 }
+GROUP BY ?namespace
 """
 
 # Count SHACL Shapes
