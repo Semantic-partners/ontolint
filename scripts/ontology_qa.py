@@ -478,12 +478,9 @@ WHERE {
   # exclude blank nodes
   FILTER(isIRI(?c))
 
-  # Only consider entities in the ontology namespace.
-  OPTIONAL { ?ontologyIRI a owl:Ontology . }
-  FILTER ( regex( STR(?c), STR(?ontologyIRI) ) )
+  MINUS { ?c rdf:type owl:Class }
+  MINUS { ?c rdf:type rdfs:Class }
 
-  # Exclude classes that are explicitly typed
-  FILTER ( NOT EXISTS { ?c rdf:type owl:Class } && NOT EXISTS { ?c rdf:type rdfs:Class } )
 }
 """
 
