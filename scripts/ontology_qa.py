@@ -280,9 +280,13 @@ WHERE {
 property_shape_missing_label = """
 SELECT ?ps
 WHERE {
-  ?ps a sh:PropertyShape .
-  FILTER(isIRI(?ps))
-  FILTER NOT EXISTS { ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
+    FILTER NOT EXISTS { ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
 
