@@ -564,8 +564,12 @@ WHERE {
 property_shape = """
 SELECT (COUNT(DISTINCT ?ps) AS ?shapeCount)
 WHERE {
-  ?ps a sh:PropertyShape .
-  FILTER(isIRI(?ps))
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
 }
 """
 
