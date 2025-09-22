@@ -103,7 +103,7 @@ WHERE {
 ic2_missing_dr_property = """
 SELECT DISTINCT ?p ?domain ?range
 WHERE {
-  VALUES ?type { owl:ObjectProperty rdf:Property }
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
   ?p a ?type .
   OPTIONAL { ?p rdfs:domain ?domain }
   OPTIONAL { ?p rdfs:range  ?range  }
