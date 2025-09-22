@@ -338,15 +338,13 @@ WHERE {
    WHERE {
     VALUES ?type { owl:Class rdfs:Class }
     ?c a ?type .
-    FILTER(isIRI(?c))
    }
  }
  {
    SELECT (COUNT(DISTINCT ?p) AS ?propertyCount)
    WHERE {
-    VALUES ?type { owl:ObjectProperty rdf:Property }
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
     ?p a ?type .
-    FILTER(isIRI(?p))
    }
  }
 }
