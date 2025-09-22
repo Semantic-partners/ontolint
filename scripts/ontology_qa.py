@@ -295,7 +295,6 @@ SELECT DISTINCT ?c
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  FILTER(isIRI(?c))
   FILTER NOT EXISTS { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
@@ -303,9 +302,8 @@ WHERE {
 property_missing_comment = """
 SELECT DISTINCT ?p
 WHERE {
-  VALUES ?type { owl:ObjectProperty rdf:Property }
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
   ?p a ?type .
-  FILTER(isIRI(?p))
   FILTER NOT EXISTS { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
