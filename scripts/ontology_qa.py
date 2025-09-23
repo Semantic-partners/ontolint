@@ -1123,7 +1123,7 @@ def main():
         qa_metrics['hijacking'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
         for row in results:
-            print(f" - {row.resource}")
+            print(f" - {row.namespace} {row.count}")
     sep()
 
     ################################################################################
