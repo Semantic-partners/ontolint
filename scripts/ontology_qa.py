@@ -85,14 +85,14 @@ WHERE {
 """
 
 # IC1 Number of Isolated Elements
-# Classes declared but never used either within a property definition or extended by another class
+# Classes declared but never used in any other triple connecting them to the rest of the ontology.
 isolated_classes = """
 SELECT DISTINCT ?c
 WHERE {  
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   FILTER NOT EXISTS {
-    ?s rdfs:subClassOf|rdfs:domain|rdfs:range ?o .
+    ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?o .
     FILTER(?c IN (?s, ?o))
   }
 }
