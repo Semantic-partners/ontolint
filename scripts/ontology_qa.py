@@ -496,6 +496,22 @@ WHERE {
   MINUS { ?p a rdf:Property }
   MINUS { ?p a owl:ObjectProperty }
   MINUS { ?p a owl:DatatypeProperty }
+
+  FILTER (
+    !regex(STR(?p), "^http://www.w3.org/1999/02/22-rdf-syntax-ns")  &&
+    !regex(STR(?p), "^http://www.w3.org/2000/01/rdf-schema")  &&
+    !regex(STR(?p), "^http://www.w3.org/2001/XMLSchema")  &&
+    !regex(STR(?p), "^http://www.w3.org/2002/07/owl")  &&
+    !regex(STR(?p), "^http://www.w3.org/2004/02/skos/core")  &&
+    !regex(STR(?p), "^http://www.w3.org/ns/shacl")  &&
+    !regex(STR(?p), "^http://www.w3.org/XML/1998/namespace")  &&
+    !regex(STR(?p), "^http://purl.org/dc/terms")  &&
+    !regex(STR(?p), "^http://purl.org/dc/elements/1.1")  &&
+    !regex(STR(?p), "^http://purl.org/vocab/vann")  &&
+    !regex(STR(?p), "^http://purl.org/ontology/bibo/status")  &&
+    !regex(STR(?p), "^http://xmlns.com/foaf/0.1")  &&
+    !regex(STR(?p), "^http://www.linkedmodel.org/1.2/schema/vaem")
+  )
 }
 """
 
@@ -546,11 +562,7 @@ WHERE {
     ?resource ?property ?value .
     FILTER(isIRI(?resource))
     BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
-
-    # Filter out the resources defined in the current namespace.
-    OPTIONAL { ?ontologyIRI a owl:Ontology . }
-    BIND(IF(bound(?ontologyIRI), str(?ontologyIRI), "") as ?regexStr)
-    FILTER ( !regex( STR(?resource), ?regexStr ) )
+    MINUS { ?resource rdf:type owl:Ontology }
 }
 GROUP BY ?namespace
 """
