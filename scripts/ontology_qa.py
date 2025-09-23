@@ -543,11 +543,7 @@ WHERE {
 hijacking = """
 SELECT ?namespace (COUNT(DISTINCT ?resource) AS ?count)
 WHERE {
-    {
-        ?resource a ?type . 
-    } UNION {
-     	?resource ?property ?value 
-    }
+    ?resource ?property ?value .
     FILTER(isIRI(?resource))
     BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
 }
