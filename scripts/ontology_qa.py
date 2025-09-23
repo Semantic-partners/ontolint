@@ -546,6 +546,11 @@ WHERE {
     ?resource ?property ?value .
     FILTER(isIRI(?resource))
     BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
+
+    # Filter out the resources defined in the current namespace.
+    OPTIONAL { ?ontologyIRI a owl:Ontology . }
+    BIND(IF(bound(?ontologyIRI), str(?ontologyIRI), "") as ?regexStr)
+    FILTER ( !regex( STR(?resource), ?regexStr ) )
 }
 GROUP BY ?namespace
 """
