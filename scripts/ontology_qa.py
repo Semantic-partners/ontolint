@@ -825,18 +825,17 @@ def main():
     # results = g.query(ism1_no_owl_declaration) # moved before the dictionary count.
     if not results:
         print(f"VIOLATION - No owl:Ontology declaration found.")
-        qa_metrics['ontologyDeclared'] = 0
+        qa_metrics['ontologyDeclared'] = [ 0 ]
     elif len(results) == 1:
         (row,) = results
         print(f"PASS - Found 1 ontology with owl:Ontology declaration:\n - {row.ont}")
-        qa_metrics['ontologyDeclared'] = row.ont
+        qa_metrics['ontologyDeclared'] = [ row.ont ]
     elif len(results) > 1:
         print(f"WARNING - Found {len(results)} owl:Ontology declarations:")
-        qa_metrics['ontologyDeclared'] = ""
+        qa_metrics['ontologyDeclared'] = [ ]
         for row in results:
             print(f" - {row.ont}")
-            qa_metrics['ontologyDeclared'] = f"{row.ont}, {qa_metrics['ontologyDeclared']}"
-        qa_metrics['ontologyDeclared'] = qa_metrics['ontologyDeclared'][:-2]
+            qa_metrics['ontologyDeclared'].append(row.ont)
     sep()
 
     # Missing ontology description.
@@ -1090,7 +1089,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without rdf:type owl:Class or rdfs:Class declaration:")
         for row in results:
             print(f" - {row.c}")
-    if not qa_metrics['ontologyDeclared']:
+    if qa_metrics['ontologyDeclared'][0] == 0:
       print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
     sep()
 
@@ -1105,7 +1104,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without rdf:Property, owl:ObjectProperty, or owl:DatatypeProperty declaration:")
         for row in results:
             print(f" - {row.p}")
-    if not qa_metrics['ontologyDeclared']:
+    if qa_metrics['ontologyDeclared'][0] == 0:
       print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
     sep()
 
@@ -1119,13 +1118,13 @@ def main():
         qa_metrics['hijacking'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
         for row in results:
-            print(f" - {row.namespace} {row.count}")
+            print(f" - {row.namespace} {row['count']}")
     sep()
 
     ################################################################################
     # Print a summary of the quality metrics in a markdown table.
-    if qa_metrics['ontologyDeclared']:
-      name = qa_metrics['ontologyDeclared']
+    if qa_metrics['ontologyDeclared'][0] != 0:
+      name = ", ".join(qa_metrics['ontologyDeclared'])
       ont = "yes"
     else:
       name = qa_metrics['filesProcessed'][0]
