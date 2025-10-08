@@ -58,3 +58,8 @@ For example, the test ontology [`example.ttl`](tests/example.ttl) returns the fo
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
 | tests/example.ttl | no | no | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.200 | 0.600 | 0 | 0 | 0 | 0 | 1 |
 
+#### Metrics we could add
+1. Structure & complexity (hierarchy depth, average branching factor, use of restrictions)
+2. Reuse of external ontologies (e.g. Dublin Core, schema.org, domain-specific standards)
+3. Conformance to standards (OWL, RDF, SKOS, etc.)
+
