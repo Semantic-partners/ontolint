@@ -86,6 +86,7 @@ WHERE {
 
 # IC1 Number of Isolated Elements
 # Classes declared but never used in any other triple connecting them to the rest of the ontology.
+# TO DO: classes connected through properties defined in the current namespace.
 isolated_classes = """
 SELECT DISTINCT ?c
 WHERE {  
@@ -1129,11 +1130,12 @@ def main():
     qan = qa_check_results("Namespace hijacking",qan)
     results = g.query(hijacking)
     if not results:
-        print("PASS - No violations found.")
+        print("PASS - No violations found.") # For now, this condition is never met.
         qa_metrics['hijacking'] = 0
     else:
         qa_metrics['hijacking'] = len(results)
-        print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
+        # print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
+        print(f"WARNING - Found {qa_metrics['hijacking']} namespaces. Count of entities for each namespace:")
         for row in results:
             print(f" - {row.namespace} {row['count']}")
     sep()

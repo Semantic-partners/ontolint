@@ -1,6 +1,6 @@
 # Ontology Quality Assessment
 
-A collection of scripts to assess the quality of ontologies.
+A collection of SPARQL queries to assess the quality of ontologies and executed with RDFLib. The script `ontology_qa.py` first creates a graph loading one or more ontologies. For quality assessment, one ontology at a time should be processed. The output is printed to the standard output in the markdown format.
 
 `ontology_qa.py` Implements the following Profiling metrics:
 
@@ -42,7 +42,7 @@ And QA metrics:
 | Subclass cycles                               | Classes involved in a rdfs:subClassOf+ cycle.  The value refers to the total count. |
 | Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives owl:Class or rdfs:Class. The value refers to the actual number of untyped classes, as they do not appear in the total class count. |
 | Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives rdf:Property, owl:ObjectProperty or owl:DatatypeProperty. The value refers to the actual number of untyped properties, as they do not appear in the total class count. |
-| Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. |
+| Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. The script reports the count of subjects sorted by namespace. The user should then verify that the subjects are defined in the external ontology and not minted *ex-novo*. |
 
 For example, the test ontology [`example.ttl`](tests/example.ttl) returns the following results:
 
@@ -62,4 +62,29 @@ For example, the test ontology [`example.ttl`](tests/example.ttl) returns the fo
 1. Structure & complexity (hierarchy depth, average branching factor, use of restrictions)
 2. Reuse of external ontologies (e.g. Dublin Core, schema.org, domain-specific standards)
 3. Conformance to standards (OWL, RDF, SKOS, etc.)
+
+#### Batch Processing
+
+For quality assessment, one ontology at a time should be processed. The following script runs `ontology_qa.py` and then uses `grep` to collect the output to two markdown tables.
+
+```bash
+#!/bin/bash
+
+# Script path
+sp=~/Documents/ontology-quality-assessment/scripts
+
+# Run the QA metric script, save the results and grep the Profiling table.
+for ont in *.ttl
+do
+ python3 $sp/ontology_qa.py $ont > ${ont%.ttl}.out
+ grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | head -1 >> ont_tables.md
+done
+
+# Grep the QA metrics table.
+echo "" >> ont_tables.md
+for ont in *.ttl
+do
+ grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | tail -1 >> ont_tables.md
+done
+```
 
