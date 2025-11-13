@@ -15,6 +15,7 @@ from rdflib import Graph, URIRef
 import argparse
 from urllib.parse import urlparse
 import sys
+import os
 
 # SPARQL queries
 
@@ -686,8 +687,8 @@ def sep():
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-e', '--exit-status',action='store_true',help='Report an exit status to determine if one or more violations were detected.')
-    parser.add_argument('data_files', nargs='+', help='List of RDF files to process.')
+    parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
+    parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
     # Create an empty dictionary to store the metrics for the ontology.
@@ -697,21 +698,46 @@ def main():
     # 1. Load Data
     g = rdflib.Graph()
     for f in args.data_files:
-        print(f"Loading data from: {f}")
-        # Try to guess format from file extension
-        if f.lower().endswith(('.ttl', '.turtle')):
-            fmt = "turtle"
-        elif f.lower().endswith(('.rdf', '.owl', '.xml')):
-            fmt = "xml"
+        
+        # check if f is a directory
+        if os.path.isdir(f):
+            for root, _, files in os.walk(f):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    print(f"Loading data from: {file_path}")
+
+                    # Try to guess format from file extension
+                    if file.lower().endswith(('.ttl', '.turtle')):
+                        fmt = "turtle"
+                    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
+                        fmt = "xml"
+                    else:
+                        fmt = None  # Let rdflib try to guess
+                    try:
+                        g.parse(file_path, format=fmt)
+                        # append the list of processed files
+                        qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
+                    except Exception as e:
+                        print(f"Failed to parse {file_path} ({fmt if fmt else 'auto'}): {e}")
+                        continue
+            continue  # skip to next f after processing directory
+
         else:
-            fmt = None  # Let rdflib try to guess
-        try:
-            g.parse(f, format=fmt)
-            # append the list of processed files
-            qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
-        except Exception as e:
-            print(f"Failed to parse {f} ({fmt if fmt else 'auto'}): {e}")
-            continue
+            print(f"Loading data from: {f}")
+            # Try to guess format from file extension
+            if f.lower().endswith(('.ttl', '.turtle')):
+                fmt = "turtle"
+            elif f.lower().endswith(('.rdf', '.owl', '.xml')):
+                fmt = "xml"
+            else:
+                fmt = None  # Let rdflib try to guess
+            try:
+                g.parse(f, format=fmt)
+                # append the list of processed files
+                qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
+            except Exception as e:
+                print(f"Failed to parse {f} ({fmt if fmt else 'auto'}): {e}")
+                continue
 
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
