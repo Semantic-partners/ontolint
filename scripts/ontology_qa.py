@@ -223,6 +223,13 @@ WHERE {
   }
 }
 """
+ont_description = """
+SELECT ?ont ?d
+WHERE {
+  ?ont a owl:Ontology .
+    ?ont rdfs:comment|dcterms:abstract|dcterms:description|skos:definition|skos:note ?d .
+}
+"""
 
 # ISU1 Missing Annotations
 # Classes or properties lacking rdfs:label or rdfs:comment
@@ -257,6 +264,14 @@ WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   FILTER NOT EXISTS { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+}
+"""
+class_labels = """
+SELECT DISTINCT ?c ?lbl
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?c a ?type .
+  ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
 }
 """
 
@@ -688,6 +703,7 @@ def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
+    parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.') 
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
@@ -779,11 +795,12 @@ def main():
         total_classes_in_shapes = sum(int(row.classCount) for row in results)
         print(f"\nLocal classes in Node Shapes: {total_classes_in_shapes}")
         qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
-        print(f"NodeShape\tClass count:")
-        for row in results:
-            print(f" - {row.ns}\t{row.classCount}")
+        if args.verbose:
+            print(f"NodeShape\tClass count:")
+            for row in results:
+                print(f"- {row.ns}\t{row.classCount}")
     else:
-        qa_metrics['classesInNodeShapes'] = 0
+       qa_metrics['classesInNodeShapes'] = 0
     print("")
 
     # Count properties in PropertyShapes.
@@ -792,9 +809,10 @@ def main():
         total_properties_in_shapes = len(results)
         print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
         qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-        print(f"PropertyShape\tLocal Property:")
-        for row in results:
-            print(f" - {row.ps}\t{row.prop}")
+        if args.verbose:
+            print(f"PropertyShape\tLocal Property:")
+            for row in results:
+                print(f"- {row.ps}\t{row.prop}")
     else:
         qa_metrics['propertiesInPropertyShapes'] = 0
 
@@ -893,6 +911,11 @@ def main():
         if not results:
             print("PASS - All ontologies have a description.")
             qa_metrics['ontologyDescription'] = "yes"
+            if args.verbose:
+                results = g.query(ont_description)
+                print("\n  Ontology + Description:")
+                for row in results:
+                    print(f"- {row.ont}\n  {row.d}\n")
         else:
             owd = len(results)
             if owd == 1:
@@ -915,6 +938,11 @@ def main():
     if not results:
         print("PASS - All classes have a label annotation.")
         qa_metrics['missingClassLabel'] = 0
+        if args.verbose:
+            results = g.query(class_labels)
+            print("\n  Class,\tLabel:")
+            for row in results:
+                print(f"- {row.c}\t{row.lbl}")
     else:
         qa_metrics['missingClassLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
