@@ -696,6 +696,39 @@ def normalise(count, total):
         out = 0
     return out
 
+def profiling(name, qa_metrics):
+    print("\n## Profiling Metrics\n")
+    print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
+    print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
+    print("|--|--|--|--|--|--|--|--|--|--|--|")
+    print(f"| {name} | {qa_metrics['triples']} | {qa_metrics['classCount']} | {qa_metrics['propertyCount']} | {qa_metrics['nodeShapes']} | {qa_metrics['propertyShapes']} | {qa_metrics['classesInNodeShapes']} | {qa_metrics['propertiesInPropertyShapes']} | {qa_metrics['deprecatedClasses']} | {qa_metrics['deprecatedProperties']} | {qa_metrics['vocabulariesUsed']} |")
+
+def qa_table(name, ont, qa_metrics):
+    print("\n## Quality Metrics\n")
+    print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
+    print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
+    print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
+    print(f"| Property without domain | Property without range ", end="")
+    print(f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |")
+    print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
+    print(f"| {name} | {ont} | {qa_metrics['ontologyDescription']} | {normalise(qa_metrics['missingClassLabel'],qa_metrics['classCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingPropertyLabel'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingNSLabel'],qa_metrics['nodeShapes'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingPSLabel'],qa_metrics['propertyShapes'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingClassDescription'],qa_metrics['classCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingPropertyDescription'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingNSDescription'],qa_metrics['nodeShapes'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingPSDescription'],qa_metrics['propertyShapes'])} ", end="")
+    print(f"| {normalise(qa_metrics['nonUniqueClassLabels'],qa_metrics['classCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['nonUniquePropertyLabels'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['nonUniqueNSLabels'],qa_metrics['nodeShapes'])} ", end="")
+    print(f"| {normalise(qa_metrics['nonUniquePSLabels'],qa_metrics['propertyShapes'])} ", end="")
+    print(f"| {normalise(qa_metrics['isolatedClasses'],qa_metrics['classCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingDomain'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(qa_metrics['missingRange'],qa_metrics['propertyCount'])} ", end="")
+    print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} ", end="")
+    print(f"| {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
+
 def sep():
     print("\n","-"*20, sep="")
 
@@ -703,7 +736,8 @@ def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
-    parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.') 
+    parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.')
+    parser.add_argument('-p', '--profile-only',action='store_true', help='Compute only the profiling metrics and skip the QA part.')
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
@@ -903,6 +937,20 @@ def main():
             print(f" - {row.ont}")
             qa_metrics['ontologyDeclared'].append(row.ont)
     sep()
+
+    # Skip further QA checks if profile-only mode is enabled.
+    if qa_metrics['ontologyDeclared'][0] != 0:
+      name = ", ".join(qa_metrics['ontologyDeclared'])
+      ont = "yes"
+    else:
+      name = qa_metrics['filesProcessed'][0]
+      ont = "no"
+    
+    if args.profile_only:
+        print("\nProfile-only mode enabled. Skipping additional QA checks.")
+        profiling(name, qa_metrics)
+        return
+    
 
     # Missing ontology description.
     if len(results) > 0:
@@ -1218,46 +1266,13 @@ def main():
     sep()
 
     ################################################################################
-    # Print a summary of the quality metrics in a markdown table.
-    if qa_metrics['ontologyDeclared'][0] != 0:
-      name = ", ".join(qa_metrics['ontologyDeclared'])
-      ont = "yes"
-    else:
-      name = qa_metrics['filesProcessed'][0]
-      ont = "no"
-    
+    # Print a summary of the profiling and quality metrics in a markdown table format.
+       
     # Profiling
-    print("\n## Profiling Metrics\n")
-    print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
-    print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
-    print("|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {qa_metrics['triples']} | {qa_metrics['classCount']} | {qa_metrics['propertyCount']} | {qa_metrics['nodeShapes']} | {qa_metrics['propertyShapes']} | {qa_metrics['classesInNodeShapes']} | {qa_metrics['propertiesInPropertyShapes']} | {qa_metrics['deprecatedClasses']} | {qa_metrics['deprecatedProperties']} | {qa_metrics['vocabulariesUsed']} |")
+    profiling(name, qa_metrics)
 
     # QA metrics
-    print("\n## Quality Metrics\n")
-    print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
-    print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
-    print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
-    print(f"| Property without domain | Property without range ", end="")
-    print(f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |")
-    print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {ont} | {qa_metrics['ontologyDescription']} | {normalise(qa_metrics['missingClassLabel'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPropertyLabel'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingNSLabel'],qa_metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPSLabel'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingClassDescription'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPropertyDescription'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingNSDescription'],qa_metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPSDescription'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniqueClassLabels'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniquePropertyLabels'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniqueNSLabels'],qa_metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniquePSLabels'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['isolatedClasses'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingDomain'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingRange'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} ", end="")
-    print(f"| {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
+    qa_table(name, ont, qa_metrics)
 
     # Exit status
     if args.exit_status: sys.exit(xs)
