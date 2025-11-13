@@ -14,6 +14,7 @@ import rdflib
 from rdflib import Graph, URIRef
 import argparse
 from urllib.parse import urlparse
+import sys
 
 # SPARQL queries
 
@@ -685,11 +686,13 @@ def sep():
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-e', '--exit-status',action='store_true',help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('data_files', nargs='+', help='List of RDF files to process.')
     args = parser.parse_args()
 
     # Create an empty dictionary to store the metrics for the ontology.
     qa_metrics = {}
+    xs = 0  # exit status flag
 
     # 1. Load Data
     g = rdflib.Graph()
@@ -844,6 +847,7 @@ def main():
     if not results:
         print(f"VIOLATION - No owl:Ontology declaration found.")
         qa_metrics['ontologyDeclared'] = [ 0 ]
+        xs += 1
     elif len(results) == 1:
         (row,) = results
         print(f"PASS - Found 1 ontology with owl:Ontology declaration:\n - {row.ont}")
@@ -870,6 +874,7 @@ def main():
             else:
                 qa_metrics['ontologyDescription'] = f"{len(results)} violations"
             print(f"VIOLATION - Found {len(results)} ontologies without any description:")
+            xs += 1
             for row in results:
                 print(f" - {row.ont}")
     else:
@@ -887,6 +892,7 @@ def main():
     else:
         qa_metrics['missingClassLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
+        xs += 1
         for t in results:
           print(f" - {t[0]}")
     sep()
@@ -899,6 +905,7 @@ def main():
     else:
         qa_metrics['missingPropertyLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingPropertyLabel']} properties missing a label annotation.")
+        xs += 1
         for t in results:
           print(f" - {t[0]}")
     sep()
@@ -910,6 +917,7 @@ def main():
         qa_metrics['missingNSLabel'] = 0
     else:
         qa_metrics['missingNSLabel'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingNSLabel']} NodeShape missing a label annotation.")
         for row in results:
           print(f" - {row.ns}")
@@ -922,6 +930,7 @@ def main():
         qa_metrics['missingPSLabel'] = 0
     else:
         qa_metrics['missingPSLabel'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingPSLabel']} PropertyShape missing a label annotation.")
         for row in results:
           print(f" - {row.ps}")
@@ -934,6 +943,7 @@ def main():
         qa_metrics['missingClassDescription'] = 0
     else:
         qa_metrics['missingClassDescription'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingClassDescription']} classes missing a description annotation:")
         for t in results:
           print(f" - {t[0]}")
@@ -946,6 +956,7 @@ def main():
         qa_metrics['missingPropertyDescription'] = 0
     else:
         qa_metrics['missingPropertyDescription'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingPropertyDescription']} properties missing a description annotation.")
         for t in results:
           print(f" - {t[0]}")
@@ -958,6 +969,7 @@ def main():
         qa_metrics['missingNSDescription'] = 0
     else:
         qa_metrics['missingNSDescription'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingNSDescription']} NodeShape missing a description annotation:")
         for row in results:
           print(f" - {row.ns}")
@@ -970,6 +982,7 @@ def main():
         qa_metrics['missingPSDescription'] = 0
     else:
         qa_metrics['missingPSDescription'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingPSDescription']} PropertyShape missing a description annotation:")
         for row in results:
           print(f" - {row.ps}")
@@ -982,6 +995,7 @@ def main():
         qa_metrics['nonUniqueClassLabels'] = 0
     else:
         qa_metrics['nonUniqueClassLabels'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['nonUniqueClassLabels']} labels shared by multiple classes.")
         print(f"- Label\t\tClasses")
         for row in results:
@@ -995,6 +1009,7 @@ def main():
         qa_metrics['nonUniquePropertyLabels'] = 0
     else:
         qa_metrics['nonUniquePropertyLabels'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['nonUniquePropertyLabels']} labels shared by multiple properties.")
         print(f"- Label\t\tProperties")
         for row in results:
@@ -1008,6 +1023,7 @@ def main():
         qa_metrics['nonUniqueNSLabels'] = 0
     else:
         qa_metrics['nonUniqueNSLabels'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.")
         print(f"- Label\t\tNodeShapes")
         for row in results:
@@ -1021,6 +1037,7 @@ def main():
         qa_metrics['nonUniquePSLabels'] = 0
     else:
         qa_metrics['nonUniquePSLabels'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
         print(f"- Label\t\PropertyShapes")
         for row in results:
@@ -1035,6 +1052,7 @@ def main():
         qa_metrics['isolatedClasses'] = 0
     else:
         qa_metrics['isolatedClasses'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['isolatedClasses']} isolated classes:")
         for row in results:
           print(f" - {row[0]}")
@@ -1050,6 +1068,7 @@ def main():
         qa_metrics['missingDomainRange'] = 0
     else:
         qa_metrics['missingDomainRange'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['missingDomainRange']} properties without rdfs:domain or rdfs:range declaration:")
         print(f"Property","Domain","Range",sep="\t")
         for row in results:
@@ -1077,6 +1096,7 @@ def main():
         qa_metrics['nonUniqueIdentifiers'] = 0
     else:
         qa_metrics['nonUniqueIdentifiers'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
         print(f"URI\t\tDeclared as:")
         for row in results:
@@ -1091,6 +1111,7 @@ def main():
         qa_metrics['subclassCycles'] = 0
     else:
         qa_metrics['subclassCycles'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['subclassCycles']} classes involved in subclass cycles:")
         for row in results:
             print(f" - {row.c}")
@@ -1104,6 +1125,7 @@ def main():
         qa_metrics['untypedClasses'] = 0
     else:
         qa_metrics['untypedClasses'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without rdf:type owl:Class or rdfs:Class declaration:")
         for row in results:
             print(f" - {row.c}")
@@ -1119,6 +1141,7 @@ def main():
         qa_metrics['untypedProperties'] = 0
     else:
         qa_metrics['untypedProperties'] = len(results)
+        xs += 1
         print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without rdf:Property, owl:ObjectProperty, or owl:DatatypeProperty declaration:")
         for row in results:
             print(f" - {row.p}")
@@ -1181,6 +1204,9 @@ def main():
     print(f"| {normalise(qa_metrics['missingRange'],qa_metrics['propertyCount'])} ", end="")
     print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} ", end="")
     print(f"| {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
+
+    # Exit status
+    if args.exit_status: sys.exit(xs)
 
     # Domain or Range violations (From original Simon's script)
     #print("\nRunning validation query to find violations...")
