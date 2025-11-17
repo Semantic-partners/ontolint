@@ -830,6 +830,8 @@ def main():
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only',action='store_true', help='Compute only the profiling metrics and skip the QA part.')
+    parser.add_argument('--ctrf-dir', type=str, default='./ctrf', help='Directory to write CTRF report to.')
+    parser.add_argument('--ctrf-filename', type=str, default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
@@ -1367,7 +1369,13 @@ def main():
     qa_table(name, ont, qa_metrics.copy())
 
     # Generate CTRF report
-    write_ctrf_report(qa_metrics, ont, './ctrf', f'ontology-qa-report-{os.getpid()}.json')
+    # Determine CTRF filename
+    if args.ctrf_filename:
+        ctrf_filename = args.ctrf_filename
+    else:
+        ctrf_filename = f'ontology-qa-report-{os.getpid()}.json'
+    
+    write_ctrf_report(qa_metrics, ont, args.ctrf_dir, ctrf_filename)
 
     # Exit status
     if args.exit_status: sys.exit(xs)
