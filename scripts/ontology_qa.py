@@ -2,7 +2,7 @@
 # Ontology Quality Assessment Script (v0.1)
 # SEMANTIC PARTNERS LTD, 2025
 # Authors: Simon Shapiro, Otello M Roscioni.
-# Last revision: 2025-09-17
+# Last revision: 2025-11-17
 
 """
 A script to perform basic QA on a set of ontologies.
@@ -16,6 +16,8 @@ import argparse
 from urllib.parse import urlparse
 import sys
 import os
+import json
+from datetime import datetime
 
 # SPARQL queries
 
@@ -705,6 +707,14 @@ def profiling(name, qa_metrics):
 
 def qa_table(name, ont, qa_metrics):
     print("\n## Quality Metrics\n")
+
+    if qa_metrics['ontologyDescription'] == 0:
+      qa_metrics['ontologyDescription'] = "yes"
+    elif qa_metrics['ontologyDescription'] == 1:
+      qa_metrics['ontologyDescription'] = "no"
+    else:
+      qa_metrics['ontologyDescription'] = f"{qa_metrics['ontologyDescription']} violations"
+
     print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
     print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
     print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
@@ -731,6 +741,88 @@ def qa_table(name, ont, qa_metrics):
 
 def sep():
     print("\n","-"*20, sep="")
+
+def write_ctrf_report(qa_metrics, ont, file_path, filename):
+    """
+    Convert QA metrics to CTRF (Common Test Result Format) JSON.
+    """
+    # Convert metrics to test cases (pass/fail based on violations)
+    test_cases = []
+    if ont == "yes":
+        ont = 1
+    else:
+        ont = 0
+
+    # Each QA check becomes a test case
+    checks = [
+        ("Ontology Declaration", ont),
+        ("Ontology Description", qa_metrics['ontologyDescription']),
+        ("Class without label", qa_metrics['missingClassLabel']),
+        ("Property without label", qa_metrics['missingPropertyLabel']),
+        ("NodeShape without label", qa_metrics['missingNSLabel']),
+        ("PropertyShape without label", qa_metrics['missingPSLabel']),
+        ("Class without description", qa_metrics['missingClassDescription']),
+        ("Property without description", qa_metrics['missingPropertyDescription']),
+        ("NodeShape without description", qa_metrics['missingNSDescription']),
+        ("PropertyShape without description", qa_metrics['missingPSDescription']),
+        ("Non-Unique Class Labels", qa_metrics['nonUniqueClassLabels']),
+        ("Non-Unique Property Labels", qa_metrics['nonUniquePropertyLabels']),
+        ("Non-Unique NodeShape Labels", qa_metrics['nonUniqueNSLabels']),
+        ("Non-Unique PropertyShape Labels", qa_metrics['nonUniquePSLabels']),
+        ("Isolated Classes", qa_metrics['isolatedClasses']),
+        ("Property without domain", qa_metrics['missingDomain']),
+        ("Property without range", qa_metrics['missingRange']),
+        ("Non-Unique Identifiers", qa_metrics['nonUniqueIdentifiers']),
+        ("Subclass Cycles", qa_metrics['subclassCycles']),
+        ("Untyped Classes", qa_metrics['untypedClasses']),
+        ("Untyped Properties", qa_metrics['untypedProperties']),
+        ("Subclass Cycles", qa_metrics['subclassCycles'])
+    #    ("Namespace Hijacking", qa_metrics['hijacking'])
+    ]
+    
+    passed = 0
+    failed = 0
+    
+    for check_name, violation_count in checks:
+        test_case = {
+            "name": check_name,
+            "status": "pass" if violation_count == 0 else "fail"
+        }
+        if violation_count > 0:
+            test_case["failure"] = {
+                "message": f"{violation_count} violations found",
+                "type": "QA_VIOLATION"
+            }
+            failed += 1
+        else:
+            passed += 1
+        test_cases.append(test_case)
+    
+    # Build CTRF report
+    ctrf_report = {
+        "results": {
+            "tool": {
+                "name": "Ontology QA",
+                "version": "2025-11-17"
+            },
+            "summary": {
+                "tests": len(test_cases),
+                "passed": passed,
+                "failed": failed
+            },
+            "tests": test_cases,
+            "timestamp": datetime.now().isoformat()
+        }
+    }
+    
+    # Write to file
+    os.makedirs(file_path, exist_ok=True)
+    output_file = os.path.join(file_path, filename)
+    with open(output_file, 'w') as f:
+        json.dump(ctrf_report, f, indent=2)
+    
+    print(f"\nCTRF report written to: {output_file}")
+    return ctrf_report
 
 def main():
     # Set up argument parser
@@ -958,7 +1050,7 @@ def main():
         results = g.query(no_ont_description)
         if not results:
             print("PASS - All ontologies have a description.")
-            qa_metrics['ontologyDescription'] = "yes"
+            qa_metrics['ontologyDescription'] = 0 # yes
             if args.verbose:
                 results = g.query(ont_description)
                 print("\n  Ontology + Description:")
@@ -967,9 +1059,9 @@ def main():
         else:
             owd = len(results)
             if owd == 1:
-                qa_metrics['ontologyDescription'] = "no"
+                qa_metrics['ontologyDescription'] = 1 # no
             else:
-                qa_metrics['ontologyDescription'] = f"{len(results)} violations"
+                qa_metrics['ontologyDescription'] = len(results) #  violations
             print(f"VIOLATION - Found {len(results)} ontologies without any description:")
             xs += 1
             for row in results:
@@ -977,7 +1069,7 @@ def main():
     else:
         print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
         qan += 1
-        qa_metrics['ontologyDescription'] = "no"
+        qa_metrics['ontologyDescription'] = 1 # no
     sep()
 
     # Missing Annotations
@@ -1272,7 +1364,10 @@ def main():
     profiling(name, qa_metrics)
 
     # QA metrics
-    qa_table(name, ont, qa_metrics)
+    qa_table(name, ont, qa_metrics.copy())
+
+    # Generate CTRF report
+    write_ctrf_report(qa_metrics, ont, './ctrf', f'ontology-qa-report-{os.getpid()}.json')
 
     # Exit status
     if args.exit_status: sys.exit(xs)
