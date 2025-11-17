@@ -1143,7 +1143,7 @@ def main():
         print(f"VIOLATION - Found {qa_metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
         print(f"- Label\t\PropertyShapes")
         for row in results:
-            print(f" - \"{row.label}\"\t{row.nsList}")
+            print(f" - \"{row.label}\"\t{row.psList}")
     sep()
 
     # Number of Isolated Classes
