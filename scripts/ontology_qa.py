@@ -790,8 +790,7 @@ def write_ctrf_report(qa_metrics, ont, file_path, filename):
         }
         if violation_count > 0:
             test_case["failure"] = {
-                "message": f"{violation_count} violations found",
-                "type": "QA_VIOLATION"
+                "violations": violation_count
             }
             failed += 1
         else:
