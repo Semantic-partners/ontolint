@@ -749,9 +749,9 @@ def write_ctrf_report(qa_metrics, ont, file_path, filename):
     # Convert metrics to test cases (pass/fail based on violations)
     test_cases = []
     if ont == "yes":
-        ont = 1
-    else:
         ont = 0
+    else:
+        ont = 1
 
     # Each QA check becomes a test case
     checks = [
