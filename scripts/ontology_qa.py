@@ -1234,7 +1234,7 @@ def main():
         qa_metrics['nonUniquePSLabels'] = len(results)
         xs += 1
         print(f"VIOLATION - Found {qa_metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
-        print(f"- Label\t\PropertyShapes")
+        print(f"- Label\tPropertyShapes")
         for row in results:
             print(f" - \"{row.label}\"\t{row.psList}")
     sep()
