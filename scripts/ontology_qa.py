@@ -742,7 +742,7 @@ def qa_table(name, ont, qa_metrics):
 def sep():
     print("\n","-"*20, sep="")
 
-def write_ctrf_report(qa_metrics, ont, file_path, filename):
+def write_ctrf_report(qa_metrics, qa_violations, ont, file_path, filename):
     """
     Convert QA metrics to CTRF (Common Test Result Format) JSON.
     """
@@ -755,42 +755,43 @@ def write_ctrf_report(qa_metrics, ont, file_path, filename):
 
     # Each QA check becomes a test case
     checks = [
-        ("Ontology Declaration", ont),
-        ("Ontology Description", qa_metrics['ontologyDescription']),
-        ("Class without label", qa_metrics['missingClassLabel']),
-        ("Property without label", qa_metrics['missingPropertyLabel']),
-        ("NodeShape without label", qa_metrics['missingNSLabel']),
-        ("PropertyShape without label", qa_metrics['missingPSLabel']),
-        ("Class without description", qa_metrics['missingClassDescription']),
-        ("Property without description", qa_metrics['missingPropertyDescription']),
-        ("NodeShape without description", qa_metrics['missingNSDescription']),
-        ("PropertyShape without description", qa_metrics['missingPSDescription']),
-        ("Non-Unique Class Labels", qa_metrics['nonUniqueClassLabels']),
-        ("Non-Unique Property Labels", qa_metrics['nonUniquePropertyLabels']),
-        ("Non-Unique NodeShape Labels", qa_metrics['nonUniqueNSLabels']),
-        ("Non-Unique PropertyShape Labels", qa_metrics['nonUniquePSLabels']),
-        ("Isolated Classes", qa_metrics['isolatedClasses']),
-        ("Property without domain", qa_metrics['missingDomain']),
-        ("Property without range", qa_metrics['missingRange']),
-        ("Non-Unique Identifiers", qa_metrics['nonUniqueIdentifiers']),
-        ("Subclass Cycles", qa_metrics['subclassCycles']),
-        ("Untyped Classes", qa_metrics['untypedClasses']),
-        ("Untyped Properties", qa_metrics['untypedProperties']),
-        ("Subclass Cycles", qa_metrics['subclassCycles'])
+        ("Ontology Declaration",             ont, qa_violations['ontologyDeclared']),
+        ("Ontology Description",             qa_metrics['ontologyDescription'], qa_violations['ontologyDescription']), 
+        ("Class without label",              qa_metrics['missingClassLabel'], qa_violations['missingClassLabel']), 
+        ("Property without label",           qa_metrics['missingPropertyLabel'], qa_violations['missingPropertyLabel']), 
+        ("NodeShape without label",          qa_metrics['missingNSLabel'], qa_violations['missingNSLabel']), 
+        ("PropertyShape without label",      qa_metrics['missingPSLabel'], qa_violations['missingPSLabel']), 
+        ("Class without description",        qa_metrics['missingClassDescription'], qa_violations['missingClassDescription']), 
+        ("Property without description",     qa_metrics['missingPropertyDescription'], qa_violations['missingPropertyDescription']), 
+        ("NodeShape without description",    qa_metrics['missingNSDescription'], qa_violations['missingNSDescription']), 
+        ("PropertyShape without description",qa_metrics['missingPSDescription'], qa_violations['missingPSDescription']), 
+        ("Non-Unique Class Labels",          qa_metrics['nonUniqueClassLabels'], qa_violations['nonUniqueClassLabels']), 
+        ("Non-Unique Property Labels",       qa_metrics['nonUniquePropertyLabels'], qa_violations['nonUniquePropertyLabels']), 
+        ("Non-Unique NodeShape Labels",      qa_metrics['nonUniqueNSLabels'], qa_violations['nonUniqueNSLabels']), 
+        ("Non-Unique PropertyShape Labels",  qa_metrics['nonUniquePSLabels'], qa_violations['nonUniquePSLabels']), 
+        ("Isolated Classes",                 qa_metrics['isolatedClasses'], qa_violations['isolatedClasses']), 
+        ("Property without domain",          qa_metrics['missingDomain'], qa_violations['missingDomain']), 
+        ("Property without range",           qa_metrics['missingRange'], qa_violations['missingRange']), 
+        ("Non-Unique Identifiers",           qa_metrics['nonUniqueIdentifiers'], qa_violations['nonUniqueIdentifiers']), 
+        ("Subclass Cycles",                  qa_metrics['subclassCycles'], qa_violations['subclassCycles']), 
+        ("Untyped Classes",                  qa_metrics['untypedClasses'], qa_violations['untypedClasses']), 
+        ("Untyped Properties",               qa_metrics['untypedProperties'], qa_violations['untypedProperties']), 
+        ("Subclass Cycles",                  qa_metrics['subclassCycles'], qa_violations['subclassCycles'])
     #    ("Namespace Hijacking", qa_metrics['hijacking'])
     ]
     
     passed = 0
     failed = 0
     
-    for check_name, violation_count in checks:
+    for check_name, violation_count, violation_element in checks:
         test_case = {
             "name": check_name,
             "status": "pass" if violation_count == 0 else "fail"
         }
         if violation_count > 0:
             test_case["failure"] = {
-                "violations": violation_count
+                "violations": violation_count,
+                "elements": violation_element
             }
             failed += 1
         else:
@@ -836,6 +837,7 @@ def main():
 
     # Create an empty dictionary to store the metrics for the ontology.
     qa_metrics = {}
+    qa_violations = {}
     xs = 0  # exit status flag
 
     # 1. Load Data
@@ -1035,8 +1037,10 @@ def main():
     if qa_metrics['ontologyDeclared'][0] != 0:
       name = ", ".join(qa_metrics['ontologyDeclared'])
       ont = "yes"
+      qa_violations['ontologyDeclared'] = ""
     else:
       name = qa_metrics['filesProcessed'][0]
+      qa_violations['ontologyDeclared'] = name
       ont = "no"
     
     if args.profile_only:
@@ -1052,6 +1056,7 @@ def main():
         if not results:
             print("PASS - All ontologies have a description.")
             qa_metrics['ontologyDescription'] = 0 # yes
+            qa_violations['ontologyDescription'] = ""
             if args.verbose:
                 results = g.query(ont_description)
                 print("\n  Ontology + Description:")
@@ -1059,18 +1064,20 @@ def main():
                     print(f"- {row.ont}\n  {row.d}\n")
         else:
             owd = len(results)
-            if owd == 1:
-                qa_metrics['ontologyDescription'] = 1 # no
-            else:
-                qa_metrics['ontologyDescription'] = len(results) #  violations
+            qa_metrics['ontologyDescription'] = len(results) #  violations
             print(f"VIOLATION - Found {len(results)} ontologies without any description:")
             xs += 1
+            string = ""
             for row in results:
                 print(f" - {row.ont}")
+                string += f"{row.ont},<br> "
+            string = string.rstrip(",<br> ")
+            qa_violations['ontologyDescription'] = string
     else:
         print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
         qan += 1
         qa_metrics['ontologyDescription'] = 1 # no
+        qa_violations['ontologyDescription'] = "No ontology declared"
     sep()
 
     # Missing Annotations
@@ -1079,6 +1086,7 @@ def main():
     if not results:
         print("PASS - All classes have a label annotation.")
         qa_metrics['missingClassLabel'] = 0
+        qa_violations['missingClassLabel'] = ""
         if args.verbose:
             results = g.query(class_labels)
             print("\n  Class,\tLabel:")
@@ -1088,8 +1096,12 @@ def main():
         qa_metrics['missingClassLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
         xs += 1
+        string = ""
         for t in results:
           print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingClassLabel'] = string
     sep()
 
     qan = qa_check_results("Properties missing label annotations",qan)
@@ -1097,12 +1109,17 @@ def main():
     if not results:
         print("PASS - All properties have a label annotation.")
         qa_metrics['missingPropertyLabel'] = 0
+        qa_violations['missingPropertyLabel'] = ""
     else:
         qa_metrics['missingPropertyLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingPropertyLabel']} properties missing a label annotation.")
         xs += 1
+        string = ""
         for t in results:
           print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingPropertyLabel'] = string
     sep()
 
     qan = qa_check_results("NodeShape missing label annotations",qan)
@@ -1110,12 +1127,17 @@ def main():
     if not results:
         print("PASS - All NodeShape have a label annotation.")
         qa_metrics['missingNSLabel'] = 0
+        qa_violations['missingNSLabel'] = ""
     else:
         qa_metrics['missingNSLabel'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['missingNSLabel']} NodeShape missing a label annotation.")
         for row in results:
           print(f" - {row.ns}")
+          string += f"{row.ns},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingNSLabel'] = string
     sep()
 
     qan = qa_check_results("PropertyShape missing label annotations",qan)
@@ -1123,12 +1145,17 @@ def main():
     if not results:
         print("PASS - All PropertyShape have a label annotation.")
         qa_metrics['missingPSLabel'] = 0
+        qa_violations['missingPSLabel'] = ""
     else:
         qa_metrics['missingPSLabel'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['missingPSLabel']} PropertyShape missing a label annotation.")
         for row in results:
           print(f" - {row.ps}")
+          string += f"{row.ps},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingPSLabel'] = string
     sep()
 
     qan = qa_check_results("Classes missing description annotations",qan)
@@ -1136,12 +1163,17 @@ def main():
     if not results:
         print("PASS - All classes have a description annotation.")
         qa_metrics['missingClassDescription'] = 0
+        qa_violations['missingClassDescription'] = ""
     else:
         qa_metrics['missingClassDescription'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['missingClassDescription']} classes missing a description annotation:")
         for t in results:
           print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingClassDescription'] = string
     sep()
 
     qan = qa_check_results("Properties missing description annotations",qan)
@@ -1149,12 +1181,17 @@ def main():
     if not results:
         print("PASS - All properties have a description annotation.")
         qa_metrics['missingPropertyDescription'] = 0
+        qa_violations['missingPropertyDescription'] = ""
     else:
         qa_metrics['missingPropertyDescription'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['missingPropertyDescription']} properties missing a description annotation.")
         for t in results:
           print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingPropertyDescription'] = string
     sep()
 
     qan = qa_check_results("NodeShape missing description annotations",qan)
@@ -1162,12 +1199,17 @@ def main():
     if not results:
         print("PASS - All NodeShape have a description annotation.")
         qa_metrics['missingNSDescription'] = 0
+        qa_violations['missingNSDescription'] = ""
     else:
         qa_metrics['missingNSDescription'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['missingNSDescription']} NodeShape missing a description annotation:")
         for row in results:
           print(f" - {row.ns}")
+          string += f"{row.ns},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingNSDescription'] = string
     sep()
 
     qan = qa_check_results("PropertyShape missing description annotations",qan)
@@ -1175,12 +1217,17 @@ def main():
     if not results:
         print("PASS - All PropertyShape have a description annotation.")
         qa_metrics['missingPSDescription'] = 0
+        qa_violations['missingPSDescription'] = ""
     else:
         qa_metrics['missingPSDescription'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['missingPSDescription']} PropertyShape missing a description annotation:")
         for row in results:
           print(f" - {row.ps}")
+          string += f"{row.ps},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['missingPSDescription'] = string
     sep()
 
     qan = qa_check_results("Classes with the same label",qan)
@@ -1188,13 +1235,18 @@ def main():
     if not results:
         print("PASS - No classes share the same label.")
         qa_metrics['nonUniqueClassLabels'] = 0
+        qa_violations['nonUniqueClassLabels'] = ""
     else:
         qa_metrics['nonUniqueClassLabels'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniqueClassLabels']} labels shared by multiple classes.")
         print(f"- Label\t\tClasses")
         for row in results:
             print(f" - \"{row.label}\"\t{row.classes}")
+            string += f"\"{row.label}\": {row.classes};<br> "
+        string = string.rstrip(";<br> ")
+        qa_violations['nonUniqueClassLabels'] = string
     sep()
 
     qan = qa_check_results("Properties with the same label",qan)
@@ -1202,13 +1254,18 @@ def main():
     if not results:
         print("PASS - No property share the same label.")
         qa_metrics['nonUniquePropertyLabels'] = 0
+        qa_violations['nonUniquePropertyLabels'] = ""
     else:
         qa_metrics['nonUniquePropertyLabels'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniquePropertyLabels']} labels shared by multiple properties.")
         print(f"- Label\t\tProperties")
         for row in results:
             print(f" - \"{row.label}\"\t{row.properties}")
+            string += f"\"{row.label}\": {row.properties};<br> "
+        string = string.rstrip(";<br> ")
+        qa_violations['nonUniquePropertyLabels'] = string
     sep()
 
     qan = qa_check_results("NodeShapes with the same label",qan)
@@ -1216,13 +1273,18 @@ def main():
     if not results:
         print("PASS - No NodeShape share the same label.")
         qa_metrics['nonUniqueNSLabels'] = 0
+        qa_violations['nonUniqueNSLabels'] = ""
     else:
         qa_metrics['nonUniqueNSLabels'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.")
         print(f"- Label\t\tNodeShapes")
         for row in results:
             print(f" - \"{row.label}\"\t{row.nsList}")
+            string += f"\"{row.label}\": {row.nsList};<br> "
+        string = string.rstrip(";<br> ")
+        qa_violations['nonUniqueNSLabels'] = string
     sep()
 
     qan = qa_check_results("PropertyShapes with the same label",qan)
@@ -1230,13 +1292,18 @@ def main():
     if not results:
         print("PASS - No PropertyShape share the same label.")
         qa_metrics['nonUniquePSLabels'] = 0
+        qa_violations['nonUniquePSLabels'] = ""
     else:
         qa_metrics['nonUniquePSLabels'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
         print(f"- Label\tPropertyShapes")
         for row in results:
             print(f" - \"{row.label}\"\t{row.psList}")
+            string += f"\"{row.label}\": {row.psList};<br> "
+        string = string.rstrip(";<br> ")
+        qa_violations['nonUniquePSLabels'] = string
     sep()
 
     # Number of Isolated Classes
@@ -1245,12 +1312,17 @@ def main():
     if not results:
         print("PASS - All classes are connected to another class through a subclass or property relation.")
         qa_metrics['isolatedClasses'] = 0
+        qa_violations['isolatedClasses'] = ""
     else:
         qa_metrics['isolatedClasses'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['isolatedClasses']} isolated classes:")
         for row in results:
           print(f" - {row[0]}")
+          string += f"{row[0]},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['isolatedClasses'] = string
     sep()
 
     # Missing Domain or Range in Properties
@@ -1264,8 +1336,10 @@ def main():
     else:
         qa_metrics['missingDomainRange'] = len(results)
         xs += 1
+        string = ""
+        string2 = ""
         print(f"VIOLATION - Found {qa_metrics['missingDomainRange']} properties without rdfs:domain or rdfs:range declaration:")
-        print(f"Property","Domain","Range",sep="\t")
+        print(f"| Property | Domain | Range |\n| -------- | ------ | ----- |")
         for row in results:
             predicate = row.p
             if row.domain:
@@ -1273,12 +1347,24 @@ def main():
             else:
                 domain = 'None'
                 dCount += 1
+                string += f"{predicate},<br> "
             if row.range:
                 range = row.range
             else:
                 range = 'None'
                 rCount += 1
-            print(f"{predicate}\t{domain}\t{range}", sep="")
+                string2 += f"{predicate},<br> "
+            print(f"| {predicate} | {domain} | {range} |")
+    if dCount > 0:
+        string = string.rstrip(",<br> ")
+        qa_violations['missingDomain'] = string
+    else:
+        qa_violations['missingDomain'] = ""
+    if rCount > 0:
+        string2 = string2.rstrip(",<br> ")
+        qa_violations['missingRange'] = string2
+    else:
+        qa_violations['missingRange'] = ""
     qa_metrics['missingDomain'] = dCount
     qa_metrics['missingRange']  = rCount
     sep()
@@ -1289,13 +1375,18 @@ def main():
     if not results:
         print("PASS - No violations found.")
         qa_metrics['nonUniqueIdentifiers'] = 0
+        qa_violations['nonUniqueIdentifiers'] = ""
     else:
         qa_metrics['nonUniqueIdentifiers'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
         print(f"URI\t\tDeclared as:")
         for row in results:
             print(f"{row.iri} - {row.declaredAs}")
+            string += f"{row.iri},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['nonUniqueIdentifiers'] = string
     sep()
 
     # IO2 Including Cycles in a Class Hierarchy
@@ -1304,12 +1395,17 @@ def main():
     if not results:
         print("PASS - No violations found.")
         qa_metrics['subclassCycles'] = 0
+        qa_violations['subclassCycles'] = ""
     else:
         qa_metrics['subclassCycles'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['subclassCycles']} classes involved in subclass cycles:")
         for row in results:
             print(f" - {row.c}")
+            string += f"{row.c},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['subclassCycles'] = string
     sep()
 
     # Untyped class
@@ -1318,14 +1414,19 @@ def main():
     if not results:
         print("PASS - No violations found.")
         qa_metrics['untypedClasses'] = 0
+        qa_violations['untypedClasses'] = ""
     else:
         qa_metrics['untypedClasses'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without rdf:type owl:Class or rdfs:Class declaration:")
         for row in results:
             print(f" - {row.c}")
+            string += f"{row.c},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['untypedClasses'] = string
     if qa_metrics['ontologyDeclared'][0] == 0:
-      print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
+      print(f"WARNING - ontology namespace undefined. No way to confirm if the class is defined in the ontology or an external vocabulary.")
     sep()
 
      # Untyped property
@@ -1334,14 +1435,19 @@ def main():
     if not results:
         print("PASS - No violations found.")
         qa_metrics['untypedProperties'] = 0
+        qa_violations['untypedProperties'] = ""
     else:
         qa_metrics['untypedProperties'] = len(results)
         xs += 1
+        string = ""
         print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without rdf:Property, owl:ObjectProperty, or owl:DatatypeProperty declaration:")
         for row in results:
             print(f" - {row.p}")
+            string += f"{row.p},<br> "
+        string = string.rstrip(",<br> ")
+        qa_violations['untypedProperties'] = string
     if qa_metrics['ontologyDeclared'][0] == 0:
-      print(f"WARNING - ontology namespace undefined. No way to confirm if the class is in the ontology or external vocabulary.")
+      print(f"WARNING - ontology namespace undefined. No way to confirm if the property is defined in the ontology or an external vocabulary.")
     sep()
 
      # Namespace hijacking
@@ -1374,7 +1480,7 @@ def main():
     else:
         ctrf_filename = f'ontology-qa-report-{os.getpid()}.json'
     
-    write_ctrf_report(qa_metrics, ont, args.ctrf_dir, ctrf_filename)
+    write_ctrf_report(qa_metrics, qa_violations , ont, args.ctrf_dir, ctrf_filename)
 
     # Exit status
     if args.exit_status: sys.exit(xs)
