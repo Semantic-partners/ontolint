@@ -842,6 +842,7 @@ def main():
 
     # 1. Load Data
     g = rdflib.Graph()
+    print(f"## Profiling Metrics")
     for f in args.data_files:
         
         # check if f is a directory
@@ -886,8 +887,6 @@ def main():
 
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
-    sep()
-    print(f"## Profiling Metrics")
     sep()
     print(f"\nInitial graph size: {qa_metrics['triples']} triples")
 
@@ -1011,7 +1010,6 @@ def main():
     print(f"Final graph size after inference: {len(g)} triples.\n")
     sep()
     print(f"## QA Metrics")
-    sep()
 
     # ISM1 No OWL ontology declaration
     qan = 1
