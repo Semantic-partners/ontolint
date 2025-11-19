@@ -1016,15 +1016,15 @@ def main():
     qan = qa_check_results("OWL ontology declaration",qan)
     # results = g.query(ism1_no_owl_declaration) # moved before the dictionary count.
     if not results:
-        print(f"VIOLATION - No owl:Ontology declaration found.")
+        print(f"VIOLATION - No `owl:Ontology` declaration found.")
         qa_metrics['ontologyDeclared'] = [ 0 ]
         xs += 1
     elif len(results) == 1:
         (row,) = results
-        print(f"PASS - Found 1 ontology with owl:Ontology declaration:\n - {row.ont}")
+        print(f"PASS - Found 1 ontology with `owl:Ontology` declaration:\n - {row.ont}")
         qa_metrics['ontologyDeclared'] = [ row.ont ]
     elif len(results) > 1:
-        print(f"WARNING - Found {len(results)} owl:Ontology declarations:")
+        print(f"WARNING - Found {len(results)} `owl:Ontology` declarations:")
         qa_metrics['ontologyDeclared'] = [ ]
         for row in results:
             print(f" - {row.ont}")
@@ -1336,7 +1336,7 @@ def main():
         xs += 1
         string = ""
         string2 = ""
-        print(f"VIOLATION - Found {qa_metrics['missingDomainRange']} properties without rdfs:domain or rdfs:range declaration:")
+        print(f"VIOLATION - Found {qa_metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:")
         print(f"| Property | Domain | Range |\n| -------- | ------ | ----- |")
         for row in results:
             predicate = row.p
@@ -1417,7 +1417,7 @@ def main():
         qa_metrics['untypedClasses'] = len(results)
         xs += 1
         string = ""
-        print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without rdf:type owl:Class or rdfs:Class declaration:")
+        print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without `rdf:type`, `owl:Class`, or `rdfs:Class` declaration:")
         for row in results:
             print(f" - {row.c}")
             string += f"{row.c},<br> "
@@ -1438,7 +1438,7 @@ def main():
         qa_metrics['untypedProperties'] = len(results)
         xs += 1
         string = ""
-        print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without rdf:Property, owl:ObjectProperty, or owl:DatatypeProperty declaration:")
+        print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:")
         for row in results:
             print(f" - {row.p}")
             string += f"{row.p},<br> "
