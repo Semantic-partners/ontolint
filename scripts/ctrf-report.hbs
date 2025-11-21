@@ -1,0 +1,27 @@
+# Ontology Quality Assessment Report
+
+## Summary
+
+| File | Tests | Passed | Failed |
+|------|-------|--------|--------|
+{{#each reports}}| {{ontologyFile}} | {{results.summary.tests}} | {{results.summary.passed}} | {{results.summary.failed}} |
+{{/each}}
+
+**Total**: {{totalTests}} tests | {{totalPassed}} passed | {{totalFailed}} failed
+
+---
+
+{{#each reports}}
+## {{ ontologyFile }}
+
+Generated: `{{ results.timestamp }}`
+
+| Test Name | Status | Violations | Elements |
+|-----------|--------|--------|--------|
+{{#each results.tests}}| {{name}} | {{#if (eq status "pass")}}✅ PASS{{else}}❌ FAIL{{/if}} | {{#if (eq status "pass")}}0{{else}}{{failure.violations}}{{/if}} | {{#if (eq status "pass")}} {{else}}{{failure.elements}}{{/if}} |
+{{/each}}
+
+---
+
+{{/each}}
+
