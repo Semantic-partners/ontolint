@@ -50,7 +50,7 @@ jobs:
         if: always()
 
       - name: Generate CTRF report
-        run: python3 scripts/generate_custom_report.py
+        run: poetry run scripts/generate_custom_report.py
         env:
           CTRF_DIR: ctrf
           REPORT_OUTPUT: ctrf_report.md
