@@ -63,7 +63,7 @@ jobs:
       #     cat ./ctrf_report.md >> $GITHUB_STEP_SUMMARY
       #   if: always()
   
-      # - name: Publish Test Report
+      - name: Publish Test Report
         uses: ctrf-io/github-test-reporter@v1
         with:
           report-path: 'ctrf/*.json'
