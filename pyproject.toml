@@ -1,0 +1,15 @@
+[project]
+name = "ontology-quality-assessment"
+version = "1.0.0"
+description = ""
+authors = [
+    {name = "Otello Roscioni", email = "otello.roscioni@semanticpartners.com"}
+]
+readme = "readme.md"
+requires-python = ">=3.9"
+dependencies = [
+    "rdflib (>=7.4.0,<8.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
