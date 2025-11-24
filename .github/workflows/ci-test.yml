@@ -52,21 +52,21 @@ jobs:
       - name: Generate CTRF report
         run: python3 scripts/generate_custom_report.py
         env:
-          CTRF_DIR: ./ctrf
-          REPORT_OUTPUT: ./ctrf_report.md
-          TEMPLATE_FILE: ./ontology-quality-assessment/scripts/ctrf-report.hbs
+          CTRF_DIR: ctrf
+          REPORT_OUTPUT: ctrf_report.md
+          TEMPLATE_FILE: scripts/ctrf-report.hbs
         if: always()
 
       # Append report to workflow summary
-      - name: Create workflow summary
-        run: |
-          cat ./ctrf_report.md >> $GITHUB_STEP_SUMMARY
-        if: always()
+      # - name: Create workflow summary
+      #   run: |
+      #     cat ./ctrf_report.md >> $GITHUB_STEP_SUMMARY
+      #   if: always()
   
       # - name: Publish Test Report
-      #   uses: ctrf-io/github-test-reporter@v1
-      #   with:
-      #     report-path: './ctrf/*.json'
-      #     template-path: './scripts/ctrf-report.hbs'
-      #     custom-report: true
-      #   if: always()
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: 'ctrf/*.json'
+          template-path: 'scripts/ctrf-report.hbs'
+          custom-report: true
+        if: always()
