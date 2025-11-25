@@ -824,6 +824,34 @@ def write_ctrf_report(qa_metrics, qa_violations, ont, file_path, filename):
     print(f"\nCTRF report written to: {output_file}")
     return ctrf_report
 
+def load_rdf_file(file, graph):
+    """
+    Load RDF data from a file into the given rdflib Graph.
+    
+    Args:
+        f (str): Path to the RDF file.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+    
+    Returns:
+        bool: True if the file was successfully loaded, False otherwise.
+    """
+    print(f"Loading data from: {file}")
+
+    # Try to guess format from file extension
+    if file.lower().endswith(('.ttl', '.turtle')):
+        fmt = "turtle"
+    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
+        fmt = "xml"
+    else:
+        fmt = None  # Let rdflib try to guess
+    try:
+        graph.parse(file, format=fmt)
+        return True
+    except Exception as e:
+        print(f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}")
+        return False
+
+
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
@@ -850,40 +878,16 @@ def main():
             for root, _, files in os.walk(f):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    print(f"Loading data from: {file_path}")
-
-                    # Try to guess format from file extension
-                    if file.lower().endswith(('.ttl', '.turtle')):
-                        fmt = "turtle"
-                    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
-                        fmt = "xml"
-                    else:
-                        fmt = None  # Let rdflib try to guess
-                    try:
-                        g.parse(file_path, format=fmt)
-                        # append the list of processed files
-                        qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
-                    except Exception as e:
-                        print(f"Failed to parse {file_path} ({fmt if fmt else 'auto'}): {e}")
-                        continue
+                    if load_rdf_file(file_path, g):
+                      # Append successfully processed file
+                      qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
             continue  # skip to next f after processing directory
 
         else:
             print(f"Loading data from: {f}")
-            # Try to guess format from file extension
-            if f.lower().endswith(('.ttl', '.turtle')):
-                fmt = "turtle"
-            elif f.lower().endswith(('.rdf', '.owl', '.xml')):
-                fmt = "xml"
-            else:
-                fmt = None  # Let rdflib try to guess
-            try:
-                g.parse(f, format=fmt)
-                # append the list of processed files
+            if load_rdf_file(f, g):
+                # Append successfully processed file
                 qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
-            except Exception as e:
-                print(f"Failed to parse {f} ({fmt if fmt else 'auto'}): {e}")
-                continue
 
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
