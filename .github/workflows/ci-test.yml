@@ -1,0 +1,72 @@
+# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
+name: Ontology QA
+
+# Controls when the workflow will run
+on: [push]
+
+# The permissions granted to the GITHUB_TOKEN for this workflow
+permissions:
+  contents: read
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job
+  validate:
+    name: validate-ontology
+
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Cancel all in-progress and queued jobs in the matrix if any job in the matrix fails. 
+    strategy:
+      fail-fast: true
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: "Check out repository code"
+        uses: actions/checkout@v5
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: poetry install
+      
+      - name: "Install ctrf"
+        run: |
+          cd $GITHUB_WORKSPACE
+          npm install ctrf
+      
+      - name: Create CTRF directory
+        run: mkdir -p ./ctrf
+      
+      - name: Check-all-ontologies
+        run: | 
+          poetry run scripts/ontology_qa.py tests/example.ttl
+        if: always()
+
+      - name: Generate CTRF report
+        run: poetry run scripts/generate_custom_report.py
+        env:
+          CTRF_DIR: ctrf
+          REPORT_OUTPUT: ctrf_report.md
+          TEMPLATE_FILE: scripts/ctrf-report.hbs
+        if: always()
+
+      # Append report to workflow summary
+      - name: Create workflow summary
+        run: |
+          cat ./ctrf_report.md >> $GITHUB_STEP_SUMMARY
+        if: always()
+  
+      # - name: Publish Test Report
+      #   uses: ctrf-io/github-test-reporter@v1
+      #   with:
+      #     report-path: 'ctrf/*.json'
+      #     template-path: 'scripts/ctrf-report.hbs'
+      #     custom-report: true
+      #   if: always()

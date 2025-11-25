@@ -1,5 +1,19 @@
 # Ontology Quality Assessment
 
+A tool for ontology development that profiles an ontology file and provides metrics such as the number of triples, class count, and property count to give a baseline understanding of the ontology’s scale and complexity. The tool also does a quality assessment of an ontology that checks for attributes such as ontology declaration, description, version metadata, and so on. This focuses on completeness, documentation quality, and structural integrity of the ontology.
+
+## Usage
+
+The `ontology_qa.py` script accepts a file or folder as a parameter. It will accept any RDF file.
+
+### Dev setup
+```brew install poetry```
+
+To test the file works, run the script using the example file:
+```poetry run scripts/ontology_qa.py tests/example.ttl```
+
+## Implementation
+
 A collection of SPARQL queries to assess the quality of ontologies and executed with RDFLib. The script `ontology_qa.py` first creates a graph loading one or more ontologies. For quality assessment, one ontology at a time should be processed. The output is printed to the standard output in the markdown format.
 
 `ontology_qa.py` Implements the following Profiling metrics:
@@ -46,24 +60,24 @@ And QA metrics:
 
 For example, the test ontology [`example.ttl`](tests/example.ttl) returns the following results:
 
-#### Profiling Metrics
+### Profiling Metrics
 
 | Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | 
 |--|--|--|--|--|--|--|--|--|--|--|
-| tests/example.ttl | 59 | 10 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 5 |
+| tests/example.ttl | 62 | 10 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 5 |
 
-#### Quality Metrics
+### Quality Metrics
 
 | Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| tests/example.ttl | no | no | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.200 | 0.600 | 0 | 0 | 0 | 0 | 1 |
+| tests/example.ttl | no | no | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.200 | 0.600 | 0 | 0 | 2 | 0 | 2 |
 
-#### Metrics we could add
+### Metrics we could add
 1. Structure & complexity (hierarchy depth, average branching factor, use of restrictions)
 2. Reuse of external ontologies (e.g. Dublin Core, schema.org, domain-specific standards)
 3. Conformance to standards (OWL, RDF, SKOS, etc.)
 
-#### Batch Processing
+### Batch Processing
 
 For quality assessment, one ontology at a time should be processed. The following script runs `ontology_qa.py` and then uses `grep` to collect the output to two markdown tables.
 
@@ -87,4 +101,3 @@ do
  grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | tail -1 >> ont_tables.md
 done
 ```
-
