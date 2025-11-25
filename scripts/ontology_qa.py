@@ -285,12 +285,27 @@ WHERE {
   FILTER NOT EXISTS { ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
+property_labels = """
+SELECT DISTINCT ?p ?lbl
+WHERE {
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  ?p a ?type .
+  ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+}
+"""
 
 node_shape_missing_label = """
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
   FILTER NOT EXISTS { ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+}
+"""
+node_shape_labels = """
+SELECT DISTINCT ?ns ?lbl
+WHERE {
+  ?ns a sh:NodeShape .
+  ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
 }
 """
 
@@ -306,6 +321,18 @@ WHERE {
     FILTER NOT EXISTS { ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }
 """
+property_shape_labels = """
+SELECT ?ps ?lbl
+WHERE {
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
+    ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+}
+"""
 
 class_missing_comment = """
 SELECT DISTINCT ?c
@@ -313,6 +340,14 @@ WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   FILTER NOT EXISTS { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
+}
+"""
+class_comments = """
+SELECT DISTINCT ?c ?lbl
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?c a ?type .
+  ?c rdfs:comment|dcterms:description|skos:definition ?lbl
 }
 """
 
@@ -324,12 +359,27 @@ WHERE {
   FILTER NOT EXISTS { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
 }
 """
+property_comments = """
+SELECT DISTINCT ?p ?lbl
+WHERE {
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  ?p a ?type .
+  ?p rdfs:comment|dcterms:description|skos:definition ?lbl
+}
+"""
 
 node_shape_missing_comment = """
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
   FILTER NOT EXISTS { ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
+}
+"""
+node_shape_comments = """
+SELECT DISTINCT ?ns ?lbl
+WHERE {
+  ?ns a sh:NodeShape .
+  ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
 }
 """
 
@@ -343,6 +393,18 @@ WHERE {
       	FILTER(isBlank(?ps)) .
     }
     FILTER NOT EXISTS { ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
+}
+"""
+property_shape_comments = """
+SELECT DISTINCT ?ps ?lbl
+WHERE {
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
+    ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
 }
 """
 
@@ -870,10 +932,11 @@ def main():
 
     # 1. Load Data
     g = rdflib.Graph()
-    print(f"## Profiling Metrics")
+    print(f"## Profiling Metrics\n")
     for f in args.data_files:
         
         # check if f is a directory
+        c = 0
         if os.path.isdir(f):
             for root, _, files in os.walk(f):
                 for file in files:
@@ -881,6 +944,7 @@ def main():
                     if load_rdf_file(file_path, g):
                       # Append successfully processed file
                       qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
+                      c += 1
             continue  # skip to next f after processing directory
 
         else:
@@ -888,7 +952,12 @@ def main():
             if load_rdf_file(f, g):
                 # Append successfully processed file
                 qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
+                c += 1
 
+    if c == 0:
+        print("ERROR - No RDF data in input files or directories.")
+        return
+    
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
     sep()
@@ -896,14 +965,10 @@ def main():
 
     # Count initial classes, properties, and shapes.
     results = g.query(count_cp)
-    if not results:
-        print("ERROR - No classes or properties found.")
-        return
-    else:
-        (row,) = results
-        print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
-        qa_metrics['classCount']= row.classCount
-        qa_metrics['propertyCount'] = row.propertyCount
+    (row,) = results
+    print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
+    qa_metrics['classCount']= row.classCount
+    qa_metrics['propertyCount'] = row.propertyCount
   
     results = g.query(node_shape)
     if results:
@@ -928,9 +993,10 @@ def main():
         print(f"\nLocal classes in Node Shapes: {total_classes_in_shapes}")
         qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
         if args.verbose:
-            print(f"NodeShape\tClass count:")
+            print(f"| NodeShape | Class count |")
+            print("|--|--|")
             for row in results:
-                print(f"- {row.ns}\t{row.classCount}")
+                print(f"| {row.ns} | {row.classCount} |")
     else:
        qa_metrics['classesInNodeShapes'] = 0
     print("")
@@ -942,36 +1008,35 @@ def main():
         print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
         qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
         if args.verbose:
-            print(f"PropertyShape\tLocal Property:")
+            print(f"| PropertyShape | Local Property |")
+            print("|--|--|")
             for row in results:
-                print(f"- {row.ps}\t{row.prop}")
+                print(f"| {row.ps} | {row.prop} |")
     else:
         qa_metrics['propertiesInPropertyShapes'] = 0
 
     # Number of Deprecated Classes and Properties
-    print(f"\nDeprecated classes:", end=" ")
     results = g.query(deprecated_class)
     if not results:
-      print(" 0")
-      qa_metrics['deprecatedClasses'] = 0
+        qa_metrics['deprecatedClasses'] = 0
     else:
-      qa_metrics['deprecatedClasses'] = len(results)
-      print(f"{qa_metrics['deprecatedClasses']}")
-      print(f"List of deprecated classes:")
-      for row in results:
-          print(f" - {row.c}")
+        qa_metrics['deprecatedClasses'] = len(results)
+        print(f"\nDeprecated classes: {qa_metrics['deprecatedClasses']}\n")
+        if args.verbose:
+            print(f"List of deprecated classes:")
+            for row in results:
+                print(f" - {row.c}")
 
-    print(f"Deprecated properties:", end=" ")
     results = g.query(deprecated_property)
     if not results:
-      print(" 0")
-      qa_metrics['deprecatedProperties'] = 0
+        qa_metrics['deprecatedProperties'] = 0
     else:
-      qa_metrics['deprecatedProperties'] = len(results)
-      print(f"{qa_metrics['deprecatedProperties']}\n")
-      print(f"List of deprecated properties:")
-      for row in results:
-          print(f" - {row.p}")
+        qa_metrics['deprecatedProperties'] = len(results)
+        print(f"Deprecated properties: {qa_metrics['deprecatedProperties']}\n")
+        if args.verbose:
+            print(f"List of deprecated properties:")
+            for row in results:
+                print(f" - {row.p}")
 
     # List all used prefixes
     active_prefixes = prefixes(g)
@@ -1050,7 +1115,6 @@ def main():
         profiling(name, qa_metrics)
         return
     
-
     # Missing ontology description.
     if len(results) > 0:
         qan = qa_check_results("Ontology description",qan)
@@ -1061,7 +1125,7 @@ def main():
             qa_violations['ontologyDescription'] = ""
             if args.verbose:
                 results = g.query(ont_description)
-                print("\n  Ontology + Description:")
+                print("\n**Ontology + Description:**")
                 for row in results:
                     print(f"- {row.ont}\n  {row.d}\n")
         else:
@@ -1091,9 +1155,10 @@ def main():
         qa_violations['missingClassLabel'] = ""
         if args.verbose:
             results = g.query(class_labels)
-            print("\n  Class,\tLabel:")
+            print("\n|  Class | Label |")
+            print("|--|--|")
             for row in results:
-                print(f"- {row.c}\t{row.lbl}")
+                print(f"| {row.c} | {row.lbl} |")
     else:
         qa_metrics['missingClassLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
@@ -1112,6 +1177,12 @@ def main():
         print("PASS - All properties have a label annotation.")
         qa_metrics['missingPropertyLabel'] = 0
         qa_violations['missingPropertyLabel'] = ""
+        if args.verbose:
+            results = g.query(property_labels)
+            print("\n|  Property | Label |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.p} | {row.lbl} |")
     else:
         qa_metrics['missingPropertyLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingPropertyLabel']} properties missing a label annotation.")
@@ -1130,6 +1201,13 @@ def main():
         print("PASS - All NodeShape have a label annotation.")
         qa_metrics['missingNSLabel'] = 0
         qa_violations['missingNSLabel'] = ""
+        if args.verbose:
+            results = g.query(node_shape_labels)
+            print("\n|  NodeShape | Label |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.ns} | {row.lbl} |")
+
     else:
         qa_metrics['missingNSLabel'] = len(results)
         xs += 1
@@ -1148,6 +1226,12 @@ def main():
         print("PASS - All PropertyShape have a label annotation.")
         qa_metrics['missingPSLabel'] = 0
         qa_violations['missingPSLabel'] = ""
+        if args.verbose:
+            results = g.query(property_shape_labels)
+            print("\n|  PropertyShape | Label |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.ps} | {row.lbl} |")
     else:
         qa_metrics['missingPSLabel'] = len(results)
         xs += 1
@@ -1166,6 +1250,12 @@ def main():
         print("PASS - All classes have a description annotation.")
         qa_metrics['missingClassDescription'] = 0
         qa_violations['missingClassDescription'] = ""
+        if args.verbose:
+            results = g.query(class_labels)
+            print("\n|  Class | Description |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.c} | {row.lbl} |")
     else:
         qa_metrics['missingClassDescription'] = len(results)
         xs += 1
@@ -1184,6 +1274,12 @@ def main():
         print("PASS - All properties have a description annotation.")
         qa_metrics['missingPropertyDescription'] = 0
         qa_violations['missingPropertyDescription'] = ""
+        if args.verbose:
+            results = g.query(class_labels)
+            print("\n|  Property | Description |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.p} | {row.lbl} |")
     else:
         qa_metrics['missingPropertyDescription'] = len(results)
         xs += 1
@@ -1202,6 +1298,12 @@ def main():
         print("PASS - All NodeShape have a description annotation.")
         qa_metrics['missingNSDescription'] = 0
         qa_violations['missingNSDescription'] = ""
+        if args.verbose:
+            results = g.query(node_shape_labels)
+            print("\n|  NodeShape | Description |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.ns} | {row.lbl} |")
     else:
         qa_metrics['missingNSDescription'] = len(results)
         xs += 1
@@ -1220,6 +1322,12 @@ def main():
         print("PASS - All PropertyShape have a description annotation.")
         qa_metrics['missingPSDescription'] = 0
         qa_violations['missingPSDescription'] = ""
+        if args.verbose:
+            results = g.query(property_shape_labels)
+            print("\n|  PropertyShape | Description |")
+            print("|--|--|")
+            for row in results:
+                print(f"| {row.ps} | {row.lbl} |")
     else:
         qa_metrics['missingPSDescription'] = len(results)
         xs += 1
