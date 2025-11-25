@@ -42,14 +42,8 @@
   rdfs:domain :Dog, :Cat .
 
 # violation detected
-# :myIsolatedClass a owl:DatatypeProperty .
-
-# violation NOT detected
-# :myIsolatedClass a rdfs:Class .
-
-# violation NOT detected
 :hasScales a owl:ObjectProperty .
-:hasScales a rdf:Property .
+:hasScales a rdfs:Class .
 
 # Including Cycles in a Class Hierarchy: violation detected
 #:Organism a owl:Class ;

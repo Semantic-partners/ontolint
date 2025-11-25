@@ -64,13 +64,13 @@ For example, the test ontology [`example.ttl`](tests/example.ttl) returns the fo
 
 | Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | 
 |--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | 65 | 10 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 5 |
+| http://my.ont.example# | 65 | 11 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 5 |
 
 ### Quality Metrics
 
 | Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | yes | yes | 0.600 | 0.800 | 0.333 | 0 | 0.900 | 1.000 | 0.333 | 1.000 | 0.100 | 0 | 0 | 0 | 0.200 | 0.200 | 0.600 | 0 | 0 | 2 | 0 | 2 |
+| http://my.ont.example# | yes | yes | 0.636 | 0.800 | 0.333 | 0 | 0.909 | 1.000 | 0.333 | 1.000 | 0.091 | 0 | 0 | 0 | 0.273 | 0.200 | 0.600 | 1 | 0 | 2 | 0 | 2 |
 
 ### Metrics we could add
 1. Structure & complexity (hierarchy depth, average branching factor, use of restrictions)

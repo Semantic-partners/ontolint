@@ -549,25 +549,14 @@ WHERE {
   # exclude blank nodes
   FILTER(isIRI(?s))
 
+  # Restrict to ontology namespace
+  ?ontology a owl:Ontology .
+  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
+
   MINUS { ?p a rdf:Property }
   MINUS { ?p a owl:ObjectProperty }
   MINUS { ?p a owl:DatatypeProperty }
 
-  FILTER (
-    !regex(STR(?p), "^http://www.w3.org/1999/02/22-rdf-syntax-ns")  &&
-    !regex(STR(?p), "^http://www.w3.org/2000/01/rdf-schema")  &&
-    !regex(STR(?p), "^http://www.w3.org/2001/XMLSchema")  &&
-    !regex(STR(?p), "^http://www.w3.org/2002/07/owl")  &&
-    !regex(STR(?p), "^http://www.w3.org/2004/02/skos/core")  &&
-    !regex(STR(?p), "^http://www.w3.org/ns/shacl")  &&
-    !regex(STR(?p), "^http://www.w3.org/XML/1998/namespace")  &&
-    !regex(STR(?p), "^http://purl.org/dc/terms")  &&
-    !regex(STR(?p), "^http://purl.org/dc/elements/1.1")  &&
-    !regex(STR(?p), "^http://purl.org/vocab/vann")  &&
-    !regex(STR(?p), "^http://purl.org/ontology/bibo/status")  &&
-    !regex(STR(?p), "^http://xmlns.com/foaf/0.1")  &&
-    !regex(STR(?p), "^http://www.linkedmodel.org/1.2/schema/vaem")
-  )
 }
 """
 
@@ -591,22 +580,9 @@ WHERE {
   {
     ?s2 ?p ?resource .
   }
-  # Detect if the class URI starts with a known external namespace
-  FILTER (
-    regex(STR(?resource), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") ||
-    regex(STR(?resource), "^http://www.w3.org/2000/01/rdf-schema") ||
-    regex(STR(?resource), "^http://www.w3.org/2001/XMLSchema") ||
-    regex(STR(?resource), "^http://www.w3.org/2002/07/owl") ||
-    regex(STR(?resource), "^http://www.w3.org/2004/02/skos/core") ||
-    regex(STR(?resource), "^http://www.w3.org/ns/shacl") ||
-    regex(STR(?resource), "^http://www.w3.org/XML/1998/namespace") ||
-    regex(STR(?resource), "^http://purl.org/dc/terms") ||
-    regex(STR(?resource), "^http://purl.org/dc/elements/1.1") ||
-    regex(STR(?resource), "^http://purl.org/vocab/vann") ||
-    regex(STR(?resource), "^http://purl.org/ontology/bibo/status") ||
-    regex(STR(?resource), "^http://xmlns.com/foaf/0.1") ||
-    regex(STR(?resource), "^http://www.linkedmodel.org/1.2/schema/vaem")
-  )
+  # Filter resource URI from external namespaces
+  ?ontology a owl:Ontology .
+  FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
 }
 """
 
@@ -922,7 +898,6 @@ def main():
             continue  # skip to next f after processing directory
 
         else:
-            print(f"Loading data from: {f}")
             if load_rdf_file(f, g):
                 # Append successfully processed file
                 qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
@@ -967,8 +942,7 @@ def main():
         print(f"\nLocal classes in Node Shapes: {total_classes_in_shapes}")
         qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
         if args.verbose:
-            print(f"| NodeShape | Class count |")
-            print("|--|--|")
+            print("| NodeShape | Class count |\n|--|--|")
             for row in results:
                 print(f"| {row.ns} | {row.classCount} |")
     else:
@@ -982,8 +956,7 @@ def main():
         print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
         qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
         if args.verbose:
-            print(f"| PropertyShape | Local Property |")
-            print("|--|--|")
+            print("| PropertyShape | Local Property |\n|--|--|")
             for row in results:
                 print(f"| {row.ps} | {row.prop} |")
     else:
@@ -1050,9 +1023,9 @@ def main():
         else:
             print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
 
-    print(f"Final graph size after inference: {len(g)} triples.\n")
+    print(f"Final graph size after inference: {len(g)} triples.")
     sep()
-    print(f"## QA Metrics")
+    print("\n## QA Metrics")
 
     # ISM1 No OWL ontology declaration
     qan = 1
@@ -1101,7 +1074,7 @@ def main():
                 results = g.query(ont_description)
                 print("\n**Ontology + Description:**")
                 for row in results:
-                    print(f"- {row.ont}\n  {row.d}\n")
+                    print(f" - {row.ont}\n   {row.d}")
         else:
             owd = len(results)
             qa_metrics['ontologyDescription'] = len(results) #  violations
@@ -1129,8 +1102,7 @@ def main():
         qa_violations['missingClassLabel'] = ""
         if args.verbose:
             results = g.query(class_labels)
-            print("\n|  Class | Label |")
-            print("|--|--|")
+            print("|  Class | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.c} | {row.lbl} |")
     else:
@@ -1153,8 +1125,7 @@ def main():
         qa_violations['missingPropertyLabel'] = ""
         if args.verbose:
             results = g.query(property_labels)
-            print("\n|  Property | Label |")
-            print("|--|--|")
+            print("|  Property | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.p} | {row.lbl} |")
     else:
@@ -1177,8 +1148,7 @@ def main():
         qa_violations['missingNSLabel'] = ""
         if args.verbose:
             results = g.query(node_shape_labels)
-            print("\n|  NodeShape | Label |")
-            print("|--|--|")
+            print("|  NodeShape | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.ns} | {row.lbl} |")
 
@@ -1202,8 +1172,7 @@ def main():
         qa_violations['missingPSLabel'] = ""
         if args.verbose:
             results = g.query(property_shape_labels)
-            print("\n|  PropertyShape | Label |")
-            print("|--|--|")
+            print("|  PropertyShape | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.ps} | {row.lbl} |")
     else:
@@ -1226,8 +1195,7 @@ def main():
         qa_violations['missingClassDescription'] = ""
         if args.verbose:
             results = g.query(class_labels)
-            print("\n|  Class | Description |")
-            print("|--|--|")
+            print("|  Class | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.c} | {row.lbl} |")
     else:
@@ -1250,8 +1218,7 @@ def main():
         qa_violations['missingPropertyDescription'] = ""
         if args.verbose:
             results = g.query(class_labels)
-            print("\n|  Property | Description |")
-            print("|--|--|")
+            print("| Property | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.p} | {row.lbl} |")
     else:
@@ -1274,8 +1241,7 @@ def main():
         qa_violations['missingNSDescription'] = ""
         if args.verbose:
             results = g.query(node_shape_labels)
-            print("\n|  NodeShape | Description |")
-            print("|--|--|")
+            print("| NodeShape | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.ns} | {row.lbl} |")
     else:
@@ -1298,8 +1264,7 @@ def main():
         qa_violations['missingPSDescription'] = ""
         if args.verbose:
             results = g.query(property_shape_labels)
-            print("\n|  PropertyShape | Description |")
-            print("|--|--|")
+            print("| PropertyShape | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.ps} | {row.lbl} |")
     else:
@@ -1325,9 +1290,9 @@ def main():
         xs += 1
         string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniqueClassLabels']} labels shared by multiple classes.")
-        print(f"- Label\t\tClasses")
+        print("| Label | Classes |\n|--|--|")
         for row in results:
-            print(f" - \"{row.label}\"\t{row.classes}")
+            print(f"| {row.label} | {row.classes} |")
             string += f"\"{row.label}\": {row.classes};<br> "
         string = string.rstrip(";<br> ")
         qa_violations['nonUniqueClassLabels'] = string
@@ -1344,9 +1309,9 @@ def main():
         xs += 1
         string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniquePropertyLabels']} labels shared by multiple properties.")
-        print(f"- Label\t\tProperties")
+        print("| Label | Properties |\n|--|--|")
         for row in results:
-            print(f" - \"{row.label}\"\t{row.properties}")
+            print(f"| {row.label} | {row.properties} |")
             string += f"\"{row.label}\": {row.properties};<br> "
         string = string.rstrip(";<br> ")
         qa_violations['nonUniquePropertyLabels'] = string
@@ -1363,9 +1328,9 @@ def main():
         xs += 1
         string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.")
-        print(f"- Label\t\tNodeShapes")
+        print("| Label | NodeShapes |\n|--|--|")
         for row in results:
-            print(f" - \"{row.label}\"\t{row.nsList}")
+            print(f"| {row.label} | {row.nsList} |")
             string += f"\"{row.label}\": {row.nsList};<br> "
         string = string.rstrip(";<br> ")
         qa_violations['nonUniqueNSLabels'] = string
@@ -1382,9 +1347,9 @@ def main():
         xs += 1
         string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
-        print(f"- Label\tPropertyShapes")
+        print("| Label | PropertyShapes |\n|--|--|")
         for row in results:
-            print(f" - \"{row.label}\"\t{row.psList}")
+            print(f"| {row.label} | {row.psList} |")
             string += f"\"{row.label}\": {row.psList};<br> "
         string = string.rstrip(";<br> ")
         qa_violations['nonUniquePSLabels'] = string
@@ -1465,9 +1430,9 @@ def main():
         xs += 1
         string = ""
         print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
-        print(f"URI\t\tDeclared as:")
+        print("| URI | Declared as |\n|--|--|")
         for row in results:
-            print(f"{row.iri} - {row.declaredAs}")
+            print(f"| {row.iri} | {row.declaredAs} |")
             string += f"{row.iri},<br> "
         string = string.rstrip(",<br> ")
         qa_violations['nonUniqueIdentifiers'] = string
@@ -1543,7 +1508,7 @@ def main():
     else:
         qa_metrics['hijacking'] = len(results)
         # print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
-        print(f"WARNING - Found {qa_metrics['hijacking']} namespaces. Count of entities for each namespace:")
+        print(f"WARNING - Found resources defined in {qa_metrics['hijacking']} namespaces. Count of entities for each namespace:")
         for row in results:
             print(f" - {row.namespace} {row['count']}")
     sep()
