@@ -624,14 +624,13 @@ SELECT DISTINCT ?ns (COUNT(DISTINCT ?c) AS ?classCount)
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   {
-    ?ns a sh:NodeShape .
-    ?ns a ?type .
+    ?ns a sh:NodeShape, ?type .
     BIND (?ns as ?c)
   }
   UNION
   {
-    ?ns a sh:NodeShape .
-    ?ns sh:targetClass ?c .
+    ?ns a sh:NodeShape ;
+          sh:targetClass ?c .
     ?c a ?type .
   }
 } GROUP BY ?ns
@@ -693,7 +692,7 @@ def prefixes(g):
     return used_prefixes
 
 def qa_check_results(description,qan):
-    print(f"\nRunning check {qan}: {description}.")
+    print(f"\nCheck {qan}: {description}.")
     qan += 1
     return qan
 
@@ -937,53 +936,40 @@ def main():
     
     # Count classes in NodeShapes.
     results = g.query(classes_in_node_shape)
-    if results:
-        total_classes_in_shapes = sum(int(row.classCount) for row in results)
-        print(f"\nLocal classes in Node Shapes: {total_classes_in_shapes}")
-        qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
-        if args.verbose:
-            print("| NodeShape | Class count |\n|--|--|")
-            for row in results:
-                print(f"| {row.ns} | {row.classCount} |")
-    else:
-       qa_metrics['classesInNodeShapes'] = 0
-    print("")
+    total_classes_in_shapes = sum(int(row.classCount) for row in results)
+    print(f"Local classes in Node Shapes: {total_classes_in_shapes}")
+    qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
+    if args.verbose and total_classes_in_shapes > 0:
+        print("| NodeShape | Class count |\n|--|--|")
+        for row in results:
+            print(f"| {row.ns} | {row.classCount} |")
 
     # Count properties in PropertyShapes.
     results = g.query(property_in_property_shape)
-    if results:
-        total_properties_in_shapes = len(results)
-        print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
-        qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-        if args.verbose:
-            print("| PropertyShape | Local Property |\n|--|--|")
-            for row in results:
-                print(f"| {row.ps} | {row.prop} |")
-    else:
-        qa_metrics['propertiesInPropertyShapes'] = 0
+    total_properties_in_shapes = len(results)
+    print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
+    qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
+    if results and args.verbose:
+        print("| PropertyShape | Local Property |\n|--|--|")
+        for row in results:
+            print(f"| {row.ps} | {row.prop} |")
 
     # Number of Deprecated Classes and Properties
     results = g.query(deprecated_class)
-    if not results:
-        qa_metrics['deprecatedClasses'] = 0
-    else:
-        qa_metrics['deprecatedClasses'] = len(results)
-        print(f"\nDeprecated classes: {qa_metrics['deprecatedClasses']}\n")
-        if args.verbose:
-            print(f"List of deprecated classes:")
-            for row in results:
-                print(f" - {row.c}")
+    qa_metrics['deprecatedClasses'] = len(results)
+    print(f"Deprecated classes: {qa_metrics['deprecatedClasses']}")
+    if args.verbose and int(qa_metrics['deprecatedClasses']) > 0:
+        print(f"List of deprecated classes:")
+        for row in results:
+            print(f" - {row.c}")
 
     results = g.query(deprecated_property)
-    if not results:
-        qa_metrics['deprecatedProperties'] = 0
-    else:
-        qa_metrics['deprecatedProperties'] = len(results)
-        print(f"Deprecated properties: {qa_metrics['deprecatedProperties']}\n")
-        if args.verbose:
-            print(f"List of deprecated properties:")
-            for row in results:
-                print(f" - {row.p}")
+    qa_metrics['deprecatedProperties'] = len(results)
+    print(f"Deprecated properties: {qa_metrics['deprecatedProperties']}")
+    if args.verbose and int(qa_metrics['deprecatedProperties']) > 0:
+        print(f"List of deprecated properties:")
+        for row in results:
+            print(f" - {row.p}")
 
     # List all used prefixes
     active_prefixes = prefixes(g)
@@ -999,7 +985,7 @@ def main():
                 del active_prefixes[pfx]
 
     qa_metrics['vocabulariesUsed'] = len(active_prefixes)
-    print(f"\nExternal vocabularies declared: {qa_metrics['vocabulariesUsed']}")
+    print(f"External vocabularies declared: {qa_metrics['vocabulariesUsed']}")
     for pfx, ns in active_prefixes.items():
         print(f" - {pfx}: {ns}")
     sep()
@@ -1096,15 +1082,17 @@ def main():
     # Missing Annotations
     qan = qa_check_results("Classes missing label annotations",qan)
     results = g.query(class_missing_label)
-    if not results:
+    qa_metrics['missingClassLabel'] = 0
+    qa_violations['missingClassLabel'] = ""
+    if not results and int(qa_metrics['classCount']) > 0:
         print("PASS - All classes have a label annotation.")
-        qa_metrics['missingClassLabel'] = 0
-        qa_violations['missingClassLabel'] = ""
         if args.verbose:
             results = g.query(class_labels)
             print("|  Class | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.c} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
     else:
         qa_metrics['missingClassLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
@@ -1119,15 +1107,17 @@ def main():
 
     qan = qa_check_results("Properties missing label annotations",qan)
     results = g.query(property_missing_label)
-    if not results:
+    qa_metrics['missingPropertyLabel'] = 0
+    qa_violations['missingPropertyLabel'] = ""
+    if not results and int(qa_metrics['propertyCount']) > 0:
         print("PASS - All properties have a label annotation.")
-        qa_metrics['missingPropertyLabel'] = 0
-        qa_violations['missingPropertyLabel'] = ""
         if args.verbose:
             results = g.query(property_labels)
             print("|  Property | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.p} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No properties defined, invalid metric.")
     else:
         qa_metrics['missingPropertyLabel'] = len(results)
         print(f"VIOLATION - Found {qa_metrics['missingPropertyLabel']} properties missing a label annotation.")
@@ -1142,16 +1132,17 @@ def main():
 
     qan = qa_check_results("NodeShape missing label annotations",qan)
     results = g.query(node_shape_missing_label)
-    if not results:
+    qa_metrics['missingNSLabel'] = 0
+    qa_violations['missingNSLabel'] = ""
+    if not results and int(qa_metrics['nodeShapes']) > 0:
         print("PASS - All NodeShape have a label annotation.")
-        qa_metrics['missingNSLabel'] = 0
-        qa_violations['missingNSLabel'] = ""
-        if args.verbose:
+        if args.verbose and int(qa_metrics['nodeShapes']) > 0:
             results = g.query(node_shape_labels)
             print("|  NodeShape | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.ns} | {row.lbl} |")
-
+    elif not results:
+        print("WARNING - No NodeShape defined, invalid metric.")
     else:
         qa_metrics['missingNSLabel'] = len(results)
         xs += 1
@@ -1166,15 +1157,17 @@ def main():
 
     qan = qa_check_results("PropertyShape missing label annotations",qan)
     results = g.query(property_shape_missing_label)
-    if not results:
+    qa_metrics['missingPSLabel'] = 0
+    qa_violations['missingPSLabel'] = ""
+    if not results and int(qa_metrics['propertyShapes']) > 0:
         print("PASS - All PropertyShape have a label annotation.")
-        qa_metrics['missingPSLabel'] = 0
-        qa_violations['missingPSLabel'] = ""
         if args.verbose:
             results = g.query(property_shape_labels)
             print("|  PropertyShape | Label |\n|--|--|")
             for row in results:
                 print(f"| {row.ps} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No PropertyShapes defined, invalid metric.")
     else:
         qa_metrics['missingPSLabel'] = len(results)
         xs += 1
@@ -1189,15 +1182,17 @@ def main():
 
     qan = qa_check_results("Classes missing description annotations",qan)
     results = g.query(class_missing_comment)
-    if not results:
+    qa_metrics['missingClassDescription'] = 0
+    qa_violations['missingClassDescription'] = ""
+    if not results and int(qa_metrics['classCount']) > 0:
         print("PASS - All classes have a description annotation.")
-        qa_metrics['missingClassDescription'] = 0
-        qa_violations['missingClassDescription'] = ""
         if args.verbose:
             results = g.query(class_labels)
             print("|  Class | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.c} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
     else:
         qa_metrics['missingClassDescription'] = len(results)
         xs += 1
@@ -1212,15 +1207,17 @@ def main():
 
     qan = qa_check_results("Properties missing description annotations",qan)
     results = g.query(property_missing_comment)
-    if not results:
+    qa_metrics['missingPropertyDescription'] = 0
+    qa_violations['missingPropertyDescription'] = ""
+    if not results and int(qa_metrics['propertyCount']) > 0:
         print("PASS - All properties have a description annotation.")
-        qa_metrics['missingPropertyDescription'] = 0
-        qa_violations['missingPropertyDescription'] = ""
         if args.verbose:
             results = g.query(class_labels)
             print("| Property | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.p} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No properties defined, invalid metric.")
     else:
         qa_metrics['missingPropertyDescription'] = len(results)
         xs += 1
@@ -1235,15 +1232,17 @@ def main():
 
     qan = qa_check_results("NodeShape missing description annotations",qan)
     results = g.query(node_shape_missing_comment)
-    if not results:
+    qa_metrics['missingNSDescription'] = 0
+    qa_violations['missingNSDescription'] = ""
+    if not results and int(qa_metrics['nodeShapes']) > 0:
         print("PASS - All NodeShape have a description annotation.")
-        qa_metrics['missingNSDescription'] = 0
-        qa_violations['missingNSDescription'] = ""
         if args.verbose:
             results = g.query(node_shape_labels)
             print("| NodeShape | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.ns} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No NodeShape defined, invalid metric.")
     else:
         qa_metrics['missingNSDescription'] = len(results)
         xs += 1
@@ -1258,15 +1257,17 @@ def main():
 
     qan = qa_check_results("PropertyShape missing description annotations",qan)
     results = g.query(property_shape_missing_comment)
-    if not results:
+    qa_metrics['missingPSDescription'] = 0
+    qa_violations['missingPSDescription'] = ""
+    if not results and int(qa_metrics['propertyShapes']) > 0:
         print("PASS - All PropertyShape have a description annotation.")
-        qa_metrics['missingPSDescription'] = 0
-        qa_violations['missingPSDescription'] = ""
         if args.verbose:
             results = g.query(property_shape_labels)
             print("| PropertyShape | Description |\n|--|--|")
             for row in results:
                 print(f"| {row.ps} | {row.lbl} |")
+    elif not results:
+        print("WARNING - No PropertyShapes defined, invalid metric.")
     else:
         qa_metrics['missingPSDescription'] = len(results)
         xs += 1
@@ -1281,10 +1282,12 @@ def main():
 
     qan = qa_check_results("Classes with the same label",qan)
     results = g.query(class_same_label)
-    if not results:
+    qa_metrics['nonUniqueClassLabels'] = 0
+    qa_violations['nonUniqueClassLabels'] = ""
+    if not results and int(qa_metrics['classCount']) > 0:
         print("PASS - No classes share the same label.")
-        qa_metrics['nonUniqueClassLabels'] = 0
-        qa_violations['nonUniqueClassLabels'] = ""
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
     else:
         qa_metrics['nonUniqueClassLabels'] = len(results)
         xs += 1
@@ -1300,10 +1303,12 @@ def main():
 
     qan = qa_check_results("Properties with the same label",qan)
     results = g.query(property_same_label)
-    if not results:
+    qa_metrics['nonUniquePropertyLabels'] = 0
+    qa_violations['nonUniquePropertyLabels'] = ""
+    if not results and int(qa_metrics['propertyCount']) > 0:
         print("PASS - No property share the same label.")
-        qa_metrics['nonUniquePropertyLabels'] = 0
-        qa_violations['nonUniquePropertyLabels'] = ""
+    elif not results:
+        print("WARNING - No properties defined, invalid metric.")
     else:
         qa_metrics['nonUniquePropertyLabels'] = len(results)
         xs += 1
@@ -1319,10 +1324,12 @@ def main():
 
     qan = qa_check_results("NodeShapes with the same label",qan)
     results = g.query(node_shape_same_label)
-    if not results:
+    qa_metrics['nonUniqueNSLabels'] = 0
+    qa_violations['nonUniqueNSLabels'] = ""
+    if not results and int(qa_metrics['nodeShapes']) > 0:
         print("PASS - No NodeShape share the same label.")
-        qa_metrics['nonUniqueNSLabels'] = 0
-        qa_violations['nonUniqueNSLabels'] = ""
+    elif not results:
+        print("WARNING - No NodeShape defined, invalid metric.")
     else:
         qa_metrics['nonUniqueNSLabels'] = len(results)
         xs += 1
@@ -1338,10 +1345,12 @@ def main():
 
     qan = qa_check_results("PropertyShapes with the same label",qan)
     results = g.query(property_shape_same_label)
+    qa_metrics['nonUniquePSLabels'] = 0
+    qa_violations['nonUniquePSLabels'] = ""
     if not results:
         print("PASS - No PropertyShape share the same label.")
-        qa_metrics['nonUniquePSLabels'] = 0
-        qa_violations['nonUniquePSLabels'] = ""
+    elif not results:
+        print("WARNING - No PropertyShapes defined, invalid metric.")
     else:
         qa_metrics['nonUniquePSLabels'] = len(results)
         xs += 1
@@ -1358,10 +1367,12 @@ def main():
     # Number of Isolated Classes
     qan = qa_check_results("Number of isolated classes",qan)
     results = g.query(isolated_classes)
-    if not results:
+    qa_metrics['isolatedClasses'] = 0
+    qa_violations['isolatedClasses'] = ""
+    if not results and int(qa_metrics['classCount']) > 0:
         print("PASS - All classes are connected to another class through a subclass or property relation.")
-        qa_metrics['isolatedClasses'] = 0
-        qa_violations['isolatedClasses'] = ""
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
     else:
         qa_metrics['isolatedClasses'] = len(results)
         xs += 1
@@ -1379,9 +1390,11 @@ def main():
     results = g.query(ic2_missing_dr_property)
     dCount = 0
     rCount = 0
-    if not results:
+    qa_metrics['missingDomainRange'] = 0
+    if not results and int(qa_metrics['propertyCount']) > 0:
         print("PASS - All properties have domain and range defined.")
-        qa_metrics['missingDomainRange'] = 0
+    elif not results:
+        print("WARNING - No properties defined, invalid metric.")
     else:
         qa_metrics['missingDomainRange'] = len(results)
         xs += 1
@@ -1441,10 +1454,12 @@ def main():
     # IO2 Including Cycles in a Class Hierarchy
     qan = qa_check_results("Including Cycles in a Class Hierarchy",qan)
     results = g.query(io2_cycles)
-    if not results:
+    qa_metrics['subclassCycles'] = 0
+    qa_violations['subclassCycles'] = ""
+    if not results and int(qa_metrics['classCount']) > 0:
         print("PASS - No violations found.")
-        qa_metrics['subclassCycles'] = 0
-        qa_violations['subclassCycles'] = ""
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
     else:
         qa_metrics['subclassCycles'] = len(results)
         xs += 1
@@ -1460,10 +1475,12 @@ def main():
     # Untyped class
     qan = qa_check_results("Untyped class",qan)
     results = g.query(untyped_class)
-    if not results:
+    qa_metrics['untypedClasses'] = 0
+    qa_violations['untypedClasses'] = ""
+    if not results and int(qa_metrics['classCount']) > 0:
         print("PASS - No violations found.")
-        qa_metrics['untypedClasses'] = 0
-        qa_violations['untypedClasses'] = ""
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
     else:
         qa_metrics['untypedClasses'] = len(results)
         xs += 1
@@ -1481,10 +1498,12 @@ def main():
      # Untyped property
     qan = qa_check_results("Untyped property",qan)
     results = g.query(untyped_property)
-    if not results:
+    qa_metrics['untypedProperties'] = 0
+    qa_violations['untypedProperties'] = ""
+    if not results and int(qa_metrics['propertyCount']) > 0:
         print("PASS - No violations found.")
-        qa_metrics['untypedProperties'] = 0
-        qa_violations['untypedProperties'] = ""
+    elif not results:
+        print("WARNING - No properties defined, invalid metric.")
     else:
         qa_metrics['untypedProperties'] = len(results)
         xs += 1
