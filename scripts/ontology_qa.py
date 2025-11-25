@@ -516,36 +516,6 @@ HAVING (COUNT(DISTINCT ?ps) > 1)
 
 # Untyped class
 # Class without rdf:type owl:Class or rdfs:Class declaration
-# untyped_class = """
-# SELECT DISTINCT ?c
-# WHERE {
-#    { ?s rdf:type ?c . }
-#    UNION
-#    { ?s rdfs:domain ?c . }
-#    UNION
-#    { ?s rdfs:range ?c . }
-#   # Exclude built-in vocabulary
-#   FILTER (
-#     !regex(STR(?c), "^http://www.w3.org/1999/02/22-rdf-syntax-ns") &&
-#     !regex(STR(?c), "^http://www.w3.org/2000/01/rdf-schema") &&
-#     !regex(STR(?c), "^http://www.w3.org/2001/XMLSchema") &&
-#     !regex(STR(?c), "^http://www.w3.org/2002/07/owl") &&
-#     !regex(STR(?c), "^http://www.w3.org/2004/02/skos/core") &&
-#     !regex(STR(?c), "^http://www.w3.org/ns/shacl") &&
-#     !regex(STR(?c), "^http://www.w3.org/XML/1998/namespace") &&
-#     !regex(STR(?c), "^http://purl.org/dc/terms") &&
-#     !regex(STR(?c), "^http://purl.org/dc/elements/1.1") &&
-#     !regex(STR(?c), "^http://purl.org/vocab/vann") &&
-#     !regex(STR(?c), "^http://purl.org/ontology/bibo/status") &&
-#     !regex(STR(?c), "^http://xmlns.com/foaf/0.1") &&
-#     !regex(STR(?c), "^http://www.linkedmodel.org/1.2/schema/vaem")
-#   )
-#   # Exclude classes that are explicitly typed as owl:Class or rdfs:Class
-#   FILTER ( NOT EXISTS { ?c rdf:type owl:Class . } && NOT EXISTS { ?c rdf:type rdfs:Class . } )
-# }
-# """
-
-# Refined version: only consider classes in the ontology namespace.
 untyped_class = """
 SELECT DISTINCT ?c
 WHERE {
@@ -557,6 +527,10 @@ WHERE {
   
   # exclude blank nodes
   FILTER(isIRI(?c))
+
+  # Restrict to ontology namespace
+  ?ontology a owl:Ontology .
+  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
 
   MINUS { ?c rdf:type owl:Class }
   MINUS { ?c rdf:type rdfs:Class }

@@ -6,6 +6,10 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @base <http://my.ont.example#> .
 
+: a owl:Ontology ;
+  rdfs:label "Animal Ontology" ;
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
+ 
 :Dog a rdfs:Class ;
      rdfs:subClassOf :Animal .
 
