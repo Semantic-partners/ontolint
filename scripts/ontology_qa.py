@@ -207,7 +207,7 @@ GROUP BY ?c
 HAVING (COUNT(?parent) > 1)
 """
 
-# ISM1 No OWL ontology declaration
+# Return OWL ontology declaration
 owl_declaration = """
 SELECT ?ont
 WHERE {
@@ -215,7 +215,7 @@ WHERE {
 }
 """
 
-# No ontology Description
+# Return ontology without description
 no_ont_description = """
 SELECT ?ont
 WHERE {
@@ -706,40 +706,57 @@ def normalise(count, total):
     if out > 0:
       out = f"{out:.3f}"
     else:
-        out = 0
+      out = 0
+    if count == total: out = 1
     return out
 
-def print_profiling_table(metrics, violations):
-    # Check if the ontology has been declared.
-    if len(metrics['ontologyDeclared']) > 0:
-        names = ""
-        for name in metrics['ontologyDeclared']:
-            names += f"{name},<br> "
-        names = names.rstrip(",<br> ")
+def get_ontology_name(metrics):
+    # Retrieve the ontology name from URI (if declared) or file.
+    names = ""
+    count = 0
+    for _ in range(len(metrics['filesProcessed'])):
+        if metrics['ontologyURI'][_]:
+            names += f"{metrics['ontologyURI'][_]},<br> "
+        else:
+            count += 1
         
+        if count > 0:
+            names += f"{count} URIs not found.,<br> "
+        names = names.rstrip(",<br> ")
+    
+    return names
+
+def print_profiling_table(metrics):
+    """
+    Print a table with the profiling metrics of an RDF graph.
+    Args:
+        metrics (dict): Number of violations for various ontology metrics.
+    """
+
+    name = get_ontology_name(metrics)
     print("\n## Profiling Metrics\n")
     print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
     print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
     print("|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {names} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |")
+    print(f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |")
 
-def print_qa_table(metrics, violations):
+def print_qa_table(metrics):
+    """
+    Print a table with the quality assurance metrics of an RDF graph.
+    Args:
+        metrics (dict): Number of violations for various ontology metrics.
+    """
+    name = get_ontology_name(metrics)
     print("\n## Quality Metrics\n")
-
-    if metrics['ontologyDescription'] == 0:
-      metrics['ontologyDescription'] = "yes"
-    elif metrics['ontologyDescription'] == 1:
-      metrics['ontologyDescription'] = "no"
-    else:
-      metrics['ontologyDescription'] = f"{metrics['ontologyDescription']} violations"
-
-    print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
+    print(f"| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
     print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
     print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
     print(f"| Property without domain | Property without range ", end="")
     print(f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |")
     print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {ont} | {metrics['ontologyDescription']} | {normalise(metrics['missingClassLabel'],metrics['classCount'])} ", end="")
+    print(f"| {name} | {normalise(metrics['ontologyNotDeclared'],len(metrics['filesProcessed']))} ", end="")
+    print(f"| {normalise(metrics['ontologyDescription'],len(metrics['filesProcessed']))} ", end="")
+    print(f"| {normalise(metrics['missingClassLabel'],metrics['classCount'])} ", end="")
     print(f"| {normalise(metrics['missingPropertyLabel'],metrics['propertyCount'])} ", end="")
     print(f"| {normalise(metrics['missingNSLabel'],metrics['nodeShapes'])} ", end="")
     print(f"| {normalise(metrics['missingPSLabel'],metrics['propertyShapes'])} ", end="")
@@ -761,47 +778,41 @@ def sep():
     # print("\n","-"*20, sep="")
     print("\n","-"*20)
 
-def write_ctrf_report(qa_metrics, qa_violations, ont, file_path, filename):
+def write_ctrf_report(metrics, violations, file_path, filename):
     """
     Convert QA metrics to CTRF (Common Test Result Format) JSON.
     """
-    # Convert metrics to test cases (pass/fail based on violations)
-    test_cases = []
-    if ont == "yes":
-        ont = 0
-    else:
-        ont = 1
 
     # Each QA check becomes a test case
     checks = [
-        ("Ontology Declaration",             ont, qa_violations['ontologyDeclared']),
-        ("Ontology Description",             qa_metrics['ontologyDescription'], qa_violations['ontologyDescription']), 
-        ("Class without label",              qa_metrics['missingClassLabel'], qa_violations['missingClassLabel']), 
-        ("Property without label",           qa_metrics['missingPropertyLabel'], qa_violations['missingPropertyLabel']), 
-        ("NodeShape without label",          qa_metrics['missingNSLabel'], qa_violations['missingNSLabel']), 
-        ("PropertyShape without label",      qa_metrics['missingPSLabel'], qa_violations['missingPSLabel']), 
-        ("Class without description",        qa_metrics['missingClassDescription'], qa_violations['missingClassDescription']), 
-        ("Property without description",     qa_metrics['missingPropertyDescription'], qa_violations['missingPropertyDescription']), 
-        ("NodeShape without description",    qa_metrics['missingNSDescription'], qa_violations['missingNSDescription']), 
-        ("PropertyShape without description",qa_metrics['missingPSDescription'], qa_violations['missingPSDescription']), 
-        ("Non-Unique Class Labels",          qa_metrics['nonUniqueClassLabels'], qa_violations['nonUniqueClassLabels']), 
-        ("Non-Unique Property Labels",       qa_metrics['nonUniquePropertyLabels'], qa_violations['nonUniquePropertyLabels']), 
-        ("Non-Unique NodeShape Labels",      qa_metrics['nonUniqueNSLabels'], qa_violations['nonUniqueNSLabels']), 
-        ("Non-Unique PropertyShape Labels",  qa_metrics['nonUniquePSLabels'], qa_violations['nonUniquePSLabels']), 
-        ("Isolated Classes",                 qa_metrics['isolatedClasses'], qa_violations['isolatedClasses']), 
-        ("Property without domain",          qa_metrics['missingDomain'], qa_violations['missingDomain']), 
-        ("Property without range",           qa_metrics['missingRange'], qa_violations['missingRange']), 
-        ("Non-Unique Identifiers",           qa_metrics['nonUniqueIdentifiers'], qa_violations['nonUniqueIdentifiers']), 
-        ("Subclass Cycles",                  qa_metrics['subclassCycles'], qa_violations['subclassCycles']), 
-        ("Untyped Classes",                  qa_metrics['untypedClasses'], qa_violations['untypedClasses']), 
-        ("Untyped Properties",               qa_metrics['untypedProperties'], qa_violations['untypedProperties']), 
-        ("Subclass Cycles",                  qa_metrics['subclassCycles'], qa_violations['subclassCycles'])
+        ("Ontology without declaration",     metrics['ontologyNotDeclared'], violations['ontologyNotDeclared']),
+        ("Ontology without description",     metrics['ontologyDescription'], violations['ontologyDescription']), 
+        ("Class without label",              metrics['missingClassLabel'], violations['missingClassLabel']), 
+        ("Property without label",           metrics['missingPropertyLabel'], violations['missingPropertyLabel']), 
+        ("NodeShape without label",          metrics['missingNSLabel'], violations['missingNSLabel']), 
+        ("PropertyShape without label",      metrics['missingPSLabel'], violations['missingPSLabel']), 
+        ("Class without description",        metrics['missingClassDescription'], violations['missingClassDescription']), 
+        ("Property without description",     metrics['missingPropertyDescription'], violations['missingPropertyDescription']), 
+        ("NodeShape without description",    metrics['missingNSDescription'], violations['missingNSDescription']), 
+        ("PropertyShape without description",metrics['missingPSDescription'], violations['missingPSDescription']), 
+        ("Non-Unique Class Labels",          metrics['nonUniqueClassLabels'], violations['nonUniqueClassLabels']), 
+        ("Non-Unique Property Labels",       metrics['nonUniquePropertyLabels'], violations['nonUniquePropertyLabels']), 
+        ("Non-Unique NodeShape Labels",      metrics['nonUniqueNSLabels'], violations['nonUniqueNSLabels']), 
+        ("Non-Unique PropertyShape Labels",  metrics['nonUniquePSLabels'], violations['nonUniquePSLabels']), 
+        ("Isolated Classes",                 metrics['isolatedClasses'], violations['isolatedClasses']), 
+        ("Property without domain",          metrics['missingDomain'], violations['missingDomain']), 
+        ("Property without range",           metrics['missingRange'], violations['missingRange']), 
+        ("Non-Unique Identifiers",           metrics['nonUniqueIdentifiers'], violations['nonUniqueIdentifiers']), 
+        ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles']), 
+        ("Untyped Classes",                  metrics['untypedClasses'], violations['untypedClasses']), 
+        ("Untyped Properties",               metrics['untypedProperties'], violations['untypedProperties']), 
+        ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles'])
     #    ("Namespace Hijacking", qa_metrics['hijacking'])
     ]
     
     passed = 0
     failed = 0
-    
+    test_cases = []
     for check_name, violation_count, violation_element in checks:
         test_case = {
             "name": check_name,
@@ -878,8 +889,8 @@ def profiling(graph):
         graph (rdflib.Graph): The RDF graph object to parse into.
     
     Returns:
-        metrics (dict): Count of variours metrics for ontology QA.
-        violations (dict): List of elements violating the check.
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
     """
     metrics = {}
     violations = {}
@@ -952,6 +963,8 @@ def profiling(graph):
                 del active_prefixes[pfx]
     metrics['vocabulariesUsed'] = len(active_prefixes)
     # print(f"External vocabularies declared: {metrics['vocabulariesUsed']}")
+    # These are not violations, but the dictionary is nevertheless used to store elements
+    # matching the same key of the metrics dictionary.
     violations['vocabulariesUsed'] = {
         'prefix': [],
         'uri': []
@@ -994,53 +1007,56 @@ def inference(graph):
     return graph      
 
 
-def owl_declaration_description(graph, status):
+def owl_declaration_description(graph, metrics2, status):
     """
-    Docstring for owl_declaration_description
+    QA test veriying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
     
     Args:
         graph (rdflib.Graph): The RDF graph object to parse into.
+        metrics2 (dict): Number of violations for various ontology metrics (input).
         status (int): Number of violations before the check.
     
     Returns:
-        metrics (dict): Count of variours metrics for ontology QA.
-        violations (dict): List of elements violating the check.
-        status (int): Number of violations after the check.
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
     status = 0
+    num_files = len(metrics2['filesProcessed'])
+    metrics['ontologyNotDeclared'] = num_files # Assume no ontology has been declared.
+    metrics['ontologyURI'] = [ ]
+
+    # Check the ontology declaration.
     results = graph.query(owl_declaration)
-    metrics['ontologyDeclared'] = [ ]
     if not results:
-        # print(f"VIOLATION - No `owl:Ontology` declaration found.")
+        # print(f"VIOLATION - No `owl:Ontology` declaration found.") 
         status += 1
-    # elif len(results) == 1:
-    #     (row,) = results
-    #     print(f"PASS - Found 1 ontology with `owl:Ontology` declaration:\n - {row.ont}")
-    #     metrics['ontologyDeclared'] = [ row.ont ]
     else:
-        # print(f"WARNING - Found {len(results)} `owl:Ontology` declarations:")
         for row in results:
             # print(f" - {row.ont}")
-            metrics['ontologyDeclared'].append(row.ont)
-    # sep()
-
-    if metrics['ontologyDeclared'][0] != 0:
-      name = ", ".join(metrics['ontologyDeclared'])
-      ont = "yes"
-      violations['ontologyDeclared'] = ""
+            metrics['ontologyURI'].append(row.ont)
+            metrics['ontologyNotDeclared'] -= 1
+    # Record the violation element (to improve).
+    if metrics['ontologyNotDeclared'] == num_files:
+        violations['ontologyNotDeclared'] = "all"
+    elif  metrics['ontologyNotDeclared'] > 0 and  metrics['ontologyNotDeclared'] < num_files:
+        violations['ontologyNotDeclared'] = "some"
     else:
-      name = metrics['filesProcessed'][0]
-      violations['ontologyDeclared'] = name
-      ont = "no"
+        violations['ontologyNotDeclared'] = ""
     
-    # Missing ontology description.
-    if len(metrics['ontologyDeclared']) > 0:
+    # Check the ontology description.
+    if metrics['ontologyNotDeclared'] == num_files:
+        # print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
+        qan += 1
+        metrics['ontologyDescription'] = 1 # no
+        violations['ontologyDescription'] = "No ontology declared"
+    else:
         # qan = qa_check_results("Ontology description",qan)
         results = graph.query(no_ont_description)
         if not results:
-            print("PASS - All ontologies have a description.")
+            # print("PASS - All ontologies have a description.")
             metrics['ontologyDescription'] = 0 # yes
             violations['ontologyDescription'] = ""
             # if args.verbose:
@@ -1059,40 +1075,40 @@ def owl_declaration_description(graph, status):
                 string += f"{row.ont},<br> "
             string = string.rstrip(",<br> ")
             violations['ontologyDescription'] = string
-    else:
-        # print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
-        qan += 1
-        metrics['ontologyDescription'] = 1 # no
-        violations['ontologyDescription'] = "No ontology declared"
     # sep()
     return metrics, violations, status
 
-def load_from_directory(f):
+def load_rdf(f):
     """
-    Docstring for load_from_directory
+    Load RDF files from file or directory name.
+
+    Args:
+        f (str): The name of a file or directory.
     
-    :param f: Description
+    Returns:
+        counter (int): Number of files successfully loaded.
+        metrics (dict): Number of violations for various ontology metrics.
+        graph (rdflib.Graph): The RDF graph object to parse into.
     """
     counter = 0
     metrics = {}
-    g = rdflib.Graph()
+    metrics['filesProcessed'] = []
+    graph = rdflib.Graph()
     # check if f is a directory
     if os.path.isdir(f):
         for root, _, files in os.walk(f):
             for file in files:
                 file_path = os.path.join(root, file)
-                if load_rdf_file(file_path, g):
+                if load_rdf_file(file_path, graph):
                   # Append successfully processed file
-                  metrics['filesProcessed'] = metrics.get('filesProcessed', []) + [file_path]
+                  metrics['filesProcessed'].append(file)
                   counter += 1
-        # continue  # skip to next f after processing directory
-
     else:
-        if load_rdf_file(f, g):
+        if load_rdf_file(f, graph):
             # Append successfully processed file
-            metrics['filesProcessed'] = metrics.get('filesProcessed', []) + [f]
+            metrics['filesProcessed'].append(f)
             counter += 1
-    return counter, metrics, g
+    return counter, metrics, graph
 
 def main():
     # Set up argument parser
@@ -1114,7 +1130,7 @@ def main():
     file_counter = 0
     # print(f"## Profiling Metrics\n")
     for f in args.data_files:
-        c, file_metrics, file_graph = load_from_directory(f)
+        c, file_metrics, file_graph = load_rdf(f)
         file_counter += c
         qa_metrics.update(file_metrics)
         g += file_graph
@@ -1125,17 +1141,15 @@ def main():
     
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
+    metrics, violations = profiling(g)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
     # sep()
     # print(f"\nInitial graph size: {qa_metrics['triples']} triples")
     
    # 2. Simulate Inference
-    metrics, violations = profiling(g)
     g = inference(g)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
     
-    
-
     # Compute the metrics for Quality Assurance.
     # sep()
     # print("\n## QA Metrics")
@@ -1148,14 +1162,14 @@ def main():
     tests.append("OWL ontology declaration")
     tests.append("Ontology description")
     
-    metrics, violations, xs = owl_declaration_description(g, xs)
+    metrics, violations, xs = owl_declaration_description(g, qa_metrics, xs)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
 
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         print("\nProfile-only mode enabled. Skipping additional QA checks.")
-        print_profiling_table(qa_metrics, qa_violations)
+        print_profiling_table(qa_metrics)
         return
     
     # Missing Annotations
@@ -1570,7 +1584,7 @@ def main():
             string += f"{row.c},<br> "
         string = string.rstrip(",<br> ")
         qa_violations['untypedClasses'] = string
-    if qa_metrics['ontologyDeclared'][0] == 0:
+    if qa_metrics['ontologyNotDeclared'] == len(qa_metrics['filesProcessed']):
       print(f"WARNING - ontology namespace undefined. No way to confirm if the class is defined in the ontology or an external vocabulary.")
     sep()
 
@@ -1593,7 +1607,7 @@ def main():
             string += f"{row.p},<br> "
         string = string.rstrip(",<br> ")
         qa_violations['untypedProperties'] = string
-    if qa_metrics['ontologyDeclared'][0] == 0:
+    if qa_metrics['ontologyNotDeclared'] == len(qa_metrics['filesProcessed']):
       print(f"WARNING - ontology namespace undefined. No way to confirm if the property is defined in the ontology or an external vocabulary.")
     sep()
 
@@ -1615,10 +1629,10 @@ def main():
     # Print a summary of the profiling and quality metrics in a markdown table format.
        
     # Profiling
-    print_profiling_table(qa_metrics, qa_violations)
+    print_profiling_table(qa_metrics)
 
     # QA metrics
-    print_qa_table(qa_metrics.copy(), qa_violations)
+    print_qa_table(qa_metrics)
 
     # Generate CTRF report
     # Determine CTRF filename
@@ -1627,7 +1641,7 @@ def main():
     else:
         ctrf_filename = f'ontology-qa-report-{os.getpid()}.json'
     
-    write_ctrf_report(qa_metrics, qa_violations , ont, args.ctrf_dir, ctrf_filename)
+    write_ctrf_report(qa_metrics, qa_violations , args.ctrf_dir, ctrf_filename)
 
     # Exit status
     if args.exit_status: sys.exit(xs)
