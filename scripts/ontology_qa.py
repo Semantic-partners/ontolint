@@ -1007,13 +1007,13 @@ def inference(graph):
     return graph      
 
 
-def owl_declaration_description(graph, metrics2, status):
+def owl_declaration_description(graph, num_files, status):
     """
     QA test veriying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
     
     Args:
         graph (rdflib.Graph): The RDF graph object to parse into.
-        metrics2 (dict): Number of violations for various ontology metrics (input).
+        num_files (int): Number of RDF files loaded in the graph.
         status (int): Number of violations before the check.
     
     Returns:
@@ -1023,8 +1023,6 @@ def owl_declaration_description(graph, metrics2, status):
     """
     metrics = {}
     violations = {}
-    status = 0
-    num_files = len(metrics2['filesProcessed'])
     metrics['ontologyNotDeclared'] = num_files # Assume no ontology has been declared.
     metrics['ontologyURI'] = [ ]
 
@@ -1049,7 +1047,7 @@ def owl_declaration_description(graph, metrics2, status):
     # Check the ontology description.
     if metrics['ontologyNotDeclared'] == num_files:
         # print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
-        qan += 1
+        # qan += 1
         metrics['ontologyDescription'] = 1 # no
         violations['ontologyDescription'] = "No ontology declared"
     else:
@@ -1162,7 +1160,7 @@ def main():
     tests.append("OWL ontology declaration")
     tests.append("Ontology description")
     
-    metrics, violations, xs = owl_declaration_description(g, qa_metrics, xs)
+    metrics, violations, xs = owl_declaration_description(g, len(qa_metrics['filesProcessed']), xs)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
 
