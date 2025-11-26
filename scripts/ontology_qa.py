@@ -208,7 +208,7 @@ HAVING (COUNT(?parent) > 1)
 """
 
 # ISM1 No OWL ontology declaration
-ism1_no_owl_declaration = """
+owl_declaration = """
 SELECT ?ont
 WHERE {
   ?ont a owl:Ontology .
@@ -709,22 +709,29 @@ def normalise(count, total):
         out = 0
     return out
 
-def print_profiling(name, qa_metrics):
+def print_profiling_table(metrics, violations):
+    # Check if the ontology has been declared.
+    if len(metrics['ontologyDeclared']) > 0:
+        names = ""
+        for name in metrics['ontologyDeclared']:
+            names += f"{name},<br> "
+        names = names.rstrip(",<br> ")
+        
     print("\n## Profiling Metrics\n")
     print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
     print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
     print("|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {qa_metrics['triples']} | {qa_metrics['classCount']} | {qa_metrics['propertyCount']} | {qa_metrics['nodeShapes']} | {qa_metrics['propertyShapes']} | {qa_metrics['classesInNodeShapes']} | {qa_metrics['propertiesInPropertyShapes']} | {qa_metrics['deprecatedClasses']} | {qa_metrics['deprecatedProperties']} | {qa_metrics['vocabulariesUsed']} |")
+    print(f"| {names} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |")
 
-def qa_table(name, ont, qa_metrics):
+def print_qa_table(metrics, violations):
     print("\n## Quality Metrics\n")
 
-    if qa_metrics['ontologyDescription'] == 0:
-      qa_metrics['ontologyDescription'] = "yes"
-    elif qa_metrics['ontologyDescription'] == 1:
-      qa_metrics['ontologyDescription'] = "no"
+    if metrics['ontologyDescription'] == 0:
+      metrics['ontologyDescription'] = "yes"
+    elif metrics['ontologyDescription'] == 1:
+      metrics['ontologyDescription'] = "no"
     else:
-      qa_metrics['ontologyDescription'] = f"{qa_metrics['ontologyDescription']} violations"
+      metrics['ontologyDescription'] = f"{metrics['ontologyDescription']} violations"
 
     print(f"| Name | Ontology Declared | Ontology Description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
     print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
@@ -732,26 +739,27 @@ def qa_table(name, ont, qa_metrics):
     print(f"| Property without domain | Property without range ", end="")
     print(f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |")
     print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {ont} | {qa_metrics['ontologyDescription']} | {normalise(qa_metrics['missingClassLabel'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPropertyLabel'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingNSLabel'],qa_metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPSLabel'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingClassDescription'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPropertyDescription'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingNSDescription'],qa_metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingPSDescription'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniqueClassLabels'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniquePropertyLabels'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniqueNSLabels'],qa_metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['nonUniquePSLabels'],qa_metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(qa_metrics['isolatedClasses'],qa_metrics['classCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingDomain'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(qa_metrics['missingRange'],qa_metrics['propertyCount'])} ", end="")
-    print(f"| {qa_metrics['nonUniqueIdentifiers']} | {qa_metrics['subclassCycles']} ", end="")
-    print(f"| {qa_metrics['untypedClasses']} | {qa_metrics['untypedProperties']} | {qa_metrics['hijacking']} |")
+    print(f"| {name} | {ont} | {metrics['ontologyDescription']} | {normalise(metrics['missingClassLabel'],metrics['classCount'])} ", end="")
+    print(f"| {normalise(metrics['missingPropertyLabel'],metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(metrics['missingNSLabel'],metrics['nodeShapes'])} ", end="")
+    print(f"| {normalise(metrics['missingPSLabel'],metrics['propertyShapes'])} ", end="")
+    print(f"| {normalise(metrics['missingClassDescription'],metrics['classCount'])} ", end="")
+    print(f"| {normalise(metrics['missingPropertyDescription'],metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(metrics['missingNSDescription'],metrics['nodeShapes'])} ", end="")
+    print(f"| {normalise(metrics['missingPSDescription'],metrics['propertyShapes'])} ", end="")
+    print(f"| {normalise(metrics['nonUniqueClassLabels'],metrics['classCount'])} ", end="")
+    print(f"| {normalise(metrics['nonUniquePropertyLabels'],metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(metrics['nonUniqueNSLabels'],metrics['nodeShapes'])} ", end="")
+    print(f"| {normalise(metrics['nonUniquePSLabels'],metrics['propertyShapes'])} ", end="")
+    print(f"| {normalise(metrics['isolatedClasses'],metrics['classCount'])} ", end="")
+    print(f"| {normalise(metrics['missingDomain'],metrics['propertyCount'])} ", end="")
+    print(f"| {normalise(metrics['missingRange'],metrics['propertyCount'])} ", end="")
+    print(f"| {metrics['nonUniqueIdentifiers']} | {metrics['subclassCycles']} ", end="")
+    print(f"| {metrics['untypedClasses']} | {metrics['untypedProperties']} | {metrics['hijacking']} |")
 
 def sep():
-    print("\n","-"*20, sep="")
+    # print("\n","-"*20, sep="")
+    print("\n","-"*20)
 
 def write_ctrf_report(qa_metrics, qa_violations, ont, file_path, filename):
     """
@@ -840,7 +848,7 @@ def load_rdf_file(file, graph):
     Load RDF data from a file into the given rdflib Graph.
     
     Args:
-        f (str): Path to the RDF file.
+        file (str): Path to the RDF file.
         graph (rdflib.Graph): The RDF graph object to parse into.
     
     Returns:
@@ -862,130 +870,229 @@ def load_rdf_file(file, graph):
         print(f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}")
         return False
 
-def profiling(g, verbose):
-      qa_metrics = {}
-      # Count initial classes, properties, and shapes.
-      results = g.query(count_cp)
-      (row,) = results
-      print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
-      qa_metrics['classCount']= row.classCount
-      qa_metrics['propertyCount'] = row.propertyCount
+def profiling(graph):
+    """
+    Compute profiling information for an RDF graph.
     
-      results = g.query(node_shape)
-      if results:
-          (row,) = results
-          print(f"SHACL Node Shapes: {row.shapeCount}")
-          qa_metrics['nodeShapes'] = row.shapeCount
-      else:
-          qa_metrics['nodeShapes'] = 0
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+    
+    Returns:
+        metrics (dict): Count of variours metrics for ontology QA.
+        violations (dict): List of elements violating the check.
+    """
+    metrics = {}
+    violations = {}
+    # Count initial classes, properties, and shapes.
+    results = graph.query(count_cp)
+    (row,) = results
+    # print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
+    metrics['classCount']= row.classCount
+    metrics['propertyCount'] = row.propertyCount
+  
+    results = graph.query(node_shape)
+    if results:
+        (row,) = results
+        # print(f"SHACL Node Shapes: {row.shapeCount}")
+        metrics['nodeShapes'] = row.shapeCount
+    else:
+        metrics['nodeShapes'] = 0
+    results = graph.query(property_shape)
+    if results:
+        (row,) = results
+        # print(f"SHACL Property Shapes: {row.shapeCount}")
+        metrics['propertyShapes'] = row.shapeCount
+    else:
+        metrics['propertyShapes'] = 0
+    
+    # Count classes in NodeShapes.
+    results = graph.query(classes_in_node_shape)
+    total_classes_in_shapes = sum(int(row.classCount) for row in results)
+    # print(f"Local classes in Node Shapes: {total_classes_in_shapes}")
+    metrics['classesInNodeShapes'] = total_classes_in_shapes
+    # if verbose and total_classes_in_shapes > 0:
+    #     print("| NodeShape | Class count |\n|--|--|")
+    #     for row in results:
+    #         print(f"| {row.ns} | {row.classCount} |")
+    # Count properties in PropertyShapes.
+    results = graph.query(property_in_property_shape)
+    total_properties_in_shapes = len(results)
+    # print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
+    metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
+    # if results and verbose:
+    #     print("| PropertyShape | Local Property |\n|--|--|")
+    #     for row in results:
+    #         print(f"| {row.ps} | {row.prop} |")
+    # Number of Deprecated Classes and Properties
+    results = graph.query(deprecated_class)
+    metrics['deprecatedClasses'] = len(results)
+    # print(f"Deprecated classes: {metrics['deprecatedClasses']}")
+    # if verbose and int(metrics['deprecatedClasses']) > 0:
+    #     print(f"List of deprecated classes:")
+    #     for row in results:
+    #         print(f" - {row.c}")
+    results = graph.query(deprecated_property)
+    metrics['deprecatedProperties'] = len(results)
+    # print(f"Deprecated properties: {metrics['deprecatedProperties']}")
+    # if verbose and int(metrics['deprecatedProperties']) > 0:
+    #     print(f"List of deprecated properties:")
+    #     for row in results:
+    #         print(f" - {row.p}")
+    # List all used prefixes
+    active_prefixes = prefixes(graph)
+    results = graph.query(owl_declaration)
+    if results:
+        for row in results:
+            # Remove ontology namespace from active_prefixes
+            to_remove = []
+            for row in results:
+                for pfx, ns in active_prefixes.items():
+                    if str(row.ont) == ns: to_remove.append(pfx)
+            for pfx in to_remove:
+                del active_prefixes[pfx]
+    metrics['vocabulariesUsed'] = len(active_prefixes)
+    # print(f"External vocabularies declared: {metrics['vocabulariesUsed']}")
+    violations['vocabulariesUsed'] = {
+        'prefix': [],
+        'uri': []
+        }
+    for pfx, ns in active_prefixes.items():
+        # print(f" - {pfx}: {ns}")
+        violations['vocabulariesUsed']['prefix'].append(pfx)
+        violations['vocabulariesUsed']['uri'].append(ns)
+    return metrics, violations
 
-      results = g.query(property_shape)
-      if results:
-          (row,) = results
-          print(f"SHACL Property Shapes: {row.shapeCount}")
-          qa_metrics['propertyShapes'] = row.shapeCount
-      else:
-          qa_metrics['propertyShapes'] = 0
-      
-      # Count classes in NodeShapes.
-      results = g.query(classes_in_node_shape)
-      total_classes_in_shapes = sum(int(row.classCount) for row in results)
-      print(f"Local classes in Node Shapes: {total_classes_in_shapes}")
-      qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
-      if verbose and total_classes_in_shapes > 0:
-          print("| NodeShape | Class count |\n|--|--|")
-          for row in results:
-              print(f"| {row.ns} | {row.classCount} |")
+def inference(graph):
+    """
+    Infer sub-class relations from ...
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+    
+    Returns:
+        graph (rdflib.Graph): The RDF graph, after inference applied.
+    """
+    print("\nApplying Subclass inference rule iteratively...")
+    while True:
+        inferred_triples_result = graph.query(subclass_inference_rule)
+        if not inferred_triples_result:
+            print("No new subclass inferences to add. Inference complete.")
+            break
+        graph_size_before = len(graph)
+        for t in inferred_triples_result:
+            graph.add(t)
+        
+        # Try replace the above with:
+        # graph += inferred_triples_result
+        graph_size_after = len(graph)
+        if graph_size_after == graph_size_before:
+            print("No new subclass inferences in this pass. Inference complete.")
+            break
+        else:
+            print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
+    print(f"Final graph size after inference: {len(graph)} triples.")
+    return graph      
 
-      # Count properties in PropertyShapes.
-      results = g.query(property_in_property_shape)
-      total_properties_in_shapes = len(results)
-      print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
-      qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-      if results and verbose:
-          print("| PropertyShape | Local Property |\n|--|--|")
-          for row in results:
-              print(f"| {row.ps} | {row.prop} |")
 
-      # Number of Deprecated Classes and Properties
-      results = g.query(deprecated_class)
-      qa_metrics['deprecatedClasses'] = len(results)
-      print(f"Deprecated classes: {qa_metrics['deprecatedClasses']}")
-      if verbose and int(qa_metrics['deprecatedClasses']) > 0:
-          print(f"List of deprecated classes:")
-          for row in results:
-              print(f" - {row.c}")
+def owl_declaration_description(graph, status):
+    """
+    Docstring for owl_declaration_description
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Count of variours metrics for ontology QA.
+        violations (dict): List of elements violating the check.
+        status (int): Number of violations after the check.
+    """
+    metrics = {}
+    violations = {}
+    status = 0
+    results = graph.query(owl_declaration)
+    metrics['ontologyDeclared'] = [ ]
+    if not results:
+        # print(f"VIOLATION - No `owl:Ontology` declaration found.")
+        status += 1
+    # elif len(results) == 1:
+    #     (row,) = results
+    #     print(f"PASS - Found 1 ontology with `owl:Ontology` declaration:\n - {row.ont}")
+    #     metrics['ontologyDeclared'] = [ row.ont ]
+    else:
+        # print(f"WARNING - Found {len(results)} `owl:Ontology` declarations:")
+        for row in results:
+            # print(f" - {row.ont}")
+            metrics['ontologyDeclared'].append(row.ont)
+    # sep()
 
-      results = g.query(deprecated_property)
-      qa_metrics['deprecatedProperties'] = len(results)
-      print(f"Deprecated properties: {qa_metrics['deprecatedProperties']}")
-      if verbose and int(qa_metrics['deprecatedProperties']) > 0:
-          print(f"List of deprecated properties:")
-          for row in results:
-              print(f" - {row.p}")
-
-      # List all used prefixes
-      active_prefixes = prefixes(g)
-      results = g.query(ism1_no_owl_declaration)
-      if results:
-          for row in results:
-              # Remove ontology namespace from active_prefixes
-              to_remove = []
-              for row in results:
-                  for pfx, ns in active_prefixes.items():
-                      if str(row.ont) == ns: to_remove.append(pfx)
-              for pfx in to_remove:
-                  del active_prefixes[pfx]
-
-      qa_metrics['vocabulariesUsed'] = len(active_prefixes)
-      print(f"External vocabularies declared: {qa_metrics['vocabulariesUsed']}")
-      for pfx, ns in active_prefixes.items():
-          print(f" - {pfx}: {ns}")
-      sep()
-
-      # 2. Simulate Inference
-      print("\nApplying Subclass inference rule iteratively...")
-      while True:
-          inferred_triples_result = g.query(subclass_inference_rule)
-          if not inferred_triples_result:
-              print("No new subclass inferences to add. Inference complete.")
-              break
-
-          graph_size_before = len(g)
-          for t in inferred_triples_result:
-              g.add(t)
-          graph_size_after = len(g)
-
-          if graph_size_after == graph_size_before:
-              print("No new subclass inferences in this pass. Inference complete.")
-              break
-          else:
-              print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
-
-      print(f"Final graph size after inference: {len(g)} triples.")
-      return qa_metrics
+    if metrics['ontologyDeclared'][0] != 0:
+      name = ", ".join(metrics['ontologyDeclared'])
+      ont = "yes"
+      violations['ontologyDeclared'] = ""
+    else:
+      name = metrics['filesProcessed'][0]
+      violations['ontologyDeclared'] = name
+      ont = "no"
+    
+    # Missing ontology description.
+    if len(metrics['ontologyDeclared']) > 0:
+        # qan = qa_check_results("Ontology description",qan)
+        results = graph.query(no_ont_description)
+        if not results:
+            print("PASS - All ontologies have a description.")
+            metrics['ontologyDescription'] = 0 # yes
+            violations['ontologyDescription'] = ""
+            # if args.verbose:
+            #     results = graph.query(ont_description)
+            #     print("\n**Ontology + Description:**")
+            #     for row in results:
+            #         print(f" - {row.ont}\n   {row.d}")
+        else:
+            owd = len(results)
+            metrics['ontologyDescription'] = len(results) #  violations
+            # print(f"VIOLATION - Found {len(results)} ontologies without any description:")
+            status += 1
+            string = ""
+            for row in results:
+                # print(f" - {row.ont}")
+                string += f"{row.ont},<br> "
+            string = string.rstrip(",<br> ")
+            violations['ontologyDescription'] = string
+    else:
+        # print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
+        qan += 1
+        metrics['ontologyDescription'] = 1 # no
+        violations['ontologyDescription'] = "No ontology declared"
+    # sep()
+    return metrics, violations, status
 
 def load_from_directory(f):
+    """
+    Docstring for load_from_directory
+    
+    :param f: Description
+    """
     counter = 0
-    qa_metrics = {}
+    metrics = {}
     g = rdflib.Graph()
-  # check if f is a directory
+    # check if f is a directory
     if os.path.isdir(f):
         for root, _, files in os.walk(f):
             for file in files:
                 file_path = os.path.join(root, file)
                 if load_rdf_file(file_path, g):
                   # Append successfully processed file
-                  qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
+                  metrics['filesProcessed'] = metrics.get('filesProcessed', []) + [file_path]
                   counter += 1
         # continue  # skip to next f after processing directory
 
     else:
         if load_rdf_file(f, g):
             # Append successfully processed file
-            qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
+            metrics['filesProcessed'] = metrics.get('filesProcessed', []) + [f]
             counter += 1
-    return counter, qa_metrics, g
+    return counter, metrics, g
 
 def main():
     # Set up argument parser
@@ -998,15 +1105,14 @@ def main():
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
-    # Create an empty dictionary to store the metrics for the ontology.
-    qa_metrics = {}
-    qa_violations = {}
-    xs = 0  # exit status flag
+    # Create an empty dictionaries to store the ontology metrics.
+    qa_metrics = {}    # violation_count
+    qa_violations = {} # violation_elements
 
     # 1. Load Data
     g = rdflib.Graph()
     file_counter = 0
-    print(f"## Profiling Metrics\n")
+    # print(f"## Profiling Metrics\n")
     for f in args.data_files:
         c, file_metrics, file_graph = load_from_directory(f)
         file_counter += c
@@ -1019,81 +1125,39 @@ def main():
     
     # Store the profiling metrics.
     qa_metrics['triples']= len(g)
-    sep()
-    print(f"\nInitial graph size: {qa_metrics['triples']} triples")
+    # sep()
+    # print(f"\nInitial graph size: {qa_metrics['triples']} triples")
     
-    profiling_metrics = profiling(g, args.verbose)
-    qa_metrics.update(profiling_metrics)
-
-    sep()
-    print("\n## QA Metrics")
-
-    # ISM1 No OWL ontology declaration
-    qan = 1
-    qan = qa_check_results("OWL ontology declaration",qan)
-    # results = g.query(ism1_no_owl_declaration) # moved before the dictionary count.
-    if not results:
-        print(f"VIOLATION - No `owl:Ontology` declaration found.")
-        qa_metrics['ontologyDeclared'] = [ 0 ]
-        xs += 1
-    elif len(results) == 1:
-        (row,) = results
-        print(f"PASS - Found 1 ontology with `owl:Ontology` declaration:\n - {row.ont}")
-        qa_metrics['ontologyDeclared'] = [ row.ont ]
-    elif len(results) > 1:
-        print(f"WARNING - Found {len(results)} `owl:Ontology` declarations:")
-        qa_metrics['ontologyDeclared'] = [ ]
-        for row in results:
-            print(f" - {row.ont}")
-            qa_metrics['ontologyDeclared'].append(row.ont)
-    sep()
-
-    # Skip further QA checks if profile-only mode is enabled.
-    if qa_metrics['ontologyDeclared'][0] != 0:
-      name = ", ".join(qa_metrics['ontologyDeclared'])
-      ont = "yes"
-      qa_violations['ontologyDeclared'] = ""
-    else:
-      name = qa_metrics['filesProcessed'][0]
-      qa_violations['ontologyDeclared'] = name
-      ont = "no"
+   # 2. Simulate Inference
+    metrics, violations = profiling(g)
+    g = inference(g)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
     
+    
+
+    # Compute the metrics for Quality Assurance.
+    # sep()
+    # print("\n## QA Metrics")
+    xs = 0  # Number of violations, to decide the exit-status flag.
+    qan = 1 # Counter for the tests executed (to discard later)
+    tests = [] # Name and order of tests executed (new counter).
+
+    # Check for OWL ontology declaration
+    # qan = qa_check_results("OWL ontology declaration",qan)
+    tests.append("OWL ontology declaration")
+    tests.append("Ontology description")
+    
+    metrics, violations, xs = owl_declaration_description(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
+
+    # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         print("\nProfile-only mode enabled. Skipping additional QA checks.")
-        print_profiling(name, qa_metrics)
+        print_profiling_table(qa_metrics, qa_violations)
         return
     
-    # Missing ontology description.
-    if len(results) > 0:
-        qan = qa_check_results("Ontology description",qan)
-        results = g.query(no_ont_description)
-        if not results:
-            print("PASS - All ontologies have a description.")
-            qa_metrics['ontologyDescription'] = 0 # yes
-            qa_violations['ontologyDescription'] = ""
-            if args.verbose:
-                results = g.query(ont_description)
-                print("\n**Ontology + Description:**")
-                for row in results:
-                    print(f" - {row.ont}\n   {row.d}")
-        else:
-            owd = len(results)
-            qa_metrics['ontologyDescription'] = len(results) #  violations
-            print(f"VIOLATION - Found {len(results)} ontologies without any description:")
-            xs += 1
-            string = ""
-            for row in results:
-                print(f" - {row.ont}")
-                string += f"{row.ont},<br> "
-            string = string.rstrip(",<br> ")
-            qa_violations['ontologyDescription'] = string
-    else:
-        print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
-        qan += 1
-        qa_metrics['ontologyDescription'] = 1 # no
-        qa_violations['ontologyDescription'] = "No ontology declared"
-    sep()
-
     # Missing Annotations
     qan = qa_check_results("Classes missing label annotations",qan)
     results = g.query(class_missing_label)
@@ -1426,12 +1490,12 @@ def main():
                 dCount += 1
                 string += f"{predicate},<br> "
             if row.range:
-                range = row.range
+                prange = row.range
             else:
-                range = 'None'
+                prange = 'None'
                 rCount += 1
                 string2 += f"{predicate},<br> "
-            print(f"| {predicate} | {domain} | {range} |")
+            print(f"| {predicate} | {domain} | {prange} |")
     if dCount > 0:
         string = string.rstrip(",<br> ")
         qa_violations['missingDomain'] = string
@@ -1551,10 +1615,10 @@ def main():
     # Print a summary of the profiling and quality metrics in a markdown table format.
        
     # Profiling
-    print_profiling(name, qa_metrics)
+    print_profiling_table(qa_metrics, qa_violations)
 
     # QA metrics
-    qa_table(name, ont, qa_metrics.copy())
+    print_qa_table(qa_metrics.copy(), qa_violations)
 
     # Generate CTRF report
     # Determine CTRF filename
