@@ -709,7 +709,7 @@ def normalise(count, total):
         out = 0
     return out
 
-def profiling(name, qa_metrics):
+def print_profiling(name, qa_metrics):
     print("\n## Profiling Metrics\n")
     print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
     print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
@@ -862,6 +862,130 @@ def load_rdf_file(file, graph):
         print(f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}")
         return False
 
+def profiling(g, verbose):
+      qa_metrics = {}
+      # Count initial classes, properties, and shapes.
+      results = g.query(count_cp)
+      (row,) = results
+      print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
+      qa_metrics['classCount']= row.classCount
+      qa_metrics['propertyCount'] = row.propertyCount
+    
+      results = g.query(node_shape)
+      if results:
+          (row,) = results
+          print(f"SHACL Node Shapes: {row.shapeCount}")
+          qa_metrics['nodeShapes'] = row.shapeCount
+      else:
+          qa_metrics['nodeShapes'] = 0
+
+      results = g.query(property_shape)
+      if results:
+          (row,) = results
+          print(f"SHACL Property Shapes: {row.shapeCount}")
+          qa_metrics['propertyShapes'] = row.shapeCount
+      else:
+          qa_metrics['propertyShapes'] = 0
+      
+      # Count classes in NodeShapes.
+      results = g.query(classes_in_node_shape)
+      total_classes_in_shapes = sum(int(row.classCount) for row in results)
+      print(f"Local classes in Node Shapes: {total_classes_in_shapes}")
+      qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
+      if verbose and total_classes_in_shapes > 0:
+          print("| NodeShape | Class count |\n|--|--|")
+          for row in results:
+              print(f"| {row.ns} | {row.classCount} |")
+
+      # Count properties in PropertyShapes.
+      results = g.query(property_in_property_shape)
+      total_properties_in_shapes = len(results)
+      print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
+      qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
+      if results and verbose:
+          print("| PropertyShape | Local Property |\n|--|--|")
+          for row in results:
+              print(f"| {row.ps} | {row.prop} |")
+
+      # Number of Deprecated Classes and Properties
+      results = g.query(deprecated_class)
+      qa_metrics['deprecatedClasses'] = len(results)
+      print(f"Deprecated classes: {qa_metrics['deprecatedClasses']}")
+      if verbose and int(qa_metrics['deprecatedClasses']) > 0:
+          print(f"List of deprecated classes:")
+          for row in results:
+              print(f" - {row.c}")
+
+      results = g.query(deprecated_property)
+      qa_metrics['deprecatedProperties'] = len(results)
+      print(f"Deprecated properties: {qa_metrics['deprecatedProperties']}")
+      if verbose and int(qa_metrics['deprecatedProperties']) > 0:
+          print(f"List of deprecated properties:")
+          for row in results:
+              print(f" - {row.p}")
+
+      # List all used prefixes
+      active_prefixes = prefixes(g)
+      results = g.query(ism1_no_owl_declaration)
+      if results:
+          for row in results:
+              # Remove ontology namespace from active_prefixes
+              to_remove = []
+              for row in results:
+                  for pfx, ns in active_prefixes.items():
+                      if str(row.ont) == ns: to_remove.append(pfx)
+              for pfx in to_remove:
+                  del active_prefixes[pfx]
+
+      qa_metrics['vocabulariesUsed'] = len(active_prefixes)
+      print(f"External vocabularies declared: {qa_metrics['vocabulariesUsed']}")
+      for pfx, ns in active_prefixes.items():
+          print(f" - {pfx}: {ns}")
+      sep()
+
+      # 2. Simulate Inference
+      print("\nApplying Subclass inference rule iteratively...")
+      while True:
+          inferred_triples_result = g.query(subclass_inference_rule)
+          if not inferred_triples_result:
+              print("No new subclass inferences to add. Inference complete.")
+              break
+
+          graph_size_before = len(g)
+          for t in inferred_triples_result:
+              g.add(t)
+          graph_size_after = len(g)
+
+          if graph_size_after == graph_size_before:
+              print("No new subclass inferences in this pass. Inference complete.")
+              break
+          else:
+              print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
+
+      print(f"Final graph size after inference: {len(g)} triples.")
+      return qa_metrics
+
+def load_from_directory(f):
+    counter = 0
+    qa_metrics = {}
+    g = rdflib.Graph()
+  # check if f is a directory
+    if os.path.isdir(f):
+        for root, _, files in os.walk(f):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if load_rdf_file(file_path, g):
+                  # Append successfully processed file
+                  qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
+                  counter += 1
+        # continue  # skip to next f after processing directory
+
+    else:
+        if load_rdf_file(f, g):
+            # Append successfully processed file
+            qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
+            counter += 1
+    return counter, qa_metrics, g
 
 def main():
     # Set up argument parser
@@ -881,28 +1005,15 @@ def main():
 
     # 1. Load Data
     g = rdflib.Graph()
+    file_counter = 0
     print(f"## Profiling Metrics\n")
     for f in args.data_files:
-        
-        # check if f is a directory
-        c = 0
-        if os.path.isdir(f):
-            for root, _, files in os.walk(f):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    if load_rdf_file(file_path, g):
-                      # Append successfully processed file
-                      qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [file_path]
-                      c += 1
-            continue  # skip to next f after processing directory
+        c, file_metrics, file_graph = load_from_directory(f)
+        file_counter += c
+        qa_metrics.update(file_metrics)
+        g += file_graph
 
-        else:
-            if load_rdf_file(f, g):
-                # Append successfully processed file
-                qa_metrics['filesProcessed'] = qa_metrics.get('filesProcessed', []) + [f]
-                c += 1
-
-    if c == 0:
+    if file_counter == 0:
         print("ERROR - No RDF data in input files or directories.")
         return
     
@@ -910,106 +1021,10 @@ def main():
     qa_metrics['triples']= len(g)
     sep()
     print(f"\nInitial graph size: {qa_metrics['triples']} triples")
-
-    # Count initial classes, properties, and shapes.
-    results = g.query(count_cp)
-    (row,) = results
-    print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
-    qa_metrics['classCount']= row.classCount
-    qa_metrics['propertyCount'] = row.propertyCount
-  
-    results = g.query(node_shape)
-    if results:
-        (row,) = results
-        print(f"SHACL Node Shapes: {row.shapeCount}")
-        qa_metrics['nodeShapes'] = row.shapeCount
-    else:
-        qa_metrics['nodeShapes'] = 0
-
-    results = g.query(property_shape)
-    if results:
-        (row,) = results
-        print(f"SHACL Property Shapes: {row.shapeCount}")
-        qa_metrics['propertyShapes'] = row.shapeCount
-    else:
-        qa_metrics['propertyShapes'] = 0
     
-    # Count classes in NodeShapes.
-    results = g.query(classes_in_node_shape)
-    total_classes_in_shapes = sum(int(row.classCount) for row in results)
-    print(f"Local classes in Node Shapes: {total_classes_in_shapes}")
-    qa_metrics['classesInNodeShapes'] = total_classes_in_shapes
-    if args.verbose and total_classes_in_shapes > 0:
-        print("| NodeShape | Class count |\n|--|--|")
-        for row in results:
-            print(f"| {row.ns} | {row.classCount} |")
+    profiling_metrics = profiling(g, args.verbose)
+    qa_metrics.update(profiling_metrics)
 
-    # Count properties in PropertyShapes.
-    results = g.query(property_in_property_shape)
-    total_properties_in_shapes = len(results)
-    print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
-    qa_metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-    if results and args.verbose:
-        print("| PropertyShape | Local Property |\n|--|--|")
-        for row in results:
-            print(f"| {row.ps} | {row.prop} |")
-
-    # Number of Deprecated Classes and Properties
-    results = g.query(deprecated_class)
-    qa_metrics['deprecatedClasses'] = len(results)
-    print(f"Deprecated classes: {qa_metrics['deprecatedClasses']}")
-    if args.verbose and int(qa_metrics['deprecatedClasses']) > 0:
-        print(f"List of deprecated classes:")
-        for row in results:
-            print(f" - {row.c}")
-
-    results = g.query(deprecated_property)
-    qa_metrics['deprecatedProperties'] = len(results)
-    print(f"Deprecated properties: {qa_metrics['deprecatedProperties']}")
-    if args.verbose and int(qa_metrics['deprecatedProperties']) > 0:
-        print(f"List of deprecated properties:")
-        for row in results:
-            print(f" - {row.p}")
-
-    # List all used prefixes
-    active_prefixes = prefixes(g)
-    results = g.query(ism1_no_owl_declaration)
-    if results:
-        for row in results:
-            # Remove ontology namespace from active_prefixes
-            to_remove = []
-            for row in results:
-                for pfx, ns in active_prefixes.items():
-                    if str(row.ont) == ns: to_remove.append(pfx)
-            for pfx in to_remove:
-                del active_prefixes[pfx]
-
-    qa_metrics['vocabulariesUsed'] = len(active_prefixes)
-    print(f"External vocabularies declared: {qa_metrics['vocabulariesUsed']}")
-    for pfx, ns in active_prefixes.items():
-        print(f" - {pfx}: {ns}")
-    sep()
-
-    # 2. Simulate Inference
-    print("\nApplying Subclass inference rule iteratively...")
-    while True:
-        inferred_triples_result = g.query(subclass_inference_rule)
-        if not inferred_triples_result:
-            print("No new subclass inferences to add. Inference complete.")
-            break
-
-        graph_size_before = len(g)
-        for t in inferred_triples_result:
-            g.add(t)
-        graph_size_after = len(g)
-
-        if graph_size_after == graph_size_before:
-            print("No new subclass inferences in this pass. Inference complete.")
-            break
-        else:
-            print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
-
-    print(f"Final graph size after inference: {len(g)} triples.")
     sep()
     print("\n## QA Metrics")
 
@@ -1045,7 +1060,7 @@ def main():
     
     if args.profile_only:
         print("\nProfile-only mode enabled. Skipping additional QA checks.")
-        profiling(name, qa_metrics)
+        print_profiling(name, qa_metrics)
         return
     
     # Missing ontology description.
@@ -1536,7 +1551,7 @@ def main():
     # Print a summary of the profiling and quality metrics in a markdown table format.
        
     # Profiling
-    profiling(name, qa_metrics)
+    print_profiling(name, qa_metrics)
 
     # QA metrics
     qa_table(name, ont, qa_metrics.copy())
