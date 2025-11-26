@@ -208,9 +208,9 @@ def evaluate_condition(condition, context):
 
 
 def main():
-    ctrf_dir = os.getenv('CTRF_DIR', './ctrf')
-    output_file = os.getenv('REPORT_OUTPUT', './ctrf_report.md')
-    template_file = os.getenv('TEMPLATE_FILE', './.github/workflows/ctrf-report.hbs')
+    ctrf_dir = os.getenv('CTRF_DIR', 'ctrf')
+    output_file = os.getenv('REPORT_OUTPUT', 'out/ctrf_report.md')
+    template_file = os.getenv('TEMPLATE_FILE', 'templates/ctrf-report.hbs')
     
     print(f"Loading CTRF reports from: {ctrf_dir}")
     print(f"Template file: {template_file}")
