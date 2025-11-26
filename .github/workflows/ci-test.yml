@@ -46,11 +46,9 @@ jobs:
         env:
           CTRF_DIR: ctrf
           REPORT_OUTPUT: ctrf_report.md
-          TEMPLATE_FILE: scripts/ctrf-report.hbs
-        if: always()
+          TEMPLATE_FILE: templates/ctrf-report.hbs
 
       # Append report to workflow summary
       - name: Create workflow summary
         run: |
-          cat ./ctrf_report.md >> $GITHUB_STEP_SUMMARY
-        if: always()
+          cat ctrf_report.md >> $GITHUB_STEP_SUMMARY
