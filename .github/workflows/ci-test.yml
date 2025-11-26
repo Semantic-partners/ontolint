@@ -47,7 +47,8 @@ jobs:
           CTRF_DIR: ctrf
           REPORT_OUTPUT: ctrf_report.md
           TEMPLATE_FILE: templates/ctrf-report.hbs
-
+        if: always()
+        
       # Append report to workflow summary
       - name: Create workflow summary
         run: |
