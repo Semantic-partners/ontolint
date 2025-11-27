@@ -105,7 +105,7 @@ WHERE {
 
 # IC2 Missing Domain or Range in Properties
 # Properties without any rdfs:domain or rdfs:range declaration
-ic2_missing_dr_property = """
+missing_dr_property = """
 SELECT DISTINCT ?p ?domain ?range
 WHERE {
   VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
@@ -153,7 +153,7 @@ HAVING (COUNT(DISTINCT ?type) > 1)
 
 # IO2 Including Cycles in a Class Hierarchy
 # Detect classes involved in subclass cycles
-io2_cycles = """
+subclass_cycles = """
 SELECT DISTINCT ?c WHERE {
   ?c rdfs:subClassOf+ ?c .
 }
@@ -515,7 +515,7 @@ HAVING (COUNT(DISTINCT ?ps) > 1)
 """
 
 # Untyped class
-# Class without rdf:type owl:Class or rdfs:Class declaration
+# Class without owl:Class or rdfs:Class declaration
 untyped_class = """
 SELECT DISTINCT ?c
 WHERE {
@@ -539,7 +539,7 @@ WHERE {
 """
 
 # Untyped property
-# Property without rdf:type rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
+# Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
 untyped_property = """
 SELECT DISTINCT ?p
 WHERE {
@@ -720,10 +720,11 @@ def get_ontology_name(metrics):
         else:
             count += 1
         
-        if count > 0:
-            names += f"{count} URIs not found.,<br> "
-        names = names.rstrip(",<br> ")
-    
+    if count == 1:
+        names += f"{count} URI not found.,<br> "
+    elif count > 1:
+        names += f"{count} URIs not found.,<br> "
+    names = names.rstrip(",<br> ")
     return names
 
 def print_profiling_table(metrics):
@@ -806,8 +807,8 @@ def write_ctrf_report(metrics, violations, file_path, filename):
         ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles']), 
         ("Untyped Classes",                  metrics['untypedClasses'], violations['untypedClasses']), 
         ("Untyped Properties",               metrics['untypedProperties'], violations['untypedProperties']), 
-        ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles'])
-    #    ("Namespace Hijacking", qa_metrics['hijacking'])
+        ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles']),
+        ("Namespace Hijacking",              metrics['hijacking'], violations['hijacking'])
     ]
     
     passed = 0
@@ -963,6 +964,7 @@ def profiling(graph):
                 del active_prefixes[pfx]
     metrics['vocabulariesUsed'] = len(active_prefixes)
     # print(f"External vocabularies declared: {metrics['vocabulariesUsed']}")
+
     # These are not violations, but the dictionary is nevertheless used to store elements
     # matching the same key of the metrics dictionary.
     violations['vocabulariesUsed'] = {
@@ -1004,8 +1006,7 @@ def inference(graph):
         else:
             print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
     print(f"Final graph size after inference: {len(graph)} triples.")
-    return graph      
-
+    return graph
 
 def check_owl_declaration_description(graph, num_files, status):
     """
@@ -1073,7 +1074,6 @@ def check_owl_declaration_description(graph, num_files, status):
                 string += f"{row.ont},<br> "
             string = string.rstrip(",<br> ")
             violations['ontologyDescription'] = string
-    # sep()
     return metrics, violations, status
 
 def check_class_missing_label(graph, status):
@@ -1558,23 +1558,264 @@ def check_isolated_classes(graph, status):
     results = graph.query(isolated_classes)
     metrics['isolatedClasses'] = 0
     violations['isolatedClasses'] = ""
-    if not results and int(metrics['classCount']) > 0:
-        print("PASS - All classes are connected to another class through a subclass or property relation.")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
+    # if not results and int(metrics['classCount']) > 0:
+    #     print("PASS - All classes are connected to another class through a subclass or property relation.")
+    # elif not results:
+    #     print("WARNING - No classes defined, invalid metric.")
+    # else:
+    if results:
         metrics['isolatedClasses'] = len(results)
         status += 1
         string = ""
-        print(f"VIOLATION - Found {metrics['isolatedClasses']} isolated classes:")
+        # print(f"VIOLATION - Found {metrics['isolatedClasses']} isolated classes:")
         for row in results:
-          print(f" - {row[0]}")
+        #   print(f" - {row[0]}")
           string += f"{row[0]},<br> "
         string = string.rstrip(",<br> ")
         violations['isolatedClasses'] = string
     return metrics, violations, status
 
+def check_missing_dr_property(graph, status):
+    """
+    QA test checking properties for rdfs:domain or rdfs:range declaration.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(missing_dr_property)
+    dCount = 0
+    rCount = 0
+    metrics['missingDomainRange'] = 0
+    # if not results and int(metrics['propertyCount']) > 0:
+    #     print("PASS - All properties have domain and range defined.")
+    # elif not results:
+    #     print("WARNING - No properties defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingDomainRange'] = len(results)
+        status += 1
+        string = ""
+        string2 = ""
+        # print(f"VIOLATION - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:")
+        # print(f"| Property | Domain | Range |\n| -------- | ------ | ----- |")
+        for row in results:
+            predicate = row.p
+            if row.domain:
+                domain = row.domain
+            else:
+                domain = 'None'
+                dCount += 1
+                string += f"{predicate},<br> "
+            if row.range:
+                prange = row.range
+            else:
+                prange = 'None'
+                rCount += 1
+                string2 += f"{predicate},<br> "
+            # print(f"| {predicate} | {domain} | {prange} |")
+    if dCount > 0:
+        string = string.rstrip(",<br> ")
+        violations['missingDomain'] = string
+    else:
+        violations['missingDomain'] = ""
+    if rCount > 0:
+        string2 = string2.rstrip(",<br> ")
+        violations['missingRange'] = string2
+    else:
+        violations['missingRange'] = ""
+    metrics['missingDomain'] = dCount
+    metrics['missingRange']  = rCount
+    return metrics, violations, status
 
+def check_unique_identifiers(graph, status):
+    """
+    QA test checking for the same resource being declared as semantically inconsistent elements,
+    e.g. owl:Class or rdfs:Class and owl:ObjectProperty, rdf:Property owl:DatatypeProperty  owl:AnnotationProperty.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(unique_identifiers)
+    # if not results:
+    #     print("PASS - No violations found.")
+    #     metrics['nonUniqueIdentifiers'] = 0
+    #     violations['nonUniqueIdentifiers'] = ""
+    # else:
+    if results:
+        metrics['nonUniqueIdentifiers'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
+        # print("| URI | Declared as |\n|--|--|")
+        for row in results:
+            # print(f"| {row.iri} | {row.declaredAs} |")
+            string += f"{row.iri},<br> "
+        string = string.rstrip(",<br> ")
+        violations['nonUniqueIdentifiers'] = string
+    return metrics, violations, status
+
+def check_subclass_cycles(graph, status):
+    """
+    QA test counting classes involved in subclass cycles.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(subclass_cycles)
+    metrics['subclassCycles'] = 0
+    violations['subclassCycles'] = ""
+    # if not results and int(metrics['classCount']) > 0:
+    #     print("PASS - No violations found.")
+    # elif not results:
+    #     print("WARNING - No classes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['subclassCycles'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['subclassCycles']} classes involved in subclass cycles:")
+        for row in results:
+            # print(f" - {row.c}")
+            string += f"{row.c},<br> "
+        string = string.rstrip(",<br> ")
+        violations['subclassCycles'] = string
+    return metrics, violations, status
+
+def check_untyped_class(graph, status):
+    """
+    QA test counting classes in the current namespace without owl:Class or rdfs:Class declaration
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(untyped_class)
+    metrics['untypedClasses'] = 0
+    violations['untypedClasses'] = ""
+    # if not results and int(metrics['classCount']) > 0:
+    #     print("PASS - No violations found.")
+    # elif not results:
+    #     print("WARNING - No classes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['untypedClasses'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['untypedClasses']} classes without `owl:Class` or `rdfs:Class` declaration:")
+        for row in results:
+            # print(f" - {row.c}")
+            string += f"{row.c},<br> "
+        string = string.rstrip(",<br> ")
+        violations['untypedClasses'] = string
+    # if metrics['ontologyNotDeclared'] == len(metrics['filesProcessed']):
+    #   print(f"WARNING - ontology namespace undefined. No way to confirm if the class is defined in the ontology or an external vocabulary.")
+    return metrics, violations, status
+
+def check_untyped_property(graph, status):
+    """
+    QA test counting properties in the current namespace without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(untyped_property)
+    metrics['untypedProperties'] = 0
+    violations['untypedProperties'] = ""
+    # if not results and int(metrics['propertyCount']) > 0:
+    #     print("PASS - No violations found.")
+    # elif not results:
+    #     print("WARNING - No properties defined, invalid metric.")
+    # else:
+    if results:
+        metrics['untypedProperties'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['untypedProperties']} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:")
+        for row in results:
+            # print(f" - {row.p}")
+            string += f"{row.p},<br> "
+        string = string.rstrip(",<br> ")
+        violations['untypedProperties'] = string
+    # if qa_metrics['ontologyNotDeclared'] == len(qa_metrics['filesProcessed']):
+    #   print(f"WARNING - ontology namespace undefined. No way to confirm if the property is defined in the ontology or an external vocabulary.")
+    return metrics, violations, status
+
+def check_hijacking(graph, status):
+    """
+    QA test counting instances of hijacking, that is, resources defined in the current namespace but using a URI from an external vocabulary.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(hijacking)
+    # if not results:
+    #     print("PASS - No violations found.") # For now, this condition is never met.
+    #     metrics['hijacking'] = 0
+    # else:
+    if results:
+        metrics['hijacking'] = len(results)
+        # print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
+        # print(f"WARNING - Found resources defined in {metrics['hijacking']} namespaces. Count of entities for each namespace:")
+        
+        # Add a WARNING if the ontology has not been declared.
+        string = ""
+        for row in results:
+            # print(f" - {row.namespace} {row['count']}")
+            el = int(row['count'])
+            if el == 1:
+                string += f"{row.namespace} ({row['count']} element),<br> "
+            elif el > 1:
+                string += f"{row.namespace} ({row['count']} elements),<br> "
+        string = string.rstrip(",<br> ")
+        violations['hijacking'] = string
+    return metrics, violations, status
 
 def load_rdf(f):
     """
@@ -1749,152 +1990,41 @@ def main():
     qa_metrics.update(metrics)
     qa_violations.update(violations)
 
-    # Missing Domain or Range in Properties
-    qan = qa_check_results("Missing Domain or Range in Properties",qan)
-    results = g.query(ic2_missing_dr_property)
-    dCount = 0
-    rCount = 0
-    qa_metrics['missingDomainRange'] = 0
-    if not results and int(qa_metrics['propertyCount']) > 0:
-        print("PASS - All properties have domain and range defined.")
-    elif not results:
-        print("WARNING - No properties defined, invalid metric.")
-    else:
-        qa_metrics['missingDomainRange'] = len(results)
-        xs += 1
-        string = ""
-        string2 = ""
-        print(f"VIOLATION - Found {qa_metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:")
-        print(f"| Property | Domain | Range |\n| -------- | ------ | ----- |")
-        for row in results:
-            predicate = row.p
-            if row.domain:
-                domain = row.domain
-            else:
-                domain = 'None'
-                dCount += 1
-                string += f"{predicate},<br> "
-            if row.range:
-                prange = row.range
-            else:
-                prange = 'None'
-                rCount += 1
-                string2 += f"{predicate},<br> "
-            print(f"| {predicate} | {domain} | {prange} |")
-    if dCount > 0:
-        string = string.rstrip(",<br> ")
-        qa_violations['missingDomain'] = string
-    else:
-        qa_violations['missingDomain'] = ""
-    if rCount > 0:
-        string2 = string2.rstrip(",<br> ")
-        qa_violations['missingRange'] = string2
-    else:
-        qa_violations['missingRange'] = ""
-    qa_metrics['missingDomain'] = dCount
-    qa_metrics['missingRange']  = rCount
-    sep()
+    # qan = qa_check_results("Missing Domain or Range in Properties",qan)
+    tests.append("Missing Domain or Range in Properties")
+    metrics, violations, xs = check_missing_dr_property(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    # Non-unique identifiers
-    qan = qa_check_results("Non-unique identifiers",qan)
-    results = g.query(unique_identifiers)
-    if not results:
-        print("PASS - No violations found.")
-        qa_metrics['nonUniqueIdentifiers'] = 0
-        qa_violations['nonUniqueIdentifiers'] = ""
-    else:
-        qa_metrics['nonUniqueIdentifiers'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
-        print("| URI | Declared as |\n|--|--|")
-        for row in results:
-            print(f"| {row.iri} | {row.declaredAs} |")
-            string += f"{row.iri},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['nonUniqueIdentifiers'] = string
-    sep()
+    # qan = qa_check_results("Non-unique identifiers",qan)
+    tests.append("Non-unique identifiers")
+    metrics, violations, xs = check_unique_identifiers(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    # IO2 Including Cycles in a Class Hierarchy
-    qan = qa_check_results("Including Cycles in a Class Hierarchy",qan)
-    results = g.query(io2_cycles)
-    qa_metrics['subclassCycles'] = 0
-    qa_violations['subclassCycles'] = ""
-    if not results and int(qa_metrics['classCount']) > 0:
-        print("PASS - No violations found.")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
-        qa_metrics['subclassCycles'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['subclassCycles']} classes involved in subclass cycles:")
-        for row in results:
-            print(f" - {row.c}")
-            string += f"{row.c},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['subclassCycles'] = string
-    sep()
+    # qan = qa_check_results("Including Cycles in a Class Hierarchy",qan)
+    tests.append("Including Cycles in a Class Hierarchy")
+    metrics, violations, xs = check_subclass_cycles(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    # Untyped class
-    qan = qa_check_results("Untyped class",qan)
-    results = g.query(untyped_class)
-    qa_metrics['untypedClasses'] = 0
-    qa_violations['untypedClasses'] = ""
-    if not results and int(qa_metrics['classCount']) > 0:
-        print("PASS - No violations found.")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
-        qa_metrics['untypedClasses'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['untypedClasses']} classes without `rdf:type`, `owl:Class`, or `rdfs:Class` declaration:")
-        for row in results:
-            print(f" - {row.c}")
-            string += f"{row.c},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['untypedClasses'] = string
-    if qa_metrics['ontologyNotDeclared'] == len(qa_metrics['filesProcessed']):
-      print(f"WARNING - ontology namespace undefined. No way to confirm if the class is defined in the ontology or an external vocabulary.")
-    sep()
+    # qan = qa_check_results("Untyped class",qan)
+    tests.append("Untyped class")
+    metrics, violations, xs = check_untyped_class(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-     # Untyped property
-    qan = qa_check_results("Untyped property",qan)
-    results = g.query(untyped_property)
-    qa_metrics['untypedProperties'] = 0
-    qa_violations['untypedProperties'] = ""
-    if not results and int(qa_metrics['propertyCount']) > 0:
-        print("PASS - No violations found.")
-    elif not results:
-        print("WARNING - No properties defined, invalid metric.")
-    else:
-        qa_metrics['untypedProperties'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['untypedProperties']} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:")
-        for row in results:
-            print(f" - {row.p}")
-            string += f"{row.p},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['untypedProperties'] = string
-    if qa_metrics['ontologyNotDeclared'] == len(qa_metrics['filesProcessed']):
-      print(f"WARNING - ontology namespace undefined. No way to confirm if the property is defined in the ontology or an external vocabulary.")
-    sep()
+    # qan = qa_check_results("Untyped property",qan)
+    tests.append("Untyped property")
+    metrics, violations, xs = check_untyped_property(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-     # Namespace hijacking
-    qan = qa_check_results("Namespace hijacking",qan)
-    results = g.query(hijacking)
-    if not results:
-        print("PASS - No violations found.") # For now, this condition is never met.
-        qa_metrics['hijacking'] = 0
-    else:
-        qa_metrics['hijacking'] = len(results)
-        # print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
-        print(f"WARNING - Found resources defined in {qa_metrics['hijacking']} namespaces. Count of entities for each namespace:")
-        for row in results:
-            print(f" - {row.namespace} {row['count']}")
-    sep()
+    # qan = qa_check_results("Namespace hijacking",qan)
+    tests.append("Namespace hijacking")
+    metrics, violations, xs = check_hijacking(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
     ################################################################################
     # Print a summary of the profiling and quality metrics in a markdown table format.
