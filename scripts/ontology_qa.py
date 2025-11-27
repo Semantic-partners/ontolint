@@ -19,150 +19,6 @@ import os
 import json
 from datetime import datetime
 
-# Test checklist mapping for all qa_metrics keys.
-test_checklist = {
-    "ontologyNotDeclared": {
-        "name": "Ontology without declaration",
-        "execute": True
-    },
-    "ontologyURI": {
-        "name": "Ontology URI",
-        "execute": True
-    },
-    "ontologyDescription": {
-        "name": "Ontology without description",
-        "execute": True
-    },
-    "filesProcessed": {
-        "name": "Files processed",
-        "execute": True
-    },
-    "triples": {
-        "name": "Number of triples",
-        "execute": True
-    },
-    "classCount": {
-        "name": "Class count",
-        "execute": True
-    },
-    "propertyCount": {
-        "name": "Property count",
-        "execute": True
-    },
-    "nodeShapes": {
-        "name": "NodeShape count",
-        "execute": True
-    },
-    "propertyShapes": {
-        "name": "PropertyShape count",
-        "execute": True
-    },
-    "classesInNodeShapes": {
-        "name": "Local classes in NodeShape",
-        "execute": True
-    },
-    "propertiesInPropertyShapes": {
-        "name": "Local properties in PropertyShape",
-        "execute": True
-    },
-    "deprecatedClasses": {
-        "name": "Deprecated Class count",
-        "execute": True
-    },
-    "deprecatedProperties": {
-        "name": "Deprecated Property count",
-        "execute": True
-    },
-    "vocabulariesUsed": {
-        "name": "Vocabularies used",
-        "execute": True
-    },
-    "missingClassLabel": {
-        "name": "Class without label",
-        "execute": True
-    },
-    "missingPropertyLabel": {
-        "name": "Property without label",
-        "execute": True
-    },
-    "missingNSLabel": {
-        "name": "NodeShape without label",
-        "execute": True
-    },
-    "missingPSLabel": {
-        "name": "PropertyShape without label",
-        "execute": True
-    },
-    "missingClassDescription": {
-        "name": "Class without description",
-        "execute": True
-    },
-    "missingPropertyDescription": {
-        "name": "Property without description",
-        "execute": True
-    },
-    "missingNSDescription": {
-        "name": "NodeShape without description",
-        "execute": True
-    },
-    "missingPSDescription": {
-        "name": "PropertyShape without description",
-        "execute": True
-    },
-    "nonUniqueClassLabels": {
-        "name": "Non-Unique Class Labels",
-        "execute": True
-    },
-    "nonUniquePropertyLabels": {
-        "name": "Non-Unique Property Labels",
-        "execute": True
-    },
-    "nonUniqueNSLabels": {
-        "name": "Non-Unique NodeShape Labels",
-        "execute": True
-    },
-    "nonUniquePSLabels": {
-        "name": "Non-Unique PropertyShape Labels",
-        "execute": True
-    },
-    "isolatedClasses": {
-        "name": "Isolated Classes",
-        "execute": True
-    },
-    "missingDomainRange": {
-        "name": "Properties missing domain or range",
-        "execute": True
-    },
-    "missingDomain": {
-        "name": "Property without domain",
-        "execute": True
-    },
-    "missingRange": {
-        "name": "Property without range",
-        "execute": True
-    },
-    "nonUniqueIdentifiers": {
-        "name": "Non-Unique Identifiers",
-        "execute": True
-    },
-    "subclassCycles": {
-        "name": "Subclass Cycles",
-        "execute": True
-    },
-    "untypedClasses": {
-        "name": "Untyped Classes",
-        "execute": True
-    },
-    "untypedProperties": {
-        "name": "Untyped Properties",
-        "execute": True
-    },
-    "hijacking": {
-        "name": "Namespace Hijacking",
-        "execute": True
-    }
-}
-
 # SPARQL queries
 
 subclass_inference_rule = """
@@ -2008,7 +1864,7 @@ def main():
     qa_metrics = {}    # violation_count
     qa_violations = {} # violation_elements
 
-    # 1. Load Data
+    # Load Data
     g = rdflib.Graph()
     file_counter = 0
     # print(f"## Profiling Metrics\n")
@@ -2022,156 +1878,65 @@ def main():
         print("ERROR - No RDF data in input files or directories.")
         return
     
-    # Store the profiling metrics.
+    # Compute and store the profiling metrics.
     qa_metrics['triples']= len(g)
     metrics, violations = profiling(g)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-    # sep()
-    # print(f"\nInitial graph size: {qa_metrics['triples']} triples")
-    
-   # 2. Simulate Inference
-    g = inference(g)
-    
-    # sep()
-    # print("\n## QA Metrics")
-
-    # Compute the metrics for Quality Assurance.
-    xs = 0  # Number of violations, to decide the exit-status flag.
-    qan = 1 # Counter for the tests executed (to discard later)
-    tests = [] # Name and order of tests executed (new counter).
-
-    # Check for OWL ontology declaration
-    # qan = qa_check_results("OWL ontology declaration",qan)
-    tests.append("OWL ontology declaration")
-    tests.append("Ontology description")
-    metrics, violations, xs = check_owl_declaration_description(g, len(qa_metrics['filesProcessed']), xs)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
 
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         print("\nProfile-only mode enabled. Skipping additional QA checks.")
+        metrics, violations, xs = check_owl_declaration_description(g, len(qa_metrics['filesProcessed']), xs)
+        qa_metrics.update(metrics)
+        qa_violations.update(violations)
         print_profiling_table(qa_metrics)
         return
     
-    # Missing Annotations
-    # qan = qa_check_results("Classes missing label annotations",qan)
-    tests.append("Classes missing label annotations")
-    metrics, violations, xs = check_class_missing_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
+    # Simulate Inference
+    g = inference(g)
 
-    # qan = qa_check_results("Properties missing label annotations",qan)
-    tests.append("Properties missing label annotations")
-    metrics, violations, xs = check_property_missing_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
+    # Compute the metrics for Quality Assurance.
+    xs = 0  # Number of violations, to decide the exit-status flag.
+    qan = 1 # Counter for the tests executed (to discard later)
+    tests = [] # Name and order of tests executed (new counter).
 
-    # qan = qa_check_results("NodeShape missing label annotations",qan)
-    tests.append("NodeShape missing label annotations")
-    metrics, violations, xs = check_node_shape_missing_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
+    # Array with a checklist mapping for all tests for QA metrics.
+    # The profiling is always executed. The additional QA checks are optional.
+    test_checklist = [
+        (["OWL ontology declaration and description"],      check_owl_declaration_description,   [g, len(qa_metrics['filesProcessed'])]),
+        (["Classes missing label annotations"],             check_class_missing_label,           [g]),
+        (["Properties missing label annotations"],          check_property_missing_label,        [g]),
+        (["NodeShape missing label annotations"],           check_node_shape_missing_label,      [g]),
+        (["PropertyShape missing label annotations"],       check_property_shape_missing_label,  [g]),
+        (["Classes missing description annotations"],       check_class_missing_comment,         [g]),
+        (["Properties missing description annotations"],    check_property_missing_comment,      [g]),
+        (["NodeShape missing description annotations"],     check_node_shape_missing_comment,    [g]),
+        (["PropertyShape missing description annotations"], check_property_shape_missing_comment,[g]),
+        (["Classes with the same label"],                   check_class_same_label,              [g]),
+        (["Properties with the same label"],                check_property_same_label,           [g]),
+        (["NodeShapes with the same label"],                check_node_shape_same_label,         [g]),
+        (["PropertyShapes with the same label"],            check_property_shape_same_label,     [g]),
+        (["Number of isolated classes"],                    check_isolated_classes,              [g]),
+        (["Missing Domain or Range in Properties"],         check_missing_dr_property,           [g]),
+        (["Non-unique identifiers"],                        check_unique_identifiers,            [g]),
+        (["Including Cycles in a Class Hierarchy"],         check_subclass_cycles,               [g]),
+        (["Untyped class"],                                 check_untyped_class,                 [g]),
+        (["Untyped property"],                              check_untyped_property,              [g]),
+        (["Namespace hijacking"],                           check_hijacking,                     [g])
+    ]
 
-    # qan = qa_check_results("PropertyShape missing label annotations",qan)
-    tests.append("PropertyShape missing label annotations")
-    metrics, violations, xs = check_property_shape_missing_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
+    # Cycle through all tests.
+    # TO DO: add an array with true/false to select individual tests.
+    for names, func, extra_args in test_checklist:
+        # Execute the test and collect the results.
+        metrics, violations, xs = func(*extra_args, xs)
 
-    # qan = qa_check_results("Classes missing description annotations",qan)
-    tests.append("Classes missing description annotations")
-    metrics, violations, xs = check_class_missing_comment(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Properties missing description annotations",qan)
-    tests.append("Properties missing description annotations")
-    metrics, violations, xs = check_property_missing_comment(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("NodeShape missing description annotations",qan)
-    tests.append("NodeShape missing description annotations")
-    metrics, violations, xs = check_node_shape_missing_comment(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("PropertyShape missing description annotations",qan)
-    tests.append("PropertyShape missing description annotations")
-    metrics, violations, xs = check_property_shape_missing_comment(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Classes with the same label",qan)
-    tests.append("Classes with the same label")
-    metrics, violations, xs = check_class_same_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Properties with the same label",qan)
-    tests.append("Properties with the same label")
-    metrics, violations, xs = check_property_same_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("NodeShapes with the same label",qan)
-    tests.append("NodeShapes with the same label")
-    metrics, violations, xs = check_node_shape_same_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("PropertyShapes with the same label",qan)
-    tests.append("PropertyShapes with the same label")
-    metrics, violations, xs = check_property_shape_same_label(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Number of isolated classes",qan)
-    tests.append("Number of isolated classes")
-    metrics, violations, xs = check_isolated_classes(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Missing Domain or Range in Properties",qan)
-    tests.append("Missing Domain or Range in Properties")
-    metrics, violations, xs = check_missing_dr_property(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Non-unique identifiers",qan)
-    tests.append("Non-unique identifiers")
-    metrics, violations, xs = check_unique_identifiers(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Including Cycles in a Class Hierarchy",qan)
-    tests.append("Including Cycles in a Class Hierarchy")
-    metrics, violations, xs = check_subclass_cycles(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Untyped class",qan)
-    tests.append("Untyped class")
-    metrics, violations, xs = check_untyped_class(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Untyped property",qan)
-    tests.append("Untyped property")
-    metrics, violations, xs = check_untyped_property(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    # qan = qa_check_results("Namespace hijacking",qan)
-    tests.append("Namespace hijacking")
-    metrics, violations, xs = check_hijacking(g, xs)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
-
-    ################################################################################
-    # Print a summary of the profiling and quality metrics in a markdown table format.
+        # Merge returned metrics/violations into global dictionaries
+        if metrics:
+            qa_metrics.update(metrics)
+        if violations:
+            qa_violations.update(violations)
        
     # Profiling
     print_profiling_table(qa_metrics)
