@@ -1904,26 +1904,26 @@ def main():
     # Array with a checklist mapping for all tests for QA metrics.
     # The profiling is always executed. The additional QA checks are optional.
     test_checklist = [
-        (["OWL ontology declaration and description"],      check_owl_declaration_description,   [g, len(qa_metrics['filesProcessed'])]),
-        (["Classes missing label annotations"],             check_class_missing_label,           [g]),
-        (["Properties missing label annotations"],          check_property_missing_label,        [g]),
-        (["NodeShape missing label annotations"],           check_node_shape_missing_label,      [g]),
-        (["PropertyShape missing label annotations"],       check_property_shape_missing_label,  [g]),
-        (["Classes missing description annotations"],       check_class_missing_comment,         [g]),
-        (["Properties missing description annotations"],    check_property_missing_comment,      [g]),
-        (["NodeShape missing description annotations"],     check_node_shape_missing_comment,    [g]),
-        (["PropertyShape missing description annotations"], check_property_shape_missing_comment,[g]),
-        (["Classes with the same label"],                   check_class_same_label,              [g]),
-        (["Properties with the same label"],                check_property_same_label,           [g]),
-        (["NodeShapes with the same label"],                check_node_shape_same_label,         [g]),
-        (["PropertyShapes with the same label"],            check_property_shape_same_label,     [g]),
-        (["Number of isolated classes"],                    check_isolated_classes,              [g]),
-        (["Missing Domain or Range in Properties"],         check_missing_dr_property,           [g]),
-        (["Non-unique identifiers"],                        check_unique_identifiers,            [g]),
-        (["Including Cycles in a Class Hierarchy"],         check_subclass_cycles,               [g]),
-        (["Untyped class"],                                 check_untyped_class,                 [g]),
-        (["Untyped property"],                              check_untyped_property,              [g]),
-        (["Namespace hijacking"],                           check_hijacking,                     [g])
+        ("OWL ontology declaration and description",      check_owl_declaration_description,   [g, len(qa_metrics['filesProcessed'])]),
+        ("Classes missing label annotations",             check_class_missing_label,           [g]),
+        ("Properties missing label annotations",          check_property_missing_label,        [g]),
+        ("NodeShape missing label annotations",           check_node_shape_missing_label,      [g]),
+        ("PropertyShape missing label annotations",       check_property_shape_missing_label,  [g]),
+        ("Classes missing description annotations",       check_class_missing_comment,         [g]),
+        ("Properties missing description annotations",    check_property_missing_comment,      [g]),
+        ("NodeShape missing description annotations",     check_node_shape_missing_comment,    [g]),
+        ("PropertyShape missing description annotations", check_property_shape_missing_comment,[g]),
+        ("Classes with the same label",                   check_class_same_label,              [g]),
+        ("Properties with the same label",                check_property_same_label,           [g]),
+        ("NodeShapes with the same label",                check_node_shape_same_label,         [g]),
+        ("PropertyShapes with the same label",            check_property_shape_same_label,     [g]),
+        ("Number of isolated classes",                    check_isolated_classes,              [g]),
+        ("Missing Domain or Range in Properties",         check_missing_dr_property,           [g]),
+        ("Non-unique identifiers",                        check_unique_identifiers,            [g]),
+        ("Including Cycles in a Class Hierarchy",         check_subclass_cycles,               [g]),
+        ("Untyped class",                                 check_untyped_class,                 [g]),
+        ("Untyped property",                              check_untyped_property,              [g]),
+        ("Namespace hijacking",                           check_hijacking,                     [g])
     ]
 
     # Cycle through all tests.
@@ -1956,25 +1956,6 @@ def main():
     # Exit status
     if args.exit_status: sys.exit(xs)
 
-    # Domain or Range violations (From original Simon's script)
-    #print("\nRunning validation query to find violations...")
-    #results = g.query(validation_query)
-    #print("-" * 20)
-    #if not results:
-    #    print("No Domain or Range violations found.")
-    #else:
-    #    print(f"Found {len(results)} Domain or Range violations:")
-    #    for row in results:
-    #        print(f"Violation:")
-    #        print(f"  - Subject:   {row.s}")
-    #        print(f"  - Predicate: {row.p}")
-    #        print(f"  - Object:    {row.o}")
-    #        if row.domain:
-    #            print(f"  - Expected Subject Type (Domain): {row.domain}")
-    #        if row.range:
-    #            print(f"  - Expected Object Type (Range):  {row.range}")
-
-    #print("-" * 20)
     
     # IA3 Hierarchy Overspecialisation
     #print("\nRunning check for IA3 Hierarchy Overspecialisation: leaf classes with no instances")
