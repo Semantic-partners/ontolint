@@ -19,6 +19,150 @@ import os
 import json
 from datetime import datetime
 
+# Test checklist mapping for all qa_metrics keys.
+test_checklist = {
+    "ontologyNotDeclared": {
+        "name": "Ontology without declaration",
+        "execute": True
+    },
+    "ontologyURI": {
+        "name": "Ontology URI",
+        "execute": True
+    },
+    "ontologyDescription": {
+        "name": "Ontology without description",
+        "execute": True
+    },
+    "filesProcessed": {
+        "name": "Files processed",
+        "execute": True
+    },
+    "triples": {
+        "name": "Number of triples",
+        "execute": True
+    },
+    "classCount": {
+        "name": "Class count",
+        "execute": True
+    },
+    "propertyCount": {
+        "name": "Property count",
+        "execute": True
+    },
+    "nodeShapes": {
+        "name": "NodeShape count",
+        "execute": True
+    },
+    "propertyShapes": {
+        "name": "PropertyShape count",
+        "execute": True
+    },
+    "classesInNodeShapes": {
+        "name": "Local classes in NodeShape",
+        "execute": True
+    },
+    "propertiesInPropertyShapes": {
+        "name": "Local properties in PropertyShape",
+        "execute": True
+    },
+    "deprecatedClasses": {
+        "name": "Deprecated Class count",
+        "execute": True
+    },
+    "deprecatedProperties": {
+        "name": "Deprecated Property count",
+        "execute": True
+    },
+    "vocabulariesUsed": {
+        "name": "Vocabularies used",
+        "execute": True
+    },
+    "missingClassLabel": {
+        "name": "Class without label",
+        "execute": True
+    },
+    "missingPropertyLabel": {
+        "name": "Property without label",
+        "execute": True
+    },
+    "missingNSLabel": {
+        "name": "NodeShape without label",
+        "execute": True
+    },
+    "missingPSLabel": {
+        "name": "PropertyShape without label",
+        "execute": True
+    },
+    "missingClassDescription": {
+        "name": "Class without description",
+        "execute": True
+    },
+    "missingPropertyDescription": {
+        "name": "Property without description",
+        "execute": True
+    },
+    "missingNSDescription": {
+        "name": "NodeShape without description",
+        "execute": True
+    },
+    "missingPSDescription": {
+        "name": "PropertyShape without description",
+        "execute": True
+    },
+    "nonUniqueClassLabels": {
+        "name": "Non-Unique Class Labels",
+        "execute": True
+    },
+    "nonUniquePropertyLabels": {
+        "name": "Non-Unique Property Labels",
+        "execute": True
+    },
+    "nonUniqueNSLabels": {
+        "name": "Non-Unique NodeShape Labels",
+        "execute": True
+    },
+    "nonUniquePSLabels": {
+        "name": "Non-Unique PropertyShape Labels",
+        "execute": True
+    },
+    "isolatedClasses": {
+        "name": "Isolated Classes",
+        "execute": True
+    },
+    "missingDomainRange": {
+        "name": "Properties missing domain or range",
+        "execute": True
+    },
+    "missingDomain": {
+        "name": "Property without domain",
+        "execute": True
+    },
+    "missingRange": {
+        "name": "Property without range",
+        "execute": True
+    },
+    "nonUniqueIdentifiers": {
+        "name": "Non-Unique Identifiers",
+        "execute": True
+    },
+    "subclassCycles": {
+        "name": "Subclass Cycles",
+        "execute": True
+    },
+    "untypedClasses": {
+        "name": "Untyped Classes",
+        "execute": True
+    },
+    "untypedProperties": {
+        "name": "Untyped Properties",
+        "execute": True
+    },
+    "hijacking": {
+        "name": "Namespace Hijacking",
+        "execute": True
+    }
+}
+
 # SPARQL queries
 
 subclass_inference_rule = """
