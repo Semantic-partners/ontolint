@@ -1007,7 +1007,7 @@ def inference(graph):
     return graph      
 
 
-def owl_declaration_description(graph, num_files, status):
+def check_owl_declaration_description(graph, num_files, status):
     """
     QA test veriying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
     
@@ -1075,6 +1075,506 @@ def owl_declaration_description(graph, num_files, status):
             violations['ontologyDescription'] = string
     # sep()
     return metrics, violations, status
+
+def check_class_missing_label(graph, status):
+    """
+    QA test counting classes without a label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(class_missing_label)
+    metrics['missingClassLabel'] = 0
+    violations['missingClassLabel'] = ""
+    # if not results and int(metrics['classCount']) > 0:
+    #     print("PASS - All classes have a label annotation.")
+    #     if args.verbose:
+    #         results = graph.query(class_labels)
+    #         print("|  Class | Label |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.c} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No classes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingClassLabel'] = len(results)
+        # print(f"VIOLATION - Found {metrics['missingClassLabel']} classes missing a label annotation:")
+        status += 1
+        string = ""
+        for t in results:
+        #   print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingClassLabel'] = string
+    return metrics, violations, status
+
+def check_property_missing_label(graph, status):
+    """
+    QA test counting properties without a label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(property_missing_label)
+    metrics['missingPropertyLabel'] = 0
+    violations['missingPropertyLabel'] = ""
+    # if not results and int(metrics['propertyCount']) > 0:
+    #     print("PASS - All properties have a label annotation.")
+    #     if args.verbose:
+    #         results = graph.query(property_labels)
+    #         print("|  Property | Label |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.p} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No properties defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingPropertyLabel'] = len(results)
+        # print(f"VIOLATION - Found {metrics['missingPropertyLabel']} properties missing a label annotation.")
+        status += 1
+        string = ""
+        for t in results:
+        #   print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingPropertyLabel'] = string
+    return metrics, violations, status
+
+def check_node_shape_missing_label(graph, status):
+    """
+    QA test counting node shapes without a label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(node_shape_missing_label)
+    metrics['missingNSLabel'] = 0
+    violations['missingNSLabel'] = ""
+    # if not results and int(metrics['nodeShapes']) > 0:
+    #     print("PASS - All NodeShape have a label annotation.")
+    #     if args.verbose and int(metrics['nodeShapes']) > 0:
+    #         results = graph.query(node_shape_labels)
+    #         print("|  NodeShape | Label |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.ns} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No NodeShape defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingNSLabel'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['missingNSLabel']} NodeShape missing a label annotation.")
+        for row in results:
+        #   print(f" - {row.ns}")
+          string += f"{row.ns},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingNSLabel'] = string
+    return metrics, violations, status
+
+def check_property_shape_missing_label(graph, status):
+    """
+    QA test counting property shapes without a label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(property_shape_missing_label)
+    metrics['missingPSLabel'] = 0
+    violations['missingPSLabel'] = ""
+    # if not results and int(metrics['propertyShapes']) > 0:
+    #     print("PASS - All PropertyShape have a label annotation.")
+    #     if args.verbose:
+    #         results = graph.query(property_shape_labels)
+    #         print("|  PropertyShape | Label |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.ps} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No PropertyShapes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingPSLabel'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['missingPSLabel']} PropertyShape missing a label annotation.")
+        for row in results:
+        #   print(f" - {row.ps}")
+          string += f"{row.ps},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingPSLabel'] = string
+    return metrics, violations, status
+
+def check_class_missing_comment(graph, status):
+    """
+    QA test counting classes without description.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(class_missing_comment)
+    metrics['missingClassDescription'] = 0
+    violations['missingClassDescription'] = ""
+    # if not results and int(metrics['classCount']) > 0:
+    #     print("PASS - All classes have a description annotation.")
+    #     if args.verbose:
+    #         results = graph.query(class_labels)
+    #         print("|  Class | Description |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.c} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No classes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingClassDescription'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['missingClassDescription']} classes missing a description annotation:")
+        for t in results:
+        #   print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingClassDescription'] = string
+    return metrics, violations, status
+
+def check_property_missing_comment(graph, status):
+    """
+    QA test counting properties without description.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(property_missing_comment)
+    metrics['missingPropertyDescription'] = 0
+    violations['missingPropertyDescription'] = ""
+    # if not results and int(metrics['propertyCount']) > 0:
+    #     print("PASS - All properties have a description annotation.")
+    #     if args.verbose:
+    #         results = graph.query(class_labels)
+    #         print("| Property | Description |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.p} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No properties defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingPropertyDescription'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['missingPropertyDescription']} properties missing a description annotation.")
+        for t in results:
+        #   print(f" - {t[0]}")
+          string += f"{t[0]},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingPropertyDescription'] = string
+    return metrics, violations, status
+
+def check_node_shape_missing_comment(graph, status):
+    """
+    QA test counting node shapes without description.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(node_shape_missing_comment)
+    metrics['missingNSDescription'] = 0
+    violations['missingNSDescription'] = ""
+    # if not results and int(metrics['nodeShapes']) > 0:
+    #     print("PASS - All NodeShape have a description annotation.")
+    #     if args.verbose:
+    #         results = graph.query(node_shape_labels)
+    #         print("| NodeShape | Description |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.ns} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No NodeShape defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingNSDescription'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['missingNSDescription']} NodeShape missing a description annotation:")
+        for row in results:
+        #  print(f" - {row.ns}")
+          string += f"{row.ns},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingNSDescription'] = string
+    return metrics, violations, status
+
+def check_property_shape_missing_comment(graph, status):
+    """
+    QA test counting property shapes without description.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(property_shape_missing_comment)
+    metrics['missingPSDescription'] = 0
+    violations['missingPSDescription'] = ""
+    # if not results and int(metrics['propertyShapes']) > 0:
+    #     print("PASS - All PropertyShape have a description annotation.")
+    #     if args.verbose:
+    #         results = graph.query(property_shape_labels)
+    #         print("| PropertyShape | Description |\n|--|--|")
+    #         for row in results:
+    #             print(f"| {row.ps} | {row.lbl} |")
+    # elif not results:
+    #     print("WARNING - No PropertyShapes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['missingPSDescription'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['missingPSDescription']} PropertyShape missing a description annotation:")
+        for row in results:
+        #   print(f" - {row.ps}")
+          string += f"{row.ps},<br> "
+        string = string.rstrip(",<br> ")
+        violations['missingPSDescription'] = string
+    return metrics, violations, status
+
+def check_class_same_label(graph, status):
+    """
+    QA test counting classes sharing the same label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(class_same_label)
+    metrics['nonUniqueClassLabels'] = 0
+    violations['nonUniqueClassLabels'] = ""
+    # if not results and int(metrics['classCount']) > 0:
+    #     print("PASS - No classes share the same label.")
+    # elif not results:
+    #     print("WARNING - No classes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['nonUniqueClassLabels'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['nonUniqueClassLabels']} labels shared by multiple classes.")
+        # print("| Label | Classes |\n|--|--|")
+        for row in results:
+            # print(f"| {row.label} | {row.classes} |")
+            string += f"\"{row.label}\": {row.classes};<br> "
+        string = string.rstrip(";<br> ")
+        violations['nonUniqueClassLabels'] = string
+    return metrics, violations, status
+
+def check_property_same_label(graph, status):
+    """
+    QA test counting properties sharing the same label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(property_same_label)
+    metrics['nonUniquePropertyLabels'] = 0
+    violations['nonUniquePropertyLabels'] = ""
+    # if not results and int(metrics['propertyCount']) > 0:
+    #     print("PASS - No property share the same label.")
+    # elif not results:
+    #     print("WARNING - No properties defined, invalid metric.")
+    # else:
+    if results:
+        metrics['nonUniquePropertyLabels'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['nonUniquePropertyLabels']} labels shared by multiple properties.")
+        # print("| Label | Properties |\n|--|--|")
+        for row in results:
+            # print(f"| {row.label} | {row.properties} |")
+            string += f"\"{row.label}\": {row.properties};<br> "
+        string = string.rstrip(";<br> ")
+        violations['nonUniquePropertyLabels'] = string
+    return metrics, violations, status
+
+def check_node_shape_same_label(graph, status):
+    """
+    QA test counting node shapes sharing the same label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(node_shape_same_label)
+    metrics['nonUniqueNSLabels'] = 0
+    violations['nonUniqueNSLabels'] = ""
+    # if not results and int(metrics['nodeShapes']) > 0:
+    #     print("PASS - No NodeShape share the same label.")
+    # elif not results:
+    #     print("WARNING - No NodeShape defined, invalid metric.")
+    # else:
+    if results:
+        metrics['nonUniqueNSLabels'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.")
+        # print("| Label | NodeShapes |\n|--|--|")
+        for row in results:
+            # print(f"| {row.label} | {row.nsList} |")
+            string += f"\"{row.label}\": {row.nsList};<br> "
+        string = string.rstrip(";<br> ")
+        violations['nonUniqueNSLabels'] = string
+    return metrics, violations, status
+
+def check_property_shape_same_label(graph, status):
+    """
+    QA test counting property shapes sharing the same label.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(property_shape_same_label)
+    metrics['nonUniquePSLabels'] = 0
+    violations['nonUniquePSLabels'] = ""
+    # if not results:
+    #     print("PASS - No PropertyShape share the same label.")
+    # elif not results:
+    #     print("WARNING - No PropertyShapes defined, invalid metric.")
+    # else:
+    if results:
+        metrics['nonUniquePSLabels'] = len(results)
+        status += 1
+        string = ""
+        # print(f"VIOLATION - Found {metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
+        # print("| Label | PropertyShapes |\n|--|--|")
+        for row in results:
+            # print(f"| {row.label} | {row.psList} |")
+            string += f"\"{row.label}\": {row.psList};<br> "
+        string = string.rstrip(";<br> ")
+        violations['nonUniquePSLabels'] = string
+    return metrics, violations, status
+
+def check_isolated_classes(graph, status):
+    """
+    QA test counting classes declared but never used in any other triple connecting them to the rest of the ontology.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        status (int): Number of violations before the check.
+    
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    results = graph.query(isolated_classes)
+    metrics['isolatedClasses'] = 0
+    violations['isolatedClasses'] = ""
+    if not results and int(metrics['classCount']) > 0:
+        print("PASS - All classes are connected to another class through a subclass or property relation.")
+    elif not results:
+        print("WARNING - No classes defined, invalid metric.")
+    else:
+        metrics['isolatedClasses'] = len(results)
+        status += 1
+        string = ""
+        print(f"VIOLATION - Found {metrics['isolatedClasses']} isolated classes:")
+        for row in results:
+          print(f" - {row[0]}")
+          string += f"{row[0]},<br> "
+        string = string.rstrip(",<br> ")
+        violations['isolatedClasses'] = string
+    return metrics, violations, status
+
+
 
 def load_rdf(f):
     """
@@ -1148,9 +1648,10 @@ def main():
    # 2. Simulate Inference
     g = inference(g)
     
-    # Compute the metrics for Quality Assurance.
     # sep()
     # print("\n## QA Metrics")
+
+    # Compute the metrics for Quality Assurance.
     xs = 0  # Number of violations, to decide the exit-status flag.
     qan = 1 # Counter for the tests executed (to discard later)
     tests = [] # Name and order of tests executed (new counter).
@@ -1159,8 +1660,7 @@ def main():
     # qan = qa_check_results("OWL ontology declaration",qan)
     tests.append("OWL ontology declaration")
     tests.append("Ontology description")
-    
-    metrics, violations, xs = owl_declaration_description(g, len(qa_metrics['filesProcessed']), xs)
+    metrics, violations, xs = check_owl_declaration_description(g, len(qa_metrics['filesProcessed']), xs)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
 
@@ -1171,310 +1671,83 @@ def main():
         return
     
     # Missing Annotations
-    qan = qa_check_results("Classes missing label annotations",qan)
-    results = g.query(class_missing_label)
-    qa_metrics['missingClassLabel'] = 0
-    qa_violations['missingClassLabel'] = ""
-    if not results and int(qa_metrics['classCount']) > 0:
-        print("PASS - All classes have a label annotation.")
-        if args.verbose:
-            results = g.query(class_labels)
-            print("|  Class | Label |\n|--|--|")
-            for row in results:
-                print(f"| {row.c} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
-        qa_metrics['missingClassLabel'] = len(results)
-        print(f"VIOLATION - Found {qa_metrics['missingClassLabel']} classes missing a label annotation:")
-        xs += 1
-        string = ""
-        for t in results:
-          print(f" - {t[0]}")
-          string += f"{t[0]},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingClassLabel'] = string
-    sep()
+    # qan = qa_check_results("Classes missing label annotations",qan)
+    tests.append("Classes missing label annotations")
+    metrics, violations, xs = check_class_missing_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("Properties missing label annotations",qan)
-    results = g.query(property_missing_label)
-    qa_metrics['missingPropertyLabel'] = 0
-    qa_violations['missingPropertyLabel'] = ""
-    if not results and int(qa_metrics['propertyCount']) > 0:
-        print("PASS - All properties have a label annotation.")
-        if args.verbose:
-            results = g.query(property_labels)
-            print("|  Property | Label |\n|--|--|")
-            for row in results:
-                print(f"| {row.p} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No properties defined, invalid metric.")
-    else:
-        qa_metrics['missingPropertyLabel'] = len(results)
-        print(f"VIOLATION - Found {qa_metrics['missingPropertyLabel']} properties missing a label annotation.")
-        xs += 1
-        string = ""
-        for t in results:
-          print(f" - {t[0]}")
-          string += f"{t[0]},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingPropertyLabel'] = string
-    sep()
+    # qan = qa_check_results("Properties missing label annotations",qan)
+    tests.append("Properties missing label annotations")
+    metrics, violations, xs = check_property_missing_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("NodeShape missing label annotations",qan)
-    results = g.query(node_shape_missing_label)
-    qa_metrics['missingNSLabel'] = 0
-    qa_violations['missingNSLabel'] = ""
-    if not results and int(qa_metrics['nodeShapes']) > 0:
-        print("PASS - All NodeShape have a label annotation.")
-        if args.verbose and int(qa_metrics['nodeShapes']) > 0:
-            results = g.query(node_shape_labels)
-            print("|  NodeShape | Label |\n|--|--|")
-            for row in results:
-                print(f"| {row.ns} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No NodeShape defined, invalid metric.")
-    else:
-        qa_metrics['missingNSLabel'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['missingNSLabel']} NodeShape missing a label annotation.")
-        for row in results:
-          print(f" - {row.ns}")
-          string += f"{row.ns},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingNSLabel'] = string
-    sep()
+    # qan = qa_check_results("NodeShape missing label annotations",qan)
+    tests.append("NodeShape missing label annotations")
+    metrics, violations, xs = check_node_shape_missing_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("PropertyShape missing label annotations",qan)
-    results = g.query(property_shape_missing_label)
-    qa_metrics['missingPSLabel'] = 0
-    qa_violations['missingPSLabel'] = ""
-    if not results and int(qa_metrics['propertyShapes']) > 0:
-        print("PASS - All PropertyShape have a label annotation.")
-        if args.verbose:
-            results = g.query(property_shape_labels)
-            print("|  PropertyShape | Label |\n|--|--|")
-            for row in results:
-                print(f"| {row.ps} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No PropertyShapes defined, invalid metric.")
-    else:
-        qa_metrics['missingPSLabel'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['missingPSLabel']} PropertyShape missing a label annotation.")
-        for row in results:
-          print(f" - {row.ps}")
-          string += f"{row.ps},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingPSLabel'] = string
-    sep()
+    # qan = qa_check_results("PropertyShape missing label annotations",qan)
+    tests.append("PropertyShape missing label annotations")
+    metrics, violations, xs = check_property_shape_missing_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("Classes missing description annotations",qan)
-    results = g.query(class_missing_comment)
-    qa_metrics['missingClassDescription'] = 0
-    qa_violations['missingClassDescription'] = ""
-    if not results and int(qa_metrics['classCount']) > 0:
-        print("PASS - All classes have a description annotation.")
-        if args.verbose:
-            results = g.query(class_labels)
-            print("|  Class | Description |\n|--|--|")
-            for row in results:
-                print(f"| {row.c} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
-        qa_metrics['missingClassDescription'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['missingClassDescription']} classes missing a description annotation:")
-        for t in results:
-          print(f" - {t[0]}")
-          string += f"{t[0]},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingClassDescription'] = string
-    sep()
+    # qan = qa_check_results("Classes missing description annotations",qan)
+    tests.append("Classes missing description annotations")
+    metrics, violations, xs = check_class_missing_comment(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("Properties missing description annotations",qan)
-    results = g.query(property_missing_comment)
-    qa_metrics['missingPropertyDescription'] = 0
-    qa_violations['missingPropertyDescription'] = ""
-    if not results and int(qa_metrics['propertyCount']) > 0:
-        print("PASS - All properties have a description annotation.")
-        if args.verbose:
-            results = g.query(class_labels)
-            print("| Property | Description |\n|--|--|")
-            for row in results:
-                print(f"| {row.p} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No properties defined, invalid metric.")
-    else:
-        qa_metrics['missingPropertyDescription'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['missingPropertyDescription']} properties missing a description annotation.")
-        for t in results:
-          print(f" - {t[0]}")
-          string += f"{t[0]},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingPropertyDescription'] = string
-    sep()
+    # qan = qa_check_results("Properties missing description annotations",qan)
+    tests.append("Properties missing description annotations")
+    metrics, violations, xs = check_property_missing_comment(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("NodeShape missing description annotations",qan)
-    results = g.query(node_shape_missing_comment)
-    qa_metrics['missingNSDescription'] = 0
-    qa_violations['missingNSDescription'] = ""
-    if not results and int(qa_metrics['nodeShapes']) > 0:
-        print("PASS - All NodeShape have a description annotation.")
-        if args.verbose:
-            results = g.query(node_shape_labels)
-            print("| NodeShape | Description |\n|--|--|")
-            for row in results:
-                print(f"| {row.ns} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No NodeShape defined, invalid metric.")
-    else:
-        qa_metrics['missingNSDescription'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['missingNSDescription']} NodeShape missing a description annotation:")
-        for row in results:
-          print(f" - {row.ns}")
-          string += f"{row.ns},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingNSDescription'] = string
-    sep()
+    # qan = qa_check_results("NodeShape missing description annotations",qan)
+    tests.append("NodeShape missing description annotations")
+    metrics, violations, xs = check_node_shape_missing_comment(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("PropertyShape missing description annotations",qan)
-    results = g.query(property_shape_missing_comment)
-    qa_metrics['missingPSDescription'] = 0
-    qa_violations['missingPSDescription'] = ""
-    if not results and int(qa_metrics['propertyShapes']) > 0:
-        print("PASS - All PropertyShape have a description annotation.")
-        if args.verbose:
-            results = g.query(property_shape_labels)
-            print("| PropertyShape | Description |\n|--|--|")
-            for row in results:
-                print(f"| {row.ps} | {row.lbl} |")
-    elif not results:
-        print("WARNING - No PropertyShapes defined, invalid metric.")
-    else:
-        qa_metrics['missingPSDescription'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['missingPSDescription']} PropertyShape missing a description annotation:")
-        for row in results:
-          print(f" - {row.ps}")
-          string += f"{row.ps},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['missingPSDescription'] = string
-    sep()
+    # qan = qa_check_results("PropertyShape missing description annotations",qan)
+    tests.append("PropertyShape missing description annotations")
+    metrics, violations, xs = check_property_shape_missing_comment(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("Classes with the same label",qan)
-    results = g.query(class_same_label)
-    qa_metrics['nonUniqueClassLabels'] = 0
-    qa_violations['nonUniqueClassLabels'] = ""
-    if not results and int(qa_metrics['classCount']) > 0:
-        print("PASS - No classes share the same label.")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
-        qa_metrics['nonUniqueClassLabels'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['nonUniqueClassLabels']} labels shared by multiple classes.")
-        print("| Label | Classes |\n|--|--|")
-        for row in results:
-            print(f"| {row.label} | {row.classes} |")
-            string += f"\"{row.label}\": {row.classes};<br> "
-        string = string.rstrip(";<br> ")
-        qa_violations['nonUniqueClassLabels'] = string
-    sep()
+    # qan = qa_check_results("Classes with the same label",qan)
+    tests.append("Classes with the same label")
+    metrics, violations, xs = check_class_same_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("Properties with the same label",qan)
-    results = g.query(property_same_label)
-    qa_metrics['nonUniquePropertyLabels'] = 0
-    qa_violations['nonUniquePropertyLabels'] = ""
-    if not results and int(qa_metrics['propertyCount']) > 0:
-        print("PASS - No property share the same label.")
-    elif not results:
-        print("WARNING - No properties defined, invalid metric.")
-    else:
-        qa_metrics['nonUniquePropertyLabels'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['nonUniquePropertyLabels']} labels shared by multiple properties.")
-        print("| Label | Properties |\n|--|--|")
-        for row in results:
-            print(f"| {row.label} | {row.properties} |")
-            string += f"\"{row.label}\": {row.properties};<br> "
-        string = string.rstrip(";<br> ")
-        qa_violations['nonUniquePropertyLabels'] = string
-    sep()
+    # qan = qa_check_results("Properties with the same label",qan)
+    tests.append("Properties with the same label")
+    metrics, violations, xs = check_property_same_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("NodeShapes with the same label",qan)
-    results = g.query(node_shape_same_label)
-    qa_metrics['nonUniqueNSLabels'] = 0
-    qa_violations['nonUniqueNSLabels'] = ""
-    if not results and int(qa_metrics['nodeShapes']) > 0:
-        print("PASS - No NodeShape share the same label.")
-    elif not results:
-        print("WARNING - No NodeShape defined, invalid metric.")
-    else:
-        qa_metrics['nonUniqueNSLabels'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.")
-        print("| Label | NodeShapes |\n|--|--|")
-        for row in results:
-            print(f"| {row.label} | {row.nsList} |")
-            string += f"\"{row.label}\": {row.nsList};<br> "
-        string = string.rstrip(";<br> ")
-        qa_violations['nonUniqueNSLabels'] = string
-    sep()
+    # qan = qa_check_results("NodeShapes with the same label",qan)
+    tests.append("NodeShapes with the same label")
+    metrics, violations, xs = check_node_shape_same_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    qan = qa_check_results("PropertyShapes with the same label",qan)
-    results = g.query(property_shape_same_label)
-    qa_metrics['nonUniquePSLabels'] = 0
-    qa_violations['nonUniquePSLabels'] = ""
-    if not results:
-        print("PASS - No PropertyShape share the same label.")
-    elif not results:
-        print("WARNING - No PropertyShapes defined, invalid metric.")
-    else:
-        qa_metrics['nonUniquePSLabels'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
-        print("| Label | PropertyShapes |\n|--|--|")
-        for row in results:
-            print(f"| {row.label} | {row.psList} |")
-            string += f"\"{row.label}\": {row.psList};<br> "
-        string = string.rstrip(";<br> ")
-        qa_violations['nonUniquePSLabels'] = string
-    sep()
+    # qan = qa_check_results("PropertyShapes with the same label",qan)
+    tests.append("PropertyShapes with the same label")
+    metrics, violations, xs = check_property_shape_same_label(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
-    # Number of Isolated Classes
-    qan = qa_check_results("Number of isolated classes",qan)
-    results = g.query(isolated_classes)
-    qa_metrics['isolatedClasses'] = 0
-    qa_violations['isolatedClasses'] = ""
-    if not results and int(qa_metrics['classCount']) > 0:
-        print("PASS - All classes are connected to another class through a subclass or property relation.")
-    elif not results:
-        print("WARNING - No classes defined, invalid metric.")
-    else:
-        qa_metrics['isolatedClasses'] = len(results)
-        xs += 1
-        string = ""
-        print(f"VIOLATION - Found {qa_metrics['isolatedClasses']} isolated classes:")
-        for row in results:
-          print(f" - {row[0]}")
-          string += f"{row[0]},<br> "
-        string = string.rstrip(",<br> ")
-        qa_violations['isolatedClasses'] = string
-    sep()
+    # qan = qa_check_results("Number of isolated classes",qan)
+    tests.append("Number of isolated classes")
+    metrics, violations, xs = check_isolated_classes(g, xs)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
 
     # Missing Domain or Range in Properties
     qan = qa_check_results("Missing Domain or Range in Properties",qan)
