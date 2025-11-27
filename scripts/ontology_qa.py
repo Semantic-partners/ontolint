@@ -1954,7 +1954,7 @@ def main():
     write_ctrf_report(qa_metrics, qa_violations , args.ctrf_dir, ctrf_filename)
 
     # Exit status
-    if args.exit_status: sys.exit(xs)
+    if args.exit_status and xs > 0: sys.exit(1)
 
     
     # IA3 Hierarchy Overspecialisation
