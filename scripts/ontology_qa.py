@@ -727,57 +727,81 @@ def get_ontology_name(metrics):
     names = names.rstrip(",<br> ")
     return names
 
+def qa_terminate(file, log):
+    """
+    Print the results to a file name if specified, otherwise print to the STDOUT.
+
+    Args:
+        file (str): Name of the output file. If undefined, print to the STDOUT.
+        log (str): Results of the Quality Assurance tests, formatted in markdown.
+    """
+    # Print output to file or STDOUT.
+    if file:
+        with open(file, "w", encoding="utf-8") as f:
+            f.write(log)
+    else:
+        print(log)
+
 def print_profiling_table(metrics):
     """
     Print a table with the profiling metrics of an RDF graph.
+
     Args:
         metrics (dict): Number of violations for various ontology metrics.
+    
+    Returns:
+        log (str): Pretty table with results.
     """
 
     name = get_ontology_name(metrics)
-    print("\n## Profiling Metrics\n")
-    print(f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape ", end="")
-    print(f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | ")
-    print("|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |")
+    log = "\n## Profiling Metrics\n"
+    log += f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
+    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |\n"
+    return log
 
 def print_qa_table(metrics):
     """
     Print a table with the quality assurance metrics of an RDF graph.
+
     Args:
         metrics (dict): Number of violations for various ontology metrics.
+    
+    Returns:
+        log (str): Pretty table with results.
     """
     name = get_ontology_name(metrics)
-    print("\n## Quality Metrics\n")
-    print(f"| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label ", end="")
-    print(f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description ", end="")
-    print(f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes ", end="")
-    print(f"| Property without domain | Property without range ", end="")
-    print(f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |")
-    print("|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|")
-    print(f"| {name} | {normalise(metrics['ontologyNotDeclared'],len(metrics['filesProcessed']))} ", end="")
-    print(f"| {normalise(metrics['ontologyDescription'],len(metrics['filesProcessed']))} ", end="")
-    print(f"| {normalise(metrics['missingClassLabel'],metrics['classCount'])} ", end="")
-    print(f"| {normalise(metrics['missingPropertyLabel'],metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(metrics['missingNSLabel'],metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(metrics['missingPSLabel'],metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(metrics['missingClassDescription'],metrics['classCount'])} ", end="")
-    print(f"| {normalise(metrics['missingPropertyDescription'],metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(metrics['missingNSDescription'],metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(metrics['missingPSDescription'],metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(metrics['nonUniqueClassLabels'],metrics['classCount'])} ", end="")
-    print(f"| {normalise(metrics['nonUniquePropertyLabels'],metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(metrics['nonUniqueNSLabels'],metrics['nodeShapes'])} ", end="")
-    print(f"| {normalise(metrics['nonUniquePSLabels'],metrics['propertyShapes'])} ", end="")
-    print(f"| {normalise(metrics['isolatedClasses'],metrics['classCount'])} ", end="")
-    print(f"| {normalise(metrics['missingDomain'],metrics['propertyCount'])} ", end="")
-    print(f"| {normalise(metrics['missingRange'],metrics['propertyCount'])} ", end="")
-    print(f"| {metrics['nonUniqueIdentifiers']} | {metrics['subclassCycles']} ", end="")
-    print(f"| {metrics['untypedClasses']} | {metrics['untypedProperties']} | {metrics['hijacking']} |")
+    log = "\n## Quality Metrics\n"
+    log += f"| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
+    log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
+    log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
+    log += f"| Property without domain | Property without range "
+    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += f"| {name} | {normalise(metrics['ontologyNotDeclared'],len(metrics['filesProcessed']))} "
+    log += f"| {normalise(metrics['ontologyDescription'],len(metrics['filesProcessed']))} "
+    log += f"| {normalise(metrics['missingClassLabel'],metrics['classCount'])} "
+    log += f"| {normalise(metrics['missingPropertyLabel'],metrics['propertyCount'])} "
+    log += f"| {normalise(metrics['missingNSLabel'],metrics['nodeShapes'])} "
+    log += f"| {normalise(metrics['missingPSLabel'],metrics['propertyShapes'])} "
+    log += f"| {normalise(metrics['missingClassDescription'],metrics['classCount'])} "
+    log += f"| {normalise(metrics['missingPropertyDescription'],metrics['propertyCount'])} "
+    log += f"| {normalise(metrics['missingNSDescription'],metrics['nodeShapes'])} "
+    log += f"| {normalise(metrics['missingPSDescription'],metrics['propertyShapes'])} "
+    log += f"| {normalise(metrics['nonUniqueClassLabels'],metrics['classCount'])} "
+    log += f"| {normalise(metrics['nonUniquePropertyLabels'],metrics['propertyCount'])} "
+    log += f"| {normalise(metrics['nonUniqueNSLabels'],metrics['nodeShapes'])} "
+    log += f"| {normalise(metrics['nonUniquePSLabels'],metrics['propertyShapes'])} "
+    log += f"| {normalise(metrics['isolatedClasses'],metrics['classCount'])} "
+    log += f"| {normalise(metrics['missingDomain'],metrics['propertyCount'])} "
+    log += f"| {normalise(metrics['missingRange'],metrics['propertyCount'])} "
+    log += f"| {metrics['nonUniqueIdentifiers']} | {metrics['subclassCycles']} "
+    log += f"| {metrics['untypedClasses']} | {metrics['untypedProperties']} | {metrics['hijacking']} |\n"
+    return log
 
 def sep():
-    # print("\n","-"*20, sep="")
-    print("\n","-"*20)
+    return "\n"+"-"*20
 
 def write_ctrf_report(metrics, violations, file_path, filename):
     """
@@ -786,29 +810,29 @@ def write_ctrf_report(metrics, violations, file_path, filename):
 
     # Each QA check becomes a test case
     checks = [
-        ("Ontology without declaration",     metrics['ontologyNotDeclared'], violations['ontologyNotDeclared']),
-        ("Ontology without description",     metrics['ontologyDescription'], violations['ontologyDescription']), 
-        ("Class without label",              metrics['missingClassLabel'], violations['missingClassLabel']), 
-        ("Property without label",           metrics['missingPropertyLabel'], violations['missingPropertyLabel']), 
-        ("NodeShape without label",          metrics['missingNSLabel'], violations['missingNSLabel']), 
-        ("PropertyShape without label",      metrics['missingPSLabel'], violations['missingPSLabel']), 
-        ("Class without description",        metrics['missingClassDescription'], violations['missingClassDescription']), 
+        ("Ontology without declaration",     metrics['ontologyNotDeclared'],        violations['ontologyNotDeclared']),
+        ("Ontology without description",     metrics['ontologyDescription'],        violations['ontologyDescription']), 
+        ("Class without label",              metrics['missingClassLabel'],          violations['missingClassLabel']), 
+        ("Property without label",           metrics['missingPropertyLabel'],       violations['missingPropertyLabel']), 
+        ("NodeShape without label",          metrics['missingNSLabel'],             violations['missingNSLabel']), 
+        ("PropertyShape without label",      metrics['missingPSLabel'],             violations['missingPSLabel']), 
+        ("Class without description",        metrics['missingClassDescription'],    violations['missingClassDescription']), 
         ("Property without description",     metrics['missingPropertyDescription'], violations['missingPropertyDescription']), 
-        ("NodeShape without description",    metrics['missingNSDescription'], violations['missingNSDescription']), 
-        ("PropertyShape without description",metrics['missingPSDescription'], violations['missingPSDescription']), 
-        ("Non-Unique Class Labels",          metrics['nonUniqueClassLabels'], violations['nonUniqueClassLabels']), 
-        ("Non-Unique Property Labels",       metrics['nonUniquePropertyLabels'], violations['nonUniquePropertyLabels']), 
-        ("Non-Unique NodeShape Labels",      metrics['nonUniqueNSLabels'], violations['nonUniqueNSLabels']), 
-        ("Non-Unique PropertyShape Labels",  metrics['nonUniquePSLabels'], violations['nonUniquePSLabels']), 
-        ("Isolated Classes",                 metrics['isolatedClasses'], violations['isolatedClasses']), 
-        ("Property without domain",          metrics['missingDomain'], violations['missingDomain']), 
-        ("Property without range",           metrics['missingRange'], violations['missingRange']), 
-        ("Non-Unique Identifiers",           metrics['nonUniqueIdentifiers'], violations['nonUniqueIdentifiers']), 
-        ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles']), 
-        ("Untyped Classes",                  metrics['untypedClasses'], violations['untypedClasses']), 
-        ("Untyped Properties",               metrics['untypedProperties'], violations['untypedProperties']), 
-        ("Subclass Cycles",                  metrics['subclassCycles'], violations['subclassCycles']),
-        ("Namespace Hijacking",              metrics['hijacking'], violations['hijacking'])
+        ("NodeShape without description",    metrics['missingNSDescription'],       violations['missingNSDescription']), 
+        ("PropertyShape without description",metrics['missingPSDescription'],       violations['missingPSDescription']), 
+        ("Non-Unique Class Labels",          metrics['nonUniqueClassLabels'],       violations['nonUniqueClassLabels']), 
+        ("Non-Unique Property Labels",       metrics['nonUniquePropertyLabels'],    violations['nonUniquePropertyLabels']), 
+        ("Non-Unique NodeShape Labels",      metrics['nonUniqueNSLabels'],          violations['nonUniqueNSLabels']), 
+        ("Non-Unique PropertyShape Labels",  metrics['nonUniquePSLabels'],          violations['nonUniquePSLabels']), 
+        ("Isolated Classes",                 metrics['isolatedClasses'],            violations['isolatedClasses']), 
+        ("Property without domain",          metrics['missingDomain'],              violations['missingDomain']), 
+        ("Property without range",           metrics['missingRange'],               violations['missingRange']), 
+        ("Non-Unique Identifiers",           metrics['nonUniqueIdentifiers'],       violations['nonUniqueIdentifiers']), 
+        ("Subclass Cycles",                  metrics['subclassCycles'],             violations['subclassCycles']), 
+        ("Untyped Classes",                  metrics['untypedClasses'],             violations['untypedClasses']), 
+        ("Untyped Properties",               metrics['untypedProperties'],          violations['untypedProperties']), 
+        ("Subclass Cycles",                  metrics['subclassCycles'],             violations['subclassCycles']),
+        ("Namespace Hijacking",              metrics['hijacking'],                  violations['hijacking'])
     ]
     
     passed = 0
@@ -848,39 +872,67 @@ def write_ctrf_report(metrics, violations, file_path, filename):
     
     # Write to file
     os.makedirs(file_path, exist_ok=True)
+    # Fallback CTRF filename
+    if not filename:
+        filename = f'ontology-qa-report-{os.getpid()}.json'
     output_file = os.path.join(file_path, filename)
     with open(output_file, 'w') as f:
         json.dump(ctrf_report, f, indent=2)
     
-    print(f"\nCTRF report written to: {output_file}")
-    return ctrf_report
+    log = f"\nCTRF report written to: {output_file}\n"
+    return ctrf_report, log
 
-def load_rdf_file(file, graph):
-    """
-    Load RDF data from a file into the given rdflib Graph.
-    
-    Args:
-        file (str): Path to the RDF file.
-        graph (rdflib.Graph): The RDF graph object to parse into.
-    
-    Returns:
-        bool: True if the file was successfully loaded, False otherwise.
-    """
-    print(f"Loading data from: {file}")
+def print_profiling_metrics(metrics, violations, verbose):
+    log  = f"RDF/OWL classes: {metrics['classCount']}\n"
+    log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
+    log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
+    log += f"SHACL Property Shapes: {metrics['propertyShapes']}\n"
 
-    # Try to guess format from file extension
-    if file.lower().endswith(('.ttl', '.turtle')):
-        fmt = "turtle"
-    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
-        fmt = "xml"
-    else:
-        fmt = None  # Let rdflib try to guess
-    try:
-        graph.parse(file, format=fmt)
-        return True
-    except Exception as e:
-        print(f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}")
-        return False
+    log += f"Local classes in Node Shapes: {metrics['classesInNodeShapes']}\n"
+    if verbose and metrics['classesInNodeShapes'] > 0:
+        log += "\n| NodeShape | Class count |\n|--|--|\n"
+        for _ in range( len(violations['classesInNodeShapes']['ns']) ):
+            log += f"| {violations['classesInNodeShapes']['ns'][_]} "
+            log += f"| {violations['classesInNodeShapes']['classCount'][_]} |\n"
+        log += "\n"
+
+    log += f"Local properties in Property Shapes: {metrics['propertiesInPropertyShapes']}\n"
+    if verbose and metrics['propertiesInPropertyShapes'] > 0:
+        log += "\n| PropertyShape | Local Property |\n|--|--|\n"
+        for _ in range( len(violations['propertiesInPropertyShapes']['ps']) ):
+            log += f"| {violations['propertiesInPropertyShapes']['ps'][_]} "
+            log += f"| {violations['propertiesInPropertyShapes']['propCount'][_]} |\n"
+        log += "\n"
+    
+    log += f"Deprecated classes: {metrics['deprecatedClasses']}\n"
+    if verbose and metrics['deprecatedClasses'] > 0:
+        log += "List of deprecated classes:\n"
+        for _ in range( len(violations['deprecatedClasses']) ):
+            log += f" - {violations['deprecatedClasses'][_]}\n"
+        log += "\n"
+    
+    log += f"Deprecated properties: {metrics['deprecatedProperties']}\n"
+    if verbose and metrics['deprecatedProperties'] > 0:
+        log += "List of deprecated properties:\n"
+        for _ in range( len(violations['deprecatedProperties']) ):
+            log += f" - {violations['deprecatedProperties'][_]}\n"
+        log += "\n"
+
+    log += f"External vocabularies declared: {metrics['vocabulariesUsed']}\n"
+    if metrics['vocabulariesUsed'] > 0:
+        log += "\n| Prefix | URI |\n|--|--|\n"
+        for _ in range( len(violations['vocabulariesUsed']['prefix']) ):
+            # print(f" - {pfx}: {ns}")
+            log += f"| {violations['vocabulariesUsed']['prefix'][_]} "
+            log += f"| {violations['vocabulariesUsed']['uri'][_]} |\n"
+        log += "\n"
+
+    return log
+
+def print_qa_results(metrics, violations, checklist, verbose):
+    log  = f"\n"
+
+    return log
 
 def profiling(graph):
     """
@@ -895,24 +947,23 @@ def profiling(graph):
     """
     metrics = {}
     violations = {}
-    # Count initial classes, properties, and shapes.
+
+    # Count classes, properties before inferencing.
     results = graph.query(count_cp)
     (row,) = results
-    # print(f"RDF/OWL classes: {row.classCount}\nRDF/OWL properties: {row.propertyCount}")
     metrics['classCount']= row.classCount
     metrics['propertyCount'] = row.propertyCount
-  
+
+    # Count shapes.
     results = graph.query(node_shape)
     if results:
         (row,) = results
-        # print(f"SHACL Node Shapes: {row.shapeCount}")
         metrics['nodeShapes'] = row.shapeCount
     else:
         metrics['nodeShapes'] = 0
     results = graph.query(property_shape)
     if results:
         (row,) = results
-        # print(f"SHACL Property Shapes: {row.shapeCount}")
         metrics['propertyShapes'] = row.shapeCount
     else:
         metrics['propertyShapes'] = 0
@@ -920,36 +971,43 @@ def profiling(graph):
     # Count classes in NodeShapes.
     results = graph.query(classes_in_node_shape)
     total_classes_in_shapes = sum(int(row.classCount) for row in results)
-    # print(f"Local classes in Node Shapes: {total_classes_in_shapes}")
     metrics['classesInNodeShapes'] = total_classes_in_shapes
-    # if verbose and total_classes_in_shapes > 0:
-    #     print("| NodeShape | Class count |\n|--|--|")
-    #     for row in results:
-    #         print(f"| {row.ns} | {row.classCount} |")
+    if total_classes_in_shapes > 0:
+        violations['classesInNodeShapes'] = {
+            'ns': [],
+            'classCount': []
+            }
+        for row in results:
+            violations['classesInNodeShapes']['ns'].append(row.ns)
+            violations['classesInNodeShapes']['classCount'].append(row.classCount)
+
     # Count properties in PropertyShapes.
     results = graph.query(property_in_property_shape)
     total_properties_in_shapes = len(results)
-    # print(f"Local properties in Property Shapes: {total_properties_in_shapes}")
     metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-    # if results and verbose:
-    #     print("| PropertyShape | Local Property |\n|--|--|")
-    #     for row in results:
-    #         print(f"| {row.ps} | {row.prop} |")
+    if total_properties_in_shapes > 0:
+        violations['propertiesInPropertyShapes'] = {
+            'ps': [],
+            'propCount': []
+            }
+        for row in results:
+            violations['propertiesInPropertyShapes']['ps'].append(row.ps)
+            violations['propertiesInPropertyShapes']['propCount'].append(row.prop)
+
     # Number of Deprecated Classes and Properties
     results = graph.query(deprecated_class)
     metrics['deprecatedClasses'] = len(results)
-    # print(f"Deprecated classes: {metrics['deprecatedClasses']}")
-    # if verbose and int(metrics['deprecatedClasses']) > 0:
-    #     print(f"List of deprecated classes:")
-    #     for row in results:
-    #         print(f" - {row.c}")
+    if metrics['deprecatedClasses'] > 0:
+        violations['deprecatedClasses'] = []
+        for row in results:
+            violations['deprecatedClasses'].append(row.c)
     results = graph.query(deprecated_property)
     metrics['deprecatedProperties'] = len(results)
-    # print(f"Deprecated properties: {metrics['deprecatedProperties']}")
-    # if verbose and int(metrics['deprecatedProperties']) > 0:
-    #     print(f"List of deprecated properties:")
-    #     for row in results:
-    #         print(f" - {row.p}")
+    if metrics['deprecatedProperties'] > 0:
+        violations['deprecatedProperties'] = []
+        for row in results:
+            violations['deprecatedProperties'].append(row.p)
+
     # List all used prefixes
     active_prefixes = prefixes(graph)
     results = graph.query(owl_declaration)
@@ -963,7 +1021,6 @@ def profiling(graph):
             for pfx in to_remove:
                 del active_prefixes[pfx]
     metrics['vocabulariesUsed'] = len(active_prefixes)
-    # print(f"External vocabularies declared: {metrics['vocabulariesUsed']}")
 
     # These are not violations, but the dictionary is nevertheless used to store elements
     # matching the same key of the metrics dictionary.
@@ -986,12 +1043,13 @@ def inference(graph):
     
     Returns:
         graph (rdflib.Graph): The RDF graph, after inference applied.
+        log (str): Result of inferencing.
     """
-    print("\nApplying Subclass inference rule iteratively...")
+    log = "\nApplying Subclass inference rule iteratively...\n"
     while True:
         inferred_triples_result = graph.query(subclass_inference_rule)
         if not inferred_triples_result:
-            print("No new subclass inferences to add. Inference complete.")
+            log += "No new subclass inferences to add. Inference complete.\n"
             break
         graph_size_before = len(graph)
         for t in inferred_triples_result:
@@ -1001,12 +1059,12 @@ def inference(graph):
         # graph += inferred_triples_result
         graph_size_after = len(graph)
         if graph_size_after == graph_size_before:
-            print("No new subclass inferences in this pass. Inference complete.")
+            log += "No new subclass inferences in this pass. Inference complete.\n"
             break
         else:
-            print(f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...")
-    print(f"Final graph size after inference: {len(graph)} triples.")
-    return graph
+            log += f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...\n"
+    log += f"Final graph size after inference: {len(graph)} triples.\n"
+    return graph, log
 
 def check_owl_declaration_description(graph, num_files, status):
     """
@@ -1817,6 +1875,34 @@ def check_hijacking(graph, status):
         violations['hijacking'] = string
     return metrics, violations, status
 
+def load_rdf_file(file, graph):
+    """
+    Load RDF data from a file into the given rdflib Graph.
+    
+    Args:
+        file (str): Path to the RDF file.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+    
+    Returns:
+        bool: True if the file was successfully loaded, False otherwise.
+        log (str): Parsing result.
+    """
+    log = f"Loading data from: {file}\n"
+
+    # Try to guess format from file extension
+    if file.lower().endswith(('.ttl', '.turtle')):
+        fmt = "turtle"
+    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
+        fmt = "xml"
+    else:
+        fmt = None  # Let rdflib try to guess
+    try:
+        graph.parse(file, format=fmt)
+        return True, log
+    except Exception as e:
+        log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
+        return False, log
+
 def load_rdf(f):
     """
     Load RDF files from file or directory name.
@@ -1828,26 +1914,32 @@ def load_rdf(f):
         counter (int): Number of files successfully loaded.
         metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        log (str): Parsing result.
     """
     counter = 0
     metrics = {}
     metrics['filesProcessed'] = []
     graph = rdflib.Graph()
+    log = ""
     # check if f is a directory
     if os.path.isdir(f):
         for root, _, files in os.walk(f):
             for file in files:
                 file_path = os.path.join(root, file)
-                if load_rdf_file(file_path, graph):
-                  # Append successfully processed file
+                go, results = load_rdf_file(file_path, graph)
+                log += results
+                if go:
+                  # Append processed file
                   metrics['filesProcessed'].append(file)
                   counter += 1
     else:
-        if load_rdf_file(f, graph):
-            # Append successfully processed file
+        go, results = load_rdf_file(f, graph)
+        log += results
+        if go:
+            # Append processed file
             metrics['filesProcessed'].append(f)
             counter += 1
-    return counter, metrics, graph
+    return counter, metrics, graph, log
 
 def main():
     # Set up argument parser
@@ -1855,51 +1947,54 @@ def main():
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only',action='store_true', help='Compute only the profiling metrics and skip the QA part.')
-    parser.add_argument('--ctrf-dir', type=str, default='./ctrf', help='Directory to write CTRF report to.')
-    parser.add_argument('--ctrf-filename', type=str, default=None, help='Filename for CTRF report (if None, uses default pattern).')
+    parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
+    parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
+    parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
-    # Create an empty dictionaries to store the ontology metrics.
-    qa_metrics = {}    # violation_count
-    qa_violations = {} # violation_elements
+    # Create empty dictionaries to store the ontology metrics.
+    qa_metrics = {}    # violation count
+    qa_violations = {} # violation elements
 
     # Load Data
     g = rdflib.Graph()
     file_counter = 0
-    # print(f"## Profiling Metrics\n")
+    log_output = "# Ontology Quality Assurance\n\n"
     for f in args.data_files:
-        c, file_metrics, file_graph = load_rdf(f)
+        c, file_metrics, file_graph, results = load_rdf(f)
         file_counter += c
         qa_metrics.update(file_metrics)
         g += file_graph
+        log_output += results
 
     if file_counter == 0:
-        print("ERROR - No RDF data in input files or directories.")
+        print(f"{log_output}\nERROR - No RDF data in input files or directories.")
         return
     
     # Compute and store the profiling metrics.
-    qa_metrics['triples']= len(g)
+    qa_metrics['triples'] = len(g)
     metrics, violations = profiling(g)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
 
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
-        print("\nProfile-only mode enabled. Skipping additional QA checks.")
-        metrics, violations, xs = check_owl_declaration_description(g, len(qa_metrics['filesProcessed']), xs)
+        log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
+        metrics, violations, xs = check_owl_declaration_description(g, len(qa_metrics['filesProcessed']), 0)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
-        print_profiling_table(qa_metrics)
+        log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
+        log_output += print_profiling_table(qa_metrics)
+        qa_terminate(args.output, log_output)
         return
     
     # Simulate Inference
-    g = inference(g)
+    g, results = inference(g)
+    log_output += results
 
     # Compute the metrics for Quality Assurance.
     xs = 0  # Number of violations, to decide the exit-status flag.
-    qan = 1 # Counter for the tests executed (to discard later)
-    tests = [] # Name and order of tests executed (new counter).
 
     # Array with a checklist mapping for all tests for QA metrics.
     # The profiling is always executed. The additional QA checks are optional.
@@ -1937,21 +2032,22 @@ def main():
             qa_metrics.update(metrics)
         if violations:
             qa_violations.update(violations)
-       
-    # Profiling
-    print_profiling_table(qa_metrics)
+    
+    # Aggregate and format the results.
+    log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
+    log_output += print_qa_results(qa_metrics, qa_violations, test_checklist, args.verbose)
 
-    # QA metrics
-    print_qa_table(qa_metrics)
+    # Profiling Table
+    log_output += print_profiling_table(qa_metrics)
+
+    # QA metrics Table
+    log_output += print_qa_table(qa_metrics)
 
     # Generate CTRF report
-    # Determine CTRF filename
-    if args.ctrf_filename:
-        ctrf_filename = args.ctrf_filename
-    else:
-        ctrf_filename = f'ontology-qa-report-{os.getpid()}.json'
-    
-    write_ctrf_report(qa_metrics, qa_violations , args.ctrf_dir, ctrf_filename)
+    write_ctrf_report(qa_metrics, qa_violations , args.ctrf_dir, args.ctrf_filename)
+
+    # Print the results
+    qa_terminate(args.output, log_output)
 
     # Exit status
     if args.exit_status and xs > 0: sys.exit(1)
