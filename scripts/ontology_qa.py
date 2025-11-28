@@ -691,11 +691,6 @@ def prefixes(g):
 
     return used_prefixes
 
-def qa_check_results(description,qan):
-    print(f"\nCheck {qan}: {description}.")
-    qan += 1
-    return qan
-
 def normalise(count, total):
     count = float(count)
     total = float(total)
@@ -799,9 +794,6 @@ def print_qa_table(metrics):
     log += f"| {metrics['nonUniqueIdentifiers']} | {metrics['subclassCycles']} "
     log += f"| {metrics['untypedClasses']} | {metrics['untypedProperties']} | {metrics['hijacking']} |\n"
     return log
-
-def sep():
-    return "\n"+"-"*20
 
 def write_ctrf_report(metrics, violations, file_path, filename):
     """
@@ -929,8 +921,92 @@ def print_profiling_metrics(metrics, violations, verbose):
 
     return log
 
-def print_qa_results(metrics, violations, checklist, verbose):
-    log  = f"\n"
+def qa_check_results(description,qan):
+    log = f"\nCheck {qan}: {description}.\n"
+    qan += 1
+    return qan, log
+
+def print_qa_results(graph, metrics, violations, checklist, verbose):
+    log = ""
+    c = 1
+    sep = "\n" + "-"*20 + "\n"
+    num_files = len(metrics['filesProcessed'])
+    num_uri = len(metrics['ontologyURI'])
+
+    # Format selected tests individually.
+    if checklist[0][0]:
+        # Ontology Declaration.
+        c, results = qa_check_results("OWL ontology declaration",c)
+        log += results
+        if metrics['ontologyNotDeclared'] == num_files:
+            log += "VIOLATION - No `owl:Ontology` declaration found.\n"
+        elif metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files:
+            ov = num_files - metrics['ontologyNotDeclared']
+            if ov == 1:
+                log += f"VIOLATION - 1 ontology without `owl:Ontology` declaration.\n"
+            else:
+                log += f"VIOLATION - {ov} ontologies without `owl:Ontology` declaration.\n"
+        else:
+            if metrics['ontologyNotDeclared'] == 0:
+                log += f"PASS - Found 1 ontology with `owl:Ontology` declaration.\n"
+            else:
+                log += f"PASS - Found {num_uri} ontologies with `owl:Ontology` declaration.\n"
+        
+        # Print additional information.
+        if verbose and metrics['ontologyNotDeclared'] == 0:
+            log = log.rstrip(".\n")
+            log += ":\n"
+            for _ in range(num_uri):
+                log += f" - {metrics['ontologyURI'][_]}\n"
+        
+        # Print more information if violations are found.
+        if metrics['ontologyNotDeclared'] > 0:
+            log += "Check the input files individually to find out which one violates this check.\n"
+            if num_uri > 0: log += "WARNING - The following ontology URI were found:\n"
+            for _ in range(num_uri):
+                log += f" - {metrics['ontologyURI'][_]}\n"
+        log += sep
+    
+        # Ontology Description (bunched to declaration)
+        if metrics['ontologyNotDeclared'] == num_files:
+            log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
+            c += 1
+        else:
+            c, results = qa_check_results("OWL ontology description",c)
+            log += results
+            if metrics['ontologyDescription'] == 0:
+                log += "PASS - All ontologies have a description.\n"
+                if verbose:
+                    results = graph.query(ont_description)
+                    log += "\n**Ontology + Description:**\n"
+                    for row in results:
+                        log += f" - {row.ont}\n   {row.d}\n"
+            else:
+                log += f"VIOLATION - Found {metrics['ontologyDescription']} ontologies without description:\n - "
+                results = violations['ontologyDescription']
+                results = results.replace(",<br> ", "\n - ")
+                log += results
+        log += sep
+
+    if checklist[1][0]:
+        # Classes missing label annotations
+        c, results = qa_check_results(checklist[1][3],c)
+        log += results
+        if metrics['missingClassLabel'] == 0 and int(metrics['classCount']) > 0:
+            log += "PASS - All classes have a label annotation.\n"
+            if verbose:
+                results = graph.query(class_labels)
+                log += "\n|  Class | Label |\n|--|--|\n"
+                for row in results:
+                    log += f"| {row.c} | {row.lbl} |\n"
+        elif int(metrics['classCount']) == 0:
+            log += "WARNING - No classes defined, invalid metric.\n"
+        else:
+            log += f"VIOLATION - Found {metrics['missingClassLabel']} classes missing a label annotation:\n - "
+            results = violations['missingClassLabel']
+            results = results.replace(",<br> ", "\n - ")
+            log += results + "\n"
+        log += sep
 
     return log
 
@@ -1088,47 +1164,41 @@ def check_owl_declaration_description(graph, num_files, status):
     # Check the ontology declaration.
     results = graph.query(owl_declaration)
     if not results:
-        # print(f"VIOLATION - No `owl:Ontology` declaration found.") 
         status += 1
     else:
         for row in results:
-            # print(f" - {row.ont}")
             metrics['ontologyURI'].append(row.ont)
             metrics['ontologyNotDeclared'] -= 1
-    # Record the violation element (to improve).
+    
+    # Record the violation elements.
     if metrics['ontologyNotDeclared'] == num_files:
-        violations['ontologyNotDeclared'] = "all"
-    elif  metrics['ontologyNotDeclared'] > 0 and  metrics['ontologyNotDeclared'] < num_files:
-        violations['ontologyNotDeclared'] = "some"
+        violations['ontologyNotDeclared'] = "**All** processed files missing ontology declaration:<br> "
+        for _ in range(num_files):
+            violations['ontologyNotDeclared'] += f"{metrics['filesProcessed'][_]},<br> "
+        violations['ontologyNotDeclared'].rstrip(",<br> ")
+    elif  metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files:
+        violations['ontologyNotDeclared'] = "**Some** processed files missing ontology declaration.<br> Check them individually.<br>"
+        for _ in range(num_files):
+            violations['ontologyNotDeclared'] += f"{metrics['filesProcessed'][_]},<br> "
+        violations['ontologyNotDeclared'].rstrip(",<br> ")
     else:
         violations['ontologyNotDeclared'] = ""
     
     # Check the ontology description.
     if metrics['ontologyNotDeclared'] == num_files:
-        # print(f"\nSkipping check {qan}: Ontology description (no ontology declared).")
-        # qan += 1
         metrics['ontologyDescription'] = 1 # no
         violations['ontologyDescription'] = "No ontology declared"
     else:
-        # qan = qa_check_results("Ontology description",qan)
         results = graph.query(no_ont_description)
         if not results:
-            # print("PASS - All ontologies have a description.")
             metrics['ontologyDescription'] = 0 # yes
             violations['ontologyDescription'] = ""
-            # if args.verbose:
-            #     results = graph.query(ont_description)
-            #     print("\n**Ontology + Description:**")
-            #     for row in results:
-            #         print(f" - {row.ont}\n   {row.d}")
         else:
             owd = len(results)
             metrics['ontologyDescription'] = len(results) #  violations
-            # print(f"VIOLATION - Found {len(results)} ontologies without any description:")
             status += 1
             string = ""
             for row in results:
-                # print(f" - {row.ont}")
                 string += f"{row.ont},<br> "
             string = string.rstrip(",<br> ")
             violations['ontologyDescription'] = string
@@ -1152,23 +1222,11 @@ def check_class_missing_label(graph, status):
     results = graph.query(class_missing_label)
     metrics['missingClassLabel'] = 0
     violations['missingClassLabel'] = ""
-    # if not results and int(metrics['classCount']) > 0:
-    #     print("PASS - All classes have a label annotation.")
-    #     if args.verbose:
-    #         results = graph.query(class_labels)
-    #         print("|  Class | Label |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.c} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No classes defined, invalid metric.")
-    # else:
     if results:
         metrics['missingClassLabel'] = len(results)
-        # print(f"VIOLATION - Found {metrics['missingClassLabel']} classes missing a label annotation:")
         status += 1
         string = ""
         for t in results:
-        #   print(f" - {t[0]}")
           string += f"{t[0]},<br> "
         string = string.rstrip(",<br> ")
         violations['missingClassLabel'] = string
@@ -1965,7 +2023,7 @@ def main():
         c, file_metrics, file_graph, results = load_rdf(f)
         file_counter += c
         qa_metrics.update(file_metrics)
-        g += file_graph
+        g += file_graph # accumulate in the main graph.
         log_output += results
 
     if file_counter == 0:
@@ -1977,11 +2035,12 @@ def main():
     metrics, violations = profiling(g)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
+    fp = len(qa_metrics['filesProcessed'])
 
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        metrics, violations, xs = check_owl_declaration_description(g, len(qa_metrics['filesProcessed']), 0)
+        metrics, violations, xs = check_owl_declaration_description(g, fp, 0)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
@@ -1997,7 +2056,6 @@ def main():
     xs = 0  # Number of violations, to decide the exit-status flag.
 
     # Array with all tests for QA metrics.
-    fp = len(qa_metrics['filesProcessed'])
     test_checklist = [
         (True, check_owl_declaration_description,[g,fp], "OWL ontology declaration and description"     ),
         (True, check_class_missing_label,           [g], "Classes missing label annotations"            ),
@@ -2038,7 +2096,7 @@ def main():
     
     # Aggregate and format the results.
     log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
-    log_output += print_qa_results(qa_metrics, qa_violations, test_checklist, args.verbose)
+    log_output += print_qa_results(g, qa_metrics, qa_violations, test_checklist, args.verbose)
 
     # Profiling Table
     log_output += print_profiling_table(qa_metrics)
