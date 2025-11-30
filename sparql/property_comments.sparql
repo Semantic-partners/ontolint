@@ -1,0 +1,6 @@
+SELECT DISTINCT ?p ?lbl
+WHERE {
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  ?p a ?type .
+  ?p rdfs:comment|dcterms:description|skos:definition ?lbl
+}

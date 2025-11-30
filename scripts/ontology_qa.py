@@ -2,7 +2,7 @@
 # Ontology Quality Assessment Script (v0.1)
 # SEMANTIC PARTNERS LTD, 2025
 # Authors: Simon Shapiro, Otello M Roscioni.
-# Last revision: 2025-11-17
+# Last revision: 2025-11-30
 
 """
 A script to perform basic QA on a set of ontologies.
@@ -19,668 +19,30 @@ import os
 import json
 from datetime import datetime
 
-# SPARQL queries
+# Create a dictionary with SPARQL queries, from files.
+sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value.
 
-subclass_inference_rule = """
-CONSTRUCT {
-    ?this rdf:type ?superClass .
-}
-WHERE {
-    {
-        SELECT ?this ?superClass WHERE {
-            ?this rdf:type ?subClass .
-            ?subClass rdfs:subClassOf ?superClass .
-        }
-    }
-    FILTER NOT EXISTS {
-        ?this rdf:type ?superClass .
-    }
-}
-"""
+def load_sparql_queries(directory):
+    """
+    Create a dictionary of SPARQL queries, using file names as keys.
+    """
+    queries = {}
+    for filename in os.listdir(directory):
+        if filename.endswith('.sparql'):
+            var_name = os.path.splitext(filename)[0]
+            with open(os.path.join(directory, filename), 'r', encoding='utf-8') as f:
+                queries[var_name] = f.read()
+    return queries
 
-# Domain or Range violations of data.
-validation_query = """
-SELECT ?s ?p ?o ?domain ?range WHERE {
-    ?s ?p ?o .
+sparql_queries = load_sparql_queries(sparql_dir)
 
-    OPTIONAL { ?p rdfs:domain ?domain . }
-    OPTIONAL { ?p rdfs:range ?range . }
-
-    FILTER (
-      (BOUND(?domain) && NOT EXISTS {
-        ?s a ?stype .
-        ?stype rdfs:subClassOf* ?domain .
-      })
-      ||
-      (isIRI(?o) && BOUND(?range) && NOT EXISTS {
-        ?o a ?otype .
-        ?otype rdfs:subClassOf* ?range .
-      })
-    )
-}
-"""
-
-# IA3 Hierarchy Overspecialisation
-# Leaf classes with no instances
-ia3_leaf_classes = """
-SELECT ?c WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  ?c a ?type .
-  FILTER NOT EXISTS {
-    ?sub rdfs:subClassOf ?c .
-    ?instance rdf:type ?c .
-  }
-}
-"""
-
-# Number of Deprecated Classes and Properties
-# Count elements marked as deprecated
-deprecated_class = """
-SELECT DISTINCT ?c
-WHERE {
-  ?c a owl:DeprecatedClass .
-}
-"""
-deprecated_property = """
-SELECT DISTINCT ?p
-WHERE {
-  ?p a owl:DeprecatedProperty .
-}
-"""
-
-# IC1 Number of Isolated Elements
-# Classes declared but never used in any other triple connecting them to the rest of the ontology.
-# TO DO: classes connected through properties defined in the current namespace.
-isolated_classes = """
-SELECT DISTINCT ?c
-WHERE {  
-  VALUES ?type { owl:Class rdfs:Class }
-  ?c a ?type .
-  FILTER NOT EXISTS {
-    ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?o .
-    FILTER(?c IN (?s, ?o))
-  }
-}
-"""
-
-# IC2 Missing Domain or Range in Properties
-# Properties without any rdfs:domain or rdfs:range declaration
-missing_dr_property = """
-SELECT DISTINCT ?p ?domain ?range
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  OPTIONAL { ?p rdfs:domain ?domain }
-  OPTIONAL { ?p rdfs:range  ?range  }
-  FILTER( !BOUND(?domain) || !BOUND(?range) )
-}
-"""
-dr_property = """
-SELECT DISTINCT ?p ?domain ?range
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  OPTIONAL { ?p rdfs:domain ?domain }
-  OPTIONAL { ?p rdfs:range  ?range  }
-}
-"""
-
-# (IO1 Number of Polysemous Elements)
-# Non-unique identifiers
-# Same IRI used for classes and/or properties
-io1_polysemous = """
-SELECT ?iri
-  (GROUP_CONCAT(DISTINCT REPLACE(STR(?type), ".*/", ""); separator=", ") AS ?declaredAs)
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class owl:ObjectProperty rdf:Property owl:ObjectProperty owl:DatatypeProperty  owl:AnnotationProperty }
-  ?iri a ?type .
-}
-GROUP BY ?iri
-HAVING (COUNT(DISTINCT ?type) > 1)
-"""
-
-unique_identifiers = """
-SELECT ?iri
-  (GROUP_CONCAT(DISTINCT REPLACE(STR(?type), ".*/", ""); separator=", ") AS ?declaredAs)
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class owl:ObjectProperty rdf:Property owl:DatatypeProperty  owl:AnnotationProperty }
-  ?iri a ?type .
-
-  FILTER NOT EXISTS { 
-      ?iri a owl:Class . 
-      FILTER(?type = rdfs:Class) 
-  }
-  FILTER NOT EXISTS { 
-      ?iri a ?specificProperty .
-      VALUES ?specificProperty { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty }
-      FILTER(?type = rdf:Property) 
-  }
-}
-GROUP BY ?iri
-HAVING (COUNT(DISTINCT ?type) > 1)
-"""
-
-# IO2 Including Cycles in a Class Hierarchy
-# Detect classes involved in subclass cycles
-subclass_cycles = """
-SELECT DISTINCT ?c WHERE {
-  ?c rdfs:subClassOf+ ?c .
-}
-"""
-
-# IO3 Missing Disjointness
-# Sibling classes under the same direct superclass that are not declared disjoint.
-# Is it really a quality metric?
-io3_missing_disjoints = """
-SELECT DISTINCT ?c1 ?c2 WHERE {
-  ?c1 rdfs:subClassOf ?parent .
-  ?c2 rdfs:subClassOf ?parent .
-  FILTER(?c1 != ?c2)
-  FILTER NOT EXISTS { ?c1 owl:disjointWith ?c2 }
-}
-"""
-
-# IO4 Defining Multiple Domains/Ranges
-# Properties declared with more than one domain or more than one range
-io4_multiple_dr = """
-SELECT ?p (COUNT(DISTINCT ?d) AS ?domainCount) (COUNT(DISTINCT ?r) AS ?rangeCount)
-WHERE {
-  VALUES ?type { owl:ObjectProperty rdf:Property }
-  ?p a ?type .
-  OPTIONAL { ?p rdfs:domain ?d }
-  OPTIONAL { ?p rdfs:range  ?r }
-  FILTER( BOUND(?d) && BOUND(?r) )
-}
-GROUP BY ?p
-HAVING (?domainCount > 1 || ?rangeCount > 1)
-"""
-
-# IO5 Property Chain with One Property
-# owl:propertyChainAxiom lists with exactly one member
-io5_wrong_property_chain = """
-SELECT ?p WHERE {
-  ?p owl:propertyChainAxiom ?list .
-  ?list rdf:first ?singleMember .
-  ?list rdf:rest  rdf:nil .
-}
-"""
-
-# IO7 Tangledness
-# List classes having more than one direct rdfs:subClassOf parent
-io7_tangledness = """
-SELECT ?c (COUNT(?parent) AS ?directAncestors)
-WHERE {
-  ?c rdfs:subClassOf ?parent .
-}
-GROUP BY ?c
-HAVING (COUNT(?parent) > 1)
-"""
-
-# Return OWL ontology declaration
-owl_declaration = """
-SELECT ?ont
-WHERE {
-  ?ont a owl:Ontology .
-}
-"""
-
-# Return ontology without description
-no_ont_description = """
-SELECT ?ont
-WHERE {
-  ?ont a owl:Ontology .
-  FILTER NOT EXISTS {
-    ?ont rdfs:comment|dcterms:abstract|dcterms:description|skos:definition|skos:note ?a .
-  }
-}
-"""
-ont_description = """
-SELECT ?ont ?d
-WHERE {
-  ?ont a owl:Ontology .
-    ?ont rdfs:comment|dcterms:abstract|dcterms:description|skos:definition|skos:note ?d .
-}
-"""
-
-# ISU1 Missing Annotations
-# Classes or properties lacking rdfs:label or rdfs:comment
-isu1_missing_annotations = """
-SELECT DISTINCT ?c ?p
-WHERE {
-  {
-    VALUES ?type { owl:Class rdfs:Class }
-    ?c a ?type .
-    FILTER(isIRI(?c))
-    FILTER (
-      NOT EXISTS { ?c rdfs:label   ?lbl   } ||
-      NOT EXISTS { ?c rdfs:comment ?cmt   }
-    )
-  }
-  UNION
-  {
-    VALUES ?ptype { owl:ObjectProperty rdf:Property }
-    ?p a ?ptype .
-    FILTER(isIRI(?p))
-    FILTER (
-      NOT EXISTS { ?p rdfs:label   ?lbl2  } ||
-      NOT EXISTS { ?p rdfs:comment ?cmt2  }
-    )
-  }
-}
-"""
-
-class_missing_label = """
-SELECT DISTINCT ?c
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  ?c a ?type .
-  FILTER NOT EXISTS { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
-}
-"""
-class_labels = """
-SELECT DISTINCT ?c ?lbl
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  ?c a ?type .
-  ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
-}
-"""
-
-property_missing_label = """
-SELECT DISTINCT ?p
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  FILTER NOT EXISTS { ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
-}
-"""
-property_labels = """
-SELECT DISTINCT ?p ?lbl
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
-}
-"""
-
-node_shape_missing_label = """
-SELECT DISTINCT ?ns
-WHERE {
-  ?ns a sh:NodeShape .
-  FILTER NOT EXISTS { ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
-}
-"""
-node_shape_labels = """
-SELECT DISTINCT ?ns ?lbl
-WHERE {
-  ?ns a sh:NodeShape .
-  ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
-}
-"""
-
-property_shape_missing_label = """
-SELECT ?ps
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-    FILTER NOT EXISTS { ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
-}
-"""
-property_shape_labels = """
-SELECT ?ps ?lbl
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-    ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
-}
-"""
-
-class_missing_comment = """
-SELECT DISTINCT ?c
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  ?c a ?type .
-  FILTER NOT EXISTS { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
-}
-"""
-class_comments = """
-SELECT DISTINCT ?c ?lbl
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  ?c a ?type .
-  ?c rdfs:comment|dcterms:description|skos:definition ?lbl
-}
-"""
-
-property_missing_comment = """
-SELECT DISTINCT ?p
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  FILTER NOT EXISTS { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
-}
-"""
-property_comments = """
-SELECT DISTINCT ?p ?lbl
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  ?p rdfs:comment|dcterms:description|skos:definition ?lbl
-}
-"""
-
-node_shape_missing_comment = """
-SELECT DISTINCT ?ns
-WHERE {
-  ?ns a sh:NodeShape .
-  FILTER NOT EXISTS { ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
-}
-"""
-node_shape_comments = """
-SELECT DISTINCT ?ns ?lbl
-WHERE {
-  ?ns a sh:NodeShape .
-  ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
-}
-"""
-
-property_shape_missing_comment = """
-SELECT DISTINCT ?ps
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-    FILTER NOT EXISTS { ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
-}
-"""
-property_shape_comments = """
-SELECT DISTINCT ?ps ?lbl
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-    ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
-}
-"""
-
-# Count the classes and properties in the current graph.
-# To avoid unbound ?p when evaluating ?c (and vice versa), 
-# two independent sub-SELECT blocks are specified, that both fire in the same solution.
-# UNION is not used as it gives two rows.
-count_cp = """
-SELECT  ?classCount ?propertyCount
-WHERE {
- {
-   SELECT (COUNT(DISTINCT ?c) AS ?classCount)
-   WHERE {
-    VALUES ?type { owl:Class rdfs:Class }
-    ?c a ?type .
-   }
- }
- {
-   SELECT (COUNT(DISTINCT ?p) AS ?propertyCount)
-   WHERE {
-    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-    ?p a ?type .
-   }
- }
-}
-"""
-
-# Average Class Connectivity
-# Note that this query misses the classes that are completely isolated (no links at all).
-class_connectivity = """
-SELECT (AVG(?connectivity) AS ?averageConnectivity)
-WHERE {
-  {
-    SELECT ?class (COUNT(DISTINCT ?link) AS ?connectivity)
-    WHERE {
-      VALUES ?type { owl:Class rdfs:Class }
-      ?c a ?type .
-      FILTER(isIRI(?c))
-      {
-        # subclass and superclass relationships
-        { ?class rdfs:subClassOf ?link }
-        UNION
-        { ?link rdfs:subClassOf ?class }
-        # object property domain/range usage
-        UNION
-        { 
-          VALUES ?ptype { owl:ObjectProperty rdf:Property }
-          ?p a ?ptype .
-          ?prop rdfs:domain|rdfs:range ?class .
-          BIND(?prop AS ?link)
-        }
-      }
-    }
-    GROUP BY ?class
-  }
-}
-"""
-
-# Classes with the same label
-class_same_label = """
-SELECT ?label (GROUP_CONCAT(DISTINCT ?class; separator=", ") AS ?classes)
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  ?class a ?type .
-  ?class rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
-}
-GROUP BY ?label
-HAVING (COUNT(DISTINCT ?class) > 1)
-"""
-
-# Properties with the same label
-property_same_label = """
-SELECT ?label (GROUP_CONCAT(DISTINCT ?p; separator=", ") AS ?properties)
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
-}
-GROUP BY ?label
-HAVING (COUNT(DISTINCT ?p) > 1)
-"""
-
-# NodeShapes with the same label
-node_shape_same_label = """
-SELECT ?label (GROUP_CONCAT(DISTINCT ?ns; separator=", ") AS ?nsList)
-WHERE {
-  ?ns a sh:NodeShape .
-  ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
-}
-GROUP BY ?label
-HAVING (COUNT(DISTINCT ?ns) > 1)
-"""
-
-# PropertyShapes with the same label
-property_shape_same_label = """
-SELECT ?label (GROUP_CONCAT(DISTINCT ?ps; separator=", ") AS ?psList)
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-    ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
-}
-GROUP BY ?label
-HAVING (COUNT(DISTINCT ?ps) > 1)
-"""
-
-# Untyped class
-# Class without owl:Class or rdfs:Class declaration
-untyped_class = """
-SELECT DISTINCT ?c
-WHERE {
-  { ?s rdfs:domain ?c . }
-  UNION
-  { ?s rdfs:range ?c . }
-  UNION
-  { ?s sh:class ?c . }
-  
-  # exclude blank nodes
-  FILTER(isIRI(?c))
-
-  # Restrict to ontology namespace
-  ?ontology a owl:Ontology .
-  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
-
-  MINUS { ?c rdf:type owl:Class }
-  MINUS { ?c rdf:type rdfs:Class }
-
-}
-"""
-
-# Untyped property
-# Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
-untyped_property = """
-SELECT DISTINCT ?p
-WHERE {
-  # Find resources used as predicates
-  ?s ?p ?o .
-
-  # exclude blank nodes
-  FILTER(isIRI(?s))
-
-  # Restrict to ontology namespace
-  ?ontology a owl:Ontology .
-  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
-
-  MINUS { ?p a rdf:Property }
-  MINUS { ?p a owl:ObjectProperty }
-  MINUS { ?p a owl:DatatypeProperty }
-
-}
-"""
-
-# Filter resources from external vocabularies.
-# The result is a URI that has to be checked to points to a valid resource on the web.
-external_resource = """
-SELECT DISTINCT ?resource
-WHERE {
-  # Resources declared as class
-  {
-    VALUES ?type { owl:Class rdfs:Class }
-    ?resource a ?type .
-  }
-  UNION
-  # Resources used as predicate
-  {
-    ?s ?resource ?o .
-  }
-  UNION
-  # Resources used as object
-  {
-    ?s2 ?p ?resource .
-  }
-  # Filter resource URI from external namespaces
-  ?ontology a owl:Ontology .
-  FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
-}
-"""
-
-# Namespace hijacking
-# Define a resource in the current namespace using an external vocabulary prefix.
-hijacking = """
-SELECT DISTINCT ?resource
-WHERE {
-    ?resource ?property ?value .
-    FILTER(isIRI(?resource))
-    # Filter resource URI from external namespaces
-    ?ontology a owl:Ontology .
-    FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
-}
-"""
-hijacking_count = """
-SELECT ?namespace (COUNT(DISTINCT ?resource) AS ?count)
-WHERE {
-    ?resource ?property ?value .
-    FILTER(isIRI(?resource))
-    BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
-    # MINUS { ?resource rdf:type owl:Ontology }
-    # Filter resource URI from external namespaces
-    ?ontology a owl:Ontology .
-    FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
-}
-GROUP BY ?namespace
-"""
-
-
-# Count SHACL Shapes
-node_shape = """
-SELECT (COUNT(DISTINCT ?ns) AS ?shapeCount)
-WHERE {
-  ?ns a sh:NodeShape .
-}
-"""
-property_shape = """
-SELECT (COUNT(DISTINCT ?ps) AS ?shapeCount)
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-}
-"""
-
-# Number of classes specified in NodeShapes
-classes_in_node_shape = """
-SELECT DISTINCT ?ns (COUNT(DISTINCT ?c) AS ?classCount)
-WHERE {
-  VALUES ?type { owl:Class rdfs:Class }
-  {
-    ?ns a sh:NodeShape, ?type .
-    BIND (?ns as ?c)
-  }
-  UNION
-  {
-    ?ns a sh:NodeShape ;
-          sh:targetClass ?c .
-    ?c a ?type .
-  }
-} GROUP BY ?ns
-"""
-
-# Number of locally defined properties specified in PropertyShapes through sh:path
-# The blank nodes created by sh:property in NodeShapes are also counted.
-# This behaviour can be disabled with FILTER(isIRI(?ps)) 
-property_in_property_shape = """
-SELECT DISTINCT ?ps ?prop
-WHERE {
-  {
-    ?ps a sh:PropertyShape .
-  }
-  UNION
-  {
-    # Include blank nodes that are not explicitly declared as a sh:PropertyShape
-    ?ns a sh:NodeShape .
-    ?ns sh:property ?propertyShape .
-    ?propertyShape sh:path ?prop .
-    BIND(?propertyShape AS ?ps)
-  }
-  ?ps sh:path ?prop .
-  VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
-  ?prop a ?type .
-}
-"""
+def exec_sparql(graph, key):
+    """
+    Execute a SPARQL query from the input RDFLib graph, retrieving it from a global dictionary.
+    """
+    sparql_query = sparql_queries[key]
+    results = graph.query(sparql_query)
+    return results
 
 def get_namespace(uri):
     """Extract namespace from a URIRef."""
@@ -967,19 +329,19 @@ def profiling(graph):
     violations = {}
 
     # Count classes, properties before inferencing.
-    results = graph.query(count_cp)
+    results = exec_sparql(graph, 'count_cp')
     (row,) = results
     metrics['classCount']= row.classCount
     metrics['propertyCount'] = row.propertyCount
 
     # Count shapes.
-    results = graph.query(node_shape)
+    results = exec_sparql(graph, 'node_shape')
     if results:
         (row,) = results
         metrics['nodeShapes'] = row.shapeCount
     else:
         metrics['nodeShapes'] = 0
-    results = graph.query(property_shape)
+    results = exec_sparql(graph, 'property_shape')
     if results:
         (row,) = results
         metrics['propertyShapes'] = row.shapeCount
@@ -987,7 +349,7 @@ def profiling(graph):
         metrics['propertyShapes'] = 0
     
     # Count classes in NodeShapes.
-    results = graph.query(classes_in_node_shape)
+    results = exec_sparql(graph, 'classes_in_node_shape')
     total_classes_in_shapes = sum(int(row.classCount) for row in results)
     metrics['classesInNodeShapes'] = total_classes_in_shapes
     if total_classes_in_shapes > 0:
@@ -1000,7 +362,7 @@ def profiling(graph):
             violations['classesInNodeShapes']['classCount'].append(row.classCount)
 
     # Count properties in PropertyShapes.
-    results = graph.query(property_in_property_shape)
+    results = exec_sparql(graph, 'property_in_property_shape')
     total_properties_in_shapes = len(results)
     metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
     if total_properties_in_shapes > 0:
@@ -1013,13 +375,14 @@ def profiling(graph):
             violations['propertiesInPropertyShapes']['propCount'].append(row.prop)
 
     # Number of Deprecated Classes and Properties
-    results = graph.query(deprecated_class)
+    results = exec_sparql(graph, 'deprecated_class')
     metrics['deprecatedClasses'] = len(results)
     if metrics['deprecatedClasses'] > 0:
         violations['deprecatedClasses'] = []
         for row in results:
             violations['deprecatedClasses'].append(row.c)
-    results = graph.query(deprecated_property)
+    
+    results = exec_sparql(graph, 'deprecated_property')
     metrics['deprecatedProperties'] = len(results)
     if metrics['deprecatedProperties'] > 0:
         violations['deprecatedProperties'] = []
@@ -1028,7 +391,7 @@ def profiling(graph):
 
     # List all used prefixes
     active_prefixes = prefixes(graph)
-    results = graph.query(owl_declaration)
+    results = exec_sparql(graph, 'owl_declaration')
     if results:
         for row in results:
             # Remove ontology namespace from active_prefixes
@@ -1063,25 +426,22 @@ def inference(graph):
         graph (rdflib.Graph): The RDF graph, after inference applied.
         log (str): Result of inferencing.
     """
-    log = "\nApplying Subclass inference rule iteratively...\n"
+    
+    log = f"\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
     while True:
-        inferred_triples_result = graph.query(subclass_inference_rule)
+        inferred_triples_result = exec_sparql(graph, 'subclass_inference_rule')
         if not inferred_triples_result:
             log += "No new subclass inferences to add. Inference complete.\n"
             break
         graph_size_before = len(graph)
-        for t in inferred_triples_result:
-            graph.add(t)
-        
-        # Try replace the above with:
-        # graph += inferred_triples_result
+        graph += inferred_triples_result
         graph_size_after = len(graph)
         if graph_size_after == graph_size_before:
             log += "No new subclass inferences in this pass. Inference complete.\n"
             break
         else:
             log += f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...\n"
-    log += f"Final graph size after inference: {len(graph)} triples.\n\n"
+    log += f"Final graph size after inference: {len(graph)} triples.\n" + sep() + "\n"
     return graph, log
 
 def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
@@ -1111,7 +471,7 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     # Check the ontology declaration.
     name = "OWL ontology declaration"
     c, log = qa_check_results(name, c)
-    results = graph.query(owl_declaration)
+    results = exec_sparql(graph, 'owl_declaration')
     if not results:
         status += 1
     else:
@@ -1167,13 +527,13 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     else:
         c, log_results = qa_check_results(name, c)
         log += log_results
-        results = graph.query(no_ont_description)
+        results = exec_sparql(graph, 'no_ont_description')
         if not results:
             log += "PASS - All ontologies have a description.\n"
             metrics['ontologyDescription'] = 0 # yes
             violations['ontologyDescription'] = ""
             if verbose:
-                log_results = graph.query(ont_description)
+                log_results = exec_sparql(graph, 'ont_description')
                 log += "\n**Ontology + Description:**\n"
                 for row in log_results:
                     log += f" - {row.ont}\n   *{row.d}*\n"
@@ -1215,13 +575,13 @@ def check_class_missing_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(class_missing_label)
+    results = exec_sparql(graph, 'class_missing_label')
     metrics['missingClassLabel'] = 0
     violations['missingClassLabel'] = ""
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - All classes have a label annotation.\n"
         if verbose:
-            log_results = graph.query(class_labels)
+            log_results = exec_sparql(graph, 'class_labels')
             log += "\n|  Class | Label |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.c} | {row.lbl} |\n"
@@ -1265,13 +625,13 @@ def check_property_missing_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(property_missing_label)
+    results = exec_sparql(graph, 'property_missing_label')
     metrics['missingPropertyLabel'] = 0
     violations['missingPropertyLabel'] = ""
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - All properties have a label annotation."
         if verbose:
-            log_results = graph.query(property_labels)
+            log_results = exec_sparql(graph, 'property_labels')
             log += "|  Property | Label |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.p} | {row.lbl} |\n"
@@ -1315,13 +675,13 @@ def check_node_shape_missing_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(node_shape_missing_label)
+    results = exec_sparql(graph, 'node_shape_missing_label')
     metrics['missingNSLabel'] = 0
     violations['missingNSLabel'] = ""
     if not results and int(metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a label annotation.\n"
         if verbose and int(metrics['nodeShapes']) > 0:
-            log_results = graph.query(node_shape_labels)
+            log_results = exec_sparql(graph, 'node_shape_labels')
             log += "|  NodeShape | Label |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.ns} | {row.lbl} |\n"
@@ -1365,13 +725,13 @@ def check_property_shape_missing_label(metrics, graph, name, c, status, verbose)
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(property_shape_missing_label)
+    results = exec_sparql(graph, 'property_shape_missing_label')
     metrics['missingPSLabel'] = 0
     violations['missingPSLabel'] = ""
     if not results and int(metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a label annotation.\n"
         if verbose:
-            log_results = graph.query(property_shape_labels)
+            log_results = exec_sparql(graph, 'property_shape_labels')
             log += "|  PropertyShape | Label |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.ps} | {row.lbl} |\n"
@@ -1415,13 +775,13 @@ def check_class_missing_comment(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(class_missing_comment)
+    results = exec_sparql(graph, 'class_missing_comment')
     metrics['missingClassDescription'] = 0
     violations['missingClassDescription'] = ""
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - All classes have a description annotation.\n"
         if verbose:
-            log_results = graph.query(class_labels)
+            log_results = exec_sparql(graph, 'class_labels')
             log += "|  Class | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.c} | {row.lbl} |\n"
@@ -1465,13 +825,13 @@ def check_property_missing_comment(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(property_missing_comment)
+    results = exec_sparql(graph, 'property_missing_comment')
     metrics['missingPropertyDescription'] = 0
     violations['missingPropertyDescription'] = ""
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
-            log_results = graph.query(class_labels)
+            log_results = exec_sparql(graph, 'class_labels')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.p} | {row.lbl} |\n"
@@ -1514,13 +874,13 @@ def check_node_shape_missing_comment(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(node_shape_missing_comment)
+    results = exec_sparql(graph, 'node_shape_missing_comment')
     metrics['missingNSDescription'] = 0
     violations['missingNSDescription'] = ""
     if not results and int(metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a description annotation.\n"
         if verbose:
-            results = graph.query(node_shape_labels)
+            results = exec_sparql(graph, 'node_shape_labels')
             log += "| NodeShape | Description |\n|--|--|\n"
             for row in results:
                 log += f"| {row.ns} | {row.lbl} |\n"
@@ -1563,13 +923,13 @@ def check_property_shape_missing_comment(metrics, graph, name, c, status, verbos
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(property_shape_missing_comment)
+    results = exec_sparql(graph, 'property_shape_missing_comment')
     metrics['missingPSDescription'] = 0
     violations['missingPSDescription'] = ""
     if not results and int(metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a description annotation.\n"
         if verbose:
-            results = graph.query(property_shape_labels)
+            results = exec_sparql(graph, 'property_shape_labels')
             log += "| PropertyShape | Description |\n|--|--|\n"
             for row in results:
                 log += f"| {row.ps} | {row.lbl} |\n"
@@ -1612,7 +972,7 @@ def check_class_same_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(class_same_label)
+    results = exec_sparql(graph, 'class_same_label')
     metrics['nonUniqueClassLabels'] = 0
     violations['nonUniqueClassLabels'] = ""
     if not results and int(metrics['classCount']) > 0:
@@ -1658,7 +1018,7 @@ def check_property_same_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(property_same_label)
+    results = exec_sparql(graph, 'property_same_label')
     metrics['nonUniquePropertyLabels'] = 0
     violations['nonUniquePropertyLabels'] = ""
     if not results and int(metrics['propertyCount']) > 0:
@@ -1703,7 +1063,7 @@ def check_node_shape_same_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(node_shape_same_label)
+    results = exec_sparql(graph, 'node_shape_same_label')
     metrics['nonUniqueNSLabels'] = 0
     violations['nonUniqueNSLabels'] = ""
     if not results and int(metrics['nodeShapes']) > 0:
@@ -1749,7 +1109,7 @@ def check_property_shape_same_label(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(property_shape_same_label)
+    results = exec_sparql(graph, 'property_shape_same_label')
     metrics['nonUniquePSLabels'] = 0
     violations['nonUniquePSLabels'] = ""
     if not results and int(metrics['propertyShapes']) > 0:
@@ -1795,7 +1155,7 @@ def check_isolated_classes(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(isolated_classes)
+    results = exec_sparql(graph, 'isolated_classes')
     metrics['isolatedClasses'] = 0
     violations['isolatedClasses'] = ""
     if not results and int(metrics['classCount']) > 0:
@@ -1839,7 +1199,7 @@ def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(missing_dr_property)
+    results = exec_sparql(graph, 'missing_dr_property')
     dCount = 0
     rCount = 0
     metrics['missingDomainRange'] = 0
@@ -1875,7 +1235,7 @@ def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     # If verbose, print a table with domain and range for all properties.
     if verbose:
         # Show all properties in the results.
-        results = graph.query(dr_property)
+        results = exec_sparql(graph, 'dr_property')
         log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
         for row in results:
             if row.domain:
@@ -1929,7 +1289,7 @@ def check_unique_identifiers(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(unique_identifiers)
+    results = exec_sparql(graph, 'unique_identifiers')
     if not results:
         log += "PASS - No violations found.\n"
         metrics['nonUniqueIdentifiers'] = 0
@@ -1971,7 +1331,7 @@ def check_subclass_cycles(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(subclass_cycles)
+    results = exec_sparql(graph, 'subclass_cycles')
     metrics['subclassCycles'] = 0
     violations['subclassCycles'] = ""
     if not results and int(metrics['classCount']) > 0:
@@ -2016,7 +1376,7 @@ def check_untyped_class(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(untyped_class)
+    results = exec_sparql(graph, 'untyped_class')
     metrics['untypedClasses'] = 0
     violations['untypedClasses'] = ""
     num_files = len(metrics['filesProcessed'])
@@ -2067,7 +1427,7 @@ def check_untyped_property(metrics, graph, name, c, status, verbose):
     """
     violations = {}
     c, log = qa_check_results(name, c)
-    results = graph.query(untyped_property)
+    results = exec_sparql(graph, 'untyped_property')
     metrics['untypedProperties'] = 0
     violations['untypedProperties'] = ""
     num_files = len(metrics['filesProcessed'])
@@ -2119,7 +1479,7 @@ def check_hijacking(metrics, graph, name, c, status, verbose):
     violations = {}
     num_files = len(metrics['filesProcessed'])
     c, log = qa_check_results(name, c)
-    results = graph.query(hijacking)
+    results = exec_sparql(graph, 'hijacking')
     if not results:
         log += "PASS - No violations found.\n"
         metrics['hijacking'] = 0
@@ -2256,7 +1616,7 @@ def main():
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        qa_metrics, violations, log_results, tn, xs = check_owl_declaration_description(qa_metrics, g, "", tn, 0, args.verbose)
+        qa_metrics, violations, log_results, tn, xs = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
@@ -2331,7 +1691,7 @@ def main():
 
     # IA3 Hierarchy Overspecialisation
     #print("\nRunning check for IA3 Hierarchy Overspecialisation: leaf classes with no instances")
-    #results = g.query(ia3_leaf_classes)
+    #results = g.query(leaf_classes)
     #print("-" * 20)
     #if not results:
     #    print("No IA3 violations found.")
@@ -2357,7 +1717,7 @@ def main():
 
     # IO4 Defining Multiple Domains/Ranges
     # print("\nRunning check for IO4 Defining Multiple Domains/Ranges:")
-    # results = g.query(io4_multiple_dr)
+    # results = g.query(multiple_dr)
     # print("-" * 20)
     # if not results:
     #     print("No IO4 violations found.")
@@ -2371,7 +1731,7 @@ def main():
 
     # IO5 Property Chain with One Property
     # print("\nRunning check for IO5 Property Chain with One Property:")
-    # results = g.query(io5_wrong_property_chain)
+    # results = g.query(wrong_property_chain)
     # print("-" * 20)
     # if not results:
     #     print("No IO5 violations found.")
@@ -2384,7 +1744,7 @@ def main():
 
     # IO7 Tangledness
     # print("\nRunning check for IO7 Tangledness:")
-    # results = g.query(io7_tangledness)
+    # results = g.query(tangledness)
     # print("-" * 20)
     # if not results:
     #     print("No IO7 violations found.")

@@ -1,0 +1,7 @@
+# Number of Deprecated Properties
+# Count elements marked as deprecated
+
+SELECT DISTINCT ?p
+WHERE {
+  ?p a owl:DeprecatedProperty .
+}

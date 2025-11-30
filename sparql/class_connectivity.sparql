@@ -1,0 +1,28 @@
+# Average Class Connectivity
+# Note that this query misses the classes that are completely isolated (no links at all).
+SELECT (AVG(?connectivity) AS ?averageConnectivity)
+WHERE {
+  {
+    SELECT ?class (COUNT(DISTINCT ?link) AS ?connectivity)
+    WHERE {
+      VALUES ?type { owl:Class rdfs:Class }
+      ?c a ?type .
+      FILTER(isIRI(?c))
+      {
+        # subclass and superclass relationships
+        { ?class rdfs:subClassOf ?link }
+        UNION
+        { ?link rdfs:subClassOf ?class }
+        # object property domain/range usage
+        UNION
+        { 
+          VALUES ?ptype { owl:ObjectProperty rdf:Property }
+          ?p a ?ptype .
+          ?prop rdfs:domain|rdfs:range ?class .
+          BIND(?prop AS ?link)
+        }
+      }
+    }
+    GROUP BY ?class
+  }
+}

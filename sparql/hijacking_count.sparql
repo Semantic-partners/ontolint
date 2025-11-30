@@ -1,0 +1,14 @@
+# Namespace hijacking
+# Define a resource in the current namespace using an external vocabulary prefix.
+# Count elements defined in each namespaces, except the current one.
+SELECT ?namespace (COUNT(DISTINCT ?resource) AS ?count)
+WHERE {
+    ?resource ?property ?value .
+    FILTER(isIRI(?resource))
+    BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
+    # MINUS { ?resource rdf:type owl:Ontology }
+    # Filter resource URI from external namespaces
+    ?ontology a owl:Ontology .
+    FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
+}
+GROUP BY ?namespace

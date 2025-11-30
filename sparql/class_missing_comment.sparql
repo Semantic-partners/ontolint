@@ -1,0 +1,6 @@
+SELECT DISTINCT ?c
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?c a ?type .
+  FILTER NOT EXISTS { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
+}

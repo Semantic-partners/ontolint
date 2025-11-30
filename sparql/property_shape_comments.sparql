@@ -1,0 +1,10 @@
+SELECT DISTINCT ?ps ?lbl
+WHERE {
+    {
+     	?ps a sh:PropertyShape  
+    } UNION {
+      	?ns sh:property ?ps .
+      	FILTER(isBlank(?ps)) .
+    }
+    ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
+}

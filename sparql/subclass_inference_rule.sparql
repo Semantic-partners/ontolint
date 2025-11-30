@@ -1,0 +1,14 @@
+CONSTRUCT {
+    ?this rdf:type ?superClass .
+}
+WHERE {
+    {
+        SELECT ?this ?superClass WHERE {
+            ?this rdf:type ?subClass .
+            ?subClass rdfs:subClassOf ?superClass .
+        }
+    }
+    FILTER NOT EXISTS {
+        ?this rdf:type ?superClass .
+    }
+}

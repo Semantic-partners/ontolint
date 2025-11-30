@@ -1,0 +1,20 @@
+# Number of locally defined properties specified in PropertyShapes through sh:path
+# The blank nodes created by sh:property in NodeShapes are also counted.
+# This behaviour can be disabled with FILTER(isIRI(?ps)) 
+SELECT DISTINCT ?ps ?prop
+WHERE {
+  {
+    ?ps a sh:PropertyShape .
+  }
+  UNION
+  {
+    # Include blank nodes that are not explicitly declared as a sh:PropertyShape
+    ?ns a sh:NodeShape .
+    ?ns sh:property ?propertyShape .
+    ?propertyShape sh:path ?prop .
+    BIND(?propertyShape AS ?ps)
+  }
+  ?ps sh:path ?prop .
+  VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
+  ?prop a ?type .
+}

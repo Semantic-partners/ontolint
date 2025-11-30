@@ -1,0 +1,5 @@
+SELECT ?ont ?d
+WHERE {
+  ?ont a owl:Ontology .
+    ?ont rdfs:comment|dcterms:abstract|dcterms:description|skos:definition|skos:note ?d .
+}

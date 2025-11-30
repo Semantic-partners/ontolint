@@ -1,0 +1,21 @@
+# Count the classes and properties in the current graph.
+# To avoid unbound ?p when evaluating ?c (and vice versa), 
+# two independent sub-SELECT blocks are specified, that both fire in the same solution.
+# UNION is not used as it gives two rows.
+SELECT  ?classCount ?propertyCount
+WHERE {
+ {
+   SELECT (COUNT(DISTINCT ?c) AS ?classCount)
+   WHERE {
+    VALUES ?type { owl:Class rdfs:Class }
+    ?c a ?type .
+   }
+ }
+ {
+   SELECT (COUNT(DISTINCT ?p) AS ?propertyCount)
+   WHERE {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+    ?p a ?type .
+   }
+ }
+}

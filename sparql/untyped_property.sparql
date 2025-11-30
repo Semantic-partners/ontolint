@@ -1,0 +1,19 @@
+# Untyped property
+# Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
+SELECT DISTINCT ?p
+WHERE {
+  # Find resources used as predicates
+  ?s ?p ?o .
+
+  # exclude blank nodes
+  FILTER(isIRI(?s))
+
+  # Restrict to ontology namespace
+  ?ontology a owl:Ontology .
+  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
+
+  MINUS { ?p a rdf:Property }
+  MINUS { ?p a owl:ObjectProperty }
+  MINUS { ?p a owl:DatatypeProperty }
+
+}

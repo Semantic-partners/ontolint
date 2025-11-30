@@ -1,0 +1,5 @@
+# Return OWL ontology declaration
+SELECT ?ont
+WHERE {
+  ?ont a owl:Ontology .
+}
