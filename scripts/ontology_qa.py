@@ -115,6 +115,15 @@ WHERE {
   FILTER( !BOUND(?domain) || !BOUND(?range) )
 }
 """
+dr_property = """
+SELECT DISTINCT ?p ?domain ?range
+WHERE {
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  ?p a ?type .
+  OPTIONAL { ?p rdfs:domain ?domain }
+  OPTIONAL { ?p rdfs:range  ?range  }
+}
+"""
 
 # (IO1 Number of Polysemous Elements)
 # Non-unique identifiers
@@ -587,17 +596,31 @@ WHERE {
 """
 
 # Namespace hijacking
-# Define a class in the namespace using an external vocabulary prefix.
+# Define a resource in the current namespace using an external vocabulary prefix.
 hijacking = """
+SELECT DISTINCT ?resource
+WHERE {
+    ?resource ?property ?value .
+    FILTER(isIRI(?resource))
+    # Filter resource URI from external namespaces
+    ?ontology a owl:Ontology .
+    FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
+}
+"""
+hijacking_count = """
 SELECT ?namespace (COUNT(DISTINCT ?resource) AS ?count)
 WHERE {
     ?resource ?property ?value .
     FILTER(isIRI(?resource))
     BIND(REPLACE(STR(?resource), "^(.*)[/#][^/#]*$", "$1") AS ?namespace)
-    MINUS { ?resource rdf:type owl:Ontology }
+    # MINUS { ?resource rdf:type owl:Ontology }
+    # Filter resource URI from external namespaces
+    ?ontology a owl:Ontology .
+    FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
 }
 GROUP BY ?namespace
 """
+
 
 # Count SHACL Shapes
 node_shape = """
@@ -926,9 +949,12 @@ def qa_check_results(description,qan):
     qan += 1
     return qan, log
 
+def sep():
+    return "\n" + "-"*20 + "\n"
+
 def print_qa_results(graph, metrics, violations, checklist, verbose):
     log = ""
-    c = 1
+    # c = 1
     sep = "\n" + "-"*20 + "\n"
     num_files = len(metrics['filesProcessed'])
     num_uri = len(metrics['ontologyURI'])
@@ -936,8 +962,8 @@ def print_qa_results(graph, metrics, violations, checklist, verbose):
     # Format selected tests individually.
     if checklist[0][0]:
         # Ontology Declaration.
-        c, results = qa_check_results("OWL ontology declaration",c)
-        log += results
+        c, log_results = qa_check_results("OWL ontology declaration",c)
+        log += log_results
         if metrics['ontologyNotDeclared'] == num_files:
             log += "VIOLATION - No `owl:Ontology` declaration found.\n"
         elif metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files:
@@ -972,40 +998,40 @@ def print_qa_results(graph, metrics, violations, checklist, verbose):
             log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
             c += 1
         else:
-            c, results = qa_check_results("OWL ontology description",c)
-            log += results
+            c, log_results = qa_check_results("OWL ontology description",c)
+            log += log_results
             if metrics['ontologyDescription'] == 0:
                 log += "PASS - All ontologies have a description.\n"
                 if verbose:
-                    results = graph.query(ont_description)
+                    log_results = graph.query(ont_description)
                     log += "\n**Ontology + Description:**\n"
-                    for row in results:
+                    for row in log_results:
                         log += f" - {row.ont}\n   {row.d}\n"
             else:
                 log += f"VIOLATION - Found {metrics['ontologyDescription']} ontologies without description:\n - "
-                results = violations['ontologyDescription']
-                results = results.replace(",<br> ", "\n - ")
-                log += results
+                log_results = violations['ontologyDescription']
+                log_results = log_results.replace(",<br> ", "\n - ")
+                log += log_results
         log += sep
 
     if checklist[1][0]:
         # Classes missing label annotations
-        c, results = qa_check_results(checklist[1][3],c)
-        log += results
+        c, log_results = qa_check_results(checklist[1][3],c)
+        log += log_results
         if metrics['missingClassLabel'] == 0 and int(metrics['classCount']) > 0:
             log += "PASS - All classes have a label annotation.\n"
             if verbose:
-                results = graph.query(class_labels)
+                log_results = graph.query(class_labels)
                 log += "\n|  Class | Label |\n|--|--|\n"
-                for row in results:
+                for row in log_results:
                     log += f"| {row.c} | {row.lbl} |\n"
         elif int(metrics['classCount']) == 0:
             log += "WARNING - No classes defined, invalid metric.\n"
         else:
             log += f"VIOLATION - Found {metrics['missingClassLabel']} classes missing a label annotation:\n - "
-            results = violations['missingClassLabel']
-            results = results.replace(",<br> ", "\n - ")
-            log += results + "\n"
+            log_results = violations['missingClassLabel']
+            log_results = log_results.replace(",<br> ", "\n - ")
+            log += log_results + "\n"
         log += sep
 
     return log
@@ -1139,29 +1165,36 @@ def inference(graph):
             break
         else:
             log += f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...\n"
-    log += f"Final graph size after inference: {len(graph)} triples.\n"
+    log += f"Final graph size after inference: {len(graph)} triples.\n\n"
     return graph, log
 
-def check_owl_declaration_description(graph, num_files, status):
+def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     """
     QA test veriying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
-        num_files (int): Number of RDF files loaded in the graph.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    num_files = len(metrics['filesProcessed'])
     metrics['ontologyNotDeclared'] = num_files # Assume no ontology has been declared.
     metrics['ontologyURI'] = [ ]
 
     # Check the ontology declaration.
+    name = "OWL ontology declaration"
+    c, log = qa_check_results(name, c)
     results = graph.query(owl_declaration)
     if not results:
         status += 1
@@ -1171,28 +1204,64 @@ def check_owl_declaration_description(graph, num_files, status):
             metrics['ontologyNotDeclared'] -= 1
     
     # Record the violation elements.
+    num_uri = len(metrics['ontologyURI'])
     if metrics['ontologyNotDeclared'] == num_files:
-        violations['ontologyNotDeclared'] = "**All** processed files missing ontology declaration:<br> "
-        for _ in range(num_files):
-            violations['ontologyNotDeclared'] += f"{metrics['filesProcessed'][_]},<br> "
-        violations['ontologyNotDeclared'].rstrip(",<br> ")
+        log += "VIOLATION - No `owl:Ontology` declaration found.\n"
+        violations['ontologyNotDeclared'] = "**All** processed files missing ontology declaration."
+    
     elif  metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files:
-        violations['ontologyNotDeclared'] = "**Some** processed files missing ontology declaration.<br> Check them individually.<br>"
-        for _ in range(num_files):
-            violations['ontologyNotDeclared'] += f"{metrics['filesProcessed'][_]},<br> "
-        violations['ontologyNotDeclared'].rstrip(",<br> ")
+        ov = num_files - metrics['ontologyNotDeclared']
+        if ov == 1:
+            log += f"VIOLATION - 1 ontology without `owl:Ontology` declaration.\n"
+        else:
+            log += f"VIOLATION - {ov} ontologies without `owl:Ontology` declaration.\n"
+        violations['ontologyNotDeclared'] = "**Some** processed files missing ontology declaration.<br> Check files individually."
+    
     else:
+        if num_uri == 1:
+            log += f"PASS - Found 1 ontology with `owl:Ontology` declaration.\n"
+        else:
+            log += f"PASS - Found {num_uri} ontologies with `owl:Ontology` declaration.\n"
+        
         violations['ontologyNotDeclared'] = ""
     
+    # Print additional information.
+    if verbose and metrics['ontologyNotDeclared'] <= 0:
+        log = log.rstrip(".\n")
+        log += ":\n"
+        for _ in range(num_uri):
+            log += f" - {metrics['ontologyURI'][_]}\n"
+
+    # Print more information if violations are found.
+    if metrics['ontologyNotDeclared'] > 0:
+        log += "Check the input files individually to find out which one violates this check.\n"
+        if num_uri > 0: log += "WARNING - The following ontology URI were found:\n"
+        for _ in range(num_uri):
+            log += f" - {metrics['ontologyURI'][_]}\n"
+    
+    log += sep()
+    
     # Check the ontology description.
+    name = "OWL ontology description"
     if metrics['ontologyNotDeclared'] == num_files:
+        log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
+        c += 1
         metrics['ontologyDescription'] = 1 # no
         violations['ontologyDescription'] = "No ontology declared"
     else:
+        c, log_results = qa_check_results(name, c)
+        log += log_results
         results = graph.query(no_ont_description)
         if not results:
+            log += "PASS - All ontologies have a description.\n"
             metrics['ontologyDescription'] = 0 # yes
             violations['ontologyDescription'] = ""
+            if verbose:
+                log_results = graph.query(ont_description)
+                log += "\n**Ontology + Description:**\n"
+                for row in log_results:
+                    log += f" - {row.ont}\n   *{row.d}*\n"
+                
         else:
             owd = len(results)
             metrics['ontologyDescription'] = len(results) #  violations
@@ -1200,528 +1269,677 @@ def check_owl_declaration_description(graph, num_files, status):
             string = ""
             for row in results:
                 string += f"{row.ont},<br> "
+            
             string = string.rstrip(",<br> ")
             violations['ontologyDescription'] = string
-    return metrics, violations, status
+            log += f"VIOLATION - Found {metrics['ontologyDescription']} ontologies without description:\n - "
+            log += string.replace(",<br> ", "\n - ")
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_class_missing_label(graph, status):
+def check_class_missing_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting classes without a label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(class_missing_label)
     metrics['missingClassLabel'] = 0
     violations['missingClassLabel'] = ""
-    if results:
+    if not results and int(metrics['classCount']) > 0:
+        log += "PASS - All classes have a label annotation.\n"
+        if verbose:
+            log_results = graph.query(class_labels)
+            log += "\n|  Class | Label |\n|--|--|\n"
+            for row in log_results:
+                log += f"| {row.c} | {row.lbl} |\n"
+            
+    elif int(metrics['classCount']) == 0:
+        log += "WARNING - No classes defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingClassLabel'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingClassLabel']} classes missing a label annotation:\n - "
         status += 1
         string = ""
         for t in results:
-          string += f"{t[0]},<br> "
+            string += f"{t[0]},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['missingClassLabel'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_property_missing_label(graph, status):
+def check_property_missing_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting properties without a label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(property_missing_label)
     metrics['missingPropertyLabel'] = 0
     violations['missingPropertyLabel'] = ""
-    # if not results and int(metrics['propertyCount']) > 0:
-    #     print("PASS - All properties have a label annotation.")
-    #     if args.verbose:
-    #         results = graph.query(property_labels)
-    #         print("|  Property | Label |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.p} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No properties defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyCount']) > 0:
+        log += "PASS - All properties have a label annotation."
+        if verbose:
+            log_results = graph.query(property_labels)
+            log += "|  Property | Label |\n|--|--|\n"
+            for row in log_results:
+                log += f"| {row.p} | {row.lbl} |\n"
+
+    elif int(metrics['propertyCount']) == 0:
+        log += "WARNING - No properties defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingPropertyLabel'] = len(results)
-        # print(f"VIOLATION - Found {metrics['missingPropertyLabel']} properties missing a label annotation.")
+        log += f"VIOLATION - Found {metrics['missingPropertyLabel']} properties missing a label annotation.\n - "
         status += 1
         string = ""
         for t in results:
-        #   print(f" - {t[0]}")
-          string += f"{t[0]},<br> "
+            string += f"{t[0]},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['missingPropertyLabel'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_node_shape_missing_label(graph, status):
+def check_node_shape_missing_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting node shapes without a label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(node_shape_missing_label)
     metrics['missingNSLabel'] = 0
     violations['missingNSLabel'] = ""
-    # if not results and int(metrics['nodeShapes']) > 0:
-    #     print("PASS - All NodeShape have a label annotation.")
-    #     if args.verbose and int(metrics['nodeShapes']) > 0:
-    #         results = graph.query(node_shape_labels)
-    #         print("|  NodeShape | Label |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.ns} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No NodeShape defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['nodeShapes']) > 0:
+        log += "PASS - All NodeShape have a label annotation.\n"
+        if verbose and int(metrics['nodeShapes']) > 0:
+            log_results = graph.query(node_shape_labels)
+            log += "|  NodeShape | Label |\n|--|--|\n"
+            for row in log_results:
+                log += f"| {row.ns} | {row.lbl} |\n"
+            
+    elif int(metrics['nodeShapes']) == 0:
+        log += "WARNING - No NodeShape defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingNSLabel'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingNSLabel']} NodeShape missing a label annotation.\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['missingNSLabel']} NodeShape missing a label annotation.")
         for row in results:
-        #   print(f" - {row.ns}")
-          string += f"{row.ns},<br> "
+            string += f"{row.ns},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['missingNSLabel'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_property_shape_missing_label(graph, status):
+def check_property_shape_missing_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting property shapes without a label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(property_shape_missing_label)
     metrics['missingPSLabel'] = 0
     violations['missingPSLabel'] = ""
-    # if not results and int(metrics['propertyShapes']) > 0:
-    #     print("PASS - All PropertyShape have a label annotation.")
-    #     if args.verbose:
-    #         results = graph.query(property_shape_labels)
-    #         print("|  PropertyShape | Label |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.ps} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No PropertyShapes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyShapes']) > 0:
+        log += "PASS - All PropertyShape have a label annotation.\n"
+        if verbose:
+            log_results = graph.query(property_shape_labels)
+            log += "|  PropertyShape | Label |\n|--|--|\n"
+            for row in log_results:
+                log += f"| {row.ps} | {row.lbl} |\n"
+    
+    elif int(metrics['propertyShapes']) == 0:
+        log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+              
+    elif results:
         metrics['missingPSLabel'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingPSLabel']} PropertyShape missing a label annotation.\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['missingPSLabel']} PropertyShape missing a label annotation.")
         for row in results:
-        #   print(f" - {row.ps}")
           string += f"{row.ps},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['missingPSLabel'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_class_missing_comment(graph, status):
+def check_class_missing_comment(metrics, graph, name, c, status, verbose):
     """
     QA test counting classes without description.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(class_missing_comment)
     metrics['missingClassDescription'] = 0
     violations['missingClassDescription'] = ""
-    # if not results and int(metrics['classCount']) > 0:
-    #     print("PASS - All classes have a description annotation.")
-    #     if args.verbose:
-    #         results = graph.query(class_labels)
-    #         print("|  Class | Description |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.c} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No classes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['classCount']) > 0:
+        log += "PASS - All classes have a description annotation.\n"
+        if verbose:
+            log_results = graph.query(class_labels)
+            log += "|  Class | Description |\n|--|--|\n"
+            for row in log_results:
+                log += f"| {row.c} | {row.lbl} |\n"
+    
+    elif int(metrics['classCount']) == 0:
+        log += "WARNING - No classes defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingClassDescription'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingClassDescription']} classes missing a description annotation:\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['missingClassDescription']} classes missing a description annotation:")
         for t in results:
-        #   print(f" - {t[0]}")
           string += f"{t[0]},<br> "
+
         string = string.rstrip(",<br> ")
         violations['missingClassDescription'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_property_missing_comment(graph, status):
+def check_property_missing_comment(metrics, graph, name, c, status, verbose):
     """
     QA test counting properties without description.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(property_missing_comment)
     metrics['missingPropertyDescription'] = 0
     violations['missingPropertyDescription'] = ""
-    # if not results and int(metrics['propertyCount']) > 0:
-    #     print("PASS - All properties have a description annotation.")
-    #     if args.verbose:
-    #         results = graph.query(class_labels)
-    #         print("| Property | Description |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.p} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No properties defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyCount']) > 0:
+        log += "PASS - All properties have a description annotation.\n"
+        if verbose:
+            log_results = graph.query(class_labels)
+            log += "| Property | Description |\n|--|--|\n"
+            for row in log_results:
+                log += f"| {row.p} | {row.lbl} |\n"
+    
+    elif int(metrics['propertyCount']) == 0:
+        log += "WARNING - No properties defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingPropertyDescription'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingPropertyDescription']} properties missing a description annotation.\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['missingPropertyDescription']} properties missing a description annotation.")
         for t in results:
-        #   print(f" - {t[0]}")
           string += f"{t[0]},<br> "
         string = string.rstrip(",<br> ")
         violations['missingPropertyDescription'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_node_shape_missing_comment(graph, status):
+def check_node_shape_missing_comment(metrics, graph, name, c, status, verbose):
     """
     QA test counting node shapes without description.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(node_shape_missing_comment)
     metrics['missingNSDescription'] = 0
     violations['missingNSDescription'] = ""
-    # if not results and int(metrics['nodeShapes']) > 0:
-    #     print("PASS - All NodeShape have a description annotation.")
-    #     if args.verbose:
-    #         results = graph.query(node_shape_labels)
-    #         print("| NodeShape | Description |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.ns} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No NodeShape defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['nodeShapes']) > 0:
+        log += "PASS - All NodeShape have a description annotation.\n"
+        if verbose:
+            results = graph.query(node_shape_labels)
+            log += "| NodeShape | Description |\n|--|--|\n"
+            for row in results:
+                log += f"| {row.ns} | {row.lbl} |\n"
+    elif int(metrics['nodeShapes']) == 0:
+        log += "WARNING - No NodeShape defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingNSDescription'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingNSDescription']} NodeShape missing a description annotation:\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['missingNSDescription']} NodeShape missing a description annotation:")
         for row in results:
-        #  print(f" - {row.ns}")
           string += f"{row.ns},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['missingNSDescription'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_property_shape_missing_comment(graph, status):
+def check_property_shape_missing_comment(metrics, graph, name, c, status, verbose):
     """
     QA test counting property shapes without description.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(property_shape_missing_comment)
     metrics['missingPSDescription'] = 0
     violations['missingPSDescription'] = ""
-    # if not results and int(metrics['propertyShapes']) > 0:
-    #     print("PASS - All PropertyShape have a description annotation.")
-    #     if args.verbose:
-    #         results = graph.query(property_shape_labels)
-    #         print("| PropertyShape | Description |\n|--|--|")
-    #         for row in results:
-    #             print(f"| {row.ps} | {row.lbl} |")
-    # elif not results:
-    #     print("WARNING - No PropertyShapes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyShapes']) > 0:
+        log += "PASS - All PropertyShape have a description annotation.\n"
+        if verbose:
+            results = graph.query(property_shape_labels)
+            log += "| PropertyShape | Description |\n|--|--|\n"
+            for row in results:
+                log += f"| {row.ps} | {row.lbl} |\n"
+    
+    elif int(metrics['propertyShapes']) == 0:
+        log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+    
+    elif results:
         metrics['missingPSDescription'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingPSDescription']} PropertyShape missing a description annotation:\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['missingPSDescription']} PropertyShape missing a description annotation:")
         for row in results:
-        #   print(f" - {row.ps}")
           string += f"{row.ps},<br> "
         string = string.rstrip(",<br> ")
         violations['missingPSDescription'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_class_same_label(graph, status):
+def check_class_same_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting classes sharing the same label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(class_same_label)
     metrics['nonUniqueClassLabels'] = 0
     violations['nonUniqueClassLabels'] = ""
-    # if not results and int(metrics['classCount']) > 0:
-    #     print("PASS - No classes share the same label.")
-    # elif not results:
-    #     print("WARNING - No classes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['classCount']) > 0:
+        log += "PASS - No classes share the same label.\n"
+
+    elif int(metrics['classCount']) == 0:
+        log += "WARNING - No classes defined, invalid metric.\n"
+
+    elif results:
         metrics['nonUniqueClassLabels'] = len(results)
+        log += f"VIOLATION - Found {metrics['nonUniqueClassLabels']} labels shared by multiple classes.\n"
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['nonUniqueClassLabels']} labels shared by multiple classes.")
-        # print("| Label | Classes |\n|--|--|")
+        log += "| Label | Classes |\n|--|--|\n"
         for row in results:
-            # print(f"| {row.label} | {row.classes} |")
+            log += f"| {row.label} | {row.classes} |\n"
             string += f"\"{row.label}\": {row.classes};<br> "
+        
         string = string.rstrip(";<br> ")
         violations['nonUniqueClassLabels'] = string
-    return metrics, violations, status
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_property_same_label(graph, status):
+def check_property_same_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting properties sharing the same label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(property_same_label)
     metrics['nonUniquePropertyLabels'] = 0
     violations['nonUniquePropertyLabels'] = ""
-    # if not results and int(metrics['propertyCount']) > 0:
-    #     print("PASS - No property share the same label.")
-    # elif not results:
-    #     print("WARNING - No properties defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyCount']) > 0:
+        log += "PASS - No property share the same label.\n"
+
+    elif int(metrics['propertyCount']) == 0:
+        log += "WARNING - No properties defined, invalid metric.\n"
+
+    elif results:
         metrics['nonUniquePropertyLabels'] = len(results)
+        log += f"VIOLATION - Found {metrics['nonUniquePropertyLabels']} labels shared by multiple properties.\n"
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['nonUniquePropertyLabels']} labels shared by multiple properties.")
-        # print("| Label | Properties |\n|--|--|")
+        log += "| Label | Properties |\n|--|--|\n"
         for row in results:
-            # print(f"| {row.label} | {row.properties} |")
+            log += f"| {row.label} | {row.properties} |\n"
             string += f"\"{row.label}\": {row.properties};<br> "
         string = string.rstrip(";<br> ")
         violations['nonUniquePropertyLabels'] = string
-    return metrics, violations, status
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_node_shape_same_label(graph, status):
+def check_node_shape_same_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting node shapes sharing the same label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(node_shape_same_label)
     metrics['nonUniqueNSLabels'] = 0
     violations['nonUniqueNSLabels'] = ""
-    # if not results and int(metrics['nodeShapes']) > 0:
-    #     print("PASS - No NodeShape share the same label.")
-    # elif not results:
-    #     print("WARNING - No NodeShape defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['nodeShapes']) > 0:
+        log += "PASS - No NodeShape share the same label.\n"
+
+    elif int(metrics['nodeShapes']) == 0:
+        log += "WARNING - No NodeShape defined, invalid metric.\n"
+
+    elif results:
         metrics['nonUniqueNSLabels'] = len(results)
+        log += f"VIOLATION - Found {metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.\n"
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['nonUniqueNSLabels']} labels shared by multiple NodeShapes.")
-        # print("| Label | NodeShapes |\n|--|--|")
+        log += "| Label | NodeShapes |\n|--|--|\n"
         for row in results:
-            # print(f"| {row.label} | {row.nsList} |")
+            log += f"| {row.label} | {row.nsList} |\n"
             string += f"\"{row.label}\": {row.nsList};<br> "
+        
         string = string.rstrip(";<br> ")
         violations['nonUniqueNSLabels'] = string
-    return metrics, violations, status
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_property_shape_same_label(graph, status):
+def check_property_shape_same_label(metrics, graph, name, c, status, verbose):
     """
     QA test counting property shapes sharing the same label.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(property_shape_same_label)
     metrics['nonUniquePSLabels'] = 0
     violations['nonUniquePSLabels'] = ""
-    # if not results:
-    #     print("PASS - No PropertyShape share the same label.")
-    # elif not results:
-    #     print("WARNING - No PropertyShapes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyShapes']) > 0:
+       log += "PASS - No PropertyShape share the same label.\n"
+
+    elif int(metrics['propertyShapes']) == 0:
+        log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+
+    elif results:
         metrics['nonUniquePSLabels'] = len(results)
+        log += f"VIOLATION - Found {metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.\n"
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['nonUniquePSLabels']} labels shared by multiple PropertyShapes.")
-        # print("| Label | PropertyShapes |\n|--|--|")
+        log += "| Label | PropertyShapes |\n|--|--|\n"
         for row in results:
-            # print(f"| {row.label} | {row.psList} |")
+            log += f"| {row.label} | {row.psList} |\n"
             string += f"\"{row.label}\": {row.psList};<br> "
+        
         string = string.rstrip(";<br> ")
         violations['nonUniquePSLabels'] = string
-    return metrics, violations, status
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_isolated_classes(graph, status):
+def check_isolated_classes(metrics, graph, name, c, status, verbose):
     """
     QA test counting classes declared but never used in any other triple connecting them to the rest of the ontology.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(isolated_classes)
     metrics['isolatedClasses'] = 0
     violations['isolatedClasses'] = ""
-    # if not results and int(metrics['classCount']) > 0:
-    #     print("PASS - All classes are connected to another class through a subclass or property relation.")
-    # elif not results:
-    #     print("WARNING - No classes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['classCount']) > 0:
+        log += "PASS - All classes are connected to another class through a subclass or property relation.\n"
+    elif int(metrics['classCount']) == 0:
+        log += "WARNING - No classes defined, invalid metric.\n"
+
+    elif results:
         metrics['isolatedClasses'] = len(results)
+        log += f"VIOLATION - Found {metrics['isolatedClasses']} isolated classes:\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['isolatedClasses']} isolated classes:")
         for row in results:
-        #   print(f" - {row[0]}")
           string += f"{row[0]},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['isolatedClasses'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_missing_dr_property(graph, status):
+def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     """
     QA test checking properties for rdfs:domain or rdfs:range declaration.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(missing_dr_property)
     dCount = 0
     rCount = 0
     metrics['missingDomainRange'] = 0
-    # if not results and int(metrics['propertyCount']) > 0:
-    #     print("PASS - All properties have domain and range defined.")
-    # elif not results:
-    #     print("WARNING - No properties defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['propertyCount']) > 0:
+        log += "PASS - All properties have domain and range defined.\n"
+
+    elif int(metrics['propertyCount']) == 0:
+        log += "WARNING - No properties defined, invalid metric.\n"
+
+    elif results:
         metrics['missingDomainRange'] = len(results)
+        log += f"VIOLATION - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n"
+        if not verbose: log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
         status += 1
         string = ""
         string2 = ""
-        # print(f"VIOLATION - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:")
-        # print(f"| Property | Domain | Range |\n| -------- | ------ | ----- |")
         for row in results:
             predicate = row.p
             if row.domain:
@@ -1731,207 +1949,290 @@ def check_missing_dr_property(graph, status):
                 dCount += 1
                 string += f"{predicate},<br> "
             if row.range:
-                prange = row.range
+                range = row.range
             else:
-                prange = 'None'
+                range = 'None'
                 rCount += 1
                 string2 += f"{predicate},<br> "
-            # print(f"| {predicate} | {domain} | {prange} |")
+            if not verbose: log += f"| {predicate} | {domain} | {range} |\n"
+    
+    # If verbose, print a table with domain and range for all properties.
+    if verbose:
+        # Show all properties in the results.
+        results = graph.query(dr_property)
+        log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
+        for row in results:
+            if row.domain:
+                domain = row.domain
+            else:
+                domain = 'None'
+            
+            if row.range:
+                range = row.range
+            else:
+                range = 'None'
+                
+            log += f"| {row.p} | {domain} | {range} |\n"
+
     if dCount > 0:
         string = string.rstrip(",<br> ")
         violations['missingDomain'] = string
     else:
         violations['missingDomain'] = ""
+    
     if rCount > 0:
         string2 = string2.rstrip(",<br> ")
         violations['missingRange'] = string2
     else:
         violations['missingRange'] = ""
+    
     metrics['missingDomain'] = dCount
     metrics['missingRange']  = rCount
-    return metrics, violations, status
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_unique_identifiers(graph, status):
+def check_unique_identifiers(metrics, graph, name, c, status, verbose):
     """
     QA test checking for the same resource being declared as semantically inconsistent elements,
     e.g. owl:Class or rdfs:Class and owl:ObjectProperty, rdf:Property owl:DatatypeProperty  owl:AnnotationProperty.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(unique_identifiers)
-    # if not results:
-    #     print("PASS - No violations found.")
-    #     metrics['nonUniqueIdentifiers'] = 0
-    #     violations['nonUniqueIdentifiers'] = ""
-    # else:
-    if results:
+    if not results:
+        log += "PASS - No violations found.\n"
+        metrics['nonUniqueIdentifiers'] = 0
+        violations['nonUniqueIdentifiers'] = ""
+        
+    elif results:
         metrics['nonUniqueIdentifiers'] = len(results)
+        log += f"VIOLATION - Found {metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.\n"
+        log += "| URI | Declared as |\n|--|--|\n"
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['nonUniqueIdentifiers']} elements with non-unique identifiers.")
-        # print("| URI | Declared as |\n|--|--|")
         for row in results:
-            # print(f"| {row.iri} | {row.declaredAs} |")
+            log += f"| {row.iri} | {row.declaredAs} |\n"
             string += f"{row.iri},<br> "
         string = string.rstrip(",<br> ")
         violations['nonUniqueIdentifiers'] = string
-    return metrics, violations, status
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_subclass_cycles(graph, status):
+def check_subclass_cycles(metrics, graph, name, c, status, verbose):
     """
     QA test counting classes involved in subclass cycles.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(subclass_cycles)
     metrics['subclassCycles'] = 0
     violations['subclassCycles'] = ""
-    # if not results and int(metrics['classCount']) > 0:
-    #     print("PASS - No violations found.")
-    # elif not results:
-    #     print("WARNING - No classes defined, invalid metric.")
-    # else:
-    if results:
+    if not results and int(metrics['classCount']) > 0:
+        log += "PASS - No violations found.\n"
+
+    elif int(metrics['classCount']) == 0:
+        log += "WARNING - No classes defined, invalid metric.\n"
+
+    elif results:
         metrics['subclassCycles'] = len(results)
+        log += f"VIOLATION - Found {metrics['subclassCycles']} classes involved in subclass cycles:\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['subclassCycles']} classes involved in subclass cycles:")
         for row in results:
-            # print(f" - {row.c}")
             string += f"{row.c},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['subclassCycles'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_untyped_class(graph, status):
+def check_untyped_class(metrics, graph, name, c, status, verbose):
     """
     QA test counting classes in the current namespace without owl:Class or rdfs:Class declaration
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(untyped_class)
     metrics['untypedClasses'] = 0
     violations['untypedClasses'] = ""
-    # if not results and int(metrics['classCount']) > 0:
-    #     print("PASS - No violations found.")
-    # elif not results:
-    #     print("WARNING - No classes defined, invalid metric.")
-    # else:
-    if results:
+    num_files = len(metrics['filesProcessed'])
+    if not results and int(metrics['classCount']) > 0:
+        log += "PASS - No violations found.\n"
+
+    elif int(metrics['classCount']) == 0:
+        log += "WARNING - No classes defined, invalid metric.\n"
+
+    elif results:
         metrics['untypedClasses'] = len(results)
+        log += f"VIOLATION - Found {metrics['untypedClasses']} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['untypedClasses']} classes without `owl:Class` or `rdfs:Class` declaration:")
         for row in results:
-            # print(f" - {row.c}")
             string += f"{row.c},<br> "
+
         string = string.rstrip(",<br> ")
         violations['untypedClasses'] = string
-    # if metrics['ontologyNotDeclared'] == len(metrics['filesProcessed']):
-    #   print(f"WARNING - ontology namespace undefined. No way to confirm if the class is defined in the ontology or an external vocabulary.")
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
 
-def check_untyped_property(graph, status):
+    if (metrics['ontologyNotDeclared'] > 0 and num_files == 1) or metrics['ontologyNotDeclared'] == num_files:
+        log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+    elif metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files and metrics['untypedClasses'] > 0:
+        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
+
+def check_untyped_property(metrics, graph, name, c, status, verbose):
     """
     QA test counting properties in the current namespace without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    c, log = qa_check_results(name, c)
     results = graph.query(untyped_property)
     metrics['untypedProperties'] = 0
     violations['untypedProperties'] = ""
-    # if not results and int(metrics['propertyCount']) > 0:
-    #     print("PASS - No violations found.")
-    # elif not results:
-    #     print("WARNING - No properties defined, invalid metric.")
-    # else:
-    if results:
+    num_files = len(metrics['filesProcessed'])
+    if not results and int(metrics['propertyCount']) > 0:
+        log += "PASS - No violations found.\n"
+              
+    elif int(metrics['propertyCount']) == 0:
+        log += "WARNING - No properties defined, invalid metric.\n"
+
+    elif results:
         metrics['untypedProperties'] = len(results)
+        log += f"VIOLATION - Found {metrics['untypedProperties']} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
         string = ""
-        # print(f"VIOLATION - Found {metrics['untypedProperties']} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:")
         for row in results:
-            # print(f" - {row.p}")
             string += f"{row.p},<br> "
+        
         string = string.rstrip(",<br> ")
         violations['untypedProperties'] = string
-    # if qa_metrics['ontologyNotDeclared'] == len(qa_metrics['filesProcessed']):
-    #   print(f"WARNING - ontology namespace undefined. No way to confirm if the property is defined in the ontology or an external vocabulary.")
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    if (metrics['ontologyNotDeclared'] > 0 and num_files == 1) or metrics['ontologyNotDeclared'] == num_files:
+        log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+    elif metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files and metrics['untypedClasses'] > 0:
+        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+        
+    log += sep()
+    return metrics, violations, log, c, status
 
-def check_hijacking(graph, status):
+def check_hijacking(metrics, graph, name, c, status, verbose):
     """
     QA test counting instances of hijacking, that is, resources defined in the current namespace but using a URI from an external vocabulary.
     
     Args:
+        metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
-    metrics = {}
     violations = {}
+    num_files = len(metrics['filesProcessed'])
+    c, log = qa_check_results(name, c)
     results = graph.query(hijacking)
-    # if not results:
-    #     print("PASS - No violations found.") # For now, this condition is never met.
-    #     metrics['hijacking'] = 0
-    # else:
-    if results:
+    if not results:
+        log += "PASS - No violations found.\n"
+        metrics['hijacking'] = 0
+
+    elif results:
         metrics['hijacking'] = len(results)
-        # print(f"VIOLATION - Found {qa_metrics['hijacking']} resources defined using an external vocabulary prefix:")
-        # print(f"WARNING - Found resources defined in {metrics['hijacking']} namespaces. Count of entities for each namespace:")
-        
-        # Add a WARNING if the ontology has not been declared.
+        log += f"VIOLATION - Found {metrics['hijacking']} resources defined using an external vocabulary prefix:\n - "
+        # log += f"| Namespace | Count |\n|--|--|\n"
         string = ""
         for row in results:
-            # print(f" - {row.namespace} {row['count']}")
-            el = int(row['count'])
-            if el == 1:
-                string += f"{row.namespace} ({row['count']} element),<br> "
-            elif el > 1:
-                string += f"{row.namespace} ({row['count']} elements),<br> "
+            string += f"{row.resource},<br> "
+            # log += f"| {row.namespace} | {rrow['count']} |\n"
+            # el = int(row['count']) # for hijacking_count
+            # if el == 1:
+            #     string += f"{row.namespace}: ({row['count']} element),<br> "
+            # elif el > 1:
+            #     string += f"{row.namespace}: ({row['count']} elements),<br> "
+        
         string = string.rstrip(",<br> ")
         violations['hijacking'] = string
-    return metrics, violations, status
+        log += string.replace(",<br> ", "\n - ") + "\n"
+        
+    if (metrics['ontologyNotDeclared'] > 0 and num_files == 1) or metrics['ontologyNotDeclared'] == num_files:
+        log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
+    elif metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files and metrics['untypedClasses'] > 0:
+        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    
+    log += sep()
+    return metrics, violations, log, c, status
 
 def load_rdf_file(file, graph):
     """
@@ -2035,13 +2336,11 @@ def main():
     metrics, violations = profiling(g)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
-    fp = len(qa_metrics['filesProcessed'])
 
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        metrics, violations, xs = check_owl_declaration_description(g, fp, 0)
-        qa_metrics.update(metrics)
+        qa_metrics, violations, log_results, tn, xs = check_owl_declaration_description(qa_metrics, g, "", tn, 0, args.verbose)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
@@ -2054,49 +2353,48 @@ def main():
 
     # Compute the metrics for Quality Assurance.
     xs = 0  # Number of violations, to decide the exit-status flag.
+    tn = 1  # Test number.
 
     # Array with all tests for QA metrics.
     test_checklist = [
-        (True, check_owl_declaration_description,[g,fp], "OWL ontology declaration and description"     ),
-        (True, check_class_missing_label,           [g], "Classes missing label annotations"            ),
-        (True, check_property_missing_label,        [g], "Properties missing label annotations"         ),
-        (True, check_node_shape_missing_label,      [g], "NodeShape missing label annotations"          ),
-        (True, check_property_shape_missing_label,  [g], "PropertyShape missing label annotations"      ),
-        (True, check_class_missing_comment,         [g], "Classes missing description annotations"      ),
-        (True, check_property_missing_comment,      [g], "Properties missing description annotations"   ),
-        (True, check_node_shape_missing_comment,    [g], "NodeShape missing description annotations"    ),
-        (True, check_property_shape_missing_comment,[g], "PropertyShape missing description annotations"),
-        (True, check_class_same_label,              [g], "Classes with the same label"                  ),
-        (True, check_property_same_label,           [g], "Properties with the same label"               ),
-        (True, check_node_shape_same_label,         [g], "NodeShapes with the same label"               ),
-        (True, check_property_shape_same_label,     [g], "PropertyShapes with the same label"           ),
-        (True, check_isolated_classes,              [g], "Number of isolated classes"                   ),
-        (True, check_missing_dr_property,           [g], "Missing Domain or Range in Properties"        ),
-        (True, check_unique_identifiers,            [g], "Non-unique identifiers"                       ),
-        (True, check_subclass_cycles,               [g], "Including Cycles in a Class Hierarchy"        ),
-        (True, check_untyped_class,                 [g], "Untyped class"                                ),
-        (True, check_untyped_property,              [g], "Untyped property"                             ),
-        (True, check_hijacking,                     [g], "Namespace hijacking"                          )
+        (True, check_owl_declaration_description,    "OWL ontology declaration and description"     ),
+        (True, check_class_missing_label,            "Classes missing label annotations"            ),
+        (True, check_property_missing_label,         "Properties missing label annotations"         ),
+        (True, check_node_shape_missing_label,       "NodeShape missing label annotations"          ),
+        (True, check_property_shape_missing_label,   "PropertyShape missing label annotations"      ),
+        (True, check_class_missing_comment,          "Classes missing description annotations"      ),
+        (True, check_property_missing_comment,       "Properties missing description annotations"   ),
+        (True, check_node_shape_missing_comment,     "NodeShape missing description annotations"    ),
+        (True, check_property_shape_missing_comment, "PropertyShape missing description annotations"),
+        (True, check_class_same_label,               "Classes with the same label"                  ),
+        (True, check_property_same_label,            "Properties with the same label"               ),
+        (True, check_node_shape_same_label,          "NodeShapes with the same label"               ),
+        (True, check_property_shape_same_label,      "PropertyShapes with the same label"           ),
+        (True, check_isolated_classes,               "Number of isolated classes"                   ),
+        (True, check_missing_dr_property,            "Missing Domain or Range in Properties"        ),
+        (True, check_unique_identifiers,             "Non-unique identifiers"                       ),
+        (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"        ),
+        (True, check_untyped_class,                  "Untyped class"                                ),
+        (True, check_untyped_property,               "Untyped property"                             ),
+        (True, check_hijacking,                      "Namespace hijacking"                          )
     ]
 
     # TO DO:
     # Parse a configuration file to enable/disable individual tests.
 
+    # Aggregate and format the results.
+    log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
+
     # Cycle through selected tests.
     for _ in range(len(test_checklist)):
         func = test_checklist[_][1]
-        extra_args = test_checklist[_][2]
-        if test_checklist[_][0]: metrics, violations, xs = func(*extra_args, xs)
+        test_name = test_checklist[_][2]
+        if test_checklist[_][0]:
+            qa_metrics, violations, log_results, tn, xs = func(qa_metrics, g, test_name, tn, xs, args.verbose)
 
-        # Merge returned metrics/violations into global dictionaries
-        if metrics:
-            qa_metrics.update(metrics)
-        if violations:
+            # Merge returned violations into global dictionary
             qa_violations.update(violations)
-    
-    # Aggregate and format the results.
-    log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
-    log_output += print_qa_results(g, qa_metrics, qa_violations, test_checklist, args.verbose)
+            log_output += log_results
 
     # Profiling Table
     log_output += print_profiling_table(qa_metrics)
