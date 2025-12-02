@@ -4,7 +4,7 @@ A tool for ontology development that profiles an ontology file and provides metr
 
 ## Usage
 
-The `ontology_qa.py` file is a script to perform basic QA on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
+The `ontology_qa.py` script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data
 
 ```
 usage: ontology_qa.py [-h] [-e] [-v] [-p] [--ctrf-dir CTRF_DIR] [--ctrf-filename CTRF_FILENAME] data_files [data_files ...]

@@ -48,5 +48,5 @@ jobs:
       # Append report to workflow summary
       - name: Create workflow summary
         run: |
-          cat ctrf_report.md >> $GITHUB_STEP_SUMMARY
+          cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
         if: always()
