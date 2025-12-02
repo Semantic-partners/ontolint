@@ -83,11 +83,13 @@ def normalise(count, total):
         out = count / total
     else:
         out = 0
+    # Format the normalised value
     if out > 0:
-      out = f"{out:.3f}"
+        out = f"{out:.3f}"
+    elif count == total:
+        out = 1
     else:
-      out = 0
-    if count == total: out = 1
+        out = 0
     return out
 
 def get_ontology_name(metrics):
