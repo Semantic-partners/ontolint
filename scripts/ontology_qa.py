@@ -93,18 +93,19 @@ def normalise(count, total):
     return out
 
 def get_ontology_name(metrics):
-    # Retrieve the ontology name from URI (if declared) or file.
+    """Retrieve the ontology name from URI (if declared) or return a warning."""
     names = ""
     count = 0
-    for _ in range(len(metrics['filesProcessed'])):
+    num_files = len(metrics['filesProcessed'])
+    num_uri = len(metrics['ontologyURI'])
+    if num_uri > num_files: num_files = num_uri
+    for _ in range(num_files):
         if metrics['ontologyURI'][_]:
             names += f"{metrics['ontologyURI'][_]},<br> "
         else:
             count += 1
-        
-    if count == 1:
-        names += f"{count} URI not found.,<br> "
-    elif count > 1:
+    
+    if count >= 1:
         names += f"{count} URIs not found.,<br> "
     names = names.rstrip(",<br> ")
     return names
