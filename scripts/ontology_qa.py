@@ -183,55 +183,59 @@ def print_qa_table(metrics):
     log += f"| {metrics['untypedClasses']} | {metrics['untypedProperties']} | {metrics['hijacking']} |\n"
     return log
 
-def write_ctrf_report(metrics, violations, file_path, filename):
+def write_ctrf_report(metrics, violations, tests, file_path, filename):
     """
     Convert QA metrics to CTRF (Common Test Result Format) JSON.
     """
 
     # Each QA check becomes a test case
     checks = [
-        ("Ontology without declaration",     metrics['ontologyNotDeclared'],        violations['ontologyNotDeclared']),
-        ("Ontology without description",     metrics['ontologyDescription'],        violations['ontologyDescription']), 
-        ("Class without label",              metrics['missingClassLabel'],          violations['missingClassLabel']), 
-        ("Property without label",           metrics['missingPropertyLabel'],       violations['missingPropertyLabel']), 
-        ("NodeShape without label",          metrics['missingNSLabel'],             violations['missingNSLabel']), 
-        ("PropertyShape without label",      metrics['missingPSLabel'],             violations['missingPSLabel']), 
-        ("Class without description",        metrics['missingClassDescription'],    violations['missingClassDescription']), 
-        ("Property without description",     metrics['missingPropertyDescription'], violations['missingPropertyDescription']), 
-        ("NodeShape without description",    metrics['missingNSDescription'],       violations['missingNSDescription']), 
-        ("PropertyShape without description",metrics['missingPSDescription'],       violations['missingPSDescription']), 
-        ("Non-Unique Class Labels",          metrics['nonUniqueClassLabels'],       violations['nonUniqueClassLabels']), 
-        ("Non-Unique Property Labels",       metrics['nonUniquePropertyLabels'],    violations['nonUniquePropertyLabels']), 
-        ("Non-Unique NodeShape Labels",      metrics['nonUniqueNSLabels'],          violations['nonUniqueNSLabels']), 
-        ("Non-Unique PropertyShape Labels",  metrics['nonUniquePSLabels'],          violations['nonUniquePSLabels']), 
-        ("Isolated Classes",                 metrics['isolatedClasses'],            violations['isolatedClasses']), 
-        ("Property without domain",          metrics['missingDomain'],              violations['missingDomain']), 
-        ("Property without range",           metrics['missingRange'],               violations['missingRange']), 
-        ("Non-Unique Identifiers",           metrics['nonUniqueIdentifiers'],       violations['nonUniqueIdentifiers']), 
-        ("Subclass Cycles",                  metrics['subclassCycles'],             violations['subclassCycles']), 
-        ("Untyped Classes",                  metrics['untypedClasses'],             violations['untypedClasses']), 
-        ("Untyped Properties",               metrics['untypedProperties'],          violations['untypedProperties']), 
-        ("Subclass Cycles",                  metrics['subclassCycles'],             violations['subclassCycles']),
-        ("Namespace Hijacking",              metrics['hijacking'],                  violations['hijacking'])
+        ("Ontology without declaration",     'ontologyNotDeclared'       ),
+        ("Ontology without description",     'ontologyDescription'       ), 
+        ("Class without label",              'missingClassLabel'         ), 
+        ("Property without label",           'missingPropertyLabel'      ), 
+        ("NodeShape without label",          'missingNSLabel'            ), 
+        ("PropertyShape without label",      'missingPSLabel'            ), 
+        ("Class without description",        'missingClassDescription'   ), 
+        ("Property without description",     'missingPropertyDescription'), 
+        ("NodeShape without description",    'missingNSDescription'      ), 
+        ("PropertyShape without description",'missingPSDescription'      ), 
+        ("Non-Unique Class Labels",          'nonUniqueClassLabels'      ), 
+        ("Non-Unique Property Labels",       'nonUniquePropertyLabels'   ), 
+        ("Non-Unique NodeShape Labels",      'nonUniqueNSLabels'         ), 
+        ("Non-Unique PropertyShape Labels",  'nonUniquePSLabels'         ), 
+        ("Isolated Classes",                 'isolatedClasses'           ), 
+        ("Property without domain",          'missingDomain'             ), 
+        ("Property without range",           'missingRange'              ), 
+        ("Non-Unique Identifiers",           'nonUniqueIdentifiers'      ), 
+        ("Subclass Cycles",                  'subclassCycles'            ), 
+        ("Untyped Classes",                  'untypedClasses'            ), 
+        ("Untyped Properties",               'untypedProperties'         ),
+        ("Namespace hijacking",              'hijacking'                 )
     ]
     
     passed = 0
     failed = 0
     test_cases = []
-    for check_name, violation_count, violation_element in checks:
-        test_case = {
-            "name": check_name,
-            "status": "pass" if violation_count == 0 else "fail"
-        }
-        if violation_count > 0:
-            test_case["failure"] = {
-                "violations": violation_count,
-                "elements": violation_element
-            }
-            failed += 1
-        else:
-            passed += 1
-        test_cases.append(test_case)
+
+    for check_name, key in checks:
+        violation_count = metrics[key]
+        violation_element = violations[key]
+        violation_test = tests[key]
+        if violation_test:
+          test_case = {
+              "name": check_name,
+              "status": "pass" if violation_count == 0 else "fail"
+          }
+          if violation_count > 0:
+              test_case["failure"] = {
+                  "violations": violation_count,
+                  "elements": violation_element
+              }
+              failed += 1
+          else:
+              passed += 1
+          test_cases.append(test_case)
     
     # Build CTRF report
     ctrf_report = {
@@ -449,7 +453,7 @@ def inference(graph):
 
 def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     """
-    QA test veriying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
+    QA test verifying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
     
     Args:
         metrics (dict): Number of violations for various ontology metrics.
@@ -462,6 +466,7 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -470,6 +475,9 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     num_files = len(metrics['filesProcessed'])
     metrics['ontologyNotDeclared'] = num_files # Assume no ontology has been declared.
     metrics['ontologyURI'] = [ ]
+    test = {}
+    test['ontologyNotDeclared'] = True
+    test['ontologyDescription'] = True
 
     # Check the ontology declaration.
     name = "OWL ontology declaration"
@@ -555,7 +563,7 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
             log += string.replace(",<br> ", "\n - ")
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_class_missing_label(metrics, graph, name, c, status, verbose):
     """
@@ -572,6 +580,7 @@ def check_class_missing_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -581,6 +590,9 @@ def check_class_missing_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'class_missing_label')
     metrics['missingClassLabel'] = 0
     violations['missingClassLabel'] = ""
+    test = {}
+    test['missingClassLabel'] = True
+
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - All classes have a label annotation.\n"
         if verbose:
@@ -605,7 +617,7 @@ def check_class_missing_label(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_property_missing_label(metrics, graph, name, c, status, verbose):
     """
@@ -622,6 +634,7 @@ def check_property_missing_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -631,6 +644,9 @@ def check_property_missing_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'property_missing_label')
     metrics['missingPropertyLabel'] = 0
     violations['missingPropertyLabel'] = ""
+    test = {}
+    test['missingPropertyLabel'] = True
+
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - All properties have a label annotation."
         if verbose:
@@ -655,7 +671,7 @@ def check_property_missing_label(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_node_shape_missing_label(metrics, graph, name, c, status, verbose):
     """
@@ -672,6 +688,7 @@ def check_node_shape_missing_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -681,6 +698,9 @@ def check_node_shape_missing_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'node_shape_missing_label')
     metrics['missingNSLabel'] = 0
     violations['missingNSLabel'] = ""
+    test = {}
+    test['missingNSLabel'] = True
+
     if not results and int(metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a label annotation.\n"
         if verbose and int(metrics['nodeShapes']) > 0:
@@ -705,7 +725,7 @@ def check_node_shape_missing_label(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_property_shape_missing_label(metrics, graph, name, c, status, verbose):
     """
@@ -722,6 +742,7 @@ def check_property_shape_missing_label(metrics, graph, name, c, status, verbose)
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -731,6 +752,9 @@ def check_property_shape_missing_label(metrics, graph, name, c, status, verbose)
     results = exec_sparql(graph, 'property_shape_missing_label')
     metrics['missingPSLabel'] = 0
     violations['missingPSLabel'] = ""
+    test = {}
+    test['missingPSLabel'] = True
+
     if not results and int(metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a label annotation.\n"
         if verbose:
@@ -755,7 +779,7 @@ def check_property_shape_missing_label(metrics, graph, name, c, status, verbose)
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_class_missing_comment(metrics, graph, name, c, status, verbose):
     """
@@ -772,6 +796,7 @@ def check_class_missing_comment(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -781,6 +806,9 @@ def check_class_missing_comment(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'class_missing_comment')
     metrics['missingClassDescription'] = 0
     violations['missingClassDescription'] = ""
+    test = {}
+    test['missingClassDescription'] = True
+
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - All classes have a description annotation.\n"
         if verbose:
@@ -805,7 +833,7 @@ def check_class_missing_comment(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_property_missing_comment(metrics, graph, name, c, status, verbose):
     """
@@ -822,6 +850,7 @@ def check_property_missing_comment(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -831,6 +860,9 @@ def check_property_missing_comment(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'property_missing_comment')
     metrics['missingPropertyDescription'] = 0
     violations['missingPropertyDescription'] = ""
+    test = {}
+    test['missingPropertyDescription'] = True
+
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
@@ -854,7 +886,7 @@ def check_property_missing_comment(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_node_shape_missing_comment(metrics, graph, name, c, status, verbose):
     """
@@ -871,6 +903,7 @@ def check_node_shape_missing_comment(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -880,6 +913,9 @@ def check_node_shape_missing_comment(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'node_shape_missing_comment')
     metrics['missingNSDescription'] = 0
     violations['missingNSDescription'] = ""
+    test = {}
+    test['missingNSDescription'] = True
+
     if not results and int(metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a description annotation.\n"
         if verbose:
@@ -903,7 +939,7 @@ def check_node_shape_missing_comment(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_property_shape_missing_comment(metrics, graph, name, c, status, verbose):
     """
@@ -920,6 +956,7 @@ def check_property_shape_missing_comment(metrics, graph, name, c, status, verbos
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -929,6 +966,9 @@ def check_property_shape_missing_comment(metrics, graph, name, c, status, verbos
     results = exec_sparql(graph, 'property_shape_missing_comment')
     metrics['missingPSDescription'] = 0
     violations['missingPSDescription'] = ""
+    test = {}
+    test['missingPSDescription'] = True
+
     if not results and int(metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a description annotation.\n"
         if verbose:
@@ -952,7 +992,7 @@ def check_property_shape_missing_comment(metrics, graph, name, c, status, verbos
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_class_same_label(metrics, graph, name, c, status, verbose):
     """
@@ -969,6 +1009,7 @@ def check_class_same_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -978,6 +1019,9 @@ def check_class_same_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'class_same_label')
     metrics['nonUniqueClassLabels'] = 0
     violations['nonUniqueClassLabels'] = ""
+    test = {}
+    test['nonUniqueClassLabels'] = True
+    
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - No classes share the same label.\n"
 
@@ -998,7 +1042,7 @@ def check_class_same_label(metrics, graph, name, c, status, verbose):
         violations['nonUniqueClassLabels'] = string
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_property_same_label(metrics, graph, name, c, status, verbose):
     """
@@ -1015,6 +1059,7 @@ def check_property_same_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1024,6 +1069,9 @@ def check_property_same_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'property_same_label')
     metrics['nonUniquePropertyLabels'] = 0
     violations['nonUniquePropertyLabels'] = ""
+    test = {}
+    test['nonUniquePropertyLabels'] = True
+
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - No property share the same label.\n"
 
@@ -1043,7 +1091,7 @@ def check_property_same_label(metrics, graph, name, c, status, verbose):
         violations['nonUniquePropertyLabels'] = string
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_node_shape_same_label(metrics, graph, name, c, status, verbose):
     """
@@ -1060,6 +1108,7 @@ def check_node_shape_same_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1069,6 +1118,9 @@ def check_node_shape_same_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'node_shape_same_label')
     metrics['nonUniqueNSLabels'] = 0
     violations['nonUniqueNSLabels'] = ""
+    test = {}
+    test['nonUniqueNSLabels'] = True
+
     if not results and int(metrics['nodeShapes']) > 0:
         log += "PASS - No NodeShape share the same label.\n"
 
@@ -1089,7 +1141,7 @@ def check_node_shape_same_label(metrics, graph, name, c, status, verbose):
         violations['nonUniqueNSLabels'] = string
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_property_shape_same_label(metrics, graph, name, c, status, verbose):
     """
@@ -1106,6 +1158,7 @@ def check_property_shape_same_label(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1115,6 +1168,9 @@ def check_property_shape_same_label(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'property_shape_same_label')
     metrics['nonUniquePSLabels'] = 0
     violations['nonUniquePSLabels'] = ""
+    test = {}
+    test['nonUniquePSLabels'] = True
+
     if not results and int(metrics['propertyShapes']) > 0:
        log += "PASS - No PropertyShape share the same label.\n"
 
@@ -1135,7 +1191,7 @@ def check_property_shape_same_label(metrics, graph, name, c, status, verbose):
         violations['nonUniquePSLabels'] = string
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_isolated_classes(metrics, graph, name, c, status, verbose):
     """
@@ -1152,6 +1208,7 @@ def check_isolated_classes(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1161,6 +1218,9 @@ def check_isolated_classes(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'isolated_classes')
     metrics['isolatedClasses'] = 0
     violations['isolatedClasses'] = ""
+    test = {}
+    test['isolatedClasses'] = True
+
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - All classes are connected to another class through a subclass or property relation.\n"
     elif int(metrics['classCount']) == 0:
@@ -1179,7 +1239,7 @@ def check_isolated_classes(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     """
@@ -1196,6 +1256,7 @@ def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1206,6 +1267,10 @@ def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     dCount = 0
     rCount = 0
     metrics['missingDomainRange'] = 0
+    test = {}
+    test['missingDomain'] = True
+    test['missingRange'] = True
+
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - All properties have domain and range defined.\n"
 
@@ -1268,7 +1333,7 @@ def check_missing_dr_property(metrics, graph, name, c, status, verbose):
     metrics['missingDomain'] = dCount
     metrics['missingRange']  = rCount
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_unique_identifiers(metrics, graph, name, c, status, verbose):
     """
@@ -1286,6 +1351,7 @@ def check_unique_identifiers(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1293,6 +1359,9 @@ def check_unique_identifiers(metrics, graph, name, c, status, verbose):
     violations = {}
     c, log = qa_check_results(name, c)
     results = exec_sparql(graph, 'unique_identifiers')
+    test = {}
+    test['nonUniqueIdentifiers'] = True
+
     if not results:
         log += "PASS - No violations found.\n"
         metrics['nonUniqueIdentifiers'] = 0
@@ -1311,7 +1380,7 @@ def check_unique_identifiers(metrics, graph, name, c, status, verbose):
         violations['nonUniqueIdentifiers'] = string
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_subclass_cycles(metrics, graph, name, c, status, verbose):
     """
@@ -1328,6 +1397,7 @@ def check_subclass_cycles(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1337,6 +1407,9 @@ def check_subclass_cycles(metrics, graph, name, c, status, verbose):
     results = exec_sparql(graph, 'subclass_cycles')
     metrics['subclassCycles'] = 0
     violations['subclassCycles'] = ""
+    test = {}
+    test['subclassCycles'] = True
+
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
@@ -1356,7 +1429,7 @@ def check_subclass_cycles(metrics, graph, name, c, status, verbose):
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_untyped_class(metrics, graph, name, c, status, verbose):
     """
@@ -1373,6 +1446,7 @@ def check_untyped_class(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1383,6 +1457,9 @@ def check_untyped_class(metrics, graph, name, c, status, verbose):
     metrics['untypedClasses'] = 0
     violations['untypedClasses'] = ""
     num_files = len(metrics['filesProcessed'])
+    test = {}
+    test['untypedClasses'] = True
+
     if not results and int(metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
@@ -1407,7 +1484,7 @@ def check_untyped_class(metrics, graph, name, c, status, verbose):
         log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_untyped_property(metrics, graph, name, c, status, verbose):
     """
@@ -1424,6 +1501,7 @@ def check_untyped_property(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1434,6 +1512,9 @@ def check_untyped_property(metrics, graph, name, c, status, verbose):
     metrics['untypedProperties'] = 0
     violations['untypedProperties'] = ""
     num_files = len(metrics['filesProcessed'])
+    test = {}
+    test['untypedProperties'] = True
+
     if not results and int(metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
               
@@ -1458,7 +1539,7 @@ def check_untyped_property(metrics, graph, name, c, status, verbose):
         log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
         
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def check_hijacking(metrics, graph, name, c, status, verbose):
     """
@@ -1475,6 +1556,7 @@ def check_hijacking(metrics, graph, name, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
+        test (dict): Was QA test executed? (bool)
         log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
@@ -1483,6 +1565,9 @@ def check_hijacking(metrics, graph, name, c, status, verbose):
     num_files = len(metrics['filesProcessed'])
     c, log = qa_check_results(name, c)
     results = exec_sparql(graph, 'hijacking')
+    test = {}
+    test['hijacking'] = True
+
     if not results:
         log += "PASS - No violations found.\n"
         metrics['hijacking'] = 0
@@ -1511,7 +1596,7 @@ def check_hijacking(metrics, graph, name, c, status, verbose):
         log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     
     log += sep()
-    return metrics, violations, log, c, status
+    return metrics, violations, test, log, c, status
 
 def load_rdf_file(file, graph):
     """
@@ -1594,6 +1679,7 @@ def main():
     # Create empty dictionaries to store the ontology metrics.
     qa_metrics = {}    # violation count
     qa_violations = {} # violation elements
+    qa_tests = {}      # violation test? (boolean) 
 
     # Load Data
     g = rdflib.Graph()
@@ -1636,26 +1722,26 @@ def main():
 
     # Array with all tests for QA metrics.
     test_checklist = [
-        (True, check_owl_declaration_description,    "OWL ontology declaration and description"     ),
-        (True, check_class_missing_label,            "Classes missing label annotations"            ),
-        (True, check_property_missing_label,         "Properties missing label annotations"         ),
-        (True, check_node_shape_missing_label,       "NodeShape missing label annotations"          ),
-        (True, check_property_shape_missing_label,   "PropertyShape missing label annotations"      ),
-        (True, check_class_missing_comment,          "Classes missing description annotations"      ),
-        (True, check_property_missing_comment,       "Properties missing description annotations"   ),
-        (True, check_node_shape_missing_comment,     "NodeShape missing description annotations"    ),
-        (True, check_property_shape_missing_comment, "PropertyShape missing description annotations"),
-        (True, check_class_same_label,               "Classes with the same label"                  ),
-        (True, check_property_same_label,            "Properties with the same label"               ),
-        (True, check_node_shape_same_label,          "NodeShapes with the same label"               ),
-        (True, check_property_shape_same_label,      "PropertyShapes with the same label"           ),
-        (True, check_isolated_classes,               "Number of isolated classes"                   ),
-        (True, check_missing_dr_property,            "Missing Domain or Range in Properties"        ),
-        (True, check_unique_identifiers,             "Non-unique identifiers"                       ),
-        (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"        ),
-        (True, check_untyped_class,                  "Untyped class"                                ),
-        (True, check_untyped_property,               "Untyped property"                             ),
-        (True, check_hijacking,                      "Namespace hijacking"                          )
+        (True, check_owl_declaration_description,    "OWL ontology declaration and description"),
+        (True, check_class_missing_label,            "Class without label"                     ),
+        (True, check_property_missing_label,         "Property without label"                  ),
+        (True, check_node_shape_missing_label,       "NodeShape without label"                 ),
+        (True, check_property_shape_missing_label,   "PropertyShape without label"             ),
+        (True, check_class_missing_comment,          "Class without description"               ),
+        (True, check_property_missing_comment,       "Property without description"            ),
+        (True, check_node_shape_missing_comment,     "NodeShape without description"           ),
+        (True, check_property_shape_missing_comment, "PropertyShape without description"       ),
+        (True, check_class_same_label,               "Classes with the same label"             ),
+        (True, check_property_same_label,            "Properties with the same label"          ),
+        (True, check_node_shape_same_label,          "NodeShapes with the same label"          ),
+        (True, check_property_shape_same_label,      "PropertyShapes with the same label"      ),
+        (True, check_isolated_classes,               "Isolated classes"                        ),
+        (True, check_missing_dr_property,            "Missing Domain or Range in Properties"   ),
+        (True, check_unique_identifiers,             "Non-unique identifiers"                  ),
+        (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"   ),
+        (True, check_untyped_class,                  "Untyped Classes"                         ),
+        (True, check_untyped_property,               "Untyped Properties"                      ),
+        (True, check_hijacking,                      "Namespace hijacking"                     )
     ]
 
     # TO DO:
@@ -1669,10 +1755,11 @@ def main():
         func = test_checklist[_][1]
         test_name = test_checklist[_][2]
         if test_checklist[_][0]:
-            qa_metrics, violations, log_results, tn, xs = func(qa_metrics, g, test_name, tn, xs, args.verbose)
+            qa_metrics, violations, test, log_results, tn, xs = func(qa_metrics, g, test_name, tn, xs, args.verbose)
 
             # Merge returned violations into global dictionary
             qa_violations.update(violations)
+            qa_tests.update(test)
             log_output += log_results
 
     # Profiling Table
@@ -1682,7 +1769,7 @@ def main():
     log_output += print_qa_table(qa_metrics)
 
     # Generate CTRF report
-    write_ctrf_report(qa_metrics, qa_violations , args.ctrf_dir, args.ctrf_filename)
+    write_ctrf_report(qa_metrics, qa_violations, qa_tests, args.ctrf_dir, args.ctrf_filename)
 
     # Print the results
     qa_terminate(args.output, log_output)
