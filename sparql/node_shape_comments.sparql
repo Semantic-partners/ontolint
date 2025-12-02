@@ -1,0 +1,5 @@
+SELECT DISTINCT ?ns ?lbl
+WHERE {
+  ?ns a sh:NodeShape .
+  ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
+}

@@ -1,0 +1,12 @@
+# Defining Multiple Domains/Ranges
+# Properties declared with more than one domain or more than one range
+SELECT ?p (COUNT(DISTINCT ?d) AS ?domainCount) (COUNT(DISTINCT ?r) AS ?rangeCount)
+WHERE {
+  VALUES ?type { owl:ObjectProperty rdf:Property }
+  ?p a ?type .
+  OPTIONAL { ?p rdfs:domain ?d }
+  OPTIONAL { ?p rdfs:range  ?r }
+  FILTER( BOUND(?d) && BOUND(?r) )
+}
+GROUP BY ?p
+HAVING (?domainCount > 1 || ?rangeCount > 1)

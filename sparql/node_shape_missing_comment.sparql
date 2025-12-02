@@ -1,0 +1,5 @@
+SELECT DISTINCT ?ns
+WHERE {
+  ?ns a sh:NodeShape .
+  FILTER NOT EXISTS { ?ns sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
+}

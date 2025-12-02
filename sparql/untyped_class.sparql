@@ -1,0 +1,21 @@
+# Untyped class
+# Class without owl:Class or rdfs:Class declaration
+SELECT DISTINCT ?c
+WHERE {
+  { ?s rdfs:domain ?c . }
+  UNION
+  { ?s rdfs:range ?c . }
+  UNION
+  { ?s sh:class ?c . }
+  
+  # exclude blank nodes
+  FILTER(isIRI(?c))
+
+  # Restrict to ontology namespace
+  ?ontology a owl:Ontology .
+  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
+
+  MINUS { ?c rdf:type owl:Class }
+  MINUS { ?c rdf:type rdfs:Class }
+
+}

@@ -1,0 +1,6 @@
+# Number of Deprecated Classes
+# Count elements marked as deprecated
+SELECT DISTINCT ?c
+WHERE {
+  ?c a owl:DeprecatedClass .
+}

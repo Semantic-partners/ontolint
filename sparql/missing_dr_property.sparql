@@ -1,0 +1,10 @@
+# Missing Domain or Range in Properties
+# Properties without any rdfs:domain or rdfs:range declaration
+SELECT DISTINCT ?p ?domain ?range
+WHERE {
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  ?p a ?type .
+  OPTIONAL { ?p rdfs:domain ?domain }
+  OPTIONAL { ?p rdfs:range  ?range  }
+  FILTER( !BOUND(?domain) || !BOUND(?range) )
+}

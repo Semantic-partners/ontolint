@@ -1,0 +1,7 @@
+# Property Chain with One Property
+# owl:propertyChainAxiom lists with exactly one member
+SELECT ?p WHERE {
+  ?p owl:propertyChainAxiom ?list .
+  ?list rdf:first ?singleMember .
+  ?list rdf:rest  rdf:nil .
+}

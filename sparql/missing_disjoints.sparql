@@ -1,0 +1,9 @@
+# Missing Disjointness
+# Sibling classes under the same direct superclass that are not declared disjoint.
+# Is it really a quality metric?
+SELECT DISTINCT ?c1 ?c2 WHERE {
+  ?c1 rdfs:subClassOf ?parent .
+  ?c2 rdfs:subClassOf ?parent .
+  FILTER(?c1 != ?c2)
+  FILTER NOT EXISTS { ?c1 owl:disjointWith ?c2 }
+}

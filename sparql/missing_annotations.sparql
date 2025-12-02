@@ -1,0 +1,24 @@
+# Missing Annotations
+# Classes or properties lacking rdfs:label or rdfs:comment
+SELECT DISTINCT ?c ?p
+WHERE {
+  {
+    VALUES ?type { owl:Class rdfs:Class }
+    ?c a ?type .
+    FILTER(isIRI(?c))
+    FILTER (
+      NOT EXISTS { ?c rdfs:label   ?lbl   } ||
+      NOT EXISTS { ?c rdfs:comment ?cmt   }
+    )
+  }
+  UNION
+  {
+    VALUES ?ptype { owl:ObjectProperty rdf:Property }
+    ?p a ?ptype .
+    FILTER(isIRI(?p))
+    FILTER (
+      NOT EXISTS { ?p rdfs:label   ?lbl2  } ||
+      NOT EXISTS { ?p rdfs:comment ?cmt2  }
+    )
+  }
+}

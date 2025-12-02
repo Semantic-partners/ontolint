@@ -1,0 +1,9 @@
+# Properties with the same label
+SELECT ?label (GROUP_CONCAT(DISTINCT ?p; separator=", ") AS ?properties)
+WHERE {
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  ?p a ?type .
+  ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+}
+GROUP BY ?label
+HAVING (COUNT(DISTINCT ?p) > 1)

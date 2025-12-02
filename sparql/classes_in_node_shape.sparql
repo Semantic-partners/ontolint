@@ -1,0 +1,15 @@
+# Number of classes specified in NodeShapes
+SELECT DISTINCT ?ns (COUNT(DISTINCT ?c) AS ?classCount)
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  {
+    ?ns a sh:NodeShape, ?type .
+    BIND (?ns as ?c)
+  }
+  UNION
+  {
+    ?ns a sh:NodeShape ;
+          sh:targetClass ?c .
+    ?c a ?type .
+  }
+} GROUP BY ?ns

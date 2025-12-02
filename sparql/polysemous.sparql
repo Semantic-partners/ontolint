@@ -1,0 +1,11 @@
+# (Number of Polysemous Elements)
+# Non-unique identifiers
+# Same IRI used for classes and/or properties
+SELECT ?iri
+  (GROUP_CONCAT(DISTINCT REPLACE(STR(?type), ".*/", ""); separator=", ") AS ?declaredAs)
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class owl:ObjectProperty rdf:Property owl:ObjectProperty owl:DatatypeProperty  owl:AnnotationProperty }
+  ?iri a ?type .
+}
+GROUP BY ?iri
+HAVING (COUNT(DISTINCT ?type) > 1)

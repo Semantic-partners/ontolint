@@ -1,0 +1,8 @@
+# Return ontology without description
+SELECT ?ont
+WHERE {
+  ?ont a owl:Ontology .
+  FILTER NOT EXISTS {
+    ?ont rdfs:comment|dcterms:abstract|dcterms:description|skos:definition|skos:note ?a .
+  }
+}

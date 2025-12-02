@@ -1,0 +1,6 @@
+SELECT DISTINCT ?c ?lbl
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?c a ?type .
+  ?c rdfs:comment|dcterms:description|skos:definition ?lbl
+}

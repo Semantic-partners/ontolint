@@ -1,0 +1,10 @@
+# Hierarchy Overspecialisation, i.e.
+# Leaf classes with no instances
+SELECT ?c WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?c a ?type .
+  FILTER NOT EXISTS {
+    ?sub rdfs:subClassOf ?c .
+    ?instance rdf:type ?c .
+  }
+}

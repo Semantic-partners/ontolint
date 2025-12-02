@@ -1,0 +1,10 @@
+# Namespace hijacking
+# Define a resource in the current namespace using an external vocabulary prefix.
+SELECT DISTINCT ?resource
+WHERE {
+    ?resource ?property ?value .
+    FILTER(isIRI(?resource))
+    # Filter resource URI from external namespaces
+    ?ontology a owl:Ontology .
+    FILTER(!CONTAINS(LCASE(STR(?resource)), LCASE(STR(?ontology))))
+}

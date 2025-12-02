@@ -1,0 +1,9 @@
+# Classes with the same label
+SELECT ?label (GROUP_CONCAT(DISTINCT ?class; separator=", ") AS ?classes)
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?class a ?type .
+  ?class rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+}
+GROUP BY ?label
+HAVING (COUNT(DISTINCT ?class) > 1)
