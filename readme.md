@@ -1,12 +1,14 @@
 # Ontology Quality Assessment
 
-A tool for ontology development that profiles an ontology file and provides metrics such as the number of triples, class count, and property count to give a baseline understanding of the ontology’s scale and complexity. The tool also does a quality assessment of an ontology that checks for attributes such as ontology declaration, description, version metadata, and so on. This focuses on completeness, documentation quality, and structural integrity of the ontology.
+Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline. This tool profiles your ontology file (triples, classes, properties, etc.) and runs quality checks (declarations, descriptions, versioning, structure), then produces a clear report so you can track complexity over time, catch regressions early, and keep your ontology consistently high-quality.
 
 ## Usage
 
+We have a [Github workflow](/.github/workflows/ci-test.yml) running against an [example ontology](/tests/example.ttl) - use this as a reference.
+
 The `ontology_qa.py` script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data
 
-```
+```bash
 usage: ontology_qa.py [-h] [-e] [-v] [-p] [--ctrf-dir CTRF_DIR] [--ctrf-filename CTRF_FILENAME] data_files [data_files ...]
 
 positional arguments:
@@ -22,11 +24,31 @@ optional arguments:
                         Filename for CTRF report (if None, uses default pattern).
 ```
 
-### Dev setup
-```brew install poetry```
+The `generate_custom_report.py` script generates a custom markdown report from aggregated CTRF JSON files. Uses Handlebars template to render the report.
 
-To test the file works, run the script using the example file:
+```bash
+usage: generate_custom_report.py [-h] [--ctrf-dir directory] [--template-path directory] [--output-path directory]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --ctrf-dir directory  Directory to write CTRF report to.
+  --template-path directory
+                        Path to the CTRF report template file.
+  --output-path directory
+                        Path to write the CTRF markdown report file.
+```
+
+## Dev setup
+Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.
+
+To test the script works, run the script using the example file:
 ```poetry run scripts/ontology_qa.py tests/example.ttl```
+
+It should generate a JSON files in the ctrf directory.
+
+## New features
+
+The backlog is managed in a [GitHub project](https://github.com/orgs/Semantic-partners/projects/3).
 
 ## Implementation
 
@@ -87,11 +109,6 @@ For example, the test ontology [`example.ttl`](tests/example.ttl) returns the fo
 | Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
 | http://my.ont.example# | 0 | 0 | 0.636 | 0.800 | 0.333 | 0 | 0.909 | 1 | 0.333 | 1 | 0.091 | 0 | 0 | 0 | 0.273 | 0.200 | 0.600 | 1 | 0 | 2 | 0 | 1 |
-
-### Metrics we could add
-1. Structure & complexity (hierarchy depth, average branching factor, use of restrictions)
-2. Reuse of external ontologies (e.g. Dublin Core, schema.org, domain-specific standards)
-3. Conformance to standards (OWL, RDF, SKOS, etc.)
 
 ### Batch Processing
 
