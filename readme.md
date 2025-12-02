@@ -4,7 +4,23 @@ A tool for ontology development that profiles an ontology file and provides metr
 
 ## Usage
 
-The `ontology_qa.py` script accepts a file or folder as a parameter. It will accept any RDF file.
+The `ontology_qa.py` file is a script to perform basic QA on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
+
+```
+usage: ontology_qa.py [-h] [-e] [-v] [-p] [--ctrf-dir CTRF_DIR] [--ctrf-filename CTRF_FILENAME] data_files [data_files ...]
+
+positional arguments:
+  data_files            List of RDF files or folders to process.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -e, --exit-status     Report an exit status to determine if one or more violations were detected.
+  -v, --verbose         Enable verbose output.
+  -p, --profile-only    Compute only the profiling metrics and skip the QA part.
+  --ctrf-dir CTRF_DIR   Directory to write CTRF report to.
+  --ctrf-filename CTRF_FILENAME
+                        Filename for CTRF report (if None, uses default pattern).
+```
 
 ### Dev setup
 ```brew install poetry```
