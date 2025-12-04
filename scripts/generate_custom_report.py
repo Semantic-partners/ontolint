@@ -9,6 +9,7 @@ import os
 import glob
 from pathlib import Path
 from datetime import datetime
+import argparse
 
 def aggregate_ctrf_reports(ctrf_dir):
     """Load and aggregate all CTRF JSON files from the specified directory."""
@@ -208,24 +209,27 @@ def evaluate_condition(condition, context):
 
 
 def main():
-    ctrf_dir = os.getenv('CTRF_DIR', 'ctrf')
-    output_file = os.getenv('REPORT_OUTPUT', 'out/ctrf_report.md')
-    template_file = os.getenv('TEMPLATE_FILE', 'templates/ctrf-report.hbs')
-    
-    print(f"Loading CTRF reports from: {ctrf_dir}")
-    print(f"Template file: {template_file}")
-    print(f"Output file: {output_file}")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
+    parser.add_argument('--template-path', type=str, metavar='directory', default='templates/ctrf-report.hbs', help='Path to the CTRF report template file.')
+    parser.add_argument('--output-path', type=str, metavar='directory', default='out/ctrf_report.md', help='Path to write the CTRF markdown report file.')
+
+    args = parser.parse_args()
+
+    print(f"Loading CTRF reports from: {args.ctrf_dir}")
+    print(f"Template file: {args.template_path}")
+    print(f"Output file: {args.output_path}")
     
     # Load template
-    if not os.path.exists(template_file):
-        print(f"Error: Template file not found: {template_file}")
+    if not os.path.exists(args.template_path):
+        print(f"Error: Template file not found: {args.template_path}")
         return 1
     
-    with open(template_file, 'r') as f:
+    with open(args.template_path, 'r') as f:
         template_content = f.read()
     
     # Aggregate reports
-    reports, total_tests, total_passed, total_failed = aggregate_ctrf_reports(ctrf_dir)
+    reports, total_tests, total_passed, total_failed = aggregate_ctrf_reports(args.ctrf_dir)
     
     if not reports:
         print("No reports to process.")
@@ -244,11 +248,11 @@ def main():
     rendered_report = simple_handlebars_render(template_content, context)
     
     # Write output
-    os.makedirs(os.path.dirname(output_file) or '.', exist_ok=True)
-    with open(output_file, 'w') as f:
+    os.makedirs(os.path.dirname(args.output_path) or '.', exist_ok=True)
+    with open(args.output_path, 'w') as f:
         f.write(rendered_report)
     
-    print(f"\nCustom report generated: {output_file}")
+    print(f"\nCustom report generated: {args.output_path}")
     print(f"Total: {total_tests} tests | {total_passed} passed | {total_failed} failed")
     
     return 0

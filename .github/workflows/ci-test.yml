@@ -24,7 +24,7 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: "Check out repository code"
+      - name: Check out repository code
         uses: actions/checkout@v5
       
       - name: Install Poetry
@@ -42,15 +42,11 @@ jobs:
         if: always()
 
       - name: Generate CTRF report
-        run: poetry run scripts/generate_custom_report.py 
-        env:
-          CTRF_DIR: ctrf
-          REPORT_OUTPUT: ctrf_report.md
-          TEMPLATE_FILE: templates/ctrf-report.hbs
+        run: poetry run scripts/generate_custom_report.py --ctrf-dir ctrf --template-path templates/ctrf-report.hbs --output-path out/ctrf_report.md
         if: always()
 
       # Append report to workflow summary
       - name: Create workflow summary
         run: |
-          cat ctrf_report.md >> $GITHUB_STEP_SUMMARY
+          cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
         if: always()
