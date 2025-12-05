@@ -100,12 +100,14 @@ def get_ontology_name(metrics):
     num_uri = len(metrics['ontologyURI'])
     if num_uri > num_files: num_files = num_uri
     for _ in range(num_files):
-        if metrics['ontologyURI'][_]:
+        if metrics['ontologyURI']:
             names += f"{metrics['ontologyURI'][_]},<br> "
         else:
             count += 1
-    
-    if count >= 1:
+    if count == 1 and num_uri == 0:
+        # special case if one file without ontology declaration is found
+        names = metrics['filesProcessed'][0].split('/')[-1]
+    elif count >= 1:
         names += f"{count} URIs not found.,<br> "
     names = names.rstrip(",<br> ")
     return names
@@ -1571,6 +1573,7 @@ def check_hijacking(metrics, graph, name, c, status, verbose):
     if not results:
         log += "PASS - No violations found.\n"
         metrics['hijacking'] = 0
+        violations['hijacking'] = ""
 
     elif results:
         metrics['hijacking'] = len(results)
@@ -1705,7 +1708,7 @@ def main():
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        qa_metrics, violations, log_results, tn, xs = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
+        qa_metrics, violations, test, log_results, tn, xs = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
@@ -1751,10 +1754,8 @@ def main():
     log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
 
     # Cycle through selected tests.
-    for _ in range(len(test_checklist)):
-        func = test_checklist[_][1]
-        test_name = test_checklist[_][2]
-        if test_checklist[_][0]:
+    for enabled, func, test_name in test_checklist:
+        if enabled:
             qa_metrics, violations, test, log_results, tn, xs = func(qa_metrics, g, test_name, tn, xs, args.verbose)
 
             # Merge returned violations into global dictionary
