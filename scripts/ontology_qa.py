@@ -100,7 +100,7 @@ def get_ontology_name(metrics):
     num_uri = len(metrics['ontologyURI'])
     if num_uri > num_files: num_files = num_uri
     for _ in range(num_files):
-        if metrics['ontologyURI']:
+        if _ < num_uri and metrics['ontologyURI']:
             names += f"{metrics['ontologyURI'][_]},<br> "
         else:
             count += 1
@@ -498,12 +498,11 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
         log += "VIOLATION - No `owl:Ontology` declaration found.\n"
         violations['ontologyNotDeclared'] = "**All** processed files missing ontology declaration."
     
-    elif  metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files:
-        ov = num_files - metrics['ontologyNotDeclared']
-        if ov == 1:
+    elif metrics['ontologyNotDeclared'] > 0 and metrics['ontologyNotDeclared'] < num_files:
+        if metrics['ontologyNotDeclared'] == 1:
             log += f"VIOLATION - 1 ontology without `owl:Ontology` declaration.\n"
         else:
-            log += f"VIOLATION - {ov} ontologies without `owl:Ontology` declaration.\n"
+            log += f"VIOLATION - {metrics['ontologyNotDeclared']} ontologies without `owl:Ontology` declaration.\n"
         violations['ontologyNotDeclared'] = "**Some** processed files missing ontology declaration.<br> Check files individually."
     
     else:
@@ -524,7 +523,7 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
     # Print more information if violations are found.
     if metrics['ontologyNotDeclared'] > 0:
         log += "Check the input files individually to find out which one violates this check.\n"
-        if num_uri > 0: log += "WARNING - The following ontology URI were found:\n"
+        if num_uri > 0: log += "WARNING - The following ontology URIs were found:\n"
         for _ in range(num_uri):
             log += f" - {metrics['ontologyURI'][_]}\n"
     
@@ -542,7 +541,7 @@ def check_owl_declaration_description(metrics, graph, name, c, status, verbose):
         log += log_results
         results = exec_sparql(graph, 'no_ont_description')
         if not results:
-            log += "PASS - All ontologies have a description.\n"
+            log += "PASS - All declared ontologies have a description.\n"
             metrics['ontologyDescription'] = 0 # yes
             violations['ontologyDescription'] = ""
             if verbose:
@@ -1601,19 +1600,20 @@ def check_hijacking(metrics, graph, name, c, status, verbose):
     log += sep()
     return metrics, violations, test, log, c, status
 
-def load_rdf_file(file, graph):
+def load_rdf_file(file):
     """
-    Load RDF data from a file into the given rdflib Graph.
+    Load RDF data from a file and return an RDFLib Graph.
     
     Args:
         file (str): Path to the RDF file.
-        graph (rdflib.Graph): The RDF graph object to parse into.
     
     Returns:
         bool: True if the file was successfully loaded, False otherwise.
+        graph (rdflib.Graph): The RDF graph object to parse into.
         log (str): Parsing result.
     """
     log = f"Loading data from: {file}\n"
+    graph = rdflib.Graph()
 
     # Try to guess format from file extension
     if file.lower().endswith(('.ttl', '.turtle')):
@@ -1624,10 +1624,10 @@ def load_rdf_file(file, graph):
         fmt = None  # Let rdflib try to guess
     try:
         graph.parse(file, format=fmt)
-        return True, log
+        return True, graph, log
     except Exception as e:
         log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
-        return False, log
+        return False, graph, log
 
 def load_rdf(f):
     """
@@ -1652,19 +1652,22 @@ def load_rdf(f):
         for root, _, files in os.walk(f):
             for file in files:
                 file_path = os.path.join(root, file)
-                go, results = load_rdf_file(file_path, graph)
+                go, g, results = load_rdf_file(file_path)
                 log += results
                 if go:
-                  # Append processed file
-                  metrics['filesProcessed'].append(file)
-                  counter += 1
+                    # Append processed file
+                    metrics['filesProcessed'].append(file)
+                    counter += 1
+                    graph += g
     else:
-        go, results = load_rdf_file(f, graph)
+        go, g, results = load_rdf_file(f)
         log += results
         if go:
             # Append processed file
             metrics['filesProcessed'].append(f)
             counter += 1
+            graph += g
+
     return counter, metrics, graph, log
 
 def main():
@@ -1688,22 +1691,27 @@ def main():
     g = rdflib.Graph()
     file_counter = 0
     log_output = "# Ontology Quality Assurance\n\n"
+    files_processed = []
     for f in args.data_files:
         c, file_metrics, file_graph, results = load_rdf(f)
         file_counter += c
-        qa_metrics.update(file_metrics)
+        files_processed.extend(file_metrics['filesProcessed'])
         g += file_graph # accumulate in the main graph.
         log_output += results
 
     if file_counter == 0:
         print(f"{log_output}\nERROR - No RDF data in input files or directories.")
         return
-    
+    else:
+        # Update the filesProcessed key
+        qa_metrics['filesProcessed'] = files_processed
+
     # Compute and store the profiling metrics.
     qa_metrics['triples'] = len(g)
     metrics, violations = profiling(g)
     qa_metrics.update(metrics)
     qa_violations.update(violations)
+    log_output += f"\n> {file_counter} files processed.\n"
 
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
