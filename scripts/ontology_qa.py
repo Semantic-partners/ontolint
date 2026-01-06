@@ -652,7 +652,7 @@ def check_property_missing_label(in_metrics, graph, name, c, status, verbose):
     test['missingPropertyLabel'] = True
 
     if not results and int(in_metrics['propertyCount']) > 0:
-        log += "PASS - All properties have a label annotation."
+        log += "PASS - All properties have a label annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'property_labels')
             log += "|  Property | Label |\n|--|--|\n"
