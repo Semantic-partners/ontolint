@@ -1,0 +1,19 @@
+SELECT (MAX(?depth) AS ?maxDepth)
+WHERE {
+  {
+    SELECT ?child (COUNT(DISTINCT ?parent) AS ?depth)
+    WHERE {
+        ?child rdfs:subClassOf+ ?parent .
+        ?child rdf:type ?type .
+        VALUES ?type { owl:Class rdfs:Class }
+    }
+    GROUP BY ?child
+  } UNION {
+    SELECT ?concept (COUNT(?ancestor) AS ?depth)
+    WHERE {
+        ?concept a skos:Concept .
+        ?concept skos:broader+ ?ancestor .
+    }
+    GROUP BY ?concept
+  }
+}
