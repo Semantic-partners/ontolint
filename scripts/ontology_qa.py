@@ -143,9 +143,11 @@ def print_profiling_table(metrics):
     name = get_ontology_name(metrics)
     log = "\n## Profiling Metrics\n"
     log += f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
-    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|\n"
-    log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |\n"
+    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} "
+    log += f"| {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} "
+    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} |\n"
     return log
 
 def print_qa_table(metrics):
@@ -310,11 +312,17 @@ def print_profiling_metrics(metrics, violations, verbose):
     if metrics['vocabulariesUsed'] > 0:
         log += "\n| Prefix | URI |\n|--|--|\n"
         for _ in range( len(violations['vocabulariesUsed']['prefix']) ):
-            # print(f" - {pfx}: {ns}")
             log += f"| {violations['vocabulariesUsed']['prefix'][_]} "
             log += f"| {violations['vocabulariesUsed']['uri'][_]} |\n"
         log += "\n"
-
+    
+    log += f"Ontologies imported: {metrics['imports']}\n"
+    if metrics['imports'] > 0:
+        for ont in violations['imports']:
+            log += f"* Ontology \'{ont}\' imports:\n"
+            for res in violations['imports'][ont]: log += f"  * {res}\n" 
+        log += sep() # last separator.
+    
     return log
 
 def qa_check_results(description,qan):
@@ -406,10 +414,8 @@ def profiling(graph):
     if results:
         for row in results:
             # Remove ontology namespace from active_prefixes
-            to_remove = []
-            for row in results:
-                for ns, pfx in active_prefixes.items():
-                    if str(row.ont) == ns: del active_prefixes[ns]
+            for ns, pfx in active_prefixes.items():
+                if str(row.ont) == ns: del active_prefixes[ns]
     metrics['vocabulariesUsed'] = len(active_prefixes)
 
     # These are not violations, but the dictionary is nevertheless used to store elements
@@ -424,6 +430,19 @@ def profiling(graph):
     for ns, pfx in items:
         violations['vocabulariesUsed']['prefix'].append(pfx)
         violations['vocabulariesUsed']['uri'].append(ns)
+
+    # List all imports
+    results = exec_sparql(graph, 'ont_imports')
+    metrics['imports'] = len(results)
+    violations['imports'] = {}
+    if metrics['imports'] > 0:
+        old =  ""
+        for row in results:
+            if row.ont != old:
+                violations['imports'][str(row.ont)] = []
+                old = row.ont
+            violations['imports'][str(row.ont)].append(str(row.res))
+    
     return metrics, violations
 
 def infer_subclass_relations(graph):

@@ -1,0 +1,5 @@
+SELECT ?ont ?res
+WHERE {
+  ?ont a owl:Ontology ;
+    owl:imports ?res .
+}
