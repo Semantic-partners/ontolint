@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Ontology Quality Assessment Script (v0.1)
-# SEMANTIC PARTNERS LTD, 2025
+# SEMANTIC PARTNERS LTD, 2026
 # Authors: Simon Shapiro, Otello M Roscioni.
-# Last revision: 2025-11-30
+# Last revision: 2026-01-07
 
 """
 A script to perform basic QA on a set of ontologies.
@@ -74,7 +74,7 @@ def prefixes(g):
     for ns in used_namespaces:
         if ns in declared_prefixes:
             prefix = declared_prefixes[ns]
-            if len(prefix) > 0: used_prefixes[prefix] = ns
+            if len(prefix) > 0: used_prefixes[ns] = prefix
 
     return used_prefixes
 
@@ -408,10 +408,8 @@ def profiling(graph):
             # Remove ontology namespace from active_prefixes
             to_remove = []
             for row in results:
-                for pfx, ns in active_prefixes.items():
-                    if str(row.ont) == ns: to_remove.append(pfx)
-            for pfx in to_remove:
-                del active_prefixes[pfx]
+                for ns, pfx in active_prefixes.items():
+                    if str(row.ont) == ns: del active_prefixes[ns]
     metrics['vocabulariesUsed'] = len(active_prefixes)
 
     # These are not violations, but the dictionary is nevertheless used to store elements
@@ -420,8 +418,10 @@ def profiling(graph):
         'prefix': [],
         'uri': []
         }
-    for pfx, ns in active_prefixes.items():
-        # print(f" - {pfx}: {ns}")
+    # Build a (namespace, prefix) array and sort it by namespace
+    items = [(ns, pfx) for ns, pfx in active_prefixes.items()]
+    items.sort(key=lambda x: x[1])
+    for ns, pfx in items:
         violations['vocabulariesUsed']['prefix'].append(pfx)
         violations['vocabulariesUsed']['uri'].append(ns)
     return metrics, violations
@@ -1681,6 +1681,14 @@ def load_rdf(f):
                     metrics['filesProcessed'].append(file)
                     counter += 1
                     graph += g
+                    # Copy namespace/prefix bindings from the parsed file graph into
+                    # the main graph so declared prefixes (e.g. `ex:`) are preserved.
+                    for prefix, uri in g.namespace_manager.namespaces():
+                        try:
+                            graph.namespace_manager.bind(prefix, uri)
+                        except Exception:
+                            # ignore binding errors and continue
+                            pass
     else:
         go, g, results = load_rdf_file(f)
         log += results
@@ -1689,6 +1697,12 @@ def load_rdf(f):
             metrics['filesProcessed'].append(f)
             counter += 1
             graph += g
+            # Preserve namespace bindings from the single file graph
+            for prefix, uri in g.namespace_manager.namespaces():
+                try:
+                    graph.namespace_manager.bind(prefix, uri)
+                except Exception:
+                    pass
 
     return counter, metrics, graph, log
 
@@ -1719,6 +1733,12 @@ def main():
         file_counter += c
         files_processed.extend(file_metrics['filesProcessed'])
         g += file_graph # accumulate in the main graph.
+        # Preserve namespace/prefix bindings from the parsed file_graph into the main graph
+        for prefix, uri in file_graph.namespace_manager.namespaces():
+            try:
+                g.namespace_manager.bind(prefix, uri)
+            except Exception:
+                pass
         log_output += results
 
     if file_counter == 0:
