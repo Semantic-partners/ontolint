@@ -1738,7 +1738,8 @@ def main():
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        qa_metrics, violations, test, log_results, test_counter, num_violations = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
+        metrics, violations, test, log_results, test_counter, num_violations = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
+        qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
