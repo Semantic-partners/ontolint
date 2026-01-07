@@ -20,7 +20,9 @@ import json
 from datetime import datetime
 
 # Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value.
+sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value. # check that the directory exists
+if not os.path.isdir(sparql_dir):
+    sys.exit(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
 
 def load_sparql_queries(directory):
     """
