@@ -57,6 +57,6 @@ jobs:
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event_name == 'pull_request' }}
+          issue-number: ${{ github.event.pull_request.number }}
           body-file: /tmp/example.md
         if: always()
