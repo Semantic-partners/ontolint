@@ -55,7 +55,9 @@ jobs:
       # Use the output of Ontology QA to create a comment.
       - id: make-comment
         run: |
+          echo "message<<EOF" >> $GITHUB_OUTPUT
           cat /tmp/example.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         if: always()
   
       # use actions/github-script (octokit) to create an issue comment on the PR
