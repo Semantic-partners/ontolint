@@ -58,4 +58,5 @@ jobs:
         uses: GrantBirki/comment@v2.1.1
         with:
           file: example.md
+          issue-number: ${{ github.event.issue.number }}
         if: always()
