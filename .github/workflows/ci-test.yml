@@ -52,23 +52,11 @@ jobs:
           cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
         if: always()
 
-      # Use the output of Ontology QA to create a comment.
-      - id: make-comment
-        run: |
-          echo "message<<EOF" >> $GITHUB_OUTPUT
-          cat /tmp/example.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        if: always()
-  
-      # use actions/github-script (octokit) to create an issue comment on the PR
-      - uses: actions/github-script@v7
+      # Use peter-evans action to post or update a comment.
+      - name: Comment with file contents
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          script: |
-            const body = `${{ steps.make-comment.outputs.message }}`
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
-            })
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event_name == 'pull_request' }}
+          body-file: /tmp/example.md
         if: always()
