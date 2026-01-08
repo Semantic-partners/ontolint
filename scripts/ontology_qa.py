@@ -20,7 +20,9 @@ import json
 from datetime import datetime
 
 # Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value. # check that the directory exists
+sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.argv[0])) + '/../sparql') # Use ENV variable or default value.
+
+# check that the directory exists
 if not os.path.isdir(sparql_dir):
     sys.exit(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
 
@@ -274,7 +276,8 @@ def write_ctrf_report(metrics, violations, tests, file_path, filename):
     return ctrf_report, log
 
 def print_profiling_metrics(metrics, violations, verbose):
-    log  = f"RDF/OWL classes: {metrics['classCount']}\n"
+    log  = f"\n## Profiling Metrics\n\n"
+    log += f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
     log += f"SHACL Property Shapes: {metrics['propertyShapes']}\n"
@@ -327,7 +330,6 @@ def print_profiling_metrics(metrics, violations, verbose):
     log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
     log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
     log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
-    log += sep() # last separator.
     return log
 
 def qa_check_results(description,qan):
@@ -419,8 +421,11 @@ def profiling(graph):
     if results:
         for row in results:
             # Remove ontology namespace from active_prefixes
+            to_remove = []
             for ns, pfx in active_prefixes.items():
-                if str(row.ont) == ns: del active_prefixes[ns]
+                if str(row.ont) == ns: to_remove.append(ns)
+            for ns in to_remove:
+                del active_prefixes[ns]
     metrics['vocabulariesUsed'] = len(active_prefixes)
 
     # These are not violations, but the dictionary is nevertheless used to store elements
@@ -467,7 +472,7 @@ def profiling(graph):
 
 def infer_subclass_relations(graph):
     """
-    Infer sub-class relations from ...
+    Construct sub-class relations recursively using the sub-class inference rule.
     
     Args:
         graph (rdflib.Graph): The RDF graph object to parse into.
@@ -491,7 +496,7 @@ def infer_subclass_relations(graph):
             break
         else:
             log += f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...\n"
-    log += f"Final graph size after inference: {len(graph)} triples.\n" + sep() + "\n"
+    log += f"Final graph size after inference: {len(graph)} triples.\n"
     return graph, log
 
 def check_owl_declaration_description(in_metrics, graph, name, c, status, verbose):
@@ -915,7 +920,7 @@ def check_property_missing_comment(in_metrics, graph, name, c, status, verbose):
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
-            log_results = exec_sparql(graph, 'class_labels')
+            log_results = exec_sparql(graph, 'property_labels')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.p} | {row.lbl} |\n"
@@ -1751,6 +1756,7 @@ def main():
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only',action='store_true', help='Compute only the profiling metrics and skip the QA part.')
+    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks.(default: False)')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
@@ -1805,9 +1811,10 @@ def main():
         qa_terminate(args.output, log_output)
         return
     
-    # Simulate Inference
-    g, results = infer_subclass_relations(g)
-    log_output += results
+    # Simulate Inference (optional)
+    if args.inference:
+        g, results = infer_subclass_relations(g)
+        log_output += results
 
     # Compute the metrics for Quality Assurance.
     num_violations = 0
@@ -1842,6 +1849,7 @@ def main():
 
     # Aggregate and format the results.
     log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
+    log_output += f"\n## Quality Assurance Checks\n"
 
     # Cycle through selected tests.
     for enabled, func, test_name in test_checklist:

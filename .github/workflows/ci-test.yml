@@ -3,15 +3,13 @@
 name: Ontology QA
 
 # Controls when the workflow will run
-on: 
-  pull_request:
-    types: [opened, synchronize] # Trigger on PR open or commit push
+on: [push]
 
 # The permissions granted to the GITHUB_TOKEN for this workflow
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
+#  issues: write
+#  pull-requests: write
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -42,7 +40,7 @@ jobs:
       
       - name: Check all ontologies
         run: | 
-          poetry run scripts/ontology_qa.py tests/example.ttl -e --ctrf-dir ctrf -o example.md
+          poetry run scripts/ontology_qa.py tests/example.ttl -e --ctrf-dir ctrf -o out/report_detailed.md
         if: always()
 
       - name: Generate CTRF report
@@ -53,11 +51,12 @@ jobs:
       - name: Create workflow summary
         run: |
           cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
+          sed '1c # Verbose output of QA script' out/report_detailed.md >> $GITHUB_STEP_SUMMARY
         if: always()
 
-      - name: Create comment from markdown file
-        uses: GrantBirki/comment@v2.1.1
-        with:
-          file: example.md
-          issue-number: ${{ github.event.pull_request.number }}
-        if: always()
+      # - name: Create comment from markdown file
+      #   uses: GrantBirki/comment@v2.1.1
+      #   with:
+      #     file: report_detailed.md
+      #     issue-number: ${{ github.event.pull_request.number }}
+      #   if: always()
