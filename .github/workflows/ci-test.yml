@@ -54,7 +54,7 @@ jobs:
 
       # Use peter-evans action to post or update a comment.
       - name: Comment with file contents
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
