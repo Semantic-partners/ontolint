@@ -41,7 +41,7 @@ jobs:
       
       - name: Check all ontologies
         run: | 
-          poetry run scripts/ontology_qa.py tests/example.ttl -e --ctrf-dir ctrf -o /tmp/example.md
+          poetry run scripts/ontology_qa.py tests/example.ttl -e --ctrf-dir ctrf -o example.md
         if: always()
 
       - name: Generate CTRF report
@@ -57,5 +57,5 @@ jobs:
       - name: Create comment from markdown file
         uses: GrantBirki/comment@v2.1.1
         with:
-          file: /tmp/example.md
+          file: example.md
         if: always()
