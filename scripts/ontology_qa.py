@@ -143,11 +143,12 @@ def print_profiling_table(metrics):
     name = get_ontology_name(metrics)
     log = "\n## Profiling Metrics\n"
     log += f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
-    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported |\n"
+    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported "
+    log += f"| Hierarchy depth | Ave branching factor | Cardinality restrictions |\n"
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} "
     log += f"| {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} "
-    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} |\n"
+    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} | {metrics['HierarchyDepth']} | {normalise(metrics['aveBranchFactor'], 1)} | {metrics['CardinalityRestrictions']} |\n"
     return log
 
 def print_qa_table(metrics):
@@ -320,9 +321,13 @@ def print_profiling_metrics(metrics, violations, verbose):
     if metrics['imports'] > 0:
         for ont in violations['imports']:
             log += f"* Ontology \'{ont}\' imports:\n"
-            for res in violations['imports'][ont]: log += f"  * {res}\n" 
-        log += sep() # last separator.
+            for res in violations['imports'][ont]: log += f"  - {res}\n" 
+        log += "\n"
     
+    log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
+    log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
+    log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
+    log += sep() # last separator.
     return log
 
 def qa_check_results(description,qan):
@@ -350,7 +355,7 @@ def profiling(graph):
     # Count classes, properties before inferencing.
     results = exec_sparql(graph, 'count_cp')
     (row,) = results
-    metrics['classCount']= row.classCount
+    metrics['classCount'] = row.classCount
     metrics['propertyCount'] = row.propertyCount
 
     # Count shapes.
@@ -443,6 +448,21 @@ def profiling(graph):
                 old = row.ont
             violations['imports'][str(row.ont)].append(str(row.res))
     
+    # hierarchy depth
+    results = exec_sparql(graph, 'hierarchy_depth')
+    (row,) = results
+    metrics['HierarchyDepth'] = row.maxDepth
+
+    # average branching factor
+    results = exec_sparql(graph, 'average_branching_factor')
+    (row,) = results
+    metrics['aveBranchFactor'] = row.avgBranchingFactor
+
+    # use of restrictions
+    results = exec_sparql(graph, 'cardinality_restrictions')
+    (row,) = results
+    metrics['CardinalityRestrictions'] = row.counter
+
     return metrics, violations
 
 def infer_subclass_relations(graph):
