@@ -3,7 +3,10 @@
 name: Ontology QA
 
 # Controls when the workflow will run
-on: [push]
+on: 
+  - push
+  - pull_request
+  - issues
 
 # The permissions granted to the GITHUB_TOKEN for this workflow
 permissions:
@@ -55,8 +58,9 @@ jobs:
       # Use peter-evans action to post or update a comment.
       - name: Comment with file contents
         uses: peter-evans/create-or-update-comment@v5
+        if: >-
+          always() && (github.event_name == 'pull_request' || github.event_name == 'issues')
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.pull_request.number || github.event.issue.number }}
           body-file: /tmp/example.md
-        if: always()
