@@ -55,18 +55,19 @@ jobs:
           cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
         if: always()
 
+      # Build a safe JSON payload from /tmp/example.md and POST it
+      - name: Build JSON payload from markdown
+        run: |
+          jq -Rs '{body: .}' /tmp/example.md > /tmp/payload.json
+        if: always()
 
-      # build JSON on stdout and pipe into curl
-      - name: Post comment via curl (using python)
+      - name: Post comment via curl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python3 - <<'PY' | curl -sS -H "Authorization: token $GITHUB_TOKEN" \
-                            -H "Accept: application/vnd.github.v3+json" \
-                            -X POST "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-                            -d @-
-          import json
-          print(json.dumps({"body": open('/tmp/example.md', 'r', encoding='utf-8').read()}))
-          PY
+          curl -sS -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -X POST "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            -d @/tmp/payload.json
         if: always()
