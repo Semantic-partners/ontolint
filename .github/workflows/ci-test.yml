@@ -55,12 +55,13 @@ jobs:
           cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
         if: always()
 
+
+      # build JSON on stdout and pipe into curl
       - name: Post comment via curl (using python)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # build JSON on stdout and pipe into curl
           python3 - <<'PY' | curl -sS -H "Authorization: token $GITHUB_TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
                             -X POST "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
@@ -68,3 +69,4 @@ jobs:
           import json
           print(json.dumps({"body": open('/tmp/example.md', 'r', encoding='utf-8').read()}))
           PY
+        if: always()
