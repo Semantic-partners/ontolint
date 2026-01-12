@@ -125,8 +125,9 @@ def qa_terminate(file, log):
         log (str): Results of the Quality Assurance tests, formatted in markdown.
     """
     # Print output to file or STDOUT.
-    os.makedirs(os.path.dirname(file) or '.', exist_ok=True) # Ensure directory exists
     if file:
+         # Ensure directory exists
+        os.makedirs(os.path.dirname(file) or '.', exist_ok=True)
         with open(file, "w", encoding="utf-8") as f:
             f.write(log)
     else:
