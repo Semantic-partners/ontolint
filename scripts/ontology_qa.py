@@ -457,8 +457,11 @@ def profiling(graph):
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
-    (row,) = results
-    metrics['HierarchyDepth'] = row.maxDepth
+    if results:
+        (row,) = results 
+        metrics['HierarchyDepth'] = row.maxDepth
+    else:
+        metrics['HierarchyDepth'] = 0
 
     # average branching factor
     results = exec_sparql(graph, 'average_branching_factor')
