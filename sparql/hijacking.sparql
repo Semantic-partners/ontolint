@@ -4,7 +4,7 @@ SELECT DISTINCT ?resource
 WHERE {
     # Get internal namespaces
     { 
-        SELECT (STR(?namespace) AS ?ns)
+        SELECT (REPLACE(STR(?namespace), "[#/][^#/]*$", "") AS ?ns)
         WHERE { 
             VALUES ?type { owl:Ontology skos:ConceptScheme }
             ?namespace a ?type .
