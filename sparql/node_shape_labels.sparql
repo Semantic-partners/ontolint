@@ -1,5 +1,5 @@
 SELECT DISTINCT ?ns ?lbl
 WHERE {
   ?ns a sh:NodeShape .
-  ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+  ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
 }
