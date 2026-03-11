@@ -134,3 +134,41 @@ do
  grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | tail -1 >> ont_tables.md
 done
 ```
+
+## GitHub Actions
+
+To deploy the QA script on a different repository, create the following folder in the root of the repository: `.github/workflows` and adapt the example in [`ci-test.yml`](.github/workflows/ci-test.yml). The workflow will need to be adapted in the following sections:
+
+```yaml
+    steps:
+      - name: Check out the current repository
+        uses: actions/checkout@v5
+
+      # Updated with token
+      - name: Check out ontology QA repository
+        uses: actions/checkout@v5
+        with:
+          repository: Semantic-partners/ontology-quality-assessment
+          ref: v0.1.1
+          token: ${{ secrets.PAT_TOKEN }}
+          path: ontology-quality-assessment
+
+      # Updated path
+      - name: Install dependencies
+        run: |
+          cd $GITHUB_WORKSPACE
+          ln -s ontology-quality-assessment/pyproject.toml
+          poetry install
+       
+      # Updated path
+      - name: Check all ontologies
+        run: | 
+          poetry run ${GITHUB_WORKSPACE}/ontology-quality-assessment/scripts/ontology_qa.py path/to/your/ontology.ttl -e --ctrf-dir ctrf
+        if: always()
+        
+      # Updated path
+      - name: Generate CTRF report
+        run: poetry run ${GITHUB_WORKSPACE}/ontology-quality-assessment/scripts/generate_custom_report.py --ctrf-dir ctrf --template-path ${GITHUB_WORKSPACE}/ontology-quality-assessment/templates/ctrf-report.hbs --output-path out/ctrf_report.md
+        if: always()
+```
+
