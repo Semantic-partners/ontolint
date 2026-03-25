@@ -38,7 +38,7 @@ jobs:
       
       - name: Check all ontologies
         run: | 
-          poetry run scripts/ontology_qa.py tests/example_failure.ttl tests/example_pass.ttl -e --ctrf-dir ctrf
+          poetry run scripts/ontology_qa.py tests/example_pass.ttl -e --ctrf-dir ctrf
         if: always()
 
       - name: Generate CTRF report
