@@ -32,6 +32,14 @@
     rdfs:label "Fur" ;
     rdfs:comment "The class of all Fur" .
 
+:Scales a rdfs:Class ;
+    rdfs:label "Scales" ;
+    rdfs:comment "The class of all Scales" .
+
+:Tail a rdfs:Class ;
+    rdfs:label "Tail" ;
+    rdfs:comment "The class of all Tails" .
+
 :Trout a rdfs:Class ;
     rdfs:comment "The class of all Trout" ;
     rdfs:subClassOf :Animal ;
