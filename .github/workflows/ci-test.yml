@@ -3,7 +3,7 @@
 name: Ontology QA
 
 # Controls when the workflow will run
-on: [push, workflow_dispatch]
+on: [push]
 
 # The permissions granted to the GITHUB_TOKEN for this workflow
 permissions:
