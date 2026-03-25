@@ -1,4 +1,4 @@
-# Ontology Quality Assessment
+# Ontolint: Ontology Quality Assessment
 
 Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline. This tool profiles your ontology file (triples, classes, properties, etc.) and runs quality checks (declarations, descriptions, versioning, structure), then produces a clear report so you can track complexity over time, catch regressions early, and keep your ontology consistently high-quality.
 
