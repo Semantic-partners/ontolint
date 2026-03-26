@@ -1,6 +1,6 @@
 # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 
-name: Ontology QA
+name: Example Ontology QA Workflow
 
 # Controls when the workflow will run
 on: [push]
