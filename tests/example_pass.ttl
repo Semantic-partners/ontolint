@@ -1,0 +1,125 @@
+@prefix : <http://my.ont.example#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+:Animal a rdfs:Class ;
+    rdfs:label "Animal" ;
+    rdfs:comment "The class of all Animals" ;
+    rdfs:subClassOf :Organism .
+
+:Cat a rdfs:Class ;
+    rdfs:label "Cat" ;
+    rdfs:comment "The class of all Cats" ;
+    rdfs:subClassOf :Animal .
+
+:Claw a rdfs:Class ;
+    rdfs:label "Claw" ;
+    rdfs:comment "The class of all Claws" .
+
+:Dog a rdfs:Class ;
+    rdfs:label "Dog" ;
+    rdfs:comment "The class of all Dogs" ;
+    rdfs:subClassOf :Animal .
+
+:Fish a rdfs:Class ;
+    rdfs:comment "The class of all Fish" ;
+    rdfs:subClassOf :Animal ;
+    skos:prefLabel "Fish" .
+
+:Fur a rdfs:Class ;
+    rdfs:label "Fur" ;
+    rdfs:comment "The class of all Fur" .
+
+:Scales a rdfs:Class ;
+    rdfs:label "Scales" ;
+    rdfs:comment "The class of all Scales" .
+
+:Tail a rdfs:Class ;
+    rdfs:label "Tail" ;
+    rdfs:comment "The class of all Tails" .
+
+:Trout a rdfs:Class ;
+    rdfs:comment "The class of all Trout" ;
+    rdfs:subClassOf :Animal ;
+    skos:prefLabel "Trout" .
+
+:fin a rdfs:Class ;
+    rdfs:label "Fin" ;
+    rdfs:comment "The class of all Fins" .
+
+: a owl:Ontology ;
+    rdfs:label "Animal Ontology" ;
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
+
+:AnimalShape a sh:NodeShape ;
+    sh:description "Make sure the entity belongs to the animal kingdom." ;
+    sh:name "Animal-Shape" ;
+    sh:targetClass :Cat,
+        :Crab,
+        :Dog,
+        :Fish,
+        :Shrimp .
+
+:Fuffy a :Dog ;
+    :hasClaws :dogClaws .
+
+:ShrimpShape a sh:NodeShape ;
+    rdfs:label "Shrimp" ;
+    sh:description "Forget about Dogs and Cats: Shrimps are the best pets." ;
+    sh:property :hasClawsShape ;
+    sh:targetClass :Shrimp .
+
+:hasFins a owl:ObjectProperty ;
+    rdfs:label "Has Fins" ;
+    rdfs:comment "Connects an animal to any fins it might have" ;
+    rdfs:domain :Fish ;
+    rdfs:range :fin .
+
+:hasFur a owl:ObjectProperty ;
+    rdfs:label "Has Fur" ;
+    rdfs:comment "Connects an animal to any fur it might have" ;
+    rdfs:domain :Cat,
+        :Dog ;
+    rdfs:range :Fur .
+
+:hasScales a owl:ObjectProperty ;
+    rdfs:label "Has Scales" ;
+    rdfs:comment "Connects an animal to any scales it might have" ;
+    rdfs:domain :Fish ;
+    rdfs:range :Scales .
+
+:hasTail a owl:ObjectProperty ;
+    rdfs:label "Has Tail" ;
+    rdfs:comment "Connects an animal to any fins it might have" ;
+    rdfs:domain :Cat,
+        :Dog ;
+    rdfs:range :Tail .
+
+:Crab a owl:Class,
+        sh:NodeShape ;
+    rdfs:label "Crab" ;
+    rdfs:comment "The class of all Crabs" ;
+    rdfs:subClassOf :Animal ;
+    sh:description "Make sure the entity is an animal that has claws" ;
+    sh:property :hasClaws .
+
+:dogClaws a :Claw .
+
+:hasClawsShape a sh:PropertyShape ;
+    sh:class :Claw ;
+    sh:description "connects via hasClaws to something of type Claw" ;
+    sh:name "Has Claws" ;
+    sh:path :hasClaws .
+
+:hasClaws a owl:ObjectProperty ;
+    rdfs:label "Has Claws" ;
+    rdfs:comment "connects an animal to any claws it might have" ;
+    rdfs:domain :Shrimp ;
+    rdfs:range :Claw .
+
+:Shrimp a owl:Class ;
+    rdfs:label "Shrimp" ;
+    rdfs:comment "The class of all Shrimps" ;
+    rdfs:subClassOf :Animal .

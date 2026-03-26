@@ -1,6 +1,6 @@
 # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 
-name: Ontology QA
+name: Example Ontology QA Workflow
 
 # Controls when the workflow will run
 on: [push]
@@ -38,7 +38,7 @@ jobs:
       
       - name: Check all ontologies
         run: | 
-          poetry run scripts/ontology_qa.py tests/example.ttl -e --ctrf-dir ctrf
+          poetry run scripts/ontology_qa.py tests/example_pass.ttl -e --ctrf-dir ctrf
         if: always()
 
       - name: Generate CTRF report
