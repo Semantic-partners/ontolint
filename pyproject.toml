@@ -1,9 +1,9 @@
 [project]
-name = "ontology-quality-assessment"
+name = "ontolint"
 version = "1.0.0"
 description = ""
 authors = [
-    {name = "Otello Roscioni", email = "otello.roscioni@semanticpartners.com"}
+    {name = "Otello M Roscioni", email = "otello.roscioni@semanticpartners.com"}
 ]
 readme = "readme.md"
 requires-python = ">=3.9"
