@@ -1,4 +1,4 @@
-# Ontology Quality Assessment
+# Ontolint: Ontology Quality Assessment
 
 Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline. This tool profiles your ontology file (triples, classes, properties, etc.) and runs quality checks (declarations, descriptions, versioning, structure), then produces a clear report so you can track complexity over time, catch regressions early, and keep your ontology consistently high-quality.
 
@@ -118,7 +118,7 @@ For quality assessment, one ontology at a time should be processed. The followin
 #!/bin/bash
 
 # Script path
-sp=~/Documents/ontology-quality-assessment/scripts
+sp=path/to/ontolint/scripts
 
 # Run the QA metric script, save the results and grep the Profiling table.
 for ont in *.ttl
@@ -134,10 +134,9 @@ do
  grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | tail -1 >> ont_tables.md
 done
 ```
-
 ## GitHub Actions
 
-To deploy the QA script on a different repository, create the following folder in the root of the repository: `.github/workflows` and adapt the example in [`ci-test.yml`](.github/workflows/ci-test.yml). The workflow will need to be adapted in the following sections:
+To deploy the QA script on a different repository, create the following folder in the root of the repository: `.github/workflows` and adapt the example in [`ci-example.yml`](.github/workflows/ci-example.yml). The workflow will need to be adapted in the following sections:
 
 ```yaml
     steps:
@@ -148,7 +147,7 @@ To deploy the QA script on a different repository, create the following folder i
       - name: Check out ontology QA repository
         uses: actions/checkout@v5
         with:
-          repository: Semantic-partners/ontology-quality-assessment
+          repository: Semantic-partners/ontolint
           ref: v0.1.1
           token: ${{ secrets.PAT_TOKEN }}
           path: ontology-quality-assessment
@@ -157,18 +156,17 @@ To deploy the QA script on a different repository, create the following folder i
       - name: Install dependencies
         run: |
           cd $GITHUB_WORKSPACE
-          ln -s ontology-quality-assessment/pyproject.toml
+          ln -s ontolint/pyproject.toml
           poetry install
        
       # Updated path
       - name: Check all ontologies
         run: | 
-          poetry run ${GITHUB_WORKSPACE}/ontology-quality-assessment/scripts/ontology_qa.py path/to/your/ontology.ttl -e --ctrf-dir ctrf
+          poetry run ${GITHUB_WORKSPACE}/ontolint/scripts/ontology_qa.py path/to/your/ontology.ttl -e --ctrf-dir ctrf
         if: always()
         
       # Updated path
       - name: Generate CTRF report
-        run: poetry run ${GITHUB_WORKSPACE}/ontology-quality-assessment/scripts/generate_custom_report.py --ctrf-dir ctrf --template-path ${GITHUB_WORKSPACE}/ontology-quality-assessment/templates/ctrf-report.hbs --output-path out/ctrf_report.md
+        run: poetry run ${GITHUB_WORKSPACE}/ontolint/scripts/generate_custom_report.py --ctrf-dir ctrf --template-path ${GITHUB_WORKSPACE}/ontolint/templates/ctrf-report.hbs --output-path out/ctrf_report.md
         if: always()
 ```
-

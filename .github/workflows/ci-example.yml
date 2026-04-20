@@ -1,6 +1,6 @@
 # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 
-name: Ontology QA
+name: Example Ontology QA Workflow
 
 # Controls when the workflow will run
 on: [push]
@@ -8,8 +8,6 @@ on: [push]
 # The permissions granted to the GITHUB_TOKEN for this workflow
 permissions:
   contents: read
-#  issues: write
-#  pull-requests: write
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -40,7 +38,7 @@ jobs:
       
       - name: Check all ontologies
         run: | 
-          poetry run scripts/ontology_qa.py tests/example.ttl -e --ctrf-dir ctrf --ctrf-filename example.json -o out/report_detailed.md
+          poetry run scripts/ontology_qa.py tests/example_pass.ttl -e --ctrf-dir ctrf
         if: always()
 
       - name: Generate CTRF report
@@ -51,12 +49,4 @@ jobs:
       - name: Create workflow summary
         run: |
           cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
-          sed '1c # Verbose output of QA script' out/report_detailed.md >> $GITHUB_STEP_SUMMARY
         if: always()
-
-      # - name: Create comment from markdown file
-      #   uses: GrantBirki/comment@v2.1.1
-      #   with:
-      #     file: report_detailed.md
-      #     issue-number: ${{ github.event.pull_request.number }}
-      #   if: always()
