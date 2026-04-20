@@ -1256,7 +1256,7 @@ def check_isolated_classes(in_metrics, graph, name, c, status, verbose):
     log += sep()
     return metrics, violations, test, log, c, status
 
-def check_missing_dr_property(in_metrics, graph, name, c, status, verbose):
+def check_property_missing_dr(in_metrics, graph, name, c, status, verbose):
     """
     QA test checking properties for rdfs:domain or rdfs:range declaration.
     
@@ -1767,7 +1767,7 @@ def main():
         (True, check_node_shape_same_label,          "NodeShapes with the same label"          ),
         (True, check_property_shape_same_label,      "PropertyShapes with the same label"      ),
         (True, check_isolated_classes,               "Isolated classes"                        ),
-        (True, check_missing_dr_property,            "Missing Domain or Range in Properties"   ),
+        (True, check_property_missing_dr,            "Missing Domain or Range in Properties"   ),
         (True, check_unique_identifiers,             "Non-unique identifiers"                  ),
         (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"   ),
         (True, check_untyped_class,                  "Untyped Classes"                         ),
