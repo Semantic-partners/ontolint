@@ -18,6 +18,7 @@ import sys
 import os
 import json
 from datetime import datetime
+import yaml
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value.
@@ -1256,7 +1257,7 @@ def check_isolated_classes(in_metrics, graph, name, c, status, verbose):
     log += sep()
     return metrics, violations, test, log, c, status
 
-def check_property_missing_dr(in_metrics, graph, name, c, status, verbose):
+def check_property_missing_domain_range(in_metrics, graph, name, c, status, verbose):
     """
     QA test checking properties for rdfs:domain or rdfs:range declaration.
     
@@ -1690,6 +1691,32 @@ def load_rdf(f):
 
     return counter, metrics, graph, log
 
+def parse_lint_config(config):
+    """
+    Parse configuration dictionary to switch on/off selected metrics.
+
+    Args:
+        config (str): Path to the YAML configuration file.
+    
+    Returns:
+        transformed_selection (dict): User-selected metrics.
+    """
+    with open(config, "r", encoding="utf-8") as f:
+        try:
+            selection = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML in config file: {e}")
+    
+    if selection is None:
+        selection = { "disable": [] }
+
+    # Transform the dictionary
+    transformed_selection = {
+        key: [f"check_{item.replace('-', '_')}" for item in value_list]
+        for key, value_list in selection.items()
+    }
+    return transformed_selection
+    
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1699,6 +1726,7 @@ def main():
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
+    parser.add_argument('-c', '--config', type=str, metavar='.rdf-lint.yml', help='Path to .rdf-lint.yml configuration file to enable or disable individual checks.')
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
@@ -1767,7 +1795,7 @@ def main():
         (True, check_node_shape_same_label,          "NodeShapes with the same label"          ),
         (True, check_property_shape_same_label,      "PropertyShapes with the same label"      ),
         (True, check_isolated_classes,               "Isolated classes"                        ),
-        (True, check_property_missing_dr,            "Missing Domain or Range in Properties"   ),
+        (True, check_property_missing_domain_range,  "Missing Domain or Range in Properties"   ),
         (True, check_unique_identifiers,             "Non-unique identifiers"                  ),
         (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"   ),
         (True, check_untyped_class,                  "Untyped Classes"                         ),
@@ -1775,8 +1803,25 @@ def main():
         (True, check_hijacking,                      "Namespace hijacking"                     )
     ]
 
-    # TO DO:
     # Parse a configuration file to enable/disable individual tests.
+    config_path = args.config if args.config else os.path.join(os.getcwd(), '.rdf-lint.yml')
+    if config_path and os.path.isfile(config_path):
+        lint_config = parse_lint_config(config_path)
+
+        # Disable the tests that are not included in the 'enable' list or that are included in the 'disable' list.
+        if 'enable' in lint_config and isinstance(lint_config['enable'], list):
+            for status, func, test_name in test_checklist:
+                if not func.__name__ in lint_config['enable']:
+                    index = test_checklist.index((status, func, test_name))
+                    test_checklist[index] = (False, func, test_name)
+        elif 'disable' in lint_config and isinstance(lint_config['disable'], list):
+            for status, func, test_name in test_checklist:
+                if func.__name__ in lint_config['disable']:
+                    index = test_checklist.index((status, func, test_name))
+                    test_checklist[index] = (False, func, test_name)
+        else:
+            # Print a warning
+            print(f"{log_output}\nWARNING - Invalid keyword in config file:\n{ list(lint_config.keys()) }\n")
 
     # Aggregate and format the results.
     log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
