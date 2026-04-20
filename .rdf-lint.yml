@@ -10,9 +10,10 @@
 #   - node-shape-missing-comment
 #   - node-shape-missing-label
 #   - node-shape-same-label
-#   - owl-declaration
+#   - owl-declaration-description
 #   - property-missing-comment
-#   - property-missing-domain-or-range
+#   - property-missing-domain
+#   - property-missing-range
 #   - property-missing-label
 #   - property-same-label
 #   - property-shape-missing-comment
@@ -25,11 +26,17 @@
 
 # Enable only specific checks (empty = all checks enabled)
 # enable:
-#   - owl-declaration
+#   - owl-declaration-description
 #   - class-missing-label
 #   - property-missing-label
 
 # Disable specific checks
-# disable:
-#   - hijacking
-#   - isolated-classes
+disable:
+  - hijacking
+  - isolated-classes
+  - property-missing-domain
+
+# Test error in dictionary
+# test:
+#   - this
+#   - that
