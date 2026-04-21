@@ -1,6 +1,6 @@
 [project]
 name = "ontology-quality-assessment"
-version = "1.0.0"
+version = "1.1.0"
 description = ""
 authors = [
     {name = "Otello Roscioni", email = "otello.roscioni@semanticpartners.com"}
@@ -10,6 +10,7 @@ requires-python = ">=3.9"
 dependencies = [
     "rdflib (>=7.4.0,<8.0.0)",
     "argparse (>=1.4.0,<2.0.0)"
+    "yaml (>=6.0.0,<7.0.0)"
 ]
 
 [tool.poetry]

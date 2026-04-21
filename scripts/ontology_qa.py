@@ -1741,53 +1741,52 @@ def parse_lint_config(config):
         key: [f"check_{item.replace('-', '_')}" for item in value_list]
         for key, value_list in selection.items()
     }
-    # Replace the value of selected items.
-    # for key, value_list in transformed_selection.items():
-    #     for item in value_list:
-    #         if item == 'check_property_missing_domain':
-    #             transformed_selection[key].append('check_property_missing_domain_range')
 
     return transformed_selection
 
 def lint_selection(selection, checklist):
         """
         Disable the tests that are not included in the 'enable' list or that are included in the 'disable' list.
+        The 'enable' and 'disable' keys are mutually exclusive. If both are specified in the configuration file,
+        only the first dictionary will be used.
         """
-
+        log = "Lint configuration file found!\n"
         if 'enable' in selection and isinstance(selection['enable'], list):
-            for status, func, test_name, key in checklist:
-                if not func.__name__ in selection['enable']:
-                    index = checklist.index((status, func, test_name, key))
-                    checklist[index] = (False, func, test_name, key)
-            
+            for i, item in enumerate(checklist):
+                if not item[1].__name__ in selection['enable']:
+                    checklist[i] = (False, item[1], item[2], item[3])
+
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' not in selection['enable']:
-                index = checklist.index((True, check_property_missing_domain_range, "Property without domain", 'missingDomain'))
-                checklist[index] = (False, check_property_missing_domain_range, "Property without domain", 'missingDomain')
+                index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
+                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
             
             if 'check_property_missing_range' not in selection['enable']:
-                index = checklist.index((True, check_property_missing_domain_range, "Property without range", 'missingRange'))
-                checklist[index] = (False, check_property_missing_domain_range, "Property without range", 'missingRange')
+                index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
+                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
         
         elif 'disable' in selection and isinstance(selection['disable'], list):
-            for status, func, test_name, key in checklist:
-                if func.__name__ in selection['disable']:
-                    index = checklist.index((status, func, test_name, key))
-                    checklist[index] = (False, func, test_name, key)
+            for i, item in enumerate(checklist):
+                if item[1].__name__ in selection['disable']:
+                    checklist[i] = (False, item[1], item[2], item[3])
             
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' in selection['disable']:
-                index = checklist.index((True, check_property_missing_domain_range, "Property without domain", 'missingDomain'))
-                checklist[index] = (False, check_property_missing_domain_range, "Property without domain", 'missingDomain')
+                index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
+                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
 
             if 'check_property_missing_range' in selection['disable']:
-                index = checklist.index((True, check_property_missing_domain_range, "Property without range", 'missingRange'))
-                checklist[index] = (False, check_property_missing_domain_range, "Property without range", 'missingRange')
+                index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
+                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
 
-        # else:
-        #     # Print a warning (doesn't work for now)
-        #     log_output += f"\nWARNING - Invalid keyword in config file:\n{ list(selection.keys()) }\n"
-        return checklist
+        else:
+            # Print a warning
+            log += f"\nWARNING - Invalid keyword in config file:\n\n```yaml\n"
+            log += yaml.dump(selection, default_flow_style=False)
+            log += f"```"
+        
+        log += sep()
+        return checklist, log
 
 def main():
     # Set up argument parser
@@ -1885,7 +1884,8 @@ def main():
         lint_config = parse_lint_config(config_path)
 
         # Disable the tests that are not included in the 'enable' list or that are included in the 'disable' list.
-        test_checklist = lint_selection(lint_config, test_checklist)
+        test_checklist, log_results = lint_selection(lint_config, test_checklist)
+        log_output += log_results
 
     # Aggregate and format the results.
     log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
