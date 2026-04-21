@@ -1,8 +1,8 @@
 # NodeShapes with the same label
 SELECT ?label (GROUP_CONCAT(DISTINCT ?ns; separator=", ") AS ?nsList)
 WHERE {
-  ?ns a sh:NodeShape .
-  ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+  ?ns a sh:NodeShape ;
+  rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
 }
 GROUP BY ?label
 HAVING (COUNT(DISTINCT ?ns) > 1)

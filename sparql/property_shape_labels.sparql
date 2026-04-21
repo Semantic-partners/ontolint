@@ -6,5 +6,5 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+    ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
 }
