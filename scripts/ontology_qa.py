@@ -1792,13 +1792,13 @@ def write_lint_config(checklist):
     """
     Generate a default .rdf-lint.yml config file
     """
-    sys.stderr.write(f"Ontoling: creating default configuration file .rdf-lint.yml in the current directory.\n")
+    sys.stderr.write(f"Ontolint: creating default configuration file .rdf-lint.yml in the current directory.\n")
 
     # abort if path exists
     path = os.getcwd() + "/.rdf-lint.yml"
     if os.path.exists(path):
         sys.stderr.write(f"ERROR: configuration file already exists: {path}\n\n")
-        exit(0)
+        exit(1)
 
     sequence = []
     for i, item in enumerate(checklist):
