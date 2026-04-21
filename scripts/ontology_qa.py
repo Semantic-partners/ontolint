@@ -1788,18 +1788,100 @@ def lint_selection(selection, checklist):
         log += sep()
         return checklist, log
 
+def write_lint_config(checklist):
+    """
+    Generate a default .rdf-lint.yml config file
+    """
+    sys.stderr.write(f"Ontoling: creating default configuration file .rdf-lint.yml in the current directory.\n")
+
+    # abort if path exists
+    path = os.getcwd() + "/.rdf-lint.yml"
+    if os.path.exists(path):
+        sys.stderr.write(f"ERROR: configuration file already exists: {path}\n\n")
+        exit(0)
+
+    sequence = []
+    for i, item in enumerate(checklist):
+        name = item[1].__name__.replace("check_", "").replace("_", "-")
+        sequence.append(name)
+    for item in sequence:
+        if item == "property-missing-domain-range":
+            sequence.remove(item)
+            sequence.append("property-missing-domain")
+        # Do it again :)
+        if item == "property-missing-domain-range":
+            sequence.remove(item)
+            sequence.append("property-missing-range")
+    
+    sequence = sorted(set(sequence))
+
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(f"""\
+# Ontolint configuration file: use it to enable or disable specific QA checks.
+# Place this file as .rdf-lint.yml in your project root.\n
+# Available checks:
+{chr(10).join(f'# - {s}' for s in sequence)}\n
+# Enable only specific checks (empty = all checks enabled)
+# enable:
+#   - owl-description
+#   - class-missing-label
+#   - property-missing-label\n
+# Disable specific checks
+# disable:
+#   - hijacking
+#   - isolated-classes
+#   - property-missing-domain
+        """)
+
 def main():
+    # Array with all tests for QA metrics.
+    # (enabled, function, test_description, dictionary_key)
+    test_checklist = [
+        (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
+        (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
+        (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
+        (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
+        (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
+        (True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ),
+        (True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ),
+        (True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'),
+        (True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ),
+        (True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ),
+        (True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ),
+        (True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ),
+        (True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ),
+        (True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ),
+        (True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ),
+        (True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ),
+        (True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ),
+        (True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ),
+        (True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ),
+        (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
+        (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
+        (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 )
+    ]
+    
     # Set up argument parser
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
-    parser.add_argument('-v', '--verbose',action='store_true', help='Enable verbose output.')
-    parser.add_argument('-p', '--profile-only',action='store_true', help='Compute only the profiling metrics and skip the QA part.')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
+    parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
-    parser.add_argument('-c', '--config', type=str, metavar='.rdf-lint.yml', help='Path to .rdf-lint.yml configuration file to enable or disable individual checks.')
-    parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
+    parser.add_argument('-c', '--config', type=str, metavar='path/to/.rdf-lint.yml', help='Path to .rdf-lint.yml configuration file to enable or disable individual checks.')
+    parser.add_argument('-i', '--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
+    parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
+
+    # Validate arguments: data_files is required unless -i is used.
+    if not args.init and not args.data_files:
+        parser.error("data_files is required unless -i/--init option is used")
+    
+    # Write an empty lint configuration file and exit.
+    if args.init:
+        write_lint_config(test_checklist)
+        exit(0)
 
     # Create empty dictionaries to store the ontology metrics.
     qa_metrics = {}    # violation count
@@ -1850,32 +1932,6 @@ def main():
     # Compute the metrics for Quality Assurance.
     num_violations = 0
     test_counter = 1
-
-    # Array with all tests for QA metrics.
-    test_checklist = [
-        (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
-        (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
-        (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
-        (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
-        (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
-        (True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ),
-        (True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ),
-        (True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'),
-        (True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ),
-        (True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ),
-        (True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ),
-        (True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ),
-        (True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ),
-        (True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ),
-        (True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ),
-        (True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ),
-        (True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ),
-        (True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ),
-        (True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ),
-        (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
-        (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
-        (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 )
-    ]
 
     # Parse a configuration file to enable/disable individual tests.
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
