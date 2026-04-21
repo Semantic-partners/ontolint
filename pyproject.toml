@@ -10,7 +10,8 @@ requires-python = ">=3.11"
 dependencies = [
     "rdflib (>=7.6.0,<8.0.0)",
     "argparse (>=1.4.0,<2.0.0)",
-    "datetime (>=6.0,<7.0)"
+    "datetime (>=6.0,<7.0)",
+    "pyyaml (>=6.0.3,<7.0.0)"
 ]
 
 [tool.poetry]
