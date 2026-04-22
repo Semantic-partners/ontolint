@@ -114,7 +114,7 @@ def get_ontology_name(metrics):
         names = metrics['filesProcessed'][0].split('/')[-1]
     elif count >= 1:
         names += f"{count} URIs not found.,<br> "
-    names = names.rstrip(",<br> ")
+    names = names.removesuffix(",<br> ")
     return names
 
 def qa_terminate(file, log):
@@ -571,7 +571,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     
     # Print additional information.
     if verbose and metrics[check] <= 0:
-        log = log.rstrip(".\n")
+        log = log.removesuffix(".\n")
         log += ":\n"
         for _ in range(num_uri):
             log += f" - {metrics['ontologyURI'][_]}\n"
@@ -632,11 +632,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             owd = len(results)
             metrics[check] = len(results) #  violations
             status += 1
-            string = ""
-            for row in results:
-                string += f"{row.ont},<br> "
-            
-            string = string.rstrip(",<br> ")
+            string = violation_formatting([row.ont for row in results])
             violations[check] = string
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
@@ -686,11 +682,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
         status += 1
-        string = ""
-        for t in results:
-            string += f"{t[0]},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -739,11 +731,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
-        string = ""
-        for t in results:
-            string += f"{t[0]},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.p for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -792,11 +780,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.ns},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.ns for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -845,11 +829,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row.ps},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.ps for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -898,11 +878,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
         status += 1
-        string = ""
-        for t in results:
-          string += f"{t[0]},<br> "
-
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -951,10 +927,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
-        string = ""
-        for t in results:
-          string += f"{t[0]},<br> "
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.p for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1002,11 +975,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row.ns},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.ns for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1055,10 +1024,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row.ps},<br> "
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.ps for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1108,7 +1074,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
             log += f"| {row.label} | {row.classes} |\n"
             string += f"\"{row.label}\": {row.classes};<br> "
         
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations[check] = string
     
     log += sep()
@@ -1156,7 +1122,7 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         for row in results:
             log += f"| {row.label} | {row.properties} |\n"
             string += f"\"{row.label}\": {row.properties};<br> "
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations[check] = string
     
     log += sep()
@@ -1205,7 +1171,7 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
             log += f"| {row.label} | {row.nsList} |\n"
             string += f"\"{row.label}\": {row.nsList};<br> "
         
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations[check] = string
     
     log += sep()
@@ -1254,7 +1220,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
             log += f"| {row.label} | {row.psList} |\n"
             string += f"\"{row.label}\": {row.psList};<br> "
         
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations[check] = string
     
     log += sep()
@@ -1296,11 +1262,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row[0]},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1336,8 +1298,8 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         metrics['missingDomainRange'] = 0
         local_name = "Missing Domain or Range in Properties"
         c, log = qa_check_results(local_name, c)
-        dCount = 0
-        rCount = 0
+        dCount = []
+        rCount = []
 
         # Print the output of the check only once.
         if not results and int(in_metrics['propertyCount']) > 0:
@@ -1351,22 +1313,18 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
             log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n"
             if not verbose: log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
             status += 1
-            string = ""
-            string2 = ""
             for row in results:
                 predicate = row.p
                 if row.domain:
                     domain = row.domain
                 else:
                     domain = 'None'
-                    dCount += 1
-                    string += f"{predicate},<br> "
+                    dCount.append(predicate)
                 if row.range:
                     range = row.range
                 else:
                     range = 'None'
-                    rCount += 1
-                    string2 += f"{predicate},<br> "
+                    rCount.append(predicate)
                 if not verbose: log += f"| {predicate} | {domain} | {range} |\n"
         
         # If verbose, print a table with domain and range for all properties.
@@ -1389,52 +1347,81 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         
         # Check which check triggered the first execution.
         if check == 'missingDomain':
-            metrics['missingDomain'] = dCount
-            if dCount > 0:
-                string = string.rstrip(",<br> ")
-                violations['missingDomain'] = string
+            # remove duplicates from dCount list.
+            dCount = list(set(dCount))
+            dCount.sort()
+            metrics[check] = len(dCount)
+            if metrics[check] > 0:
+                string = violation_formatting(dCount)
+                violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {dCount} properties without `rdfs:domain` declaration:\n - {string}\n"
+                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
             else:
-                violations['missingDomain'] = ""
+                violations[check] = ""
 
         elif check == 'missingRange':
-            metrics['missingRange']  = rCount
-            if rCount > 0:
-                string2 = string2.rstrip(",<br> ")
-                violations['missingRange'] = string2
-                string2 = string2.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {rCount} properties without `rdfs:range` declaration:\n - {string2}\n"
+            # remove duplicates from rCount list.
+            rCount = list(set(rCount))
+            rCount.sort()
+            metrics[check]  = len(rCount)
+            if metrics[check] > 0:
+                string = violation_formatting(rCount)
+                violations[check] = string
+                string = string.replace(',<br> ', '\n - ')
+                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
             else:
-                violations['missingRange'] = ""
+                violations[check] = ""
 
         log += sep()
     else:
-        # This case only report the results for range violations.
+        # This condition is satisfied only for range violations.
+        # It relies on the fact that the array test_checklist is ordered,
+        # with missingDomain defined before missingRange.
         log = ""
-        string = ""
-        rCount = 0
+        rCount = []
 
         # Analyse the results
         if results:
             for row in results:
                 predicate = row.p
                 if not row.range:
-                    rCount += 1
-                    string += f"{predicate},<br> "
+                    rCount.append(predicate)
         
         # Report
-        metrics['missingRange']  = rCount
-        if rCount > 0:
-            string = string.rstrip(",<br> ")
-            violations['missingRange'] = string
+        rCount = list(set(rCount))
+        rCount.sort()
+        metrics[check]  = len(rCount)
+        if metrics[check] > 0:
+            string = violation_formatting(rCount)
+            violations[check] = string
             string = string.replace(',<br> ', '\n - ')
-            log = f"VIOLATION - Found {rCount} properties without `rdfs:range` declaration:\n - {string}\n"
+            log = f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
             log += sep()
         else:
-            violations['missingRange'] = ""
+            violations[check] = ""
 
     return metrics, violations, log, c, status
+
+def violation_formatting(array, unique=False):
+    """
+    Format a string of elements into a markdown list.
+    
+    Args:
+        array (list): List of elements to format.
+        unique (bool): Logical flag to sort and remove duplicates.
+    
+    Returns:
+        formatted_string (str): String formatted as a markdown list.
+    """
+    if unique:
+        array = list(set(array))
+        array.sort()
+    
+    formatted_string = ""
+    for element in array:
+        formatted_string += f"{element},<br> "
+    
+    return formatted_string.removesuffix(",<br> ")
 
 def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1472,12 +1459,12 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         log += f"VIOLATION - Found {metrics[check]} elements with non-unique identifiers.\n"
         log += "| URI | Declared as |\n|--|--|\n"
         status += 1
-        string = ""
+        iri = []
         for row in results:
             log += f"| {row.iri} | {row.declaredAs} |\n"
-            string += f"{row.iri},<br> "
-        string = string.rstrip(",<br> ")
-        violations[check] = string
+            iri.append(row.iri)
+
+        violations[check] = violation_formatting(iri)
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1519,11 +1506,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.c},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1568,11 +1551,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.c},<br> "
-
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
@@ -1622,11 +1601,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.p},<br> "
-        
-        string = string.rstrip(",<br> ")
+        string = violation_formatting([row.p for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1673,17 +1648,15 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
         # log += f"| Namespace | Count |\n|--|--|\n"
-        string = ""
-        for row in results:
-            string += f"{row.resource},<br> "
+        # for row in results:
             # log += f"| {row.namespace} | {row['count']} |\n"
             # el = int(row['count']) # for hijacking_count
             # if el == 1:
             #     string += f"{row.namespace}: ({row['count']} element),<br> "
             # elif el > 1:
             #     string += f"{row.namespace}: ({row['count']} elements),<br> "
-        
-        string = string.rstrip(",<br> ")
+
+        string = violation_formatting([row.resource for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
         
@@ -1927,7 +1900,8 @@ def main():
     ]
     
     # Set up argument parser
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(add_help=False, description=__doc__)
+    parser.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')

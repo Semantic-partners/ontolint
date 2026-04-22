@@ -9,8 +9,7 @@
 
 : a owl:Ontology ;
   rdfs:label "Animal Ontology" ;
-  owl:imports ex: ;
-  rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
+  owl:imports ex: .
  
 :Dog a rdfs:Class ;
      rdfs:subClassOf :Animal .
