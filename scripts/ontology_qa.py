@@ -1860,7 +1860,7 @@ def write_lint_config(checklist):
     sys.stderr.write(f"Ontolint: creating default configuration file .rdf-lint.yml in the current directory.\n")
 
     # abort if path exists
-    path = os.getcwd() + "/.rdf-lint.yml"
+    path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if os.path.exists(path):
         sys.stderr.write(f"ERROR: configuration file already exists: {path}\n\n")
         exit(1)
@@ -1936,7 +1936,7 @@ def main():
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
     parser.add_argument('-c', '--config', type=str, metavar='path/to/.rdf-lint.yml', help='Path to .rdf-lint.yml configuration file to enable or disable individual checks.')
-    parser.add_argument('-i', '--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
+    parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
