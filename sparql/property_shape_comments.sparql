@@ -6,5 +6,5 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl
+    ?ps rdfs:comment|dcterms:description|skos:definition ?lbl
 }

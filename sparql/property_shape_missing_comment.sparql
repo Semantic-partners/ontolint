@@ -6,5 +6,5 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    FILTER NOT EXISTS { ?ps sh:description|rdfs:comment|dcterms:description|skos:definition ?lbl }
+    FILTER NOT EXISTS { ?ps rdfs:comment|dcterms:description|skos:definition ?lbl }
 }

@@ -6,6 +6,8 @@ PREFIX dcterms: <http://purl.org/dc/terms#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 
+# A collection of multiple SPARQL queries. Copy and Paste is your friend here.
+
 SELECT DISTINCT ?c ?p WHERE {
     ?c a rdfs:Class .
     FILTER NOT EXISTS { ?c rdfs:label ?lbl   }
