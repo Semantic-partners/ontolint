@@ -1815,7 +1815,7 @@ def lint_selection(selection, checklist):
         The 'enable' and 'disable' keys are mutually exclusive. If both are specified in the configuration file,
         only the first dictionary will be used.
         """
-        log = "Lint configuration file found!\n"
+        log = "> Lint configuration file found!\n"
         if 'enable' in selection and isinstance(selection['enable'], list):
             for i, item in enumerate(checklist):
                 if not item[1].__name__ in selection['enable']:
@@ -1846,11 +1846,11 @@ def lint_selection(selection, checklist):
 
         else:
             # Print a warning
-            log += f"\nWARNING - Invalid keyword in config file:\n\n```yaml\n"
-            log += yaml.dump(selection, default_flow_style=False)
-            log += f"```"
+            log += f">\n> WARNING - Invalid keyword in config file:\n> ```yaml\n"
+            log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
+            log += f"> ```"
         
-        log += sep()
+        log += "\n"
         return checklist, log
 
 def write_lint_config(checklist):
