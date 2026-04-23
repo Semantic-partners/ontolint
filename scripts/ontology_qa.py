@@ -25,7 +25,8 @@ sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.arg
 
 # check that the directory exists
 if not os.path.isdir(sparql_dir):
-    sys.exit(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
+    sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
+    sys.exit(1)
 
 def load_sparql_queries(directory):
     """
@@ -1836,22 +1837,23 @@ def write_lint_config(checklist):
     path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if os.path.exists(path):
         sys.stderr.write(f"ERROR: configuration file already exists: {path}\n\n")
-        exit(1)
+        sys.exit(1)
 
     sequence = []
     for i, item in enumerate(checklist):
         name = item[1].__name__.replace("check_", "").replace("_", "-")
         sequence.append(name)
+    
     for item in sequence:
         if item == "property-missing-domain-range":
-            sequence.remove(item)
-            sequence.append("property-missing-domain")
+            index = sequence.index(item)
+            sequence[index] = "property-missing-domain"
         # Do it again :)
         if item == "property-missing-domain-range":
-            sequence.remove(item)
-            sequence.append("property-missing-range")
+            index = sequence.index(item)
+            sequence[index] = "property-missing-range"
     
-    sequence = sorted(set(sequence))
+    sequence.sort()
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(f"""\
