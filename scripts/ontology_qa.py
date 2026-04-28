@@ -18,6 +18,7 @@ import sys
 import os
 import json
 from datetime import datetime
+from dataclasses import dataclass
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value.
@@ -35,6 +36,58 @@ def load_sparql_queries(directory):
     return queries
 
 sparql_queries = load_sparql_queries(sparql_dir)
+
+
+@dataclass
+class CheckResult:
+    name: str
+    passed: bool
+    count: int
+    elements: str
+
+
+@dataclass
+class QAResult:
+    profiling: dict
+    checks: list
+
+    def get(self, name: str):
+        return next((c for c in self.checks if c.name == name), None)
+
+    @property
+    def passed(self) -> bool:
+        return all(c.passed for c in self.checks)
+
+    @property
+    def failures(self):
+        return [c for c in self.checks if not c.passed]
+
+
+CHECKS = [
+    ("Ontology without declaration",      'ontologyNotDeclared'       ),
+    ("Ontology without description",      'ontologyDescription'       ),
+    ("Class without label",               'missingClassLabel'         ),
+    ("Property without label",            'missingPropertyLabel'      ),
+    ("NodeShape without label",           'missingNSLabel'            ),
+    ("PropertyShape without label",       'missingPSLabel'            ),
+    ("Class without description",         'missingClassDescription'   ),
+    ("Property without description",      'missingPropertyDescription'),
+    ("NodeShape without description",     'missingNSDescription'      ),
+    ("PropertyShape without description", 'missingPSDescription'      ),
+    ("Non-Unique Class Labels",           'nonUniqueClassLabels'      ),
+    ("Non-Unique Property Labels",        'nonUniquePropertyLabels'   ),
+    ("Non-Unique NodeShape Labels",       'nonUniqueNSLabels'         ),
+    ("Non-Unique PropertyShape Labels",   'nonUniquePSLabels'         ),
+    ("Isolated Classes",                  'isolatedClasses'           ),
+    ("Property without domain",           'missingDomain'             ),
+    ("Property without range",            'missingRange'              ),
+    ("Non-Unique Identifiers",            'nonUniqueIdentifiers'      ),
+    ("Subclass Cycles",                   'subclassCycles'            ),
+    ("Untyped Classes",                   'untypedClasses'            ),
+    ("Untyped Properties",                'untypedProperties'         ),
+    ("Namespace hijacking",               'hijacking'                 ),
+]
+
 
 def exec_sparql(graph, key):
     """
@@ -109,7 +162,7 @@ def get_ontology_name(metrics):
         names = metrics['filesProcessed'][0].split('/')[-1]
     elif count >= 1:
         names += f"{count} URIs not found.,<br> "
-    names = names.rstrip(",<br> ")
+    names = names.removesuffix(",<br> ")
     return names
 
 def qa_terminate(file, log):
@@ -190,37 +243,11 @@ def write_ctrf_report(metrics, violations, tests, file_path, filename):
     Convert QA metrics to CTRF (Common Test Result Format) JSON.
     """
 
-    # Each QA check becomes a test case
-    checks = [
-        ("Ontology without declaration",     'ontologyNotDeclared'       ),
-        ("Ontology without description",     'ontologyDescription'       ), 
-        ("Class without label",              'missingClassLabel'         ), 
-        ("Property without label",           'missingPropertyLabel'      ), 
-        ("NodeShape without label",          'missingNSLabel'            ), 
-        ("PropertyShape without label",      'missingPSLabel'            ), 
-        ("Class without description",        'missingClassDescription'   ), 
-        ("Property without description",     'missingPropertyDescription'), 
-        ("NodeShape without description",    'missingNSDescription'      ), 
-        ("PropertyShape without description",'missingPSDescription'      ), 
-        ("Non-Unique Class Labels",          'nonUniqueClassLabels'      ), 
-        ("Non-Unique Property Labels",       'nonUniquePropertyLabels'   ), 
-        ("Non-Unique NodeShape Labels",      'nonUniqueNSLabels'         ), 
-        ("Non-Unique PropertyShape Labels",  'nonUniquePSLabels'         ), 
-        ("Isolated Classes",                 'isolatedClasses'           ), 
-        ("Property without domain",          'missingDomain'             ), 
-        ("Property without range",           'missingRange'              ), 
-        ("Non-Unique Identifiers",           'nonUniqueIdentifiers'      ), 
-        ("Subclass Cycles",                  'subclassCycles'            ), 
-        ("Untyped Classes",                  'untypedClasses'            ), 
-        ("Untyped Properties",               'untypedProperties'         ),
-        ("Namespace hijacking",              'hijacking'                 )
-    ]
-    
     passed = 0
     failed = 0
     test_cases = []
 
-    for check_name, key in checks:
+    for check_name, key in CHECKS:
         violation_count = metrics[key]
         violation_element = violations[key]
         violation_test = tests[key]
@@ -559,7 +586,7 @@ def check_owl_declaration_description(in_metrics, graph, name, c, status, verbos
             for row in results:
                 string += f"{row.ont},<br> "
             
-            string = string.rstrip(",<br> ")
+            string = string.removesuffix(",<br> ")
             violations['ontologyDescription'] = string
             log += f"VIOLATION - Found {metrics['ontologyDescription']} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
@@ -615,7 +642,7 @@ def check_class_missing_label(in_metrics, graph, name, c, status, verbose):
         for t in results:
             string += f"{t[0]},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingClassLabel'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -670,7 +697,7 @@ def check_property_missing_label(in_metrics, graph, name, c, status, verbose):
         for t in results:
             string += f"{t[0]},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingPropertyLabel'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -725,7 +752,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, c, status, verbose):
         for row in results:
             string += f"{row.ns},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingNSLabel'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -780,7 +807,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, c, status, verbo
         for row in results:
           string += f"{row.ps},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingPSLabel'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -835,7 +862,7 @@ def check_class_missing_comment(in_metrics, graph, name, c, status, verbose):
         for t in results:
           string += f"{t[0]},<br> "
 
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingClassDescription'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -889,7 +916,7 @@ def check_property_missing_comment(in_metrics, graph, name, c, status, verbose):
         string = ""
         for t in results:
           string += f"{t[0]},<br> "
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingPropertyDescription'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -943,7 +970,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, c, status, verbose
         for row in results:
           string += f"{row.ns},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingNSDescription'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -997,7 +1024,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, c, status, ver
         string = ""
         for row in results:
           string += f"{row.ps},<br> "
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingPSDescription'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1049,7 +1076,7 @@ def check_class_same_label(in_metrics, graph, name, c, status, verbose):
             log += f"| {row.label} | {row.classes} |\n"
             string += f"\"{row.label}\": {row.classes};<br> "
         
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations['nonUniqueClassLabels'] = string
     
     log += sep()
@@ -1099,7 +1126,7 @@ def check_property_same_label(in_metrics, graph, name, c, status, verbose):
         for row in results:
             log += f"| {row.label} | {row.properties} |\n"
             string += f"\"{row.label}\": {row.properties};<br> "
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations['nonUniquePropertyLabels'] = string
     
     log += sep()
@@ -1150,7 +1177,7 @@ def check_node_shape_same_label(in_metrics, graph, name, c, status, verbose):
             log += f"| {row.label} | {row.nsList} |\n"
             string += f"\"{row.label}\": {row.nsList};<br> "
         
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations['nonUniqueNSLabels'] = string
     
     log += sep()
@@ -1201,7 +1228,7 @@ def check_property_shape_same_label(in_metrics, graph, name, c, status, verbose)
             log += f"| {row.label} | {row.psList} |\n"
             string += f"\"{row.label}\": {row.psList};<br> "
         
-        string = string.rstrip(";<br> ")
+        string = string.removesuffix(";<br> ")
         violations['nonUniquePSLabels'] = string
     
     log += sep()
@@ -1249,7 +1276,7 @@ def check_isolated_classes(in_metrics, graph, name, c, status, verbose):
         for row in results:
           string += f"{row[0]},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['isolatedClasses'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1335,13 +1362,13 @@ def check_missing_dr_property(in_metrics, graph, name, c, status, verbose):
             log += f"| {row.p} | {domain} | {range} |\n"
 
     if dCount > 0:
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['missingDomain'] = string
     else:
         violations['missingDomain'] = ""
     
     if rCount > 0:
-        string2 = string2.rstrip(",<br> ")
+        string2 = string2.removesuffix(",<br> ")
         violations['missingRange'] = string2
     else:
         violations['missingRange'] = ""
@@ -1393,7 +1420,7 @@ def check_unique_identifiers(in_metrics, graph, name, c, status, verbose):
         for row in results:
             log += f"| {row.iri} | {row.declaredAs} |\n"
             string += f"{row.iri},<br> "
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['nonUniqueIdentifiers'] = string
     
     log += sep()
@@ -1442,7 +1469,7 @@ def check_subclass_cycles(in_metrics, graph, name, c, status, verbose):
         for row in results:
             string += f"{row.c},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['subclassCycles'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1493,7 +1520,7 @@ def check_untyped_class(in_metrics, graph, name, c, status, verbose):
         for row in results:
             string += f"{row.c},<br> "
 
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['untypedClasses'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
@@ -1549,7 +1576,7 @@ def check_untyped_property(in_metrics, graph, name, c, status, verbose):
         for row in results:
             string += f"{row.p},<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['untypedProperties'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1608,7 +1635,7 @@ def check_hijacking(in_metrics, graph, name, c, status, verbose):
             # elif el > 1:
             #     string += f"{row.namespace}: ({row['count']} elements),<br> "
         
-        string = string.rstrip(",<br> ")
+        string = string.removesuffix(",<br> ")
         violations['hijacking'] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
         
@@ -1619,6 +1646,69 @@ def check_hijacking(in_metrics, graph, name, c, status, verbose):
     
     log += sep()
     return metrics, violations, test, log, c, status
+
+TEST_CHECKLIST = [
+    (True, check_owl_declaration_description,    "OWL ontology declaration and description"),
+    (True, check_class_missing_label,            "Class without label"                     ),
+    (True, check_property_missing_label,         "Property without label"                  ),
+    (True, check_node_shape_missing_label,       "NodeShape without label"                 ),
+    (True, check_property_shape_missing_label,   "PropertyShape without label"             ),
+    (True, check_class_missing_comment,          "Class without description"               ),
+    (True, check_property_missing_comment,       "Property without description"            ),
+    (True, check_node_shape_missing_comment,     "NodeShape without description"           ),
+    (True, check_property_shape_missing_comment, "PropertyShape without description"       ),
+    (True, check_class_same_label,               "Classes with the same label"             ),
+    (True, check_property_same_label,            "Properties with the same label"          ),
+    (True, check_node_shape_same_label,          "NodeShapes with the same label"          ),
+    (True, check_property_shape_same_label,      "PropertyShapes with the same label"      ),
+    (True, check_isolated_classes,               "Isolated classes"                        ),
+    (True, check_missing_dr_property,            "Missing Domain or Range in Properties"   ),
+    (True, check_unique_identifiers,             "Non-unique identifiers"                  ),
+    (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"   ),
+    (True, check_untyped_class,                  "Untyped Classes"                         ),
+    (True, check_untyped_property,               "Untyped Properties"                      ),
+    (True, check_hijacking,                      "Namespace hijacking"                     ),
+]
+
+
+def run_qa(graph: rdflib.Graph) -> QAResult:
+    """
+    Run all QA checks on the given RDF graph.
+    Applies RDFS subclass inference in-place, then runs all checks.
+    Returns structured pass/fail results — no logging, no file I/O.
+    """
+    qa_metrics = {'filesProcessed': ['<graph>']}
+    qa_violations = {}
+
+    qa_metrics['triples'] = len(graph)
+    metrics, violations = profiling(graph)
+    qa_metrics.update(metrics)
+    qa_violations.update(violations)
+
+    graph, _ = infer_subclass_relations(graph)
+
+    test_counter = 1
+    for enabled, func, test_name in TEST_CHECKLIST:
+        if enabled:
+            metrics, violations, _, _, test_counter, _ = func(
+                qa_metrics, graph, test_name, test_counter, 0, False
+            )
+            qa_metrics.update(metrics)
+            qa_violations.update(violations)
+
+    checks = []
+    for display_name, key in CHECKS:
+        count = int(qa_metrics.get(key, 0))
+        raw = qa_violations.get(key, '')
+        checks.append(CheckResult(
+            name=display_name,
+            passed=(count == 0),
+            count=count,
+            elements=str(raw) if raw else '',
+        ))
+
+    return QAResult(profiling=qa_metrics, checks=checks)
+
 
 def load_rdf_file(file):
     """
@@ -1736,7 +1826,8 @@ def main():
     # Terminate the execution if further QA checks are not required.
     if args.profile_only:
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        qa_metrics, violations, test, log_results, test_counter, num_violations = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
+        metrics, violations, test, log_results, test_counter, num_violations = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
+        qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
@@ -1751,38 +1842,11 @@ def main():
     num_violations = 0
     test_counter = 1
 
-    # Array with all tests for QA metrics.
-    test_checklist = [
-        (True, check_owl_declaration_description,    "OWL ontology declaration and description"),
-        (True, check_class_missing_label,            "Class without label"                     ),
-        (True, check_property_missing_label,         "Property without label"                  ),
-        (True, check_node_shape_missing_label,       "NodeShape without label"                 ),
-        (True, check_property_shape_missing_label,   "PropertyShape without label"             ),
-        (True, check_class_missing_comment,          "Class without description"               ),
-        (True, check_property_missing_comment,       "Property without description"            ),
-        (True, check_node_shape_missing_comment,     "NodeShape without description"           ),
-        (True, check_property_shape_missing_comment, "PropertyShape without description"       ),
-        (True, check_class_same_label,               "Classes with the same label"             ),
-        (True, check_property_same_label,            "Properties with the same label"          ),
-        (True, check_node_shape_same_label,          "NodeShapes with the same label"          ),
-        (True, check_property_shape_same_label,      "PropertyShapes with the same label"      ),
-        (True, check_isolated_classes,               "Isolated classes"                        ),
-        (True, check_missing_dr_property,            "Missing Domain or Range in Properties"   ),
-        (True, check_unique_identifiers,             "Non-unique identifiers"                  ),
-        (True, check_subclass_cycles,                "Including Cycles in a Class Hierarchy"   ),
-        (True, check_untyped_class,                  "Untyped Classes"                         ),
-        (True, check_untyped_property,               "Untyped Properties"                      ),
-        (True, check_hijacking,                      "Namespace hijacking"                     )
-    ]
-
-    # TO DO:
-    # Parse a configuration file to enable/disable individual tests.
-
     # Aggregate and format the results.
     log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
 
     # Cycle through selected tests.
-    for enabled, func, test_name in test_checklist:
+    for enabled, func, test_name in TEST_CHECKLIST:
         if enabled:
             metrics, violations, test, log_results, test_counter, num_violations = func(qa_metrics, g, test_name, test_counter, num_violations, args.verbose)
 
