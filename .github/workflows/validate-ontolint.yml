@@ -27,8 +27,33 @@ jobs:
 
       - name: Verify example_failure.ttl produces violations
         run: |
-          poetry run scripts/ontology_qa.py tests/example_failure.ttl -e && echo "ERROR: expected violations but got none" && exit 1 || true
+          poetry run scripts/ontology_qa.py tests/example_failure.ttl \
+            --ctrf-dir ctrf --ctrf-filename failure-report.json \
+            -e && echo "ERROR: expected violations but got none" && exit 1 || true
 
       - name: Verify example_pass.ttl produces no violations
         run: |
-          poetry run scripts/ontology_qa.py tests/example_pass.ttl -e
+          poetry run scripts/ontology_qa.py tests/example_pass.ttl \
+            --ctrf-dir ctrf --ctrf-filename pass-report.json \
+            -e
+
+      - name: Publish failure report to job summary
+        uses: ctrf-io/github-actions-test-reporter@v1
+        if: always()
+        with:
+          report-path: ctrf/failure-report.json
+          title: 'example_failure.ttl'
+
+      - name: Publish pass report to job summary
+        uses: ctrf-io/github-actions-test-reporter@v1
+        if: always()
+        with:
+          report-path: ctrf/pass-report.json
+          title: 'example_pass.ttl'
+
+      - name: Upload CTRF reports as artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ctrf-reports
+          path: ctrf/
