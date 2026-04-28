@@ -286,7 +286,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     for check in result.checks:
         test_case = {
             "name": check.name,
-            "status": "pass" if check.passed else "fail"
+            "status": "passed" if check.passed else "failed"
         }
         if not check.passed:
             test_case["failure"] = {

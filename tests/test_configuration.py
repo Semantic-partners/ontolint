@@ -169,4 +169,4 @@ def test_main_disable_via_config_marks_check_as_passed_in_ctrf(tmp_path):
     run_main(ttl, '-c', str(cfg), '--ctrf-dir', str(tmp_path))
     data = json.loads(list(tmp_path.glob('*.json'))[0].read_text())
     hijacking = next(t for t in data['results']['tests'] if t['name'] == 'Namespace hijacking')
-    assert hijacking['status'] == 'pass'
+    assert hijacking['status'] == 'passed'
