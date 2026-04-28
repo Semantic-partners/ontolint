@@ -33,7 +33,7 @@ def aggregate_ctrf_reports(ctrf_dir):
             ontology_file = Path(ctrf_file).stem
             
             # Count failed tests for this report
-            failed_tests = [t for t in ctrf_data['results']['tests'] if t['status'] == 'fail']
+            failed_tests = [t for t in ctrf_data['results']['tests'] if t['status'] == 'failed']
             
             report_entry = {
                 'ontologyFile': ontology_file,
