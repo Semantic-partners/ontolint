@@ -4,7 +4,7 @@ import os
 from unittest.mock import patch
 import pytest
 
-from scripts.ontology_qa import main
+from scripts.ontology_qa import main, run_qa
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
@@ -74,3 +74,14 @@ def test_nonexistent_file_prints_error(capsys):
         main()
     out = capsys.readouterr().out
     assert "ERROR" in out or "Failed" in out
+
+
+def test_inference_log_reports_new_triples(make_graph):
+    # :Fluffy a :Cat + :Cat subClassOf :Animal → inference adds :Fluffy a :Animal
+    g = make_graph("""
+    :Animal a owl:Class .
+    :Cat a owl:Class ; rdfs:subClassOf :Animal .
+    :Fluffy a :Cat .
+    """)
+    result = run_qa(g)
+    assert "Added 1 new triples" in result.inference_log
