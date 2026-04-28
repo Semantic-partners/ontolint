@@ -18,7 +18,7 @@ import sys
 import os
 import json
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value.
@@ -50,6 +50,9 @@ class CheckResult:
 class QAResult:
     profiling: dict
     checks: list
+    profiling_violations: dict = field(default_factory=dict)
+    logs: list = field(default_factory=list)
+    inference_log: str = ""
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -238,7 +241,7 @@ def print_qa_table(metrics):
     log += f"| {metrics['untypedClasses']} | {metrics['untypedProperties']} | {metrics['hijacking']} |\n"
     return log
 
-def write_ctrf_report(metrics, violations, tests, file_path, filename):
+def write_ctrf_report(result: QAResult, file_path, filename):
     """
     Convert QA metrics to CTRF (Common Test Result Format) JSON.
     """
@@ -247,24 +250,20 @@ def write_ctrf_report(metrics, violations, tests, file_path, filename):
     failed = 0
     test_cases = []
 
-    for check_name, key in CHECKS:
-        violation_count = metrics[key]
-        violation_element = violations[key]
-        violation_test = tests[key]
-        if violation_test:
-          test_case = {
-              "name": check_name,
-              "status": "pass" if violation_count == 0 else "fail"
-          }
-          if violation_count > 0:
-              test_case["failure"] = {
-                  "violations": violation_count,
-                  "elements": violation_element
-              }
-              failed += 1
-          else:
-              passed += 1
-          test_cases.append(test_case)
+    for check in result.checks:
+        test_case = {
+            "name": check.name,
+            "status": "pass" if check.passed else "fail"
+        }
+        if not check.passed:
+            test_case["failure"] = {
+                "violations": check.count,
+                "elements": check.elements
+            }
+            failed += 1
+        else:
+            passed += 1
+        test_cases.append(test_case)
     
     # Build CTRF report
     ctrf_report = {
@@ -502,7 +501,7 @@ def check_owl_declaration_description(in_metrics, graph, name, c, status, verbos
     """
     metrics = {}
     violations = {}
-    num_files = len(in_metrics['filesProcessed'])
+    num_files = max(len(in_metrics['filesProcessed']), 1)
     metrics['ontologyNotDeclared'] = num_files # Assume no ontology has been declared.
     metrics['ontologyURI'] = [ ]
     test = {}
@@ -1671,30 +1670,32 @@ TEST_CHECKLIST = [
 ]
 
 
-def run_qa(graph: rdflib.Graph) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
-    Returns structured pass/fail results — no logging, no file I/O.
+    Returns structured pass/fail results — no file I/O, no arg parsing.
     """
-    qa_metrics = {'filesProcessed': ['<graph>']}
+    qa_metrics = {'filesProcessed': files_processed or []}
     qa_violations = {}
 
     qa_metrics['triples'] = len(graph)
-    metrics, violations = profiling(graph)
+    metrics, profiling_violations = profiling(graph)
     qa_metrics.update(metrics)
-    qa_violations.update(violations)
 
-    graph, _ = infer_subclass_relations(graph)
+    graph, inference_log = infer_subclass_relations(graph)
 
+    logs = []
     test_counter = 1
+    num_violations = 0
     for enabled, func, test_name in TEST_CHECKLIST:
         if enabled:
-            metrics, violations, _, _, test_counter, _ = func(
-                qa_metrics, graph, test_name, test_counter, 0, False
+            metrics, violations, _, log_results, test_counter, num_violations = func(
+                qa_metrics, graph, test_name, test_counter, num_violations, verbose
             )
             qa_metrics.update(metrics)
             qa_violations.update(violations)
+            logs.append(log_results)
 
     checks = []
     for display_name, key in CHECKS:
@@ -1707,7 +1708,13 @@ def run_qa(graph: rdflib.Graph) -> QAResult:
             elements=str(raw) if raw else '',
         ))
 
-    return QAResult(profiling=qa_metrics, checks=checks)
+    return QAResult(
+        profiling=qa_metrics,
+        checks=checks,
+        profiling_violations=profiling_violations,
+        logs=logs,
+        inference_log=inference_log,
+    )
 
 
 def load_rdf_file(file):
@@ -1792,11 +1799,6 @@ def main():
     parser.add_argument('data_files', nargs='+', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
-    # Create empty dictionaries to store the ontology metrics.
-    qa_metrics = {}    # violation count
-    qa_violations = {} # violation elements
-    qa_tests = {}      # violation test? (boolean) 
-
     # Load Data
     g = rdflib.Graph()
     file_counter = 0
@@ -1806,70 +1808,49 @@ def main():
         c, file_metrics, file_graph, results = load_rdf(f)
         file_counter += c
         files_processed.extend(file_metrics['filesProcessed'])
-        g += file_graph # accumulate in the main graph.
+        g += file_graph
         log_output += results
 
     if file_counter == 0:
         print(f"{log_output}\nERROR - No RDF data in input files or directories.")
         return
-    else:
-        # Update the filesProcessed key
-        qa_metrics['filesProcessed'] = files_processed
 
-    # Compute and store the profiling metrics.
-    qa_metrics['triples'] = len(g)
-    metrics, violations = profiling(g)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
     log_output += f"\n> {file_counter} files processed.\n"
 
-    # Terminate the execution if further QA checks are not required.
+    # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
+        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
+        qa_violations = {}
+        metrics, violations = profiling(g)
+        qa_metrics.update(metrics)
+        qa_violations.update(violations)
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        metrics, violations, test, log_results, test_counter, num_violations = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
+        metrics, violations, _, _, _, _ = check_owl_declaration_description(qa_metrics, g, "", 1, 0, args.verbose)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
         qa_terminate(args.output, log_output)
         return
-    
-    # Simulate Inference
-    g, results = infer_subclass_relations(g)
-    log_output += results
 
-    # Compute the metrics for Quality Assurance.
-    num_violations = 0
-    test_counter = 1
+    # Full QA path
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed)
+    qa_metrics = result.profiling
 
-    # Aggregate and format the results.
-    log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
+    log_output += print_profiling_metrics(qa_metrics, result.profiling_violations, args.verbose)
+    log_output += result.inference_log
+    for log in result.logs:
+        log_output += log
 
-    # Cycle through selected tests.
-    for enabled, func, test_name in TEST_CHECKLIST:
-        if enabled:
-            metrics, violations, test, log_results, test_counter, num_violations = func(qa_metrics, g, test_name, test_counter, num_violations, args.verbose)
-
-            # Merge returned metrics and violations into global dictionaries
-            qa_metrics.update(metrics)
-            qa_violations.update(violations)
-            qa_tests.update(test)
-            log_output += log_results
-
-    # Profiling Table
     log_output += print_profiling_table(qa_metrics)
-
-    # QA metrics Table
     log_output += print_qa_table(qa_metrics)
 
-    # Generate CTRF report
-    write_ctrf_report(qa_metrics, qa_violations, qa_tests, args.ctrf_dir, args.ctrf_filename)
+    write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
 
-    # Print the results
     qa_terminate(args.output, log_output)
 
-    # Exit status
-    if args.exit_status and num_violations > 0: sys.exit(1)
+    if args.exit_status and not result.passed:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
