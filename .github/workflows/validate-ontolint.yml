@@ -37,19 +37,17 @@ jobs:
             --ctrf-dir ctrf --ctrf-filename pass-report.json \
             -e
 
-      - name: Publish failure report to job summary
-        uses: ctrf-io/github-actions-test-reporter@v1
+      - name: Generate summary report
+        run: |
+          poetry run scripts/generate_custom_report.py \
+            --ctrf-dir ctrf \
+            --template-path templates/ctrf-report.hbs \
+            --output-path out/ctrf_report.md
         if: always()
-        with:
-          report-path: ctrf/failure-report.json
-          title: 'example_failure.ttl'
 
-      - name: Publish pass report to job summary
-        uses: ctrf-io/github-actions-test-reporter@v1
+      - name: Publish report to job summary
+        run: cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
         if: always()
-        with:
-          report-path: ctrf/pass-report.json
-          title: 'example_pass.ttl'
 
       - name: Upload CTRF reports as artifacts
         uses: actions/upload-artifact@v4
