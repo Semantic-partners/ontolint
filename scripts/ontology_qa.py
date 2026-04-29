@@ -11,7 +11,6 @@ check for common ontology quality issues.
 It reports any violations found in the ontology data.
 """
 import rdflib
-from rdflib import Graph, URIRef
 import argparse
 from urllib.parse import urlparse
 import sys
@@ -93,7 +92,7 @@ def prefixes(g):
     used_namespaces = set()
     for s, p, o in g:
         for term in [s, p, o]:
-            if isinstance(term, URIRef):
+            if isinstance(term, rdflib.URIRef):
                 ns = get_namespace(str(term))
                 used_namespaces.add(ns)
 
