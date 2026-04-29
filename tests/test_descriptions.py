@@ -62,6 +62,13 @@ def test_property_without_description_fails(make_graph):
     assert check.count == 1
     assert "hasFur" in check.elements
 
+def test_property_with_rdfs_comment_verbose_is_printed(make_graph):
+    g = make_graph("""
+    :hasFur a owl:ObjectProperty ; rdfs:comment "Connects to fur." .
+    """)
+    logs = run_qa(g, verbose=True).logs
+    assert any("Connects to fur." in log for log in logs)
+
 
 # ── NodeShapes ────────────────────────────────────────────────────────────────
 
