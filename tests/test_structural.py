@@ -174,10 +174,6 @@ def test_untyped_class_check_requires_ontology_declaration(make_graph):
 
 # ── Untyped Properties ────────────────────────────────────────────────────────
 
-# @pytest.mark.xfail(
-#     reason="sparql/untyped_property.sparql uses ?c in FILTER instead of ?p — "
-#            "the filter never matches so the check always returns 0 violations"
-# ) # SPARQL query fixed!
 def test_property_used_without_declaration_fails(make_graph):
     g = make_graph("""
     : a owl:Ontology .
