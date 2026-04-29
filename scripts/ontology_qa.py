@@ -1593,7 +1593,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
               
-    elif int(in_metrics['propertyCount']) == 0:
+    elif not results and int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
 
     elif results:
