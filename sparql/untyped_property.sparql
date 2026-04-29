@@ -10,7 +10,7 @@ WHERE {
 
   # Restrict to ontology namespace
   ?ontology a owl:Ontology .
-  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
+  FILTER(STRSTARTS(STR(?p), STR(?ontology)))
 
   MINUS { ?p a rdf:Property }
   MINUS { ?p a owl:ObjectProperty }

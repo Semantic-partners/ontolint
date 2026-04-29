@@ -65,13 +65,6 @@ def test_property_without_description_fails(make_graph):
 
 # ── NodeShapes ────────────────────────────────────────────────────────────────
 
-def test_node_shape_with_sh_description_passes(make_graph):
-    g = make_graph("""
-    :CatShape a sh:NodeShape ; sh:description "Validates cat entities." .
-    """)
-    assert run_qa(g).get("NodeShape without description").passed
-
-
 def test_node_shape_with_rdfs_comment_passes(make_graph):
     g = make_graph("""
     :CatShape a sh:NodeShape ; rdfs:comment "Validates cat entities." .
@@ -90,9 +83,9 @@ def test_node_shape_without_description_fails(make_graph):
 
 # ── PropertyShapes ────────────────────────────────────────────────────────────
 
-def test_property_shape_with_sh_description_passes(make_graph):
+def test_property_shape_with_rdfs_comment_passes(make_graph):
     g = make_graph("""
-    :hasFurShape a sh:PropertyShape ; sh:description "Validates fur property." .
+    :hasFurShape a sh:PropertyShape ; rdfs:comment "Validates fur property." .
     """)
     assert run_qa(g).get("PropertyShape without description").passed
 

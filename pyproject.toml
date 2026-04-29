@@ -1,15 +1,17 @@
 [project]
-name = "ontology-quality-assessment"
-version = "1.0.0"
-description = ""
+name = "ontolint"
+version = "0.2.0"
+description = "Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline"
 authors = [
-    {name = "Otello Roscioni", email = "otello.roscioni@semanticpartners.com"}
+    {name = "Otello M Roscioni",email = "otello.roscioni@semanticpartners.com"}
 ]
 readme = "readme.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
-    "rdflib (>=7.4.0,<8.0.0)",
-    "argparse (>=1.4.0,<2.0.0)"
+    "rdflib (>=7.6.0,<8.0.0)",
+    "argparse (>=1.4.0,<2.0.0)",
+    "datetime (>=6.0,<7.0)",
+    "pyyaml (>=6.0.3,<7.0.0)"
 ]
 
 [tool.poetry]

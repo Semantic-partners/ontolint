@@ -1,5 +1,5 @@
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
-  FILTER NOT EXISTS { ?ns sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+  FILTER NOT EXISTS { ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
 }

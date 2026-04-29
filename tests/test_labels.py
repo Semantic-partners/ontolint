@@ -73,13 +73,6 @@ def test_datatype_property_without_label_fails(make_graph):
 
 # ── NodeShapes ────────────────────────────────────────────────────────────────
 
-def test_node_shape_with_sh_name_passes(make_graph):
-    g = make_graph("""
-    :CatShape a sh:NodeShape ; sh:name "Cat Shape" .
-    """)
-    assert run_qa(g).get("NodeShape without label").passed
-
-
 def test_node_shape_with_rdfs_label_passes(make_graph):
     g = make_graph("""
     :CatShape a sh:NodeShape ; rdfs:label "Cat Shape" .
@@ -99,9 +92,9 @@ def test_node_shape_without_label_fails(make_graph):
 
 # ── PropertyShapes ────────────────────────────────────────────────────────────
 
-def test_property_shape_with_sh_name_passes(make_graph):
+def test_property_shape_with_rdfs_label_passes(make_graph):
     g = make_graph("""
-    :hasFurShape a sh:PropertyShape ; sh:name "Has Fur Shape" .
+    :hasFurShape a sh:PropertyShape ; rdfs:label "Has Fur Shape" .
     """)
     assert run_qa(g).get("PropertyShape without label").passed
 

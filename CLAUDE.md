@@ -88,9 +88,10 @@ All `.sparql` files in `./sparql/` are loaded at **module import time** into the
 
 Every check function follows the same pattern:
 ```python
-def check_*(in_metrics, graph, name, c, status, verbose) -> (metrics, violations, test, log, c, status)
+def check_*(in_metrics, graph, name, check, c, status, verbose) -> (metrics, violations, log, c, status)
 ```
 - `in_metrics` — profiling metrics dict (read-only context, e.g. class count for normalisation)
+- `check` — dictionary key of the QA check being run, e.g. `missing_class_labels` (used for CTRF test results)
 - `c` — running QA check counter (incremented and returned)
 - `status` — running violation count (incremented on failure and returned)
 - Returns separate dicts so `main()` can merge them with `update()`

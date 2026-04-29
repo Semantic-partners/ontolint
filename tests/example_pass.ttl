@@ -54,8 +54,8 @@
     rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
 
 :AnimalShape a sh:NodeShape ;
-    sh:description "Make sure the entity belongs to the animal kingdom." ;
-    sh:name "Animal-Shape" ;
+    rdfs:comment "Make sure the entity belongs to the animal kingdom." ;
+    rdfs:label "Animal-Shape" ;
     sh:targetClass :Cat,
         :Crab,
         :Dog,
@@ -63,11 +63,11 @@
         :Shrimp .
 
 :Fuffy a :Dog ;
-    :hasClaws :dogClaws .
+    rdfs:label "Fuffy the Puddle" .
 
 :ShrimpShape a sh:NodeShape ;
     rdfs:label "Shrimp" ;
-    sh:description "Forget about Dogs and Cats: Shrimps are the best pets." ;
+    rdfs:comment "Forget about Dogs and Cats: Shrimps are the best pets." ;
     sh:property :hasClawsShape ;
     sh:targetClass :Shrimp .
 
@@ -105,12 +105,10 @@
     sh:description "Make sure the entity is an animal that has claws" ;
     sh:property :hasClaws .
 
-:dogClaws a :Claw .
-
 :hasClawsShape a sh:PropertyShape ;
+    rdfs:label "Has Claws Shape" ;
     sh:class :Claw ;
-    sh:description "connects via hasClaws to something of type Claw" ;
-    sh:name "Has Claws" ;
+    rdfs:comment "connects via hasClaws to something of type Claw" ;
     sh:path :hasClaws .
 
 :hasClaws a owl:ObjectProperty ;

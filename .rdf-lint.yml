@@ -1,0 +1,39 @@
+# Ontolint configuration file: use it to enable or disable specific QA checks.
+# Place this file as .rdf-lint.yml in your project root.
+
+# Available checks:
+# - class-missing-comment
+# - class-missing-label
+# - class-same-label
+# - hijacking
+# - isolated-classes
+# - node-shape-missing-comment
+# - node-shape-missing-label
+# - node-shape-same-label
+# - owl-declaration
+# - owl-description
+# - property-missing-comment
+# - property-missing-domain
+# - property-missing-label
+# - property-missing-range
+# - property-same-label
+# - property-shape-missing-comment
+# - property-shape-missing-label
+# - property-shape-same-label
+# - subclass-cycles
+# - unique-identifiers
+# - untyped-class
+# - untyped-property
+
+# Enable only specific checks (empty = all checks enabled)
+# enable:
+#   - owl-description
+#   - class-missing-label
+#   - property-missing-label
+
+# Disable specific checks
+# disable:
+#   - hijacking
+#   - isolated-classes
+#   - property-missing-domain
+        

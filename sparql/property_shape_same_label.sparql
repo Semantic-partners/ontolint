@@ -2,12 +2,12 @@
 SELECT ?label (GROUP_CONCAT(DISTINCT ?ps; separator=", ") AS ?psList)
 WHERE {
     {
-     	?ps a sh:PropertyShape  
+     	?ps a sh:PropertyShape
     } UNION {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    ?ps sh:name|rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+    ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
 }
 GROUP BY ?label
 HAVING (COUNT(DISTINCT ?ps) > 1)
