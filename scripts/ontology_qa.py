@@ -51,7 +51,7 @@ class CheckResult:
 class QAResult:
     profiling: dict
     checks: list
-    profiling_violations: dict = field(default_factory=dict)
+    elements: dict = field(default_factory=dict)
     logs: list = field(default_factory=list)
     inference_log: str = ""
 
@@ -300,7 +300,8 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     log = f"\nCTRF report written to: {output_file}\n"
     return ctrf_report, log
 
-def print_profiling_metrics(metrics, violations, verbose):
+def print_profiling_metrics(results, verbose):
+    metrics, elements = results.profiling, results.elements
     log  = f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
@@ -309,40 +310,40 @@ def print_profiling_metrics(metrics, violations, verbose):
     log += f"Local classes in Node Shapes: {metrics['classesInNodeShapes']}\n"
     if verbose and metrics['classesInNodeShapes'] > 0:
         log += "\n| NodeShape | Class count |\n|--|--|\n"
-        for _ in range( len(violations['classesInNodeShapes']['ns']) ):
-            log += f"| {violations['classesInNodeShapes']['ns'][_]} "
-            log += f"| {violations['classesInNodeShapes']['classCount'][_]} |\n"
+        for _ in range( len(elements['classesInNodeShapes']['ns']) ):
+            log += f"| {elements['classesInNodeShapes']['ns'][_]} "
+            log += f"| {elements['classesInNodeShapes']['classCount'][_]} |\n"
         log += "\n"
 
     log += f"Local properties in Property Shapes: {metrics['propertiesInPropertyShapes']}\n"
     if verbose and metrics['propertiesInPropertyShapes'] > 0:
         log += "\n| PropertyShape | Local Property |\n|--|--|\n"
-        for _ in range( len(violations['propertiesInPropertyShapes']['ps']) ):
-            log += f"| {violations['propertiesInPropertyShapes']['ps'][_]} "
-            log += f"| {violations['propertiesInPropertyShapes']['propCount'][_]} |\n"
+        for _ in range( len(elements['propertiesInPropertyShapes']['ps']) ):
+            log += f"| {elements['propertiesInPropertyShapes']['ps'][_]} "
+            log += f"| {elements['propertiesInPropertyShapes']['propCount'][_]} |\n"
         log += "\n"
     
     log += f"Deprecated classes: {metrics['deprecatedClasses']}\n"
     if verbose and metrics['deprecatedClasses'] > 0:
         log += "List of deprecated classes:\n"
-        for _ in range( len(violations['deprecatedClasses']) ):
-            log += f" - {violations['deprecatedClasses'][_]}\n"
+        for _ in range( len(elements['deprecatedClasses']) ):
+            log += f" - {elements['deprecatedClasses'][_]}\n"
         log += "\n"
     
     log += f"Deprecated properties: {metrics['deprecatedProperties']}\n"
     if verbose and metrics['deprecatedProperties'] > 0:
         log += "List of deprecated properties:\n"
-        for _ in range( len(violations['deprecatedProperties']) ):
-            log += f" - {violations['deprecatedProperties'][_]}\n"
+        for _ in range( len(elements['deprecatedProperties']) ):
+            log += f" - {elements['deprecatedProperties'][_]}\n"
         log += "\n"
 
     log += f"External vocabularies declared: {metrics['vocabulariesUsed']}\n"
     if metrics['vocabulariesUsed'] > 0:
         log += "\n| Prefix | URI |\n|--|--|\n"
-        for _ in range( len(violations['vocabulariesUsed']['prefix']) ):
+        for _ in range( len(elements['vocabulariesUsed']['prefix']) ):
             # print(f" - {pfx}: {ns}")
-            log += f"| {violations['vocabulariesUsed']['prefix'][_]} "
-            log += f"| {violations['vocabulariesUsed']['uri'][_]} |\n"
+            log += f"| {elements['vocabulariesUsed']['prefix'][_]} "
+            log += f"| {elements['vocabulariesUsed']['uri'][_]} |\n"
         log += "\n"
 
     return log
@@ -363,11 +364,11 @@ def profiling(graph):
         graph (rdflib.Graph): The RDF graph object to parse into.
     
     Returns:
-        metrics (dict): Number of violations for various ontology metrics.
-        violations (dict): List of elements violating the ontology metrics.
+        metrics (dict): Count of ontology metrics.
+        elements (dict): Elements in ontology metrics.
     """
     metrics = {}
-    violations = {}
+    elements = {}
 
     # Count classes, properties before inferencing.
     results = exec_sparql(graph, 'count_cp')
@@ -394,41 +395,41 @@ def profiling(graph):
     total_classes_in_shapes = sum(int(row.classCount) for row in results)
     metrics['classesInNodeShapes'] = total_classes_in_shapes
     if total_classes_in_shapes > 0:
-        violations['classesInNodeShapes'] = {
+        elements['classesInNodeShapes'] = {
             'ns': [],
             'classCount': []
             }
         for row in results:
-            violations['classesInNodeShapes']['ns'].append(row.ns)
-            violations['classesInNodeShapes']['classCount'].append(row.classCount)
+            elements['classesInNodeShapes']['ns'].append(row.ns)
+            elements['classesInNodeShapes']['classCount'].append(row.classCount)
 
     # Count properties in PropertyShapes.
     results = exec_sparql(graph, 'property_in_property_shape')
     total_properties_in_shapes = len(results)
     metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
     if total_properties_in_shapes > 0:
-        violations['propertiesInPropertyShapes'] = {
+        elements['propertiesInPropertyShapes'] = {
             'ps': [],
             'propCount': []
             }
         for row in results:
-            violations['propertiesInPropertyShapes']['ps'].append(row.ps)
-            violations['propertiesInPropertyShapes']['propCount'].append(row.prop)
+            elements['propertiesInPropertyShapes']['ps'].append(row.ps)
+            elements['propertiesInPropertyShapes']['propCount'].append(row.prop)
 
     # Number of Deprecated Classes and Properties
     results = exec_sparql(graph, 'deprecated_class')
     metrics['deprecatedClasses'] = len(results)
     if metrics['deprecatedClasses'] > 0:
-        violations['deprecatedClasses'] = []
+        elements['deprecatedClasses'] = []
         for row in results:
-            violations['deprecatedClasses'].append(row.c)
+            elements['deprecatedClasses'].append(row.c)
     
     results = exec_sparql(graph, 'deprecated_property')
     metrics['deprecatedProperties'] = len(results)
     if metrics['deprecatedProperties'] > 0:
-        violations['deprecatedProperties'] = []
+        elements['deprecatedProperties'] = []
         for row in results:
-            violations['deprecatedProperties'].append(row.p)
+            elements['deprecatedProperties'].append(row.p)
 
     # List all used prefixes
     active_prefixes = prefixes(graph)
@@ -446,15 +447,14 @@ def profiling(graph):
 
     # These are not violations, but the dictionary is nevertheless used to store elements
     # matching the same key of the metrics dictionary.
-    violations['vocabulariesUsed'] = {
+    elements['vocabulariesUsed'] = {
         'prefix': [],
         'uri': []
         }
     for pfx, ns in active_prefixes.items():
-        # print(f" - {pfx}: {ns}")
-        violations['vocabulariesUsed']['prefix'].append(pfx)
-        violations['vocabulariesUsed']['uri'].append(ns)
-    return metrics, violations
+        elements['vocabulariesUsed']['prefix'].append(pfx)
+        elements['vocabulariesUsed']['uri'].append(ns)
+    return metrics, elements
 
 def infer_subclass_relations(graph):
     """
@@ -1852,38 +1852,36 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     }
     qa_violations = {}
 
-    metrics, profiling_violations = profiling(graph)
+    metrics, profiling_elements = profiling(graph)
     qa_metrics.update(metrics)
 
     graph, inference_log = infer_subclass_relations(graph)
 
     logs = []
+    checks = []
     test_counter = 1
     num_violations = 0
-    for enabled, func, test_name, key in checklist:
+    for enabled, func, display_name, key in checklist:
         if enabled:
             metrics, violations, log_results, test_counter, num_violations = func(
-                qa_metrics, graph, test_name, key, test_counter, num_violations, verbose
+                qa_metrics, graph, display_name, key, test_counter, num_violations, verbose
             )
             qa_metrics.update(metrics)
             qa_violations.update(violations)
             logs.append(log_results)
-
-    checks = []
-    for _, _, display_name, key in checklist:
-        count = int(qa_metrics.get(key, 0))
-        raw = qa_violations.get(key, '')
-        checks.append(CheckResult(
-            name=display_name,
-            passed=(count == 0),
-            count=count,
-            elements=str(raw) if raw else '',
-        ))
+            count = int(qa_metrics.get(key, 0))
+            raw = qa_violations.get(key, '')
+            checks.append(CheckResult(
+                name=display_name,
+                passed=(count == 0),
+                count=count,
+                elements=str(raw) if raw else '',
+            ))
 
     return QAResult(
         profiling=qa_metrics,
         checks=checks,
-        profiling_violations=profiling_violations,
+        elements=profiling_elements,
         logs=logs,
         inference_log=inference_log,
     )
@@ -2006,7 +2004,7 @@ def main():
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
-    log_output += print_profiling_metrics(qa_metrics, result.profiling_violations, args.verbose)
+    log_output += print_profiling_metrics(result, args.verbose)
     log_output += result.inference_log
     for log in result.logs:
         log_output += log
