@@ -9,7 +9,7 @@ def test_class_connected_via_subclass_passes(make_graph):
     :Animal a owl:Class .
     :Cat a owl:Class ; rdfs:subClassOf :Animal .
     """)
-    assert run_qa(g).get("Isolated Classes").passed
+    assert run_qa(g).get("Isolated classes").passed
 
 
 def test_class_connected_via_domain_passes(make_graph):
@@ -17,7 +17,7 @@ def test_class_connected_via_domain_passes(make_graph):
     :Cat a owl:Class .
     :hasCat a owl:ObjectProperty ; rdfs:domain :Cat .
     """)
-    assert run_qa(g).get("Isolated Classes").passed
+    assert run_qa(g).get("Isolated classes").passed
 
 
 def test_class_connected_via_sh_target_class_passes(make_graph):
@@ -25,7 +25,7 @@ def test_class_connected_via_sh_target_class_passes(make_graph):
     :Cat a owl:Class .
     :CatShape a sh:NodeShape ; sh:targetClass :Cat .
     """)
-    assert run_qa(g).get("Isolated Classes").passed
+    assert run_qa(g).get("Isolated classes").passed
 
 
 def test_isolated_class_fails(make_graph):
@@ -37,7 +37,7 @@ def test_isolated_class_fails(make_graph):
     :Dog rdfs:subClassOf :Animal .
     :Claw a owl:Class .
     """)
-    check = run_qa(g).get("Isolated Classes")
+    check = run_qa(g).get("Isolated classes")
     assert not check.passed
     assert "Claw" in check.elements
 
@@ -92,7 +92,7 @@ def test_unique_identifiers_pass(make_graph):
     :Cat a owl:Class .
     :hasFur a owl:ObjectProperty .
     """)
-    assert run_qa(g).get("Non-Unique Identifiers").passed
+    assert run_qa(g).get("Non-unique identifiers").passed
 
 
 def test_same_iri_as_class_and_property_fails(make_graph):
@@ -100,7 +100,7 @@ def test_same_iri_as_class_and_property_fails(make_graph):
     :hasFur a owl:Class .
     :hasFur a owl:ObjectProperty .
     """)
-    check = run_qa(g).get("Non-Unique Identifiers")
+    check = run_qa(g).get("Non-unique identifiers")
     assert not check.passed
     assert check.count == 1
     assert "hasFur" in check.elements
@@ -174,10 +174,10 @@ def test_untyped_class_check_requires_ontology_declaration(make_graph):
 
 # ── Untyped Properties ────────────────────────────────────────────────────────
 
-@pytest.mark.xfail(
-    reason="sparql/untyped_property.sparql uses ?c in FILTER instead of ?p — "
-           "the filter never matches so the check always returns 0 violations"
-)
+# @pytest.mark.xfail(
+#     reason="sparql/untyped_property.sparql uses ?c in FILTER instead of ?p — "
+#            "the filter never matches so the check always returns 0 violations"
+# ) # SPARQL query fixed!
 def test_property_used_without_declaration_fails(make_graph):
     g = make_graph("""
     : a owl:Ontology .

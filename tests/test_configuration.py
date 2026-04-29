@@ -164,9 +164,8 @@ def test_main_disable_via_config_marks_check_as_passed_in_ctrf(tmp_path):
     import json
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text("disable:\n  - hijacking\n")
-    # example_failure.ttl has Namespace hijacking violations; disabling it should show as pass
+    # example_failure.ttl has Namespace hijacking violations; disabling it should not appear in results
     ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(ttl, '-c', str(cfg), '--ctrf-dir', str(tmp_path))
     data = json.loads(list(tmp_path.glob('*.json'))[0].read_text())
-    hijacking = next(t for t in data['results']['tests'] if t['name'] == 'Namespace hijacking')
-    assert hijacking['status'] == 'passed'
+    assert not any(t['name'] == 'Namespace hijacking' for t in data['results']['tests'])
