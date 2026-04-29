@@ -2,21 +2,16 @@
 # Class without owl:Class or rdfs:Class declaration
 SELECT ?c
 WHERE {
-  # Get internal namespace
-  { 
-    SELECT (STR(?namespace) AS ?ns)
-    WHERE { ?namespace a owl:Ontology . }
-  }
+  { ?s rdfs:domain ?c . }
+  UNION
+  { ?s rdfs:range ?c . }
+  UNION
+  { ?s sh:class ?c . }
+  UNION
+  { ?s rdfs:subClassOf ?c . }
   
-  # Get objects
-  {
-    SELECT DISTINCT ?c
-    WHERE {
-      VALUES ?p { rdfs:domain rdfs:range sh:class }
-      ?s ?p ?o .
-      FILTER(isIRI(?o))
-    }
-  }
+  # exclude blank nodes
+  FILTER(isIRI(?c))
 
   # Restrict to ontology namespace
   FILTER(STRSTARTS(STR(?c), ?ns ))

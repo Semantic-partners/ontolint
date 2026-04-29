@@ -895,7 +895,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     if not results and int(in_metrics['classCount']) > 0:
         log += "PASS - All classes have a description annotation.\n"
         if verbose:
-            log_results = exec_sparql(graph, 'class_labels')
+            log_results = exec_sparql(graph, 'class_comments')
             log += "|  Class | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.c} | {row.lbl} |\n"
@@ -944,7 +944,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
-            log_results = exec_sparql(graph, 'property_labels')
+            log_results = exec_sparql(graph, 'property_comments')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.p} | {row.lbl} |\n"
@@ -993,7 +993,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     if not results and int(in_metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a description annotation.\n"
         if verbose:
-            results = exec_sparql(graph, 'node_shape_labels')
+            results = exec_sparql(graph, 'node_shape_comments')
             log += "| NodeShape | Description |\n|--|--|\n"
             for row in results:
                 log += f"| {row.ns} | {row.lbl} |\n"
@@ -1041,7 +1041,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     if not results and int(in_metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a description annotation.\n"
         if verbose:
-            results = exec_sparql(graph, 'property_shape_labels')
+            results = exec_sparql(graph, 'property_shape_comments')
             log += "| PropertyShape | Description |\n|--|--|\n"
             for row in results:
                 log += f"| {row.ps} | {row.lbl} |\n"
