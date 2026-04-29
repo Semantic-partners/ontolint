@@ -1,24 +1,19 @@
 # Untyped property
 # Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
-SELECT ?p
+SELECT DISTINCT ?p
 WHERE {
-  # Get internal namespace
-  { 
-    SELECT (STR(?namespace) AS ?ns)
-    WHERE { ?namespace a owl:Ontology . }
-  }
+  # Find resources used as predicates
+  ?s ?p ?o .
 
-  # Get predicates
-  {
-    SELECT DISTINCT ?p WHERE { ?s ?p ?o . FILTER(isIRI(?s)) }
-  }
+  # exclude blank nodes
+  FILTER(isIRI(?s))
 
   # Restrict to ontology namespace
-  FILTER(STRSTARTS(STR(?p), ?ns))
+  ?ontology a owl:Ontology .
+  FILTER(STRSTARTS(STR(?p), STR(?ontology)))
 
-  # Filter out defined properties
-  FILTER NOT EXISTS {
-    VALUES ?type { rdf:Property owl:ObjectProperty owl:DatatypeProperty }
-    ?p a ?type . 
-  }
+  MINUS { ?p a rdf:Property }
+  MINUS { ?p a owl:ObjectProperty }
+  MINUS { ?p a owl:DatatypeProperty }
+
 }

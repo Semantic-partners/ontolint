@@ -18,7 +18,7 @@ Generated: `{{ results.timestamp }}`
 
 | Test Name | Status | Violations | Elements |
 |-----------|--------|--------|--------|
-{{#each results.tests}}| {{name}} | {{#if (eq status "pass")}}✅ PASS{{else}}❌ FAIL{{/if}} | {{#if (eq status "pass")}}0{{else}}{{failure.violations}}{{/if}} | {{#if (eq status "pass")}} {{else}}{{failure.elements}}{{/if}} |
+{{#each results.tests}}| {{name}} | {{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}} | {{#if (eq status "passed")}}0{{else}}{{failure.violations}}{{/if}} | {{#if (eq status "passed")}} {{else}}{{failure.elements}}{{/if}} |
 {{/each}}
 
 ---

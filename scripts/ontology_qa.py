@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# Ontology Quality Assessment Script (v0.1)
+# Ontology Quality Assessment Script
 # SEMANTIC PARTNERS LTD, 2026
-# Authors: Simon Shapiro, Otello M Roscioni.
-# Last revision: 2026-01-07
+# Authors: Simon Shapiro, Otello M Roscioni, John Placek.
 
 """
 A script to perform basic QA on a set of ontologies.
@@ -11,13 +10,13 @@ check for common ontology quality issues.
 It reports any violations found in the ontology data.
 """
 import rdflib
-from rdflib import Graph, URIRef
 import argparse
 from urllib.parse import urlparse
 import sys
 import os
 import json
 from datetime import datetime
+from dataclasses import dataclass, field
 import yaml
 
 # Create a dictionary with SPARQL queries, from files.
@@ -41,6 +40,33 @@ def load_sparql_queries(directory):
     return queries
 
 sparql_queries = load_sparql_queries(sparql_dir)
+
+
+@dataclass
+class CheckResult:
+    name: str
+    passed: bool
+    count: int
+    elements: str
+
+
+@dataclass
+class QAResult:
+    profiling: dict
+    checks: list
+    elements: dict = field(default_factory=dict)
+    logs: list = field(default_factory=list)
+
+    def get(self, name: str):
+        return next((c for c in self.checks if c.name == name), None)
+
+    @property
+    def passed(self) -> bool:
+        return all(c.passed for c in self.checks)
+
+    @property
+    def failures(self):
+        return [c for c in self.checks if not c.passed]
 
 def exec_sparql(graph, key):
     """
@@ -69,7 +95,7 @@ def prefixes(g):
     used_namespaces = set()
     for s, p, o in g:
         for term in [s, p, o]:
-            if isinstance(term, URIRef):
+            if isinstance(term, rdflib.URIRef):
                 ns = get_namespace(str(term))
                 used_namespaces.add(ns)
 
@@ -169,7 +195,7 @@ def print_qa_table(metrics, checks):
         log (str): Pretty table with results.
     """
     name = get_ontology_name(metrics)
-    log = "\n## Quality Metrics\n"
+    log = "\n## Quality Assurance Metrics\n"
     log += f"| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
     log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
@@ -229,34 +255,28 @@ def print_if_executed(metrics, checks, key):
         output = metrics[key]
     return output
 
-def write_ctrf_report(metrics, violations, tests, checklist, file_path, filename):
+def write_ctrf_report(result: QAResult, file_path, filename):
     """
     Convert QA metrics to CTRF (Common Test Result Format) JSON.
     """
-
-    # Each QA check becomes a test case
     passed = 0
     failed = 0
     test_cases = []
 
-    for enabled, func, test_name, key in checklist:
-        violation_test = tests[key]
-        if violation_test:
-            violation_count = metrics[key]
-            violation_element = violations[key]
-            test_case = {
-                "name": test_name,
-                "status": "pass" if violation_count == 0 else "fail"
+    for check in result.checks:
+        test_case = {
+            "name": check.name,
+            "status": "passed" if check.passed else "failed"
+        }
+        if not check.passed:
+            test_case["failure"] = {
+                "violations": check.count,
+                "elements": check.elements
             }
-            if violation_count > 0:
-                test_case["failure"] = {
-                    "violations": violation_count,
-                    "elements": violation_element
-                }
-                failed += 1
-            else:
-                passed += 1
-            test_cases.append(test_case)
+            failed += 1
+        else:
+            passed += 1
+        test_cases.append(test_case)
     
     # Build CTRF report
     ctrf_report = {
@@ -287,8 +307,8 @@ def write_ctrf_report(metrics, violations, tests, checklist, file_path, filename
     log = f"\nCTRF report written to: {output_file}\n"
     return ctrf_report, log
 
-def print_profiling_metrics(metrics, violations, verbose):
-    log  = f"\n## Profiling Metrics\n\n"
+def print_profiling_metrics(metrics, elements, verbose):
+    log  = f"\n## Profiling Details\n\n"
     log += f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
@@ -297,46 +317,46 @@ def print_profiling_metrics(metrics, violations, verbose):
     log += f"Local classes in Node Shapes: {metrics['classesInNodeShapes']}\n"
     if verbose and metrics['classesInNodeShapes'] > 0:
         log += "\n| NodeShape | Class count |\n|--|--|\n"
-        for _ in range( len(violations['classesInNodeShapes']['ns']) ):
-            log += f"| {violations['classesInNodeShapes']['ns'][_]} "
-            log += f"| {violations['classesInNodeShapes']['classCount'][_]} |\n"
+        for _ in range( len(elements['classesInNodeShapes']['ns']) ):
+            log += f"| {elements['classesInNodeShapes']['ns'][_]} "
+            log += f"| {elements['classesInNodeShapes']['classCount'][_]} |\n"
         log += "\n"
 
     log += f"Local properties in Property Shapes: {metrics['propertiesInPropertyShapes']}\n"
     if verbose and metrics['propertiesInPropertyShapes'] > 0:
         log += "\n| PropertyShape | Local Property |\n|--|--|\n"
-        for _ in range( len(violations['propertiesInPropertyShapes']['ps']) ):
-            log += f"| {violations['propertiesInPropertyShapes']['ps'][_]} "
-            log += f"| {violations['propertiesInPropertyShapes']['propCount'][_]} |\n"
+        for _ in range( len(elements['propertiesInPropertyShapes']['ps']) ):
+            log += f"| {elements['propertiesInPropertyShapes']['ps'][_]} "
+            log += f"| {elements['propertiesInPropertyShapes']['propCount'][_]} |\n"
         log += "\n"
     
     log += f"Deprecated classes: {metrics['deprecatedClasses']}\n"
     if verbose and metrics['deprecatedClasses'] > 0:
         log += "List of deprecated classes:\n"
-        for _ in range( len(violations['deprecatedClasses']) ):
-            log += f" - {violations['deprecatedClasses'][_]}\n"
+        for _ in range( len(elements['deprecatedClasses']) ):
+            log += f" - {elements['deprecatedClasses'][_]}\n"
         log += "\n"
     
     log += f"Deprecated properties: {metrics['deprecatedProperties']}\n"
     if verbose and metrics['deprecatedProperties'] > 0:
         log += "List of deprecated properties:\n"
-        for _ in range( len(violations['deprecatedProperties']) ):
-            log += f" - {violations['deprecatedProperties'][_]}\n"
+        for _ in range( len(elements['deprecatedProperties']) ):
+            log += f" - {elements['deprecatedProperties'][_]}\n"
         log += "\n"
 
     log += f"External vocabularies declared: {metrics['vocabulariesUsed']}\n"
     if metrics['vocabulariesUsed'] > 0:
         log += "\n| Prefix | URI |\n|--|--|\n"
-        for _ in range( len(violations['vocabulariesUsed']['prefix']) ):
-            log += f"| {violations['vocabulariesUsed']['prefix'][_]} "
-            log += f"| {violations['vocabulariesUsed']['uri'][_]} |\n"
+        for _ in range( len(elements['vocabulariesUsed']['prefix']) ):
+            log += f"| {elements['vocabulariesUsed']['prefix'][_]} "
+            log += f"| {elements['vocabulariesUsed']['uri'][_]} |\n"
         log += "\n"
     
     log += f"Ontologies imported: {metrics['imports']}\n"
     if metrics['imports'] > 0:
-        for ont in violations['imports']:
+        for ont in elements['imports']:
             log += f"* Ontology \'{ont}\' imports:\n"
-            for res in violations['imports'][ont]: log += f"  - {res}\n" 
+            for res in elements['imports'][ont]: log += f"  - {res}\n" 
         log += "\n"
     
     log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
@@ -360,11 +380,11 @@ def profiling(graph):
         graph (rdflib.Graph): The RDF graph object to parse into.
     
     Returns:
-        metrics (dict): Number of violations for various ontology metrics.
-        violations (dict): List of elements violating the ontology metrics.
+        metrics (dict): Count of ontology metrics.
+        elements (dict): Elements in ontology metrics.
     """
     metrics = {}
-    violations = {}
+    elements = {}
 
     # Count classes, properties before inferencing.
     results = exec_sparql(graph, 'count_cp')
@@ -391,41 +411,41 @@ def profiling(graph):
     total_classes_in_shapes = sum(int(row.classCount) for row in results)
     metrics['classesInNodeShapes'] = total_classes_in_shapes
     if total_classes_in_shapes > 0:
-        violations['classesInNodeShapes'] = {
+        elements['classesInNodeShapes'] = {
             'ns': [],
             'classCount': []
             }
         for row in results:
-            violations['classesInNodeShapes']['ns'].append(row.ns)
-            violations['classesInNodeShapes']['classCount'].append(row.classCount)
+            elements['classesInNodeShapes']['ns'].append(row.ns)
+            elements['classesInNodeShapes']['classCount'].append(row.classCount)
 
     # Count properties in PropertyShapes.
     results = exec_sparql(graph, 'property_in_property_shape')
     total_properties_in_shapes = len(results)
     metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
     if total_properties_in_shapes > 0:
-        violations['propertiesInPropertyShapes'] = {
+        elements['propertiesInPropertyShapes'] = {
             'ps': [],
             'propCount': []
             }
         for row in results:
-            violations['propertiesInPropertyShapes']['ps'].append(row.ps)
-            violations['propertiesInPropertyShapes']['propCount'].append(row.prop)
+            elements['propertiesInPropertyShapes']['ps'].append(row.ps)
+            elements['propertiesInPropertyShapes']['propCount'].append(row.prop)
 
     # Number of Deprecated Classes and Properties
     results = exec_sparql(graph, 'deprecated_class')
     metrics['deprecatedClasses'] = len(results)
     if metrics['deprecatedClasses'] > 0:
-        violations['deprecatedClasses'] = []
+        elements['deprecatedClasses'] = []
         for row in results:
-            violations['deprecatedClasses'].append(row.c)
+            elements['deprecatedClasses'].append(row.c)
     
     results = exec_sparql(graph, 'deprecated_property')
     metrics['deprecatedProperties'] = len(results)
     if metrics['deprecatedProperties'] > 0:
-        violations['deprecatedProperties'] = []
+        elements['deprecatedProperties'] = []
         for row in results:
-            violations['deprecatedProperties'].append(row.p)
+            elements['deprecatedProperties'].append(row.p)
 
     # List all used prefixes
     active_prefixes = prefixes(graph)
@@ -442,7 +462,7 @@ def profiling(graph):
 
     # These are not violations, but the dictionary is nevertheless used to store elements
     # matching the same key of the metrics dictionary.
-    violations['vocabulariesUsed'] = {
+    elements['vocabulariesUsed'] = {
         'prefix': [],
         'uri': []
         }
@@ -450,20 +470,20 @@ def profiling(graph):
     items = [(ns, pfx) for ns, pfx in active_prefixes.items()]
     items.sort(key=lambda x: x[1])
     for ns, pfx in items:
-        violations['vocabulariesUsed']['prefix'].append(pfx)
-        violations['vocabulariesUsed']['uri'].append(ns)
+        elements['vocabulariesUsed']['prefix'].append(pfx)
+        elements['vocabulariesUsed']['uri'].append(ns)
 
     # List all imports
     results = exec_sparql(graph, 'ont_imports')
     metrics['imports'] = len(results)
-    violations['imports'] = {}
+    elements['imports'] = {}
     if metrics['imports'] > 0:
         old =  ""
         for row in results:
             if row.ont != old:
-                violations['imports'][str(row.ont)] = []
+                elements['imports'][str(row.ont)] = []
                 old = row.ont
-            violations['imports'][str(row.ont)].append(str(row.res))
+            elements['imports'][str(row.ont)].append(str(row.res))
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
@@ -483,7 +503,7 @@ def profiling(graph):
     (row,) = results
     metrics['CardinalityRestrictions'] = row.counter
 
-    return metrics, violations
+    return metrics, elements
 
 def infer_subclass_relations(graph):
     """
@@ -497,7 +517,7 @@ def infer_subclass_relations(graph):
         log (str): Result of inferencing.
     """
     
-    log = f"\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
+    log = f"\n## Simulate Inference\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
     while True:
         inferred_triples_result = exec_sparql(graph, 'subclass_inference_rule')
         if not inferred_triples_result:
@@ -536,7 +556,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     """
     metrics = {}
     violations = {}
-    num_files = len(in_metrics['filesProcessed'])
+    num_files = max(len(in_metrics['filesProcessed']), 1)
     metrics[check] = num_files # 'ontologyNotDeclared': Assume no ontology has been declared.
     metrics['ontologyURI'] = [ ]
     c, log = qa_check_results(name, c)
@@ -609,10 +629,18 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     """
     metrics = {}
     violations = {}
-    num_files = len(in_metrics['filesProcessed'])
+    num_files = max(len(in_metrics['filesProcessed']), 1)
     c, log = qa_check_results(name, c)
 
-    if in_metrics['ontologyNotDeclared'] == num_files:
+    # Fallback if the ontology declaration test is disabled.
+    if 'ontologyNotDeclared' not in in_metrics:
+        fallback_metrics, _, _, _, _ = check_owl_declaration(in_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
+        not_declared = (fallback_metrics['ontologyNotDeclared'] == num_files)
+        metrics.update(fallback_metrics)
+    else:
+        not_declared = (in_metrics['ontologyNotDeclared'] == num_files)
+
+    if not_declared:
         log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
         c += 1
         metrics[check] = 1 # 'ontologyDescription': no
@@ -1346,7 +1374,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 
                 log += f"| {row.p} | {domain} | {range} |\n"
         
-        # Check which check triggered the first execution.
+        # Control which check triggered the first execution.
         if check == 'missingDomain':
             # remove duplicates from dCount list.
             dCount = list(set(dCount))
@@ -1595,7 +1623,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
               
-    elif int(in_metrics['propertyCount']) == 0:
+    elif not results and int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
 
     elif results:
@@ -1648,15 +1676,6 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     elif results:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
-        # log += f"| Namespace | Count |\n|--|--|\n"
-        # for row in results:
-            # log += f"| {row.namespace} | {row['count']} |\n"
-            # el = int(row['count']) # for hijacking_count
-            # if el == 1:
-            #     string += f"{row.namespace}: ({row['count']} element),<br> "
-            # elif el > 1:
-            #     string += f"{row.namespace}: ({row['count']} elements),<br> "
-
         string = violation_formatting([row.resource for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
@@ -1827,6 +1846,84 @@ def lint_selection(selection, checklist):
         log += "\n"
         return checklist, log
 
+CHECKLIST = [
+    (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
+    (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
+    (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
+    (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
+    (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
+    (True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ),
+    (True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ),
+    (True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'),
+    (True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ),
+    (True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ),
+    (True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ),
+    (True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ),
+    (True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ),
+    (True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ),
+    (True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ),
+    (True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ),
+    (True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ),
+    (True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ),
+    (True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ),
+    (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
+    (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
+    (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
+]
+
+
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None) -> QAResult:
+    """
+    Run all QA checks on the given RDF graph.
+    Applies RDFS subclass inference in-place, then runs all checks.
+    Returns structured pass/fail results — no file I/O, no arg parsing.
+    """
+    if checklist is None:
+        checklist = CHECKLIST
+
+    qa_metrics = {
+        'filesProcessed': files_processed or [],
+        'triples': len(graph)
+    }
+    qa_violations = {}
+
+    metrics, profiling_elements = profiling(graph)
+    qa_metrics.update(metrics)
+
+    logs = []
+    checks = []
+    test_counter = 1
+    num_violations = 0
+    for enabled, func, display_name, key in checklist:
+        if enabled:
+            metrics, violations, log_results, test_counter, num_violations = func(
+                qa_metrics, graph, display_name, key, test_counter, num_violations, verbose
+            )
+            qa_metrics.update(metrics)
+            qa_violations.update(violations)
+            logs.append(log_results)
+            count = int(qa_metrics.get(key, 0))
+            raw = qa_violations.get(key, '')
+            checks.append(CheckResult(
+                name=display_name,
+                passed=(count == 0),
+                count=count,
+                elements=str(raw) if raw else ''
+            ))
+    
+    # Fallback for profiling elements related to QA checks
+    if 'ontologyURI' not in qa_metrics:
+        metrics, _, _, _, _ = check_owl_declaration(qa_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
+        qa_metrics.update(metrics)
+    
+    return QAResult(
+        profiling=qa_metrics,
+        checks=checks,
+        elements=profiling_elements,
+        logs=logs
+    )
+
+
 def write_lint_config(checklist):
     """
     Generate a default .rdf-lint.yml config file
@@ -1874,33 +1971,6 @@ def write_lint_config(checklist):
         """)
 
 def main():
-    # Array with all tests for QA metrics.
-    # (enabled, function, test_description, dictionary_key)
-    test_checklist = [
-        (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
-        (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
-        (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
-        (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
-        (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
-        (True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ),
-        (True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ),
-        (True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'),
-        (True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ),
-        (True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ),
-        (True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ),
-        (True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ),
-        (True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ),
-        (True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ),
-        (True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ),
-        (True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ),
-        (True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ),
-        (True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ),
-        (True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ),
-        (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
-        (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
-        (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 )
-    ]
-    
     # Set up argument parser
     parser = argparse.ArgumentParser(add_help=False, description=__doc__)
     parser.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
@@ -1919,16 +1989,11 @@ def main():
     # Validate arguments: data_files is required unless -i is used.
     if not args.init and not args.data_files:
         parser.error("data_files is required unless -i/--init option is used")
-    
+
     # Write an empty lint configuration file and exit.
     if args.init:
-        write_lint_config(test_checklist)
+        write_lint_config(CHECKLIST)
         exit(0)
-
-    # Create empty dictionaries to store the ontology metrics.
-    qa_metrics = {}    # violation count
-    qa_violations = {} # violation elements
-    qa_tests = {}      # violation check executed? (boolean)
 
     # Load Data
     g = rdflib.Graph()
@@ -1936,7 +2001,7 @@ def main():
     log_output = "# Ontology Quality Assurance\n\n"
     files_processed = []
     for f in args.data_files:
-        c, file_metrics, file_graph, results = load_rdf(f)
+        c, file_metrics, file_graph, log_results = load_rdf(f)
         file_counter += c
         files_processed.extend(file_metrics['filesProcessed'])
         g += file_graph # accumulate in the main graph.
@@ -1946,83 +2011,64 @@ def main():
                 g.namespace_manager.bind(prefix, uri)
             except Exception:
                 pass
-        log_output += results
+        log_output += log_results
 
     if file_counter == 0:
         print(f"{log_output}\nERROR - No RDF data in input files or directories.")
         return
-    else:
-        # Update the filesProcessed key
-        qa_metrics['filesProcessed'] = files_processed
 
-    # Compute and store the profiling metrics.
-    qa_metrics['triples'] = len(g)
-    metrics, violations = profiling(g)
-    qa_metrics.update(metrics)
-    qa_violations.update(violations)
     log_output += f"\n> {file_counter} files processed.\n"
 
-    # Terminate the execution if further QA checks are not required.
+    # Apply lint config to enable/disable individual checks.
+    checklist = list(CHECKLIST)
+    config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
+    if args.config or os.path.isfile(config_path):
+        if args.config:
+            config_path = args.config
+        lint_config = parse_lint_config(config_path)
+        checklist, log_results = lint_selection(lint_config, checklist)
+        log_output += log_results
+       
+    # Simulate Inference (optional)
+    if args.inference:
+        g, inference_log = infer_subclass_relations(g)
+        log_output += inference_log
+
+    # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
+        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
+        qa_violations = {}
+        metrics, violations = profiling(g)
+        qa_metrics.update(metrics)
+        qa_violations.update(violations)
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        metrics, violations, log_results, test_counter, num_violations = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
+        metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
         qa_terminate(args.output, log_output)
         return
-    
-    # Simulate Inference (optional)
-    if args.inference:
-        g, results = infer_subclass_relations(g)
-        log_output += results
 
-    # Compute the metrics for Quality Assurance.
-    num_violations = 0
-    test_counter = 1
+    # Full QA path
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist)
+    qa_metrics = result.profiling
+    qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
-    # Parse a configuration file to enable/disable individual tests.
-    config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
-    if args.config or os.path.isfile(config_path):
-        if args.config: config_path = args.config 
-        lint_config = parse_lint_config(config_path)
+    log_output += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
+    log_output += "\n## Quality Assurance Checks\n"
+    for log in result.logs:
+        log_output += log
 
-        # Disable the tests that are not included in the 'enable' list or that are included in the 'disable' list.
-        test_checklist, log_results = lint_selection(lint_config, test_checklist)
-        log_output += log_results
-
-    # Aggregate and format the results.
-    log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
-    log_output += f"\n## Quality Assurance Checks\n"
-
-    # Cycle through selected tests.
-    for enabled, func, test_name, key in test_checklist:
-        if enabled:
-            metrics, violations, log_results, test_counter, num_violations = func(qa_metrics, g, test_name, key, test_counter, num_violations, args.verbose)
-            qa_tests[key] = True
-
-            # Merge returned metrics and violations into global dictionaries
-            qa_metrics.update(metrics)
-            qa_violations.update(violations)
-            log_output += log_results
-        else:
-            qa_tests[key] = False
-
-    # Profiling Table
     log_output += print_profiling_table(qa_metrics)
-
-    # QA metrics Table
     log_output += print_qa_table(qa_metrics, qa_tests)
 
-    # Generate CTRF report
-    write_ctrf_report(qa_metrics, qa_violations, qa_tests, test_checklist, args.ctrf_dir, args.ctrf_filename)
+    write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
 
-    # Print the results
     qa_terminate(args.output, log_output)
 
-    # Exit status
-    if args.exit_status and num_violations > 0: sys.exit(1)
+    if args.exit_status and not result.passed:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
