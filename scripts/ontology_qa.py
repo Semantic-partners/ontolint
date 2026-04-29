@@ -917,7 +917,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
-            log_results = exec_sparql(graph, 'class_labels')
+            log_results = exec_sparql(graph, 'property_labels')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.p} | {row.lbl} |\n"
