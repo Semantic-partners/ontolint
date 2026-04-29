@@ -300,8 +300,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     log = f"\nCTRF report written to: {output_file}\n"
     return ctrf_report, log
 
-def print_profiling_metrics(results, verbose):
-    metrics, elements = results.profiling, results.elements
+def print_profiling_metrics(metrics, elements, verbose):
     log  = f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
@@ -583,7 +582,15 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     num_files = max(len(in_metrics['filesProcessed']), 1)
     c, log = qa_check_results(name, c)
 
-    if in_metrics['ontologyNotDeclared'] == num_files:
+    # Fallback if the ontology declaration test is disabled.
+    if 'ontologyNotDeclared' not in in_metrics:
+        fallback_metrics, _, _, _, _ = check_owl_declaration(in_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
+        not_declared = (fallback_metrics['ontologyNotDeclared'] == num_files)
+        metrics.update(fallback_metrics)
+    else:
+        not_declared = (in_metrics['ontologyNotDeclared'] == num_files)
+
+    if not_declared:
         log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
         c += 1
         metrics[check] = 1 # 'ontologyDescription': no
@@ -1875,9 +1882,14 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 name=display_name,
                 passed=(count == 0),
                 count=count,
-                elements=str(raw) if raw else '',
+                elements=str(raw) if raw else ''
             ))
-
+    
+    # Fallback for profiling elements related to QA checks
+    if 'ontologyURI' not in qa_metrics:
+        metrics, _, _, _, _ = check_owl_declaration(qa_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
+        qa_metrics.update(metrics)
+    
     return QAResult(
         profiling=qa_metrics,
         checks=checks,
@@ -2004,7 +2016,7 @@ def main():
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
-    log_output += print_profiling_metrics(result, args.verbose)
+    log_output += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
     log_output += result.inference_log
     for log in result.logs:
         log_output += log
