@@ -192,8 +192,8 @@ def print_qa_table(metrics, checks):
     log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += f"| Property without domain | Property without range "
-    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking | Unresolvable Imports |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingClassLabel', 'classCount')} "
@@ -213,7 +213,8 @@ def print_qa_table(metrics, checks):
     log += f"| {normalise_if_executed(metrics, checks, 'missingRange', 'propertyCount')} "
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
-    log += f"| {print_if_executed(metrics, checks, 'hijacking')} |\n"
+    log += f"| {print_if_executed(metrics, checks, 'hijacking')} "
+    log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -1673,6 +1674,71 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
+def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
+    """
+    QA test verifying that all owl:imports URLs resolve and contain triples.
+
+    Args:
+        in_metrics (dict): Number of violations for various ontology metrics.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        check (str): Dictionary key of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
+        status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
+
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    c, log = qa_check_results(name, c)
+    results = exec_sparql(graph, 'owl_imports')
+    metrics[check] = 0  # 'unresolvedImports'
+    violations[check] = ""
+
+    import_urls = [(str(row.ontology), str(row.imp)) for row in results]
+
+    if not import_urls:
+        log += "PASS - No owl:imports statements found.\n"
+        log += sep()
+        return metrics, violations, log, c, status
+
+    failed_imports = []
+    for _, import_url in import_urls:
+        try:
+            tmp = rdflib.Graph()
+            tmp.parse(import_url)
+            if len(tmp) == 0:
+                failed_imports.append(import_url)
+        except Exception:
+            failed_imports.append(import_url)
+
+    if not failed_imports:
+        log += f"PASS - All {len(import_urls)} import(s) resolved and contain triples.\n"
+        if verbose:
+            log += "\n| Ontology | Import URL |\n|--|--|\n"
+            for ontology, url in import_urls:
+                log += f"| {ontology} | {url} |\n"
+    else:
+        metrics[check] = len(failed_imports)
+        status += 1
+        string = ""
+        for url in failed_imports:
+            string += f"{url},<br> "
+        string = string.removesuffix(",<br> ")
+        violations[check] = string
+        log += f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):\n - "
+        log += string.replace(",<br> ", "\n - ") + "\n"
+
+    log += sep()
+    return metrics, violations, log, c, status
+
+
 def load_rdf_file(file):
     """
     Load RDF data from a file and return an RDFLib Graph.
@@ -1840,6 +1906,7 @@ CHECKLIST = [
     (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
     (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
     (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
+    (True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ),
 ]
 
 

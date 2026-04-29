@@ -51,7 +51,8 @@
 
 : a owl:Ontology ;
     rdfs:label "Animal Ontology" ;
-    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
+    owl:imports <http://www.w3.org/TR/skos-reference/skos.rdf> .
 
 :AnimalShape a sh:NodeShape ;
     rdfs:comment "Make sure the entity belongs to the animal kingdom." ;
