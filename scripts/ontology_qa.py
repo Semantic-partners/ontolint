@@ -66,33 +66,6 @@ class QAResult:
     def failures(self):
         return [c for c in self.checks if not c.passed]
 
-
-CHECKS = [
-    ("Ontology without declaration",      'ontologyNotDeclared'       ),
-    ("Ontology without description",      'ontologyDescription'       ),
-    ("Class without label",               'missingClassLabel'         ),
-    ("Property without label",            'missingPropertyLabel'      ),
-    ("NodeShape without label",           'missingNSLabel'            ),
-    ("PropertyShape without label",       'missingPSLabel'            ),
-    ("Class without description",         'missingClassDescription'   ),
-    ("Property without description",      'missingPropertyDescription'),
-    ("NodeShape without description",     'missingNSDescription'      ),
-    ("PropertyShape without description", 'missingPSDescription'      ),
-    ("Non-Unique Class Labels",           'nonUniqueClassLabels'      ),
-    ("Non-Unique Property Labels",        'nonUniquePropertyLabels'   ),
-    ("Non-Unique NodeShape Labels",       'nonUniqueNSLabels'         ),
-    ("Non-Unique PropertyShape Labels",   'nonUniquePSLabels'         ),
-    ("Isolated Classes",                  'isolatedClasses'           ),
-    ("Property without domain",           'missingDomain'             ),
-    ("Property without range",            'missingRange'              ),
-    ("Non-Unique Identifiers",            'nonUniqueIdentifiers'      ),
-    ("Subclass Cycles",                   'subclassCycles'            ),
-    ("Untyped Classes",                   'untypedClasses'            ),
-    ("Untyped Properties",                'untypedProperties'         ),
-    ("Namespace hijacking",               'hijacking'                 ),
-]
-
-
 def exec_sparql(graph, key):
     """
     Execute a SPARQL query from the input RDFLib graph, retrieving it from a global dictionary.
@@ -1838,7 +1811,7 @@ def lint_selection(selection, checklist):
         log += sep()
         return checklist, log
 
-TEST_CHECKLIST = [
+CHECKLIST = [
     (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
     (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
     (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
@@ -1871,12 +1844,14 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     Returns structured pass/fail results — no file I/O, no arg parsing.
     """
     if checklist is None:
-        checklist = TEST_CHECKLIST
+        checklist = CHECKLIST
 
-    qa_metrics = {'filesProcessed': files_processed or []}
+    qa_metrics = {
+        'filesProcessed': files_processed or [],
+        'triples': len(graph)
+    }
     qa_violations = {}
 
-    qa_metrics['triples'] = len(graph)
     metrics, profiling_violations = profiling(graph)
     qa_metrics.update(metrics)
 
@@ -1895,7 +1870,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
             logs.append(log_results)
 
     checks = []
-    for display_name, key in CHECKS:
+    for _, _, display_name, key in checklist:
         count = int(qa_metrics.get(key, 0))
         raw = qa_violations.get(key, '')
         checks.append(CheckResult(
@@ -1979,7 +1954,7 @@ def main():
 
     # Write an empty lint configuration file and exit.
     if args.init:
-        write_lint_config(TEST_CHECKLIST)
+        write_lint_config(CHECKLIST)
         exit(0)
 
     # Load Data
@@ -2017,7 +1992,7 @@ def main():
         return
 
     # Apply lint config to enable/disable individual checks.
-    checklist = list(TEST_CHECKLIST)
+    checklist = list(CHECKLIST)
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:

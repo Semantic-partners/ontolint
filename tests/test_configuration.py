@@ -1,6 +1,6 @@
 import os
 import pytest
-from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, TEST_CHECKLIST
+from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECKLIST
 
 
 # ── parse_lint_config ─────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ def test_parse_lint_config_missing_file_raises(tmp_path):
 # ── lint_selection ────────────────────────────────────────────────────────────
 
 def _checklist_copy():
-    return list(TEST_CHECKLIST)
+    return list(CHECKLIST)
 
 
 def _enabled_names(checklist):
