@@ -2,19 +2,14 @@
 # Define a resource in the current namespace using an external vocabulary prefix.
 SELECT DISTINCT ?resource
 WHERE {
-    # Get internal namespaces
-    { 
-        SELECT (REPLACE(STR(?namespace), "[#/][^#/]*$", "") AS ?ns)
-        WHERE { 
-            VALUES ?type { owl:Ontology skos:ConceptScheme }
-            ?namespace a ?type .
-        }
-    }
-
-    # Get internal resources
     ?resource ?property ?value .
     FILTER(isIRI(?resource))
     
     # Filter resource URI from external namespaces
-    FILTER(!STRSTARTS(STR(?resource), ?ns))
+    FILTER NOT EXISTS {
+        VALUES ?type { owl:Ontology skos:ConceptScheme }
+        ?namespace a ?type .
+        BIND(REPLACE(STR(?namespace), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
+        FILTER(STRSTARTS(STR(?resource), ?ns))
+    }
 }
