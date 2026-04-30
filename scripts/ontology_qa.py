@@ -517,7 +517,7 @@ def infer_subclass_relations(graph):
         log (str): Result of inferencing.
     """
     
-    log = f"\n## Simulate Inference\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
+    log = f"\n## Simulate Inference\n\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
     while True:
         inferred_triples_result = exec_sparql(graph, 'subclass_inference_rule')
         if not inferred_triples_result:
@@ -1666,7 +1666,12 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     violations = {}
     num_files = len(in_metrics['filesProcessed'])
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'hijacking')
+    if in_metrics['ontologyNotDeclared'] > 0 and num_files == 1:
+        # TO DO: check if the fallback makes sense for graphs where more ontologies are loaded, say one defines the
+        # namespace, and one extends it by defining additional resources.
+        results = exec_sparql(graph, 'hijacking_fallback')
+    else:
+        results = exec_sparql(graph, 'hijacking')
     metrics[check] = 0 # 'hijacking'
     violations[check] = ""
 
@@ -1843,7 +1848,7 @@ def lint_selection(selection, checklist):
             log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
             log += f"> ```"
         
-        log += "\n"
+        # log += "\n"
         return checklist, log
 
 CHECKLIST = [
