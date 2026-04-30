@@ -9,8 +9,12 @@ WHERE {
   FILTER(isIRI(?s))
 
   # Restrict to ontology namespace
-  ?ontology a owl:Ontology .
-  FILTER(STRSTARTS(STR(?p), STR(?ontology)))
+  OPTIONAL {
+    ?ontology a owl:Ontology .
+    BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
+  }
+  FILTER(STRSTARTS(STR(?p), ?ns))
+  
 
   MINUS { ?p a rdf:Property }
   MINUS { ?p a owl:ObjectProperty }
