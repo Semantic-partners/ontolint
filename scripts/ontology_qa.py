@@ -1934,15 +1934,20 @@ def lint_selection(selection, checklist):
             log += f"> ```"
         
         # Constraints
-        # 1. Enable owl-declaration if only owl-description is enabled.
         for i, item in enumerate(checklist):
             if item[3] == 'ontologyNotDeclared': index_owl_declaration = i
             if item[3] == 'ontologyDescription': index_owl_description = i
+            if item[3] == 'unresolvedImports':   index_owl_imports = i
         
+        # 1. Enable owl-declaration if only owl-description is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
             checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
             log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
         
+        # 2. Enable owl-declaration if only owl-imports is enabled.
+        if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
+            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
         return checklist, log
 
 CHECKLIST = [
