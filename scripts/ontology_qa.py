@@ -1714,60 +1714,53 @@ def load_rdf_file(file):
         log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
         return False, graph, log
 
-def load_rdf(f):
+def load_rdf(paths):
     """
-    Load RDF files from file or directory name.
+    Load RDF files from files or directories.
 
     Args:
-        f (str): The name of a file or directory.
+        paths (list): List of file and/or directory paths.
     
     Returns:
-        counter (int): Number of files successfully loaded.
-        metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
-        log (str): Parsing result.
+        file_counter (int): Number of files successfully loaded.
+        files_processed (list): List of successfully processed file names.
+        graph (rdflib.Graph): The RDF graph object with all loaded data.
+        log_results (str): Parsing result and status log.
     """
-    counter = 0
-    metrics = {}
-    metrics['filesProcessed'] = []
-    graph = rdflib.Graph()
-    log = ""
-    # check if f is a directory
-    if os.path.isdir(f):
-        for root, _, files in os.walk(f):
-            for file in files:
-                file_path = os.path.join(root, file)
-                go, g, results = load_rdf_file(file_path)
-                log += results
-                if go:
-                    # Append processed file
-                    metrics['filesProcessed'].append(file)
-                    counter += 1
-                    graph += g
-                    # Copy namespace/prefix bindings from the parsed file graph into
-                    # the main graph so declared prefixes (e.g. `ex:`) are preserved.
-                    for prefix, uri in g.namespace_manager.namespaces():
-                        try:
-                            graph.namespace_manager.bind(prefix, uri)
-                        except Exception:
-                            # ignore binding errors and continue
-                            pass
-    else:
-        go, g, results = load_rdf_file(f)
-        log += results
-        if go:
-            # Append processed file
-            metrics['filesProcessed'].append(f)
-            counter += 1
-            graph += g
-            # Preserve namespace bindings from the single file graph
-            for prefix, uri in g.namespace_manager.namespaces():
-                try:
-                    graph.namespace_manager.bind(prefix, uri)
-                except Exception:
-                    pass
+    def _bind_namespaces(target_graph, source_graph):
+        """Bind namespaces from source to target graph."""
+        for prefix, uri in source_graph.namespace_manager.namespaces():
+            try:
+                target_graph.namespace_manager.bind(prefix, uri)
+            except Exception:
+                pass  # ignore binding errors
 
-    return counter, metrics, graph, log
+    # Collect all files to process
+    files_to_load = []
+    for path in paths:
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for file in files:
+                    files_to_load.append(os.path.join(root, file))
+        else:
+            files_to_load.append(path)
+
+    # Process all files
+    file_counter = 0
+    files_processed = []
+    graph = rdflib.Graph()
+    log_results = ""
+
+    for file_path in files_to_load:
+        success, file_graph, log_msg = load_rdf_file(file_path)
+        log_results += log_msg
+        if success:
+            files_processed.append(os.path.basename(file_path))
+            file_counter += 1
+            graph += file_graph
+            _bind_namespaces(graph, file_graph)
+
+    return file_counter, files_processed, graph, log_results
 
 def parse_lint_config(config):
     """
@@ -2001,23 +1994,10 @@ def main():
         write_lint_config(CHECKLIST)
         exit(0)
 
-    # Load Data
-    g = rdflib.Graph()
-    file_counter = 0
+    # Load Data and create an rdflib.Graph()
     log_output = "# Ontology Quality Assurance\n\n"
-    files_processed = []
-    for f in args.data_files:
-        c, file_metrics, file_graph, log_results = load_rdf(f)
-        file_counter += c
-        files_processed.extend(file_metrics['filesProcessed'])
-        g += file_graph # accumulate in the main graph.
-        # Preserve namespace/prefix bindings from the parsed file_graph into the main graph
-        for prefix, uri in file_graph.namespace_manager.namespaces():
-            try:
-                g.namespace_manager.bind(prefix, uri)
-            except Exception:
-                pass
-        log_output += log_results
+    file_counter, files_processed, g, log_results = load_rdf(args.data_files)
+    log_output += log_results
 
     if file_counter == 0:
         print(f"{log_output}\nERROR - No RDF data in input files or directories.")
