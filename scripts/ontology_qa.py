@@ -1571,6 +1571,8 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
+    ontology_check = False
+    if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
     if not results and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
@@ -1586,10 +1588,13 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
-    if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
-    elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    if ontology_check:
+        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+            log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    else:
+        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1621,6 +1626,8 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'untypedProperties'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
+    ontology_check = False
+    if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
@@ -1636,11 +1643,14 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
-    elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-        
+    if ontology_check:
+        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+            log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    else:
+        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+    
     log += sep()
     return metrics, violations, log, c, status
 
@@ -1668,7 +1678,13 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     violations = {}
     num_files = len(in_metrics['filesProcessed'])
     c, log = qa_check_results(name, c)
-    if in_metrics['ontologyNotDeclared'] > 0 and num_files == 1:
+    fallback = False
+    ontology_check = False
+    if 'ontologyNotDeclared' in in_metrics:
+        if in_metrics['ontologyNotDeclared'] > 0 and num_files == 1: fallback = True
+        ontology_check = True
+    
+    if fallback:
         # TO DO: check if the fallback makes sense for graphs where more ontologies are loaded, say one defines the
         # namespace, and one extends it by defining additional resources.
         results = exec_sparql(graph, 'hijacking_fallback')
@@ -1686,11 +1702,14 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
         string = violation_formatting([row.resource for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
-        
-    if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
-    elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    
+    if ontology_check:
+        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+            log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
+        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    else:
+        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
