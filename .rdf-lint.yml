@@ -12,6 +12,7 @@
 # - node-shape-same-label
 # - owl-declaration
 # - owl-description
+# - owl-imports
 # - property-missing-comment
 # - property-missing-domain
 # - property-missing-label
