@@ -1331,7 +1331,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
 
         elif results:
             metrics['missingDomainRange'] = len(results)
-            log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n"
+            log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n\n"
             if not verbose: log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
             status += 1
             for row in results:
@@ -1347,7 +1347,9 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                     range = 'None'
                     rCount.append(predicate)
                 if not verbose: log += f"| {predicate} | {domain} | {range} |\n"
-        
+
+            if not verbose: log  += f"\n"
+
         # If verbose, print a table with domain and range for all properties.
         if verbose and int(in_metrics['propertyCount']) > 0:
             # Show all properties in the results.
@@ -1365,6 +1367,8 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                     range = 'None'
                 
                 log += f"| {row.p} | {domain} | {range} |\n"
+            
+            log  += f"\n"
         
         # Control which check triggered the first execution.
         if check == 'missingDomain':
@@ -1377,8 +1381,10 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
+                log += sep()
             else:
                 violations[check] = ""
+                log = log.removesuffix("\n")
 
         elif check == 'missingRange':
             # remove duplicates from rCount list.
@@ -1389,11 +1395,12 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 string = violation_formatting(rCount)
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
+                log += f"VIOLATION - Found {metrics[check]} properties11 without `rdfs:range` declaration:\n - {string}\n"
+                log += sep()
             else:
                 violations[check] = ""
+                log = log.removesuffix("\n")
 
-        log += sep()
     else:
         # This condition is satisfied only for range violations.
         # It relies on the fact that the array test_checklist is ordered,
@@ -1416,7 +1423,10 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
             string = violation_formatting(rCount)
             violations[check] = string
             string = string.replace(',<br> ', '\n - ')
-            log = f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
+            if 'missingDomain' in in_metrics:
+                log = f"\nVIOLATION - Found {metrics[check]} properties without22 `rdfs:range` declaration:\n - {string}\n"
+            else:
+                log = f"VIOLATION - Found {metrics[check]} properties without33 `rdfs:range` declaration:\n - {string}\n"
             log += sep()
         else:
             violations[check] = ""
@@ -1805,13 +1815,13 @@ def lint_selection(selection, checklist):
                     checklist[i] = (False, item[1], item[2], item[3])
 
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
-            if 'check_property_missing_domain' not in selection['enable']:
+            if 'check_property_missing_domain' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
             
-            if 'check_property_missing_range' not in selection['enable']:
+            if 'check_property_missing_range' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
         
         elif 'disable' in selection and isinstance(selection['disable'], list):
             for i, item in enumerate(checklist):
