@@ -196,14 +196,15 @@ def print_qa_table(metrics, checks):
     """
     name = get_ontology_name(metrics)
     log = "\n## Quality Assurance Metrics\n"
-    log += f"| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
+    log += f"| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
     log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += f"| Property without domain | Property without range "
-    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking | Unresolvable Imports |\n"
+    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
+    log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingClassLabel', 'classCount')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingPropertyLabel', 'propertyCount')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingNSLabel', 'nodeShapes')} "
@@ -221,8 +222,7 @@ def print_qa_table(metrics, checks):
     log += f"| {normalise_if_executed(metrics, checks, 'missingRange', 'propertyCount')} "
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
-    log += f"| {print_if_executed(metrics, checks, 'hijacking')} "
-    log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} |\n"
+    log += f"| {print_if_executed(metrics, checks, 'hijacking')} |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -1948,6 +1948,7 @@ def lint_selection(selection, checklist):
 CHECKLIST = [
     (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
     (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
+    (True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ),
     (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
     (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
     (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
@@ -1968,7 +1969,6 @@ CHECKLIST = [
     (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
     (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
     (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
-    (True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ),
 ]
 
 
