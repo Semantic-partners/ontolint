@@ -6,8 +6,7 @@
 
 :Animal a rdfs:Class ;
     rdfs:label "Animal" ;
-    rdfs:comment "The class of all Animals" ;
-    rdfs:subClassOf :Organism .
+    rdfs:comment "The class of all Animals" .
 
 :Cat a rdfs:Class ;
     rdfs:label "Cat" ;

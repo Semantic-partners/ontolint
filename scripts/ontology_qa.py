@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# Ontology Quality Assessment Script (v0.1)
-# SEMANTIC PARTNERS LTD, 2025
-# Authors: Simon Shapiro, Otello M Roscioni.
-# Last revision: 2025-11-30
+# Ontology Quality Assessment Script
+# SEMANTIC PARTNERS LTD, 2026
+# Authors: Simon Shapiro, Otello M Roscioni, John Placek, Pel Olson.
 
 """
 A script to perform basic QA on a set of ontologies.
@@ -21,7 +20,12 @@ from dataclasses import dataclass, field
 import yaml
 
 # Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', './sparql') # Use ENV variable or default value.
+sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.argv[0])) + '/../sparql') # Use ENV variable or default value.
+
+# check that the directory exists
+if not os.path.isdir(sparql_dir):
+    sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
+    sys.exit(1)
 
 def load_sparql_queries(directory):
     """
@@ -52,7 +56,6 @@ class QAResult:
     checks: list
     elements: dict = field(default_factory=dict)
     logs: list = field(default_factory=list)
-    inference_log: str = ""
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -101,7 +104,7 @@ def prefixes(g):
     for ns in used_namespaces:
         if ns in declared_prefixes:
             prefix = declared_prefixes[ns]
-            if len(prefix) > 0: used_prefixes[prefix] = ns
+            if len(prefix) > 0: used_prefixes[ns] = prefix
 
     return used_prefixes
 
@@ -151,6 +154,8 @@ def qa_terminate(file, log):
     """
     # Print output to file or STDOUT.
     if file:
+         # Ensure directory exists
+        os.makedirs(os.path.dirname(file) or '.', exist_ok=True)
         with open(file, "w", encoding="utf-8") as f:
             f.write(log)
     else:
@@ -170,9 +175,12 @@ def print_profiling_table(metrics):
     name = get_ontology_name(metrics)
     log = "\n## Profiling Metrics\n"
     log += f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
-    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|\n"
-    log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} | {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} | {metrics['vocabulariesUsed']} |\n"
+    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported "
+    log += f"| Hierarchy depth | Ave branching factor | Cardinality restrictions |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} "
+    log += f"| {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} "
+    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} | {metrics['HierarchyDepth']} | {normalise(metrics['aveBranchFactor'], 1)} | {metrics['CardinalityRestrictions']} |\n"
     return log
 
 def print_qa_table(metrics, checks):
@@ -187,7 +195,7 @@ def print_qa_table(metrics, checks):
         log (str): Pretty table with results.
     """
     name = get_ontology_name(metrics)
-    log = "\n## Quality Metrics\n"
+    log = "\n## Quality Assurance Metrics\n"
     log += f"| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
     log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
@@ -301,7 +309,8 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     return ctrf_report, log
 
 def print_profiling_metrics(metrics, elements, verbose):
-    log  = f"RDF/OWL classes: {metrics['classCount']}\n"
+    log  = f"\n## Profiling Details\n\n"
+    log += f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
     log += f"SHACL Property Shapes: {metrics['propertyShapes']}\n"
@@ -340,11 +349,20 @@ def print_profiling_metrics(metrics, elements, verbose):
     if metrics['vocabulariesUsed'] > 0:
         log += "\n| Prefix | URI |\n|--|--|\n"
         for _ in range( len(elements['vocabulariesUsed']['prefix']) ):
-            # print(f" - {pfx}: {ns}")
             log += f"| {elements['vocabulariesUsed']['prefix'][_]} "
             log += f"| {elements['vocabulariesUsed']['uri'][_]} |\n"
         log += "\n"
-
+    
+    log += f"Ontologies imported: {metrics['imports']}\n"
+    if metrics['imports'] > 0:
+        for ont in elements['imports']:
+            log += f"* Ontology \'{ont}\' imports:\n"
+            for res in elements['imports'][ont]: log += f"  - {res}\n" 
+        log += "\n"
+    
+    log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
+    log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
+    log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
     return log
 
 def qa_check_results(description,qan):
@@ -437,11 +455,10 @@ def profiling(graph):
         for row in results:
             # Remove ontology namespace from active_prefixes
             to_remove = []
-            for row in results:
-                for pfx, ns in active_prefixes.items():
-                    if str(row.ont) == ns: to_remove.append(pfx)
-            for pfx in to_remove:
-                del active_prefixes[pfx]
+            for ns, pfx in active_prefixes.items():
+                if str(row.ont) == ns: to_remove.append(ns)
+            for ns in to_remove:
+                del active_prefixes[ns]
     metrics['vocabulariesUsed'] = len(active_prefixes)
 
     # These are not violations, but the dictionary is nevertheless used to store elements
@@ -450,14 +467,48 @@ def profiling(graph):
         'prefix': [],
         'uri': []
         }
-    for pfx, ns in active_prefixes.items():
+    # Build a (namespace, prefix) array and sort it by namespace
+    items = [(ns, pfx) for ns, pfx in active_prefixes.items()]
+    items.sort(key=lambda x: x[1])
+    for ns, pfx in items:
         elements['vocabulariesUsed']['prefix'].append(pfx)
         elements['vocabulariesUsed']['uri'].append(ns)
+
+    # List all imports
+    results = exec_sparql(graph, 'ont_imports')
+    metrics['imports'] = len(results)
+    elements['imports'] = {}
+    if metrics['imports'] > 0:
+        old =  ""
+        for row in results:
+            if row.ont != old:
+                elements['imports'][str(row.ont)] = []
+                old = row.ont
+            elements['imports'][str(row.ont)].append(str(row.res))
+    
+    # hierarchy depth
+    results = exec_sparql(graph, 'hierarchy_depth')
+    if len(results) > 1:
+        (row,) = results 
+        metrics['HierarchyDepth'] = row.maxDepth
+    else:
+        metrics['HierarchyDepth'] = 0
+
+    # average branching factor
+    results = exec_sparql(graph, 'average_branching_factor')
+    (row,) = results
+    metrics['aveBranchFactor'] = row.avgBranchingFactor
+
+    # use of restrictions
+    results = exec_sparql(graph, 'cardinality_restrictions')
+    (row,) = results
+    metrics['CardinalityRestrictions'] = row.counter
+
     return metrics, elements
 
 def infer_subclass_relations(graph):
     """
-    Infer sub-class relations from ...
+    Construct sub-class relations recursively using the sub-class inference rule.
     
     Args:
         graph (rdflib.Graph): The RDF graph object to parse into.
@@ -467,7 +518,7 @@ def infer_subclass_relations(graph):
         log (str): Result of inferencing.
     """
     
-    log = f"\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
+    log = f"\n## Simulate Inference\n\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
     while True:
         inferred_triples_result = exec_sparql(graph, 'subclass_inference_rule')
         if not inferred_triples_result:
@@ -481,7 +532,7 @@ def infer_subclass_relations(graph):
             break
         else:
             log += f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...\n"
-    log += f"Final graph size after inference: {len(graph)} triples.\n" + sep() + "\n"
+    log += f"Final graph size after inference: {len(graph)} triples.\n"
     return graph, log
 
 def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
@@ -542,7 +593,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     
     # Print additional information.
     if verbose and metrics[check] <= 0:
-        log = log.rstrip(".\n")
+        log = log.removesuffix(".\n")
         log += ":\n"
         for _ in range(num_uri):
             log += f" - {metrics['ontologyURI'][_]}\n"
@@ -582,15 +633,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     num_files = max(len(in_metrics['filesProcessed']), 1)
     c, log = qa_check_results(name, c)
 
-    # Fallback if the ontology declaration test is disabled.
-    if 'ontologyNotDeclared' not in in_metrics:
-        fallback_metrics, _, _, _, _ = check_owl_declaration(in_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
-        not_declared = (fallback_metrics['ontologyNotDeclared'] == num_files)
-        metrics.update(fallback_metrics)
-    else:
-        not_declared = (in_metrics['ontologyNotDeclared'] == num_files)
-
-    if not_declared:
+    if in_metrics['ontologyNotDeclared'] == num_files:
         log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
         c += 1
         metrics[check] = 1 # 'ontologyDescription': no
@@ -611,11 +654,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             owd = len(results)
             metrics[check] = len(results) #  violations
             status += 1
-            string = ""
-            for row in results:
-                string += f"{row.ont},<br> "
-            
-            string = string.removesuffix(",<br> ")
+            string = violation_formatting([row.ont for row in results])
             violations[check] = string
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
@@ -665,11 +704,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
         status += 1
-        string = ""
-        for t in results:
-            string += f"{t[0]},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -704,7 +739,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     violations[check] = ""
 
     if not results and int(in_metrics['propertyCount']) > 0:
-        log += "PASS - All properties have a label annotation."
+        log += "PASS - All properties have a label annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'property_labels')
             log += "|  Property | Label |\n|--|--|\n"
@@ -718,11 +753,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
-        string = ""
-        for t in results:
-            string += f"{t[0]},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.p for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -771,11 +802,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.ns},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.ns for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -824,11 +851,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row.ps},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.ps for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -865,7 +888,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     if not results and int(in_metrics['classCount']) > 0:
         log += "PASS - All classes have a description annotation.\n"
         if verbose:
-            log_results = exec_sparql(graph, 'class_labels')
+            log_results = exec_sparql(graph, 'class_comments')
             log += "|  Class | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.c} | {row.lbl} |\n"
@@ -877,11 +900,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
         status += 1
-        string = ""
-        for t in results:
-          string += f"{t[0]},<br> "
-
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -918,7 +937,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
-            log_results = exec_sparql(graph, 'class_labels')
+            log_results = exec_sparql(graph, 'property_comments')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
                 log += f"| {row.p} | {row.lbl} |\n"
@@ -930,10 +949,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
-        string = ""
-        for t in results:
-          string += f"{t[0]},<br> "
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.p for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -970,7 +986,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     if not results and int(in_metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a description annotation.\n"
         if verbose:
-            results = exec_sparql(graph, 'node_shape_labels')
+            results = exec_sparql(graph, 'node_shape_comments')
             log += "| NodeShape | Description |\n|--|--|\n"
             for row in results:
                 log += f"| {row.ns} | {row.lbl} |\n"
@@ -981,11 +997,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row.ns},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.ns for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1022,7 +1034,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     if not results and int(in_metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a description annotation.\n"
         if verbose:
-            results = exec_sparql(graph, 'property_shape_labels')
+            results = exec_sparql(graph, 'property_shape_comments')
             log += "| PropertyShape | Description |\n|--|--|\n"
             for row in results:
                 log += f"| {row.ps} | {row.lbl} |\n"
@@ -1034,10 +1046,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row.ps},<br> "
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.ps for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1275,11 +1284,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
         status += 1
-        string = ""
-        for row in results:
-          string += f"{row[0]},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1315,39 +1320,38 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         metrics['missingDomainRange'] = 0
         local_name = "Missing Domain or Range in Properties"
         c, log = qa_check_results(local_name, c)
-        dCount = 0
-        rCount = 0
+        dCount = []
+        rCount = []
 
         # Print the output of the check only once.
         if not results and int(in_metrics['propertyCount']) > 0:
-            log += "PASS - All properties have domain and range defined.\n"
+            log += "INFO - All properties have domain and range defined.\n"
+            if verbose: log += f"\n"
 
         elif int(in_metrics['propertyCount']) == 0:
             log += "WARNING - No properties defined, invalid metric.\n"
 
         elif results:
             metrics['missingDomainRange'] = len(results)
-            log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n"
+            log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n\n"
             if not verbose: log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
             status += 1
-            string = ""
-            string2 = ""
             for row in results:
                 predicate = row.p
                 if row.domain:
                     domain = row.domain
                 else:
                     domain = 'None'
-                    dCount += 1
-                    string += f"{predicate},<br> "
+                    dCount.append(predicate)
                 if row.range:
                     range = row.range
                 else:
                     range = 'None'
-                    rCount += 1
-                    string2 += f"{predicate},<br> "
+                    rCount.append(predicate)
                 if not verbose: log += f"| {predicate} | {domain} | {range} |\n"
-        
+
+            if not verbose: log  += f"\n"
+
         # If verbose, print a table with domain and range for all properties.
         if verbose and int(in_metrics['propertyCount']) > 0:
             # Show all properties in the results.
@@ -1365,55 +1369,92 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                     range = 'None'
                 
                 log += f"| {row.p} | {domain} | {range} |\n"
+            
+            log  += f"\n"
         
-        # Check which check triggered the first execution.
+        # Control which check triggered the first execution.
         if check == 'missingDomain':
-            metrics['missingDomain'] = dCount
-            if dCount > 0:
-                string = string.removesuffix(",<br> ")
-                violations['missingDomain'] = string
+            # remove duplicates from dCount list.
+            dCount = list(set(dCount))
+            dCount.sort()
+            metrics[check] = len(dCount)
+            if metrics[check] > 0:
+                string = violation_formatting(dCount)
+                violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {dCount} properties without `rdfs:domain` declaration:\n - {string}\n"
+                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
             else:
-                violations['missingDomain'] = ""
+                violations[check] = ""
+                log += "PASS - All properties have domain defined.\n"
 
         elif check == 'missingRange':
-            metrics['missingRange']  = rCount
-            if rCount > 0:
-                string2 = string2.rstrip(",<br> ")
-                violations['missingRange'] = string2
-                string2 = string2.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {rCount} properties without `rdfs:range` declaration:\n - {string2}\n"
+            # remove duplicates from rCount list.
+            rCount = list(set(rCount))
+            rCount.sort()
+            metrics[check]  = len(rCount)
+            if metrics[check] > 0:
+                string = violation_formatting(rCount)
+                violations[check] = string
+                string = string.replace(',<br> ', '\n - ')
+                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
             else:
-                violations['missingRange'] = ""
-
+                violations[check] = ""
+                log += "PASS - All properties have range defined.\n"
+        
         log += sep()
+
     else:
-        # This case only report the results for range violations.
-        log = ""
-        string = ""
-        rCount = 0
+        # This condition is satisfied only for range violations.
+        # It relies on the fact that the array test_checklist is ordered,
+        # with missingDomain defined before missingRange.
+        local_name = "Missing Range in Properties"
+        c, log = qa_check_results(local_name, c)
+        rCount = []
 
         # Analyse the results
         if results:
             for row in results:
                 predicate = row.p
                 if not row.range:
-                    rCount += 1
-                    string += f"{predicate},<br> "
+                    rCount.append(predicate)
         
         # Report
-        metrics['missingRange']  = rCount
-        if rCount > 0:
-            string = string.removesuffix(",<br> ")
-            violations['missingRange'] = string
+        rCount = list(set(rCount))
+        rCount.sort()
+        metrics[check]  = len(rCount)
+        if metrics[check] > 0:
+            string = violation_formatting(rCount)
+            violations[check] = string
             string = string.replace(',<br> ', '\n - ')
-            log = f"VIOLATION - Found {rCount} properties without `rdfs:range` declaration:\n - {string}\n"
-            log += sep()
+            log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
         else:
-            violations['missingRange'] = ""
+            violations[check] = ""
+            log += "PASS - All properties have range defined.\n"
+        
+        log += sep()
 
     return metrics, violations, log, c, status
+
+def violation_formatting(array, unique=False):
+    """
+    Format a string of elements into a markdown list.
+    
+    Args:
+        array (list): List of elements to format.
+        unique (bool): Logical flag to sort and remove duplicates.
+    
+    Returns:
+        formatted_string (str): String formatted as a markdown list.
+    """
+    if unique:
+        array = list(set(array))
+        array.sort()
+    
+    formatted_string = ""
+    for element in array:
+        formatted_string += f"{element},<br> "
+    
+    return formatted_string.removesuffix(",<br> ")
 
 def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1451,12 +1492,12 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         log += f"VIOLATION - Found {metrics[check]} elements with non-unique identifiers.\n"
         log += "| URI | Declared as |\n|--|--|\n"
         status += 1
-        string = ""
+        iri = []
         for row in results:
             log += f"| {row.iri} | {row.declaredAs} |\n"
-            string += f"{row.iri},<br> "
-        string = string.removesuffix(",<br> ")
-        violations[check] = string
+            iri.append(row.iri)
+
+        violations[check] = violation_formatting(iri)
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1498,11 +1539,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.c},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1536,6 +1573,8 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
+    ontology_check = False
+    if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
     if not results and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
@@ -1547,18 +1586,17 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.c},<br> "
-
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.c for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
-    if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
-    elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    if ontology_check:
+        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+            log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    else:
+        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1590,6 +1628,8 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'untypedProperties'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
+    ontology_check = False
+    if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
@@ -1601,19 +1641,18 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
-        string = ""
-        for row in results:
-            string += f"{row.p},<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.p for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
-    elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-        
+    if ontology_check:
+        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+            log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    else:
+        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+    
     log += sep()
     return metrics, violations, log, c, status
 
@@ -1641,7 +1680,18 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     violations = {}
     num_files = len(in_metrics['filesProcessed'])
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'hijacking')
+    fallback = False
+    ontology_check = False
+    if 'ontologyNotDeclared' in in_metrics:
+        if in_metrics['ontologyNotDeclared'] > 0 and num_files == 1: fallback = True
+        ontology_check = True
+    
+    if fallback:
+        # TO DO: check if the fallback makes sense for graphs where more ontologies are loaded, say one defines the
+        # namespace, and one extends it by defining additional resources.
+        results = exec_sparql(graph, 'hijacking_fallback')
+    else:
+        results = exec_sparql(graph, 'hijacking')
     metrics[check] = 0 # 'hijacking'
     violations[check] = ""
 
@@ -1651,25 +1701,17 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     elif results:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
-        # log += f"| Namespace | Count |\n|--|--|\n"
-        string = ""
-        for row in results:
-            string += f"{row.resource},<br> "
-            # log += f"| {row.namespace} | {row['count']} |\n"
-            # el = int(row['count']) # for hijacking_count
-            # if el == 1:
-            #     string += f"{row.namespace}: ({row['count']} element),<br> "
-            # elif el > 1:
-            #     string += f"{row.namespace}: ({row['count']} elements),<br> "
-        
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting([row.resource for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
-        
-    if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
-    elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-        log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    
+    if ontology_check:
+        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+            log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
+        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+    else:
+        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1768,46 +1810,53 @@ def load_rdf_file(file):
         log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
         return False, graph, log
 
-def load_rdf(f):
+def load_rdf(paths):
     """
-    Load RDF files from file or directory name.
+    Load RDF files from files or directories.
 
     Args:
-        f (str): The name of a file or directory.
+        paths (list): List of file and/or directory paths.
     
     Returns:
-        counter (int): Number of files successfully loaded.
-        metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
-        log (str): Parsing result.
+        file_counter (int): Number of files successfully loaded.
+        files_processed (list): List of successfully processed file names.
+        graph (rdflib.Graph): The RDF graph object with all loaded data.
+        log_results (str): Parsing result and status log.
     """
-    counter = 0
-    metrics = {}
-    metrics['filesProcessed'] = []
-    graph = rdflib.Graph()
-    log = ""
-    # check if f is a directory
-    if os.path.isdir(f):
-        for root, _, files in os.walk(f):
-            for file in files:
-                file_path = os.path.join(root, file)
-                go, g, results = load_rdf_file(file_path)
-                log += results
-                if go:
-                    # Append processed file
-                    metrics['filesProcessed'].append(file)
-                    counter += 1
-                    graph += g
-    else:
-        go, g, results = load_rdf_file(f)
-        log += results
-        if go:
-            # Append processed file
-            metrics['filesProcessed'].append(f)
-            counter += 1
-            graph += g
+    def _bind_namespaces(target_graph, source_graph):
+        """Bind namespaces from source to target graph."""
+        for prefix, uri in source_graph.namespace_manager.namespaces():
+            try:
+                target_graph.namespace_manager.bind(prefix, uri)
+            except Exception:
+                pass  # ignore binding errors
 
-    return counter, metrics, graph, log
+    # Collect all files to process
+    files_to_load = []
+    for path in paths:
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for file in files:
+                    files_to_load.append(os.path.join(root, file))
+        else:
+            files_to_load.append(path)
+
+    # Process all files
+    file_counter = 0
+    files_processed = []
+    graph = rdflib.Graph()
+    log_results = ""
+
+    for file_path in files_to_load:
+        success, file_graph, log_msg = load_rdf_file(file_path)
+        log_results += log_msg
+        if success:
+            files_processed.append(os.path.basename(file_path))
+            file_counter += 1
+            graph += file_graph
+            _bind_namespaces(graph, file_graph)
+
+    return file_counter, files_processed, graph, log_results
 
 def parse_lint_config(config):
     """
@@ -1845,20 +1894,20 @@ def lint_selection(selection, checklist):
         The 'enable' and 'disable' keys are mutually exclusive. If both are specified in the configuration file,
         only the first dictionary will be used.
         """
-        log = "Lint configuration file found!\n"
+        log = "> Lint configuration file found!\n"
         if 'enable' in selection and isinstance(selection['enable'], list):
             for i, item in enumerate(checklist):
                 if not item[1].__name__ in selection['enable']:
                     checklist[i] = (False, item[1], item[2], item[3])
 
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
-            if 'check_property_missing_domain' not in selection['enable']:
+            if 'check_property_missing_domain' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
             
-            if 'check_property_missing_range' not in selection['enable']:
+            if 'check_property_missing_range' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
         
         elif 'disable' in selection and isinstance(selection['disable'], list):
             for i, item in enumerate(checklist):
@@ -1876,11 +1925,20 @@ def lint_selection(selection, checklist):
 
         else:
             # Print a warning
-            log += f"\nWARNING - Invalid keyword in config file:\n\n```yaml\n"
-            log += yaml.dump(selection, default_flow_style=False)
-            log += f"```"
+            log += f">\n> WARNING - Invalid keyword in config file:\n> ```yaml\n"
+            log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
+            log += f"> ```"
         
-        log += sep()
+        # Constraints
+        # 1. Enable owl-declaration if only owl-description is enabled.
+        for i, item in enumerate(checklist):
+            if item[3] == 'ontologyNotDeclared': index_owl_declaration = i
+            if item[3] == 'ontologyDescription': index_owl_description = i
+        
+        if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
+            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
+        
         return checklist, log
 
 CHECKLIST = [
@@ -1928,8 +1986,6 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     metrics, profiling_elements = profiling(graph)
     qa_metrics.update(metrics)
 
-    graph, inference_log = infer_subclass_relations(graph)
-
     logs = []
     checks = []
     test_counter = 1
@@ -1951,7 +2007,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 elements=str(raw) if raw else ''
             ))
     
-    # Fallback for profiling elements related to QA checks
+    # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
     if 'ontologyURI' not in qa_metrics:
         metrics, _, _, _, _ = check_owl_declaration(qa_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
         qa_metrics.update(metrics)
@@ -1960,8 +2016,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         profiling=qa_metrics,
         checks=checks,
         elements=profiling_elements,
-        logs=logs,
-        inference_log=inference_log,
+        logs=logs
     )
 
 
@@ -1972,25 +2027,26 @@ def write_lint_config(checklist):
     sys.stderr.write(f"Ontolint: creating default configuration file .rdf-lint.yml in the current directory.\n")
 
     # abort if path exists
-    path = os.getcwd() + "/.rdf-lint.yml"
+    path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if os.path.exists(path):
         sys.stderr.write(f"ERROR: configuration file already exists: {path}\n\n")
-        exit(1)
+        sys.exit(1)
 
     sequence = []
     for i, item in enumerate(checklist):
         name = item[1].__name__.replace("check_", "").replace("_", "-")
         sequence.append(name)
+    
     for item in sequence:
         if item == "property-missing-domain-range":
-            sequence.remove(item)
-            sequence.append("property-missing-domain")
+            index = sequence.index(item)
+            sequence[index] = "property-missing-domain"
         # Do it again :)
         if item == "property-missing-domain-range":
-            sequence.remove(item)
-            sequence.append("property-missing-range")
+            index = sequence.index(item)
+            sequence[index] = "property-missing-range"
     
-    sequence = sorted(set(sequence))
+    sequence.sort()
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(f"""\
@@ -2012,15 +2068,17 @@ def write_lint_config(checklist):
 
 def main():
     # Set up argument parser
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(add_help=False, description=__doc__)
+    parser.add_argument('-h', '--help', action='help', help='Show this help message and exit.')
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')
+    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks.(default: False)')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
-    parser.add_argument('-c', '--config', type=str, metavar='path/to/.rdf-lint.yml', help='Path to .rdf-lint.yml configuration file to enable or disable individual checks.')
-    parser.add_argument('-i', '--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
+    parser.add_argument('-c', '--config', type=str, metavar='path/to/config.yml', help='Path to a YAML configuration file to enable or disable individual checks. Note that if the current directory contains a .rdf-lint.yml file, it will be used by default.')
+    parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
@@ -2033,23 +2091,31 @@ def main():
         write_lint_config(CHECKLIST)
         exit(0)
 
-    # Load Data
-    g = rdflib.Graph()
-    file_counter = 0
+    # Load Data and create an rdflib.Graph()
     log_output = "# Ontology Quality Assurance\n\n"
-    files_processed = []
-    for f in args.data_files:
-        c, file_metrics, file_graph, results = load_rdf(f)
-        file_counter += c
-        files_processed.extend(file_metrics['filesProcessed'])
-        g += file_graph
-        log_output += results
+    file_counter, files_processed, g, log_results = load_rdf(args.data_files)
+    log_output += log_results
 
     if file_counter == 0:
         print(f"{log_output}\nERROR - No RDF data in input files or directories.")
         return
 
     log_output += f"\n> {file_counter} files processed.\n"
+
+    # Apply lint config to enable/disable individual checks.
+    checklist = list(CHECKLIST)
+    config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
+    if args.config or os.path.isfile(config_path):
+        if args.config:
+            config_path = args.config
+        lint_config = parse_lint_config(config_path)
+        checklist, log_results = lint_selection(lint_config, checklist)
+        log_output += log_results
+       
+    # Simulate Inference (optional)
+    if args.inference:
+        g, inference_log = infer_subclass_relations(g)
+        log_output += inference_log
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
@@ -2067,23 +2133,13 @@ def main():
         qa_terminate(args.output, log_output)
         return
 
-    # Apply lint config to enable/disable individual checks.
-    checklist = list(CHECKLIST)
-    config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
-    if args.config or os.path.isfile(config_path):
-        if args.config:
-            config_path = args.config
-        lint_config = parse_lint_config(config_path)
-        checklist, log_results = lint_selection(lint_config, checklist)
-        log_output += log_results
-
     # Full QA path
     result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
     log_output += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
-    log_output += result.inference_log
+    log_output += "\n## Quality Assurance Checks\n"
     for log in result.logs:
         log_output += log
 

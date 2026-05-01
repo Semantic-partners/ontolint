@@ -1,4 +1,5 @@
 @prefix : <http://my.ont.example#> .
+@prefix ex: <http://example.org/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -8,9 +9,9 @@
 
 : a owl:Ontology ;
   rdfs:label "Animal Ontology" ;
-    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
-    owl:imports <http://www.example.com> .
- 
+  rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
+  owl:imports ex: .
+
 :Dog a rdfs:Class ;
      rdfs:subClassOf :Animal .
 
@@ -43,7 +44,8 @@
   rdfs:domain :Dog, :Cat .
 
 # violation detected
-:hasScales a owl:ObjectProperty .
+:hasScales a owl:ObjectProperty ;
+  rdfs:domain ex:Reptiles .
 :hasScales a rdfs:Class .
 
 # Including Cycles in a Class Hierarchy: violation detected

@@ -1,0 +1,6 @@
+SELECT (COUNT(?restriction) AS ?counter)
+WHERE {
+    ?restriction a owl:Restriction ;
+    ?type ?cardinality .
+    VALUES ?type { owl:cardinality owl:minCardinality owl:maxCardinality }
+}
