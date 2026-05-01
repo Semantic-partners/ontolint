@@ -1762,21 +1762,25 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
 
     if not failed_imports:
         log += f"PASS - All {len(import_urls)} import(s) resolved and contain triples.\n"
-        if verbose:
-            log += "\n| Ontology | Import URL |\n|--|--|\n"
-            for ontology, url in import_urls:
-                log += f"| {ontology} | {url} |\n"
     else:
         metrics[check] = len(failed_imports)
         status += 1
-        string = ""
-        for url in failed_imports:
-            string += f"{url},<br> "
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting(failed_imports)
         violations[check] = string
         log += f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
+    
+    def _check(failed):
+        if failed in failed_imports:
+            return "❌"
+        else:
+            return "✅"
 
+    if verbose:
+        log += "\n| Ontology | Import URL | Resolves? |\n|--|--|--|\n"
+        for ontology, url in import_urls:
+            log += f"| {ontology} | {url} | {_check(url)} |\n"
+    
     log += sep()
     return metrics, violations, log, c, status
 
