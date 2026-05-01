@@ -475,16 +475,16 @@ def profiling(graph):
         elements['vocabulariesUsed']['uri'].append(ns)
 
     # List all imports
-    results = exec_sparql(graph, 'ont_imports')
+    results = exec_sparql(graph, 'owl_imports')
     metrics['imports'] = len(results)
     elements['imports'] = {}
     if metrics['imports'] > 0:
         old =  ""
         for row in results:
-            if row.ont != old:
-                elements['imports'][str(row.ont)] = []
-                old = row.ont
-            elements['imports'][str(row.ont)].append(str(row.res))
+            if row.ontology != old:
+                elements['imports'][str(row.ontology)] = []
+                old = row.ontology
+            elements['imports'][str(row.ontology)].append(str(row.imp))
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
@@ -645,7 +645,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             metrics[check] = 0 # yes
             violations[check] = ""
             if verbose:
-                log_results = exec_sparql(graph, 'ont_description')
+                log_results = exec_sparql(graph, 'owl_description')
                 log += "\n**Ontology + Description:**\n"
                 for row in log_results:
                     log += f" - {row.ont}\n   *{row.d}*\n"

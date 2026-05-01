@@ -2,5 +2,6 @@ PREFIX owl: <http://www.w3.org/2002/07/owl#>
 
 SELECT ?ontology ?imp
 WHERE {
-    ?ontology owl:imports ?imp .
+    ?ontology a owl:Ontology ;
+    owl:imports ?imp .
 }
