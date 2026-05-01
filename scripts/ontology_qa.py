@@ -1324,7 +1324,8 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
 
         # Print the output of the check only once.
         if not results and int(in_metrics['propertyCount']) > 0:
-            log += "PASS - All properties have domain and range defined.\n"
+            log += "INFO - All properties have domain and range defined.\n"
+            if verbose: log += f"\n"
 
         elif int(in_metrics['propertyCount']) == 0:
             log += "WARNING - No properties defined, invalid metric.\n"
@@ -1381,10 +1382,9 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
-                log += sep()
             else:
                 violations[check] = ""
-                log = log.removesuffix("\n")
+                log += "PASS - All properties have domain defined.\n"
 
         elif check == 'missingRange':
             # remove duplicates from rCount list.
@@ -1395,17 +1395,19 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 string = violation_formatting(rCount)
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {metrics[check]} properties11 without `rdfs:range` declaration:\n - {string}\n"
-                log += sep()
+                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
             else:
                 violations[check] = ""
-                log = log.removesuffix("\n")
+                log += "PASS - All properties have range defined.\n"
+        
+        log += sep()
 
     else:
         # This condition is satisfied only for range violations.
         # It relies on the fact that the array test_checklist is ordered,
         # with missingDomain defined before missingRange.
-        log = ""
+        local_name = "Missing Range in Properties"
+        c, log = qa_check_results(local_name, c)
         rCount = []
 
         # Analyse the results
@@ -1423,13 +1425,12 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
             string = violation_formatting(rCount)
             violations[check] = string
             string = string.replace(',<br> ', '\n - ')
-            if 'missingDomain' in in_metrics:
-                log = f"\nVIOLATION - Found {metrics[check]} properties without22 `rdfs:range` declaration:\n - {string}\n"
-            else:
-                log = f"VIOLATION - Found {metrics[check]} properties without33 `rdfs:range` declaration:\n - {string}\n"
-            log += sep()
+            log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
         else:
             violations[check] = ""
+            log += "PASS - All properties have range defined.\n"
+        
+        log += sep()
 
     return metrics, violations, log, c, status
 
