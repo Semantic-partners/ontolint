@@ -632,15 +632,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     num_files = max(len(in_metrics['filesProcessed']), 1)
     c, log = qa_check_results(name, c)
 
-    # Fallback if the ontology declaration test is disabled.
-    if 'ontologyNotDeclared' not in in_metrics:
-        fallback_metrics, _, _, _, _ = check_owl_declaration(in_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
-        not_declared = (fallback_metrics['ontologyNotDeclared'] == num_files)
-        metrics.update(fallback_metrics)
-    else:
-        not_declared = (in_metrics['ontologyNotDeclared'] == num_files)
-
-    if not_declared:
+    if in_metrics['ontologyNotDeclared'] == num_files:
         log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
         c += 1
         metrics[check] = 1 # 'ontologyDescription': no
@@ -1848,7 +1840,16 @@ def lint_selection(selection, checklist):
             log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
             log += f"> ```"
         
-        # log += "\n"
+        # Constraints
+        # 1. Enable owl-declaration if only owl-description is enabled.
+        for i, item in enumerate(checklist):
+            if item[3] == 'ontologyNotDeclared': index_owl_declaration = i
+            if item[3] == 'ontologyDescription': index_owl_description = i
+        
+        if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
+            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
+        
         return checklist, log
 
 CHECKLIST = [
@@ -1916,7 +1917,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 elements=str(raw) if raw else ''
             ))
     
-    # Fallback for profiling elements related to QA checks
+    # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
     if 'ontologyURI' not in qa_metrics:
         metrics, _, _, _, _ = check_owl_declaration(qa_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
         qa_metrics.update(metrics)
