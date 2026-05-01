@@ -1334,7 +1334,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         elif results:
             metrics['missingDomainRange'] = len(results)
             log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n\n"
-            if not verbose: log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
+            if not verbose: log += f"| Property | Domain | Range |\n|--|--|--|\n"
             status += 1
             for row in results:
                 predicate = row.p
@@ -1356,7 +1356,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         if verbose and int(in_metrics['propertyCount']) > 0:
             # Show all properties in the results.
             results = exec_sparql(graph, 'dr_property')
-            log += f"| Property | Domain | Range |\n| -------- | ------ | ----- |\n"
+            log += f"| Property | Domain | Range |\n|--|--|--|\n"
             for row in results:
                 if row.domain:
                     domain = row.domain
