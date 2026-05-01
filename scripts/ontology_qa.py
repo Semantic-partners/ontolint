@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Ontology Quality Assessment Script
 # SEMANTIC PARTNERS LTD, 2026
-# Authors: Simon Shapiro, Otello M Roscioni, John Placek.
+# Authors: Simon Shapiro, Otello M Roscioni, John Placek, Pel Olson.
 
 """
 A script to perform basic QA on a set of ontologies.
