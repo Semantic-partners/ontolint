@@ -4,7 +4,7 @@ Get an instant, user-friendly snapshot of your ontology’s size and health, rig
 
 ## Usage
 
-We have a [Github workflow](./.github/workflows/validate-ontolint.yml) running against two [example ontologies](./tests/) - use this as a reference.
+We have a [Github workflow](/.github/workflows/ci-test.yml) running against two [example ontologies](./tests/) - use this as a reference.
 
 The [`ontology_qa.py`](./scripts/ontology_qa.py) script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
 
@@ -122,7 +122,7 @@ For example, the test ontology [`example_failure.ttl`](tests/example_failure.ttl
 
 | Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | 0 | 1 | 0.636 | 0.800 | 0.667 | 1 | 0.909 | 1 | 1 | 1 | 0.091 | 0 | 0 | 0 | 0.273 | 0 | 0.400 | 1 | 0 | 0 | 0 | 1 |
+| http://my.ont.example# | 0 | 1 | 0.636 | 0.800 | 0.667 | 1 | 0.909 | 1 | 1 | 1 | 0.091 | 0 | 0 | 0 | 0.273 | 0 | 0.400 | 1 | 0 | 3 | 0 | 1 |
 
 ### Batch Processing
 
@@ -150,7 +150,7 @@ done
 ```
 ## GitHub Actions
 
-To deploy the QA script on a different repository, create the following folder in the root of the repository: `.github/workflows` and adapt the example in [`ci-example.yml`](.github/workflows/ci-example.yml.template). The workflow will need to be changed in the following sections:
+To deploy the QA script on a different repository, create the following folder in the root of the repository: `.github/workflows` and adapt the template workflow [`ci-example.yml`](templates/ci-example.yml). The workflow will need to be changed in the following sections:
 
 ```yaml
     steps:
