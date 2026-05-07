@@ -1318,7 +1318,10 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
     # Check if the test has been run already.
     if 'missingDomainRange' not in in_metrics:
         metrics['missingDomainRange'] = 0
-        local_name = "Missing Domain or Range in Properties"
+        if check == 'missingDomain':
+            local_name = "Missing Domain in Properties"
+        else:
+            local_name = "Missing Range in Properties"
         c, log = qa_check_results(local_name, c)
         dCount = []
         rCount = []
