@@ -1,5 +1,9 @@
 # Untyped property
 # Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+
 SELECT DISTINCT ?p
 WHERE {
   # Find resources used as predicates
@@ -15,9 +19,10 @@ WHERE {
   }
   FILTER(STRSTARTS(STR(?p), ?ns))
   
-
   MINUS { ?p a rdf:Property }
   MINUS { ?p a owl:ObjectProperty }
   MINUS { ?p a owl:DatatypeProperty }
+  MINUS { ?p a sh:ConstraintComponent }
+  MINUS { [] a sh:Parameter ; sh:path ?p }
 
 }
