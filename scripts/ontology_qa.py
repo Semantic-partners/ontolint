@@ -1745,6 +1745,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     violations[check] = ""
 
     import_urls = [(str(row.ontology), str(row.imp)) for row in results]
+    import_urls.sort()
 
     if not import_urls:
         log += "PASS - No owl:imports statements found.\n"
@@ -1773,9 +1774,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     
     def _check(failed):
         if failed in failed_imports:
-            return "❌"
+            return chr(10060) # X
         else:
-            return "✅"
+            return chr(9989)  # V
 
     if verbose:
         log += "\n| Ontology | Import URL | Resolves? |\n|--|--|--|\n"
