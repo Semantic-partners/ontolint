@@ -1901,31 +1901,29 @@ def lint_selection(selection, checklist):
         log = "> Lint configuration file found!\n"
         if 'enable' in selection and isinstance(selection['enable'], list):
             for i, item in enumerate(checklist):
-                if not item[1].__name__ in selection['enable']:
-                    checklist[i] = (False, item[1], item[2], item[3])
+                if not item[1].__name__ in selection['enable']: checklist[i][0] = False
 
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = True
             
             if 'check_property_missing_range' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = True
         
         elif 'disable' in selection and isinstance(selection['disable'], list):
             for i, item in enumerate(checklist):
-                if item[1].__name__ in selection['disable']:
-                    checklist[i] = (False, item[1], item[2], item[3])
+                if item[1].__name__ in selection['disable']: checklist[i][0] = False
             
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' in selection['disable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = False
 
             if 'check_property_missing_range' in selection['disable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = False
 
         else:
             # Print a warning
@@ -1941,39 +1939,39 @@ def lint_selection(selection, checklist):
         
         # 1. Enable owl-declaration if only owl-description is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
-            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            checklist[index_owl_declaration][0] = True
             log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
         
         # 2. Enable owl-declaration if only owl-imports is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
-            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            checklist[index_owl_declaration][0] = True
             log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
         return checklist, log
 
 CHECKLIST = [
-    (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
-    (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
-    (True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ),
-    (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
-    (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
-    (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
-    (True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ),
-    (True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ),
-    (True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'),
-    (True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ),
-    (True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ),
-    (True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ),
-    (True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ),
-    (True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ),
-    (True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ),
-    (True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ),
-    (True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ),
-    (True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ),
-    (True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ),
-    (True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ),
-    (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
-    (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
-    (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
+    [True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ],
+    [True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ],
+    [True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ],
+    [True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ],
+    [True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ],
+    [True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ],
+    [True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ],
+    [True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ],
+    [True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'],
+    [True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ],
+    [True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ],
+    [True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ],
+    [True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ],
+    [True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ],
+    [True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ],
+    [True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ],
+    [True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ],
+    [True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ],
+    [True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ],
+    [True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ],
+    [True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ],
+    [True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ],
+    [True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ],
 ]
 
 
