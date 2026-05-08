@@ -1903,8 +1903,7 @@ def load_rdf_file(file):
             log += f"Failed to parse {file}: {e}\n"
             return False, model, log, {}
     else:
-        log += f"ERROR: Format not recognised\n"
-        return False, model, log, {}
+        return False, model, "", {}
 
 def load_rdf(paths):
     """
@@ -1939,8 +1938,8 @@ def load_rdf(paths):
 
     for file_path in files_to_load:
         success, file_model, log_msg, prefix = load_rdf_file(file_path)
-        log_results += log_msg
         if success:
+            log_results += log_msg
             files_processed.append(os.path.basename(file_path))
             file_counter += 1
             prefix_dictionary.update(prefix)
