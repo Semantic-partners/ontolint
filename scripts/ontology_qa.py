@@ -12,7 +12,8 @@ It reports any violations found in the ontology data.
 import maplib
 import polars as pl
 import argparse
-from urllib.parse import urlparse
+import urllib.request
+import tempfile
 import sys
 import os
 import json
@@ -82,13 +83,21 @@ def exec_sparql(model, key):
             if results.height == 0:
                 return []
             # Use iter_rows(named=True) to get named tuples
-            return list(results.iter_rows(named=True))
+            results_list = list(results.iter_rows(named=True))
+            # remove <> from URIs in the results
+            for row in results_list:
+                for key, value in row.items():
+                    if isinstance(value, str) and value.startswith('<') and value.endswith('>'):
+                        row[key] = value.strip('<>')
+            
+            return results_list
         elif results is None:
             return []
         else:
             # Already in correct format
             return results
     except Exception as e:
+        print(f"Error executing SPARQL query '{key}': {e}")
         return []
 
 def get_namespace(uri):
@@ -98,24 +107,6 @@ def get_namespace(uri):
     elif '/' in uri:
         return uri.rsplit('/', 1)[0] + '/'
     return uri  # fallback
-
-def prefixes(model):
-    # Create a dictionary for the declared prefixes (maplib doesn't expose namespace manager)
-    # Instead, extract from the model's queries
-    declared_prefixes = {}
-    used_namespaces = set()
-    
-    # Query for all predicates to get used namespaces
-    try:
-        pred_iris = model.get_predicate_iris()
-        for iri in pred_iris:
-            ns = get_namespace(str(iri.iri))
-            used_namespaces.add(ns)
-    except:
-        pass
-
-    # Return empty dict for compatibility (maplib handles prefixes differently)
-    return {}
 
 def normalise(count, total):
     count = float(count)
@@ -382,12 +373,13 @@ def qa_check_results(description,qan):
 def sep():
     return "\n" + "-"*20 + "\n"
 
-def profiling(graph):
+def profiling(graph, prefixes):
     """
     Compute profiling information for an RDF graph.
     
     Args:
         graph (maplib.Model): The RDF model object to parse into.
+        prefixes (dict): The declared prefixes in the RDF graph.
     
     Returns:
         metrics (dict): Count of ontology metrics.
@@ -458,16 +450,17 @@ def profiling(graph):
             elements['deprecatedProperties'].append(row['p'])
 
     # List all used prefixes
-    active_prefixes = prefixes(graph)
+    active_prefixes = prefixes.copy() if prefixes else {}
     results = exec_sparql(graph, 'owl_declaration')
     if results:
         for row in results:
             # Remove ontology namespace from active_prefixes
             to_remove = []
-            for ns, pfx in active_prefixes.items():
-                if str(row['ont']) == ns: to_remove.append(ns)
-            for ns in to_remove:
-                del active_prefixes[ns]
+            ont = str(row['ont'])
+            for pfx, iri in active_prefixes.items():
+                if ont == iri: to_remove.append(pfx)
+            for pfx in to_remove:
+                del active_prefixes[pfx]
     metrics['vocabulariesUsed'] = len(active_prefixes)
 
     # These are not violations, but the dictionary is nevertheless used to store elements
@@ -477,11 +470,11 @@ def profiling(graph):
         'uri': []
         }
     # Build a (namespace, prefix) array and sort it by namespace
-    items = [(ns, pfx) for ns, pfx in active_prefixes.items()]
-    items.sort(key=lambda x: x[1])
-    for ns, pfx in items:
+    items = [(pfx, iri) for pfx, iri in active_prefixes.items()]
+    items.sort()
+    for pfx, iri in items:
         elements['vocabulariesUsed']['prefix'].append(pfx)
-        elements['vocabulariesUsed']['uri'].append(ns)
+        elements['vocabulariesUsed']['uri'].append(iri)
 
     # List all imports
     results = exec_sparql(graph, 'owl_imports')
@@ -490,10 +483,11 @@ def profiling(graph):
     if metrics['imports'] > 0:
         old =  ""
         for row in results:
+            ontology = str(row['ontology'])
             if row['ontology'] != old:
-                elements['imports'][str(row['ontology'])] = []
+                elements['imports'][ontology] = []
                 old = row['ontology']
-            elements['imports'][str(row['ontology'])].append(str(row['imp']))
+            elements['imports'][ontology].append(str(row['imp']))
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
@@ -1731,6 +1725,50 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
+def load_from_url(url):
+    # Mapping MIME types to maplib format identifiers
+    MIME_MAP = {
+        "text/turtle": "turtle",
+        "application/n-triples": "ntriples",
+        "application/rdf+xml": "rdfxml",
+        "application/ld+json": "json-ld",
+        "text/n3": "turtle"
+    }
+    model = maplib.Model()
+    try:
+        with urllib.request.urlopen(url) as response:
+            # Get the Content-Type from headers
+            content_type = response.info().get_content_type().lower()
+            
+            # Determine the format
+            # Strategy: Header first, then URL extension fallback
+            rdf_format = MIME_MAP.get(content_type)
+            
+            if not rdf_format:
+                # Fallback: check file extension in URL
+                ext = os.path.splitext(url)[1].lower()
+                ext_map = {".ttl": "turtle", ".nt": "ntriples", ".rdf": "rdfxml", ".jsonld": "json-ld"}
+                rdf_format = ext_map.get(ext, "turtle") # Default to turtle if all else fails
+            
+            # Stream data to a temporary file
+            content = response.read()
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+
+        try:
+            # Load into maplib with the detected format
+            model.read(tmp_path, format=rdf_format)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    except Exception as e:
+        # print(f"Error: {e}; URL: {url}") # Debug
+        pass
+
+    return model
+
 def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     """
     QA test verifying that all owl:imports URLs resolve and contain triples.
@@ -1762,18 +1800,14 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     import_urls.sort()
 
     if not import_urls:
-        log += "PASS - No owl:imports statements found.\n"
+        log += "WARNING - No owl:imports statements found.\n"
         log += sep()
         return metrics, violations, log, c, status
 
     failed_imports = []
     for _, import_url in import_urls:
-        try:
-            tmp = maplib.Model()
-            tmp.reads(import_url)
-            if tmp.size() == 0:
-                failed_imports.append(import_url)
-        except Exception:
+        tmp = load_from_url(import_url)
+        if tmp.size() == 0:
             failed_imports.append(import_url)
 
     if not failed_imports:
@@ -1800,6 +1834,35 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
+def parse_prefix(file):
+    """
+    Parse a RDF file and return a dictionary of prefixes and IRIs.
+    The function supports Turtle (.ttl, .turtle) and RDF/XML (.rdf, .owl, .xml) formats,
+    based on file extension.
+    """
+    prefixes = {}
+    with open(file, "r") as f:
+        content = f.read()
+    
+    # Guess format from file extension
+    if file.lower().endswith(('.ttl', '.turtle')):
+        prefix = [line for line in content.splitlines() if line.startswith(("@prefix","@PREFIX"))]
+        for p in prefix:
+            parts = p.split()
+            if len(parts) >= 3:
+                prefix_name = parts[1].rstrip(":")
+                prefix_iri = parts[2].strip("<>.")
+                prefixes[prefix_name] = prefix_iri
+    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
+        prefix = [line for line in content.splitlines() if line.startswith("xmlns:")]
+        for p in prefix:
+            parts = p.split('=')
+            if len(parts) >= 2:
+                prefix_name = parts[0].split(':')[1]
+                prefix_iri = parts[1].strip('"').strip('">')
+                prefixes[prefix_name] = prefix_iri
+        
+    return prefixes
 
 def load_rdf_file(file):
     """
@@ -1812,23 +1875,17 @@ def load_rdf_file(file):
         bool: True if the file was successfully loaded, False otherwise.
         model (maplib.Model): The RDF model object to parse into.
         log (str): Parsing result.
+        prefixes (dict): Dictionary of prefixes and IRIs found in the file.
     """
     log = f"Loading data from: {file}\n"
     model = maplib.Model()
-
-    # Try to guess format from file extension
-    if file.lower().endswith(('.ttl', '.turtle')):
-        fmt = "turtle"
-    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
-        fmt = "rdf/xml"
-    else:
-        fmt = None  # Let maplib try to guess
     try:
-        model.read(file, format=fmt)
-        return True, model, log
+        model.read(file)
+        prefixes = parse_prefix(file)
+        return True, model, log, prefixes
     except Exception as e:
-        log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
-        return False, model, log
+        log += f"Failed to parse {file}: {e}\n"
+        return False, model, log, {}
 
 def load_rdf(paths):
     """
@@ -1842,6 +1899,7 @@ def load_rdf(paths):
         files_processed (list): List of successfully processed file names.
         model (maplib.Model): The RDF model object with all loaded data.
         log_results (str): Parsing result and status log.
+        prefix_dictionary (dict): Dictionary of prefixes and IRIs found across all files.
     """
     # Collect all files to process
     files_to_load = []
@@ -1858,24 +1916,24 @@ def load_rdf(paths):
     files_processed = []
     model = maplib.Model()
     log_results = ""
+    prefix_dictionary = {}
 
     for file_path in files_to_load:
-        success, file_model, log_msg = load_rdf_file(file_path)
+        success, file_model, log_msg, prefix = load_rdf_file(file_path)
         log_results += log_msg
         if success:
             files_processed.append(os.path.basename(file_path))
             file_counter += 1
+            prefix_dictionary.update(prefix)
             # Merge triples from file_model into model
             try:
+                model.add_prefixes(prefix)
                 maplib.add_triples(source=file_model, target=model)
             except Exception:
-                # Fallback: try reading directly if add_triples fails
-                try:
-                    model.read(file_path)
-                except:
-                    pass
+                log_results += f"Failed to merge data from {file_path} into the main model.\n"
+                pass
 
-    return file_counter, files_processed, model, log_results
+    return file_counter, files_processed, model, log_results, prefix_dictionary
 
 def parse_lint_config(config):
     """
@@ -1990,7 +2048,7 @@ CHECKLIST = [
 ]
 
 
-def run_qa(graph: "maplib.Model", verbose: bool = False, files_processed: list | None = None, checklist=None) -> QAResult:
+def run_qa(graph: "maplib.Model", verbose: bool = False, files_processed: list | None = None, checklist=None, prefix = dict | None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
@@ -2005,7 +2063,7 @@ def run_qa(graph: "maplib.Model", verbose: bool = False, files_processed: list |
     }
     qa_violations = {}
 
-    metrics, profiling_elements = profiling(graph)
+    metrics, profiling_elements = profiling(graph, prefix)
     qa_metrics.update(metrics)
 
     logs = []
@@ -2115,7 +2173,7 @@ def main():
 
     # Load Data and create a maplib.Model
     log_output = "# Ontology Quality Assurance\n\n"
-    file_counter, files_processed, g, log_results = load_rdf(args.data_files)
+    file_counter, files_processed, g, log_results, prefixes = load_rdf(args.data_files)
     log_output += log_results
 
     if file_counter == 0:
@@ -2143,7 +2201,7 @@ def main():
     if args.profile_only:
         qa_metrics = {'filesProcessed': files_processed, 'triples': g.size()}
         qa_violations = {}
-        metrics, violations = profiling(g)
+        metrics, violations = profiling(g, prefixes)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
@@ -2156,7 +2214,7 @@ def main():
         return
 
     # Full QA path
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, prefix=prefixes)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
