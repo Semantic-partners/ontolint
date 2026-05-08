@@ -1855,8 +1855,8 @@ def load_rdf(paths):
 
     for file_path in files_to_load:
         success, file_graph, log_msg = load_rdf_file(file_path)
-        log_results += log_msg
         if success:
+            log_results += log_msg
             files_processed.append(os.path.basename(file_path))
             file_counter += 1
             graph += file_graph
