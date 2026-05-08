@@ -1747,7 +1747,7 @@ def load_from_url(url):
             if not rdf_format:
                 # Fallback: check file extension in URL
                 ext = os.path.splitext(url)[1].lower()
-                ext_map = {".ttl": "turtle", ".nt": "ntriples", ".rdf": "rdfxml", ".jsonld": "json-ld"}
+                ext_map = {".ttl": "turtle", ".nt": "ntriples", ".rdf": "rdf/xml", ".cim": "cim/xml", ".jsonld": "json-ld"}
                 rdf_format = ext_map.get(ext, "turtle") # Default to turtle if all else fails
             
             # Stream data to a temporary file
@@ -1879,12 +1879,31 @@ def load_rdf_file(file):
     """
     log = f"Loading data from: {file}\n"
     model = maplib.Model()
-    try:
-        model.read(file)
-        prefixes = parse_prefix(file)
-        return True, model, log, prefixes
-    except Exception as e:
-        log += f"Failed to parse {file}: {e}\n"
+    # Try to guess format from file extension
+    # format: Literal['ntriples', 'turtle', 'rdf/xml', 'cim/xml', 'json-ld']
+    if file.lower().endswith(('.ttl', '.turtle')):
+        fmt = "turtle"
+    elif file.lower().endswith(('.rdf', '.owl', '.xml')):
+        fmt = "rdf/xml"
+    elif file.lower().endswith('.nt'):
+        fmt = "ntriples"
+    elif file.lower().endswith('.cim'):
+        fmt = "cim/xml"
+    elif file.lower().endswith('.jsonld'):
+        fmt = "json-ld"
+    else:
+        fmt = ""
+    
+    if fmt != "":
+        try:
+            model.read(file, format=fmt)
+            prefixes = parse_prefix(file)
+            return True, model, log, prefixes
+        except Exception as e:
+            log += f"Failed to parse {file}: {e}\n"
+            return False, model, log, {}
+    else:
+        log += f"ERROR: Format not recognised\n"
         return False, model, log, {}
 
 def load_rdf(paths):
