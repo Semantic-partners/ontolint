@@ -96,3 +96,6 @@ skos:Creature a rdfs:Class ;
   :hasClaws :dogClaws .
   
 :dogClaws a :Claw .
+
+# :MyRestriction a owl:Restriction ;
+#   owl:minCardinality 2 .

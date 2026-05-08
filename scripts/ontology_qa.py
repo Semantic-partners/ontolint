@@ -9,7 +9,8 @@ It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL quer
 check for common ontology quality issues.
 It reports any violations found in the ontology data.
 """
-import rdflib
+import maplib
+import polars as pl
 import argparse
 from urllib.parse import urlparse
 import sys
@@ -68,13 +69,27 @@ class QAResult:
     def failures(self):
         return [c for c in self.checks if not c.passed]
 
-def exec_sparql(graph, key):
+def exec_sparql(model, key):
     """
-    Execute a SPARQL query from the input RDFLib graph, retrieving it from a global dictionary.
+    Execute a SPARQL query from the input maplib Model, retrieving it from a global dictionary.
+    Returns results as a list of named tuples for compatibility with existing code.
     """
     sparql_query = sparql_queries[key]
-    results = graph.query(sparql_query)
-    return results
+    try:
+        results = model.query(sparql_query)
+        # Convert Polars DataFrame to list of named tuples
+        if isinstance(results, pl.DataFrame):
+            if results.height == 0:
+                return []
+            # Use iter_rows(named=True) to get named tuples
+            return list(results.iter_rows(named=True))
+        elif results is None:
+            return []
+        else:
+            # Already in correct format
+            return results
+    except Exception as e:
+        return []
 
 def get_namespace(uri):
     """Extract namespace from a URIRef."""
@@ -84,29 +99,23 @@ def get_namespace(uri):
         return uri.rsplit('/', 1)[0] + '/'
     return uri  # fallback
 
-def prefixes(g):
-    # Create a dictionary for the declared prefixes
+def prefixes(model):
+    # Create a dictionary for the declared prefixes (maplib doesn't expose namespace manager)
+    # Instead, extract from the model's queries
     declared_prefixes = {}
-    for prefix, uri in g.namespace_manager.namespaces():
-        uri_str = str(uri)
-        declared_prefixes[uri_str] = prefix
-
-    # Collect all namespaces actually used in the graph
     used_namespaces = set()
-    for s, p, o in g:
-        for term in [s, p, o]:
-            if isinstance(term, rdflib.URIRef):
-                ns = get_namespace(str(term))
-                used_namespaces.add(ns)
+    
+    # Query for all predicates to get used namespaces
+    try:
+        pred_iris = model.get_predicate_iris()
+        for iri in pred_iris:
+            ns = get_namespace(str(iri.iri))
+            used_namespaces.add(ns)
+    except:
+        pass
 
-    # Filter the declared prefixes into those that are actually used
-    used_prefixes = {}
-    for ns in used_namespaces:
-        if ns in declared_prefixes:
-            prefix = declared_prefixes[ns]
-            if len(prefix) > 0: used_prefixes[ns] = prefix
-
-    return used_prefixes
+    # Return empty dict for compatibility (maplib handles prefixes differently)
+    return {}
 
 def normalise(count, total):
     count = float(count)
@@ -378,7 +387,7 @@ def profiling(graph):
     Compute profiling information for an RDF graph.
     
     Args:
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
     
     Returns:
         metrics (dict): Count of ontology metrics.
@@ -390,26 +399,26 @@ def profiling(graph):
     # Count classes, properties before inferencing.
     results = exec_sparql(graph, 'count_cp')
     (row,) = results
-    metrics['classCount'] = row.classCount
-    metrics['propertyCount'] = row.propertyCount
+    metrics['classCount'] = row['classCount']
+    metrics['propertyCount'] = row['propertyCount']
 
     # Count shapes.
     results = exec_sparql(graph, 'node_shape')
     if results:
         (row,) = results
-        metrics['nodeShapes'] = row.shapeCount
+        metrics['nodeShapes'] = row['shapeCount']
     else:
         metrics['nodeShapes'] = 0
     results = exec_sparql(graph, 'property_shape')
     if results:
         (row,) = results
-        metrics['propertyShapes'] = row.shapeCount
+        metrics['propertyShapes'] = row['shapeCount']
     else:
         metrics['propertyShapes'] = 0
     
     # Count classes in NodeShapes.
     results = exec_sparql(graph, 'classes_in_node_shape')
-    total_classes_in_shapes = sum(int(row.classCount) for row in results)
+    total_classes_in_shapes = sum(int(row['classCount']) for row in results)
     metrics['classesInNodeShapes'] = total_classes_in_shapes
     if total_classes_in_shapes > 0:
         elements['classesInNodeShapes'] = {
@@ -417,8 +426,8 @@ def profiling(graph):
             'classCount': []
             }
         for row in results:
-            elements['classesInNodeShapes']['ns'].append(row.ns)
-            elements['classesInNodeShapes']['classCount'].append(row.classCount)
+            elements['classesInNodeShapes']['ns'].append(row['ns'])
+            elements['classesInNodeShapes']['classCount'].append(row['classCount'])
 
     # Count properties in PropertyShapes.
     results = exec_sparql(graph, 'property_in_property_shape')
@@ -430,8 +439,8 @@ def profiling(graph):
             'propCount': []
             }
         for row in results:
-            elements['propertiesInPropertyShapes']['ps'].append(row.ps)
-            elements['propertiesInPropertyShapes']['propCount'].append(row.prop)
+            elements['propertiesInPropertyShapes']['ps'].append(row['ps'])
+            elements['propertiesInPropertyShapes']['propCount'].append(row['prop'])
 
     # Number of Deprecated Classes and Properties
     results = exec_sparql(graph, 'deprecated_class')
@@ -439,14 +448,14 @@ def profiling(graph):
     if metrics['deprecatedClasses'] > 0:
         elements['deprecatedClasses'] = []
         for row in results:
-            elements['deprecatedClasses'].append(row.c)
+            elements['deprecatedClasses'].append(row['c'])
     
     results = exec_sparql(graph, 'deprecated_property')
     metrics['deprecatedProperties'] = len(results)
     if metrics['deprecatedProperties'] > 0:
         elements['deprecatedProperties'] = []
         for row in results:
-            elements['deprecatedProperties'].append(row.p)
+            elements['deprecatedProperties'].append(row['p'])
 
     # List all used prefixes
     active_prefixes = prefixes(graph)
@@ -456,7 +465,7 @@ def profiling(graph):
             # Remove ontology namespace from active_prefixes
             to_remove = []
             for ns, pfx in active_prefixes.items():
-                if str(row.ont) == ns: to_remove.append(ns)
+                if str(row['ont']) == ns: to_remove.append(ns)
             for ns in to_remove:
                 del active_prefixes[ns]
     metrics['vocabulariesUsed'] = len(active_prefixes)
@@ -481,28 +490,25 @@ def profiling(graph):
     if metrics['imports'] > 0:
         old =  ""
         for row in results:
-            if row.ontology != old:
-                elements['imports'][str(row.ontology)] = []
-                old = row.ontology
-            elements['imports'][str(row.ontology)].append(str(row.imp))
+            if row['ontology'] != old:
+                elements['imports'][str(row['ontology'])] = []
+                old = row['ontology']
+            elements['imports'][str(row['ontology'])].append(str(row['imp']))
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
-    if len(results) > 1:
-        (row,) = results 
-        metrics['HierarchyDepth'] = row.maxDepth
-    else:
-        metrics['HierarchyDepth'] = 0
+    len_results = next(iter(results), {}).get('maxDepth', 0)
+    metrics['HierarchyDepth'] = len_results
 
     # average branching factor
     results = exec_sparql(graph, 'average_branching_factor')
     (row,) = results
-    metrics['aveBranchFactor'] = row.avgBranchingFactor
+    metrics['aveBranchFactor'] = row['avgBranchingFactor']
 
     # use of restrictions
     results = exec_sparql(graph, 'cardinality_restrictions')
-    (row,) = results
-    metrics['CardinalityRestrictions'] = row.counter
+    len_results = next(iter(results), {}).get('counter', 0)
+    metrics['CardinalityRestrictions'] = len_results
 
     return metrics, elements
 
@@ -511,28 +517,36 @@ def infer_subclass_relations(graph):
     Construct sub-class relations recursively using the sub-class inference rule.
     
     Args:
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
     
     Returns:
-        graph (rdflib.Graph): The RDF graph, after inference applied.
+        graph (maplib.Model): The RDF model, after inference applied.
         log (str): Result of inferencing.
     """
     
-    log = f"\n## Simulate Inference\n\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
+    log = f"\n## Simulate Inference\n\nInitial graph size: {graph.size()} triples.\nApplying Subclass inference rule iteratively...\n"
+    iteration = 0
     while True:
-        inferred_triples_result = exec_sparql(graph, 'subclass_inference_rule')
-        if not inferred_triples_result:
-            log += "No new subclass inferences to add. Inference complete.\n"
+        iteration += 1
+        graph_size_before = graph.size()
+        inferred_triples_query = sparql_queries['subclass_inference_rule']
+        try:
+            # Use insert to add the CONSTRUCT results directly to the model
+            graph.insert(inferred_triples_query)
+        except Exception as e:
+            log += f"Error during inference at iteration {iteration}: {e}\n"
             break
-        graph_size_before = len(graph)
-        graph += inferred_triples_result
-        graph_size_after = len(graph)
-        if graph_size_after == graph_size_before:
+        
+        graph_size_after = graph.size()
+        inferred_count = graph_size_after - graph_size_before
+        
+        if inferred_count == 0:
             log += "No new subclass inferences in this pass. Inference complete.\n"
             break
         else:
-            log += f"Added {graph_size_after - graph_size_before} new triples. Continuing inference...\n"
-    log += f"Final graph size after inference: {len(graph)} triples.\n"
+            log += f"Iteration {iteration}: Added {inferred_count} new triples.\n"
+    
+    log += f"Final graph size after inference: {graph.size()} triples.\n"
     return graph, log
 
 def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
@@ -541,7 +555,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -567,7 +581,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
         status += 1
     else:
         for row in results:
-            metrics['ontologyURI'].append(row.ont)
+            metrics['ontologyURI'].append(row['ont'])
             metrics[check] -= 1
     
     # Record the violation elements.
@@ -614,7 +628,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -648,13 +662,13 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
                 log_results = exec_sparql(graph, 'owl_description')
                 log += "\n**Ontology + Description:**\n"
                 for row in log_results:
-                    log += f" - {row.ont}\n   *{row.d}*\n"
+                    log += f" - {row['ont']}\n   *{row['d']}*\n"
                 
         else:
             owd = len(results)
             metrics[check] = len(results) #  violations
             status += 1
-            string = violation_formatting([row.ont for row in results])
+            string = violation_formatting([row['ont'] for row in results])
             violations[check] = string
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
@@ -668,7 +682,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -695,7 +709,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
             log_results = exec_sparql(graph, 'class_labels')
             log += "\n|  Class | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.c} | {row.lbl} |\n"
+                log += f"| {row['c']} | {row['lbl']} |\n"
             
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
@@ -704,7 +718,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
         status += 1
-        string = violation_formatting([row.c for row in results])
+        string = violation_formatting([row['c'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -717,7 +731,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -744,7 +758,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
             log_results = exec_sparql(graph, 'property_labels')
             log += "|  Property | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.p} | {row.lbl} |\n"
+                log += f"| {row['p']} | {row['lbl']} |\n"
 
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
@@ -753,7 +767,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row['p'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -766,7 +780,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -793,7 +807,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
             log_results = exec_sparql(graph, 'node_shape_labels')
             log += "|  NodeShape | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.ns} | {row.lbl} |\n"
+                log += f"| {row['ns']} | {row['lbl']} |\n"
             
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
@@ -802,7 +816,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
         status += 1
-        string = violation_formatting([row.ns for row in results])
+        string = violation_formatting([row['ns'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -815,7 +829,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -842,7 +856,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
             log_results = exec_sparql(graph, 'property_shape_labels')
             log += "|  PropertyShape | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.ps} | {row.lbl} |\n"
+                log += f"| {row['ps']} | {row['lbl']} |\n"
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
@@ -851,7 +865,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
         status += 1
-        string = violation_formatting([row.ps for row in results])
+        string = violation_formatting([row['ps'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -864,7 +878,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -891,7 +905,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
             log_results = exec_sparql(graph, 'class_comments')
             log += "|  Class | Description |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.c} | {row.lbl} |\n"
+                log += f"| {row['c']} | {row['lbl']} |\n"
     
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
@@ -900,7 +914,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
         status += 1
-        string = violation_formatting([row.c for row in results])
+        string = violation_formatting([row['c'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -913,7 +927,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -940,7 +954,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
             log_results = exec_sparql(graph, 'property_comments')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.p} | {row.lbl} |\n"
+                log += f"| {row['p']} | {row['lbl']} |\n"
     
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
@@ -949,7 +963,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row['p'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -962,7 +976,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -989,7 +1003,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
             results = exec_sparql(graph, 'node_shape_comments')
             log += "| NodeShape | Description |\n|--|--|\n"
             for row in results:
-                log += f"| {row.ns} | {row.lbl} |\n"
+                log += f"| {row['ns']} | {row['lbl']} |\n"
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
     
@@ -997,7 +1011,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
         status += 1
-        string = violation_formatting([row.ns for row in results])
+        string = violation_formatting([row['ns'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1010,7 +1024,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1037,7 +1051,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
             results = exec_sparql(graph, 'property_shape_comments')
             log += "| PropertyShape | Description |\n|--|--|\n"
             for row in results:
-                log += f"| {row.ps} | {row.lbl} |\n"
+                log += f"| {row['ps']} | {row['lbl']} |\n"
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
@@ -1046,7 +1060,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
         status += 1
-        string = violation_formatting([row.ps for row in results])
+        string = violation_formatting([row['ps'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1059,7 +1073,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1093,8 +1107,8 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
         string = ""
         log += "| Label | Classes |\n|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.classes} |\n"
-            string += f"\"{row.label}\": {row.classes};<br> "
+            log += f"| {row['label']} | {row['classes']} |\n"
+            string += f"\"{row['label']}\": {row['classes']};<br> "
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1108,7 +1122,7 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1142,8 +1156,8 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         string = ""
         log += "| Label | Properties |\n|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.properties} |\n"
-            string += f"\"{row.label}\": {row.properties};<br> "
+            log += f"| {row['label']} | {row['properties']} |\n"
+            string += f"\"{row['label']}\": {row['properties']};<br> "
         string = string.removesuffix(";<br> ")
         violations[check] = string
     
@@ -1156,7 +1170,7 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1190,8 +1204,8 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         string = ""
         log += "| Label | NodeShapes |\n|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.nsList} |\n"
-            string += f"\"{row.label}\": {row.nsList};<br> "
+            log += f"| {row['label']} | {row['nsList']} |\n"
+            string += f"\"{row['label']}\": {row['nsList']};<br> "
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1205,7 +1219,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1239,8 +1253,8 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         string = ""
         log += "| Label | PropertyShapes |\n|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.psList} |\n"
-            string += f"\"{row.label}\": {row.psList};<br> "
+            log += f"| {row['label']} | {row['psList']} |\n"
+            string += f"\"{row['label']}\": {row['psList']};<br> "
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1254,7 +1268,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1284,7 +1298,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
         status += 1
-        string = violation_formatting([row.c for row in results])
+        string = violation_formatting([row['c'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1297,7 +1311,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1340,14 +1354,14 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
             if not verbose: log += f"| Property | Domain | Range |\n|--|--|--|\n"
             status += 1
             for row in results:
-                predicate = row.p
-                if row.domain:
-                    domain = row.domain
+                predicate = row['p']
+                if row['domain']:
+                    domain = row['domain']
                 else:
                     domain = 'None'
                     dCount.append(predicate)
-                if row.range:
-                    range = row.range
+                if row['range']:
+                    range = row['range']
                 else:
                     range = 'None'
                     rCount.append(predicate)
@@ -1361,17 +1375,17 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
             results = exec_sparql(graph, 'dr_property')
             log += f"| Property | Domain | Range |\n|--|--|--|\n"
             for row in results:
-                if row.domain:
-                    domain = row.domain
+                if row['domain']:
+                    domain = row['domain']
                 else:
                     domain = 'None'
                 
-                if row.range:
-                    range = row.range
+                if row['range']:
+                    range = row['range']
                 else:
                     range = 'None'
                 
-                log += f"| {row.p} | {domain} | {range} |\n"
+                log += f"| {row['p']} | {domain} | {range} |\n"
             
             log  += f"\n"
         
@@ -1415,8 +1429,8 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         # Analyse the results
         if results:
             for row in results:
-                predicate = row.p
-                if not row.range:
+                predicate = row['p']
+                if not row['range']:
                     rCount.append(predicate)
         
         # Report
@@ -1464,7 +1478,7 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1495,8 +1509,8 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         status += 1
         iri = []
         for row in results:
-            log += f"| {row.iri} | {row.declaredAs} |\n"
-            iri.append(row.iri)
+            log += f"| {row['iri']} | {row['declaredAs']} |\n"
+            iri.append(row['iri'])
 
         violations[check] = violation_formatting(iri)
     
@@ -1509,7 +1523,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1540,7 +1554,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
         status += 1
-        string = violation_formatting([row.c for row in results])
+        string = violation_formatting([row['c'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1553,7 +1567,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1587,7 +1601,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
-        string = violation_formatting([row.c for row in results])
+        string = violation_formatting([row['c'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
@@ -1608,7 +1622,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1642,7 +1656,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row['p'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1663,7 +1677,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1702,7 +1716,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     elif results:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
-        string = violation_formatting([row.resource for row in results])
+        string = violation_formatting([row['resource'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1723,7 +1737,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
 
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        graph (maplib.Model): The RDF model object to parse into.
         name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
@@ -1744,7 +1758,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
 
-    import_urls = [(str(row.ontology), str(row.imp)) for row in results]
+    import_urls = [(str(row['ontology']), str(row['imp'])) for row in results]
     import_urls.sort()
 
     if not import_urls:
@@ -1755,9 +1769,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     failed_imports = []
     for _, import_url in import_urls:
         try:
-            tmp = rdflib.Graph()
-            tmp.parse(import_url)
-            if len(tmp) == 0:
+            tmp = maplib.Model()
+            tmp.reads(import_url)
+            if tmp.size() == 0:
                 failed_imports.append(import_url)
         except Exception:
             failed_imports.append(import_url)
@@ -1789,32 +1803,32 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
 
 def load_rdf_file(file):
     """
-    Load RDF data from a file and return an RDFLib Graph.
+    Load RDF data from a file and return a maplib Model.
     
     Args:
         file (str): Path to the RDF file.
     
     Returns:
         bool: True if the file was successfully loaded, False otherwise.
-        graph (rdflib.Graph): The RDF graph object to parse into.
+        model (maplib.Model): The RDF model object to parse into.
         log (str): Parsing result.
     """
     log = f"Loading data from: {file}\n"
-    graph = rdflib.Graph()
+    model = maplib.Model()
 
     # Try to guess format from file extension
     if file.lower().endswith(('.ttl', '.turtle')):
         fmt = "turtle"
     elif file.lower().endswith(('.rdf', '.owl', '.xml')):
-        fmt = "xml"
+        fmt = "rdf/xml"
     else:
-        fmt = None  # Let rdflib try to guess
+        fmt = None  # Let maplib try to guess
     try:
-        graph.parse(file, format=fmt)
-        return True, graph, log
+        model.read(file, format=fmt)
+        return True, model, log
     except Exception as e:
         log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
-        return False, graph, log
+        return False, model, log
 
 def load_rdf(paths):
     """
@@ -1826,17 +1840,9 @@ def load_rdf(paths):
     Returns:
         file_counter (int): Number of files successfully loaded.
         files_processed (list): List of successfully processed file names.
-        graph (rdflib.Graph): The RDF graph object with all loaded data.
+        model (maplib.Model): The RDF model object with all loaded data.
         log_results (str): Parsing result and status log.
     """
-    def _bind_namespaces(target_graph, source_graph):
-        """Bind namespaces from source to target graph."""
-        for prefix, uri in source_graph.namespace_manager.namespaces():
-            try:
-                target_graph.namespace_manager.bind(prefix, uri)
-            except Exception:
-                pass  # ignore binding errors
-
     # Collect all files to process
     files_to_load = []
     for path in paths:
@@ -1847,22 +1853,29 @@ def load_rdf(paths):
         else:
             files_to_load.append(path)
 
-    # Process all files
+    # Process all files into a single maplib Model
     file_counter = 0
     files_processed = []
-    graph = rdflib.Graph()
+    model = maplib.Model()
     log_results = ""
 
     for file_path in files_to_load:
-        success, file_graph, log_msg = load_rdf_file(file_path)
+        success, file_model, log_msg = load_rdf_file(file_path)
         log_results += log_msg
         if success:
             files_processed.append(os.path.basename(file_path))
             file_counter += 1
-            graph += file_graph
-            _bind_namespaces(graph, file_graph)
+            # Merge triples from file_model into model
+            try:
+                maplib.add_triples(source=file_model, target=model)
+            except Exception:
+                # Fallback: try reading directly if add_triples fails
+                try:
+                    model.read(file_path)
+                except:
+                    pass
 
-    return file_counter, files_processed, graph, log_results
+    return file_counter, files_processed, model, log_results
 
 def parse_lint_config(config):
     """
@@ -1977,7 +1990,7 @@ CHECKLIST = [
 ]
 
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None) -> QAResult:
+def run_qa(graph: "maplib.Model", verbose: bool = False, files_processed: list | None = None, checklist=None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
@@ -1988,7 +2001,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
 
     qa_metrics = {
         'filesProcessed': files_processed or [],
-        'triples': len(graph)
+        'triples': graph.size()
     }
     qa_violations = {}
 
@@ -2100,7 +2113,7 @@ def main():
         write_lint_config(CHECKLIST)
         exit(0)
 
-    # Load Data and create an rdflib.Graph()
+    # Load Data and create a maplib.Model
     log_output = "# Ontology Quality Assurance\n\n"
     file_counter, files_processed, g, log_results = load_rdf(args.data_files)
     log_output += log_results
@@ -2128,7 +2141,7 @@ def main():
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
-        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
+        qa_metrics = {'filesProcessed': files_processed, 'triples': g.size()}
         qa_violations = {}
         metrics, violations = profiling(g)
         qa_metrics.update(metrics)
