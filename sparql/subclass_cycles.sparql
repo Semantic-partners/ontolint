@@ -1,5 +1,7 @@
 # Including Cycles in a Class Hierarchy
 # Detect classes involved in subclass cycles
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?c WHERE {
-  ?c rdfs:subClassOf+ ?c .
+  ?c rdfs:subClassOf+ ?r .
+  FILTER(?c = ?r)
 }
