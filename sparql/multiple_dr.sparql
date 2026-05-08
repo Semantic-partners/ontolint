@@ -1,5 +1,8 @@
 # Defining Multiple Domains/Ranges
 # Properties declared with more than one domain or more than one range
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT ?p (COUNT(DISTINCT ?d) AS ?domainCount) (COUNT(DISTINCT ?r) AS ?rangeCount)
 WHERE {
   VALUES ?type { owl:ObjectProperty rdf:Property }

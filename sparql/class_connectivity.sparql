@@ -1,5 +1,8 @@
 # Average Class Connectivity
 # Note that this query misses the classes that are completely isolated (no links at all).
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 SELECT (AVG(?connectivity) AS ?averageConnectivity)
 WHERE {
   {

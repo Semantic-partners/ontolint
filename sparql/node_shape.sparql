@@ -1,4 +1,5 @@
 # Count SHACL Shapes
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT (COUNT(DISTINCT ?ns) AS ?shapeCount)
 WHERE {
   ?ns a sh:NodeShape .

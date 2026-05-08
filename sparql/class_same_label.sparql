@@ -1,4 +1,7 @@
 # Classes with the same label
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT ?label (GROUP_CONCAT(DISTINCT ?class; separator=", ") AS ?classes)
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }

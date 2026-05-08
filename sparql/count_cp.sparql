@@ -2,6 +2,9 @@
 # To avoid unbound ?p when evaluating ?c (and vice versa), 
 # two independent sub-SELECT blocks are specified, that both fire in the same solution.
 # UNION is not used as it gives two rows.
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT  ?classCount ?propertyCount
 WHERE {
  {

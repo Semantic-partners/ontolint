@@ -1,6 +1,9 @@
 # Number of Isolated Elements
 # Classes declared but never used in any other triple connecting them to the rest of the ontology.
 # TO DO: classes connected through properties defined in the current namespace.
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT DISTINCT ?c
 WHERE {  
   VALUES ?type { owl:Class rdfs:Class }

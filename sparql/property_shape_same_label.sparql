@@ -1,4 +1,7 @@
 # PropertyShapes with the same label
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT ?label (GROUP_CONCAT(DISTINCT ?ps; separator=", ") AS ?psList)
 WHERE {
     {

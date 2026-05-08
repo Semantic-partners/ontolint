@@ -1,3 +1,4 @@
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT (COUNT(DISTINCT ?ps) AS ?shapeCount)
 WHERE {
     {

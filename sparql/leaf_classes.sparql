@@ -1,5 +1,8 @@
 # Hierarchy Overspecialisation, i.e.
 # Leaf classes with no instances
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT ?c WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
