@@ -2124,7 +2124,7 @@ def main():
     # Simulate Inference (optional)
     if args.inference:
         g, inference_log = infer_subclass_relations(g)
-        log_output += inference_log
+        if not args.profile_only: log_output += inference_log
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
@@ -2133,7 +2133,8 @@ def main():
         metrics, violations = profiling(g)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
-        log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
+        log_output += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
+        if args.inference: log_output += inference_log
         metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
