@@ -1905,12 +1905,13 @@ def load_rdf_file(file):
     else:
         return False, model, "", {}
 
-def load_rdf(paths):
+def load_rdf(paths, verbose: bool = False):
     """
     Load RDF files from files or directories.
 
     Args:
         paths (list): List of file and/or directory paths.
+        verbose (bool): Logical flag for printing additional information during loading.
     
     Returns:
         file_counter (int): Number of files successfully loaded.
@@ -1938,8 +1939,9 @@ def load_rdf(paths):
 
     for file_path in files_to_load:
         success, file_model, log_msg, prefix = load_rdf_file(file_path)
+        if verbose: log_results += log_msg
         if success:
-            log_results += log_msg
+            if not verbose: log_results += log_msg
             files_processed.append(os.path.basename(file_path))
             file_counter += 1
             prefix_dictionary.update(prefix)
@@ -2191,7 +2193,7 @@ def main():
 
     # Load Data and create a maplib.Model
     log_output = "# Ontology Quality Assurance\n\n"
-    file_counter, files_processed, g, log_results, prefixes = load_rdf(args.data_files)
+    file_counter, files_processed, g, log_results, prefixes = load_rdf(args.data_files, verbose=args.verbose)
     log_output += log_results
 
     if file_counter == 0:
