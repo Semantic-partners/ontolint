@@ -192,8 +192,8 @@ def print_qa_table(metrics, checks):
     log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += f"| Property without domain | Property without range "
-    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking | Unresolvable Imports |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking | Unresolvable Imports | Undefined Terms |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingClassLabel', 'classCount')} "
@@ -214,7 +214,8 @@ def print_qa_table(metrics, checks):
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
     log += f"| {print_if_executed(metrics, checks, 'hijacking')} "
-    log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} |\n"
+    log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} "
+    log += f"| {print_if_executed(metrics, checks, 'undefinedTerms')} |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -1739,6 +1740,120 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     return metrics, violations, log, c, status
 
 
+def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
+    """
+    QA test finding terms used in the ontology that are not defined locally (as a subject
+    in the graph file) nor in any successfully-fetched remote ontology for their namespace.
+
+    Args:
+        in_metrics (dict): Number of violations for various ontology metrics.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        check (str): Dictionary key of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
+        status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
+
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    c, log = qa_check_results(name, c)
+    metrics[check] = 0  # 'undefinedTerms'
+    violations[check] = ""
+
+    # Collect all URIRefs that appear anywhere in the graph and those used as subjects
+    used_terms = set()
+    local_subjects = set()
+    for s, p, o in graph:
+        for term in (s, p, o):
+            if isinstance(term, rdflib.URIRef):
+                used_terms.add(str(term))
+        if isinstance(s, rdflib.URIRef):
+            local_subjects.add(str(s))
+
+    if not used_terms:
+        log += "PASS - No terms to check.\n"
+        log += sep()
+        return metrics, violations, log, c, status
+
+    # Identify the local namespace(s) from declared owl:Ontology URIs.
+    # For local namespaces we already hold the full graph — no remote fetch needed.
+    local_namespaces = set()
+    for ont_uri in in_metrics.get('ontologyURI', []):
+        local_namespaces.add(get_namespace(str(ont_uri)))
+
+    # Collect every HTTP namespace used that falls outside the local namespace(s)
+    remote_namespaces = set()
+    for uri in used_terms:
+        ns = get_namespace(uri)
+        if ns.startswith(('http://', 'https://')) and ns not in local_namespaces:
+            remote_namespaces.add(ns)
+
+    # Fetch each remote namespace and collect the subjects it defines
+    remote_subjects = set()
+    fetch_failures = set()
+    for ns_uri in remote_namespaces:
+        try:
+            remote_g = rdflib.Graph()
+            remote_g.parse(ns_uri)
+            for s, _, _ in remote_g:
+                if isinstance(s, rdflib.URIRef):
+                    remote_subjects.add(str(s))
+        except Exception:
+            fetch_failures.add(ns_uri)
+
+    known_terms = local_subjects | remote_subjects
+
+    # A term is undefined if it is used but:
+    # - not in known_terms, AND
+    # - its namespace is either local (we have the full graph) or was successfully fetched
+    undefined_terms = []
+    for uri in sorted(used_terms):
+        if uri in known_terms:
+            continue
+        ns = get_namespace(uri)
+        if not ns.startswith(('http://', 'https://')):
+            continue
+        if ns in local_namespaces:
+            undefined_terms.append(uri)
+    # if the term is not from a local namespace, and it's namespace does resolve, but it is not known,
+    # then it is undef. What to do with the term when the namespace is a fetch failure?
+        elif ns not in fetch_failures:
+            undefined_terms.append(uri)
+
+    if not undefined_terms:
+        log += "PASS - All used terms are defined locally or in their respective remote ontologies.\n"
+        if verbose:
+            log += f"\nChecked {len(used_terms)} term(s) across {len(remote_namespaces) - len(fetch_failures)} remote namespace(s).\n"
+    else:
+        metrics[check] = len(undefined_terms)
+        status += 1
+        string = ""
+        for term in undefined_terms:
+            string += f"{term},<br> "
+        string = string.removesuffix(",<br> ")
+        violations[check] = string
+        log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    # do we want unresolved namespaces to be skipped or treated as a fail condition?
+    if fetch_failures:
+        log += f"\nWARNING - Could not fetch {len(fetch_failures)} namespace(s); terms from these were not checked:\n"
+        for ns in sorted(fetch_failures):
+            log += f" - {ns}\n"
+
+    if not local_namespaces:
+        log += "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.\n"
+
+    log += sep()
+    return metrics, violations, log, c, status
+
+
 def load_rdf_file(file):
     """
     Load RDF data from a file and return an RDFLib Graph.
@@ -1907,6 +2022,7 @@ CHECKLIST = [
     (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
     (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
     (True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ),
+    (True, check_undefined_terms,               "Undefined terms",                    'undefinedTerms'            ),
 ]
 
 
@@ -1978,7 +2094,7 @@ def write_lint_config(checklist):
         exit(1)
 
     sequence = []
-    for i, item in enumerate(checklist):
+    for item in checklist:
         name = item[1].__name__.replace("check_", "").replace("_", "-")
         sequence.append(name)
     for item in sequence:

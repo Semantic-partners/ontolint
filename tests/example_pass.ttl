@@ -4,6 +4,10 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
+:Organism a rdfs:Class ;
+    rdfs:label "Organism" ;
+    rdfs:comment "The class of all Organisms" .
+
 :Animal a rdfs:Class ;
     rdfs:label "Animal" ;
     rdfs:comment "The class of all Animals" ;
@@ -51,8 +55,7 @@
 
 : a owl:Ontology ;
     rdfs:label "Animal Ontology" ;
-    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
-    owl:imports <http://www.w3.org/TR/skos-reference/skos.rdf> .
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
 
 :AnimalShape a sh:NodeShape ;
     rdfs:comment "Make sure the entity belongs to the animal kingdom." ;
