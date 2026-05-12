@@ -1,5 +1,12 @@
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
-  FILTER NOT EXISTS { ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+  FILTER NOT EXISTS { 
+    { ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel [] }
+    UNION
+    {
+      ?ns ?p [] .
+      ?p a owl:AnnotationProperty .
+    }
+  }
 }
