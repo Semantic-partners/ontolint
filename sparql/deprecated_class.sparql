@@ -2,5 +2,11 @@
 # Count elements marked as deprecated
 SELECT DISTINCT ?c
 WHERE {
-  ?c a owl:DeprecatedClass .
+  { ?c a owl:DeprecatedClass }
+  UNION
+  {
+    ?c a ?type ;
+    owl:deprecated [] .
+    VALUES ?type { owl:Class rdfs:Class }
+  }
 }

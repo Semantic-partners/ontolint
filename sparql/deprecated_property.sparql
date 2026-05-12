@@ -3,5 +3,11 @@
 
 SELECT DISTINCT ?p
 WHERE {
-  ?p a owl:DeprecatedProperty .
+  { ?p a owl:DeprecatedProperty }
+  UNION
+  {
+    ?p a ?type ;
+    owl:deprecated [] .
+    VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty owl:AnnotationProperty }
+  }
 }
