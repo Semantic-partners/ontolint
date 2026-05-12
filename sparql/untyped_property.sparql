@@ -17,12 +17,14 @@ WHERE {
     ?ontology a owl:Ontology .
     BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
   }
-  FILTER(STRSTARTS(STR(?p), ?ns))
+  FILTER (!BOUND(?ns) || STRSTARTS(STR(?p), ?ns))
   
-  MINUS { ?p a rdf:Property }
-  MINUS { ?p a owl:ObjectProperty }
-  MINUS { ?p a owl:DatatypeProperty }
-  MINUS { ?p a sh:ConstraintComponent }
-  MINUS { [] a sh:Parameter ; sh:path ?p }
+  # Use FILTER NOT EXISTS instead of MINUS to avoid join-key type errors
+  FILTER NOT EXISTS { ?p a rdf:Property }
+  FILTER NOT EXISTS { ?p a owl:ObjectProperty }
+  FILTER NOT EXISTS { ?p a owl:DatatypeProperty }
+  FILTER NOT EXISTS { ?p a owl:AnnotationProperty }
+  FILTER NOT EXISTS { ?p a sh:ConstraintComponent }
+  FILTER NOT EXISTS { [] a sh:Parameter ; sh:path ?p }
 
 }
