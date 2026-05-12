@@ -1,9 +1,14 @@
 # Number of Deprecated Classes
 # Count elements marked as deprecated
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?c
 WHERE {
   { ?c a owl:DeprecatedClass }
   UNION
-  { ?c owl:deprecated ?d }
+  {
+    ?c a ?type ;
+    owl:deprecated [] .
+    VALUES ?type { owl:Class rdfs:Class }
+  }
 }

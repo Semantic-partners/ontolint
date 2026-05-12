@@ -1,9 +1,14 @@
 # Number of Deprecated Properties
 # Count elements marked as deprecated
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?p
 WHERE {
   { ?p a owl:DeprecatedProperty }
   UNION
-  { ?p owl:deprecated ?d }
+  {
+    ?p a ?type ;
+    owl:deprecated [] .
+    VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty owl:AnnotationProperty }
+  }
 }
