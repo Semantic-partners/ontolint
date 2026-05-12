@@ -3,5 +3,7 @@
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT DISTINCT ?c
 WHERE {
-  ?c a owl:DeprecatedClass .
+  { ?c a owl:DeprecatedClass }
+  UNION
+  { ?c owl:deprecated ?d }
 }
