@@ -413,9 +413,8 @@ def profiling(graph, prefixes):
 
     # Count properties in PropertyShapes.
     results = exec_sparql(graph, 'property_in_property_shape')
-    total_properties_in_shapes = len(results)
-    metrics['propertiesInPropertyShapes'] = total_properties_in_shapes
-    if total_properties_in_shapes > 0:
+    if results[0].get('ps') != 0:
+        metrics['propertiesInPropertyShapes'] = len(results)
         elements['propertiesInPropertyShapes'] = {
             'ps': [],
             'propCount': []
@@ -423,26 +422,32 @@ def profiling(graph, prefixes):
         for row in results:
             elements['propertiesInPropertyShapes']['ps'].append(row['ps'])
             elements['propertiesInPropertyShapes']['propCount'].append(row['prop'])
+    else:
+        metrics['propertiesInPropertyShapes'] = 0
 
     # Number of Deprecated Classes and Properties
     results = exec_sparql(graph, 'deprecated_class')
-    metrics['deprecatedClasses'] = len(results)
-    if metrics['deprecatedClasses'] > 0:
+    if results[0].get('c') != 0:
+        metrics['deprecatedClasses'] = len(results)
         elements['deprecatedClasses'] = []
         for row in results:
             elements['deprecatedClasses'].append(row['c'])
+    else:
+        metrics['deprecatedClasses'] = 0
     
     results = exec_sparql(graph, 'deprecated_property')
-    metrics['deprecatedProperties'] = len(results)
-    if metrics['deprecatedProperties'] > 0:
+    if results[0].get('p') != 0:
+        metrics['deprecatedProperties'] = len(results)
         elements['deprecatedProperties'] = []
         for row in results:
             elements['deprecatedProperties'].append(row['p'])
+    else:
+        metrics['deprecatedProperties'] = 0
 
     # List all used prefixes
     active_prefixes = prefixes.copy() if prefixes else {}
     results = exec_sparql(graph, 'owl_declaration')
-    if results:
+    if results[0].get('ont') != 0:
         for row in results:
             # Remove ontology namespace from active_prefixes
             to_remove = []
@@ -468,8 +473,12 @@ def profiling(graph, prefixes):
 
     # List all imports
     results = exec_sparql(graph, 'owl_imports')
-    metrics['imports'] = len(results)
     elements['imports'] = {}
+    if results[0].get('ontology') != 0:
+        metrics['imports'] = len(results)
+    else:
+        metrics['imports'] = 0
+    
     if metrics['imports'] > 0:
         old =  ""
         for row in results:
@@ -1588,13 +1597,13 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
-    if ontology_check:
-        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
-        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-    else:
-        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        if ontology_check:
+            if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+                log += f"\nWARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+            elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+                log += f"\nWARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+        else:
+            log += f"\nWARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1637,19 +1646,19 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
 
     else:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
+        log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, `owl:DatatypeProperty`, or `owl:AnnotationProperty` declaration:\n"
         status += 1
         string = violation_formatting([row['p'] for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    if ontology_check:
-        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
-        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-    else:
-        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        if ontology_check:
+            if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+                log += f"\nWARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+            elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+                log += f"\nWARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+        else:
+            log += f"\nWARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1703,13 +1712,13 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    if ontology_check:
-        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
-        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-    else:
-        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        if ontology_check:
+            if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
+                log += f"\nWARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
+            elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
+                log += f"\nWARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+        else:
+            log += f"\nWARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1788,6 +1797,8 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     if results[0].get('ontology') != 0:
         import_urls = [(str(row['ontology']), str(row['imp'])) for row in results]
         import_urls.sort()
+    else:
+        import_urls = []
 
     if not import_urls:
         log += "WARNING - No owl:imports statements found.\n"
@@ -1840,15 +1851,15 @@ def parse_prefix(file):
         for p in prefix:
             parts = p.split()
             if len(parts) >= 3:
-                prefix_name = parts[1].rstrip(":")
+                prefix_name = parts[1]
                 prefix_iri = parts[2].strip("<>.")
                 prefixes[prefix_name] = prefix_iri
     elif file.lower().endswith(('.rdf', '.owl', '.xml')):
-        prefix = [line for line in content.splitlines() if line.startswith("xmlns:")]
+        prefix = [line for line in content.splitlines() if line.lstrip().startswith("xmlns:")]
         for p in prefix:
             parts = p.split('=')
             if len(parts) >= 2:
-                prefix_name = parts[0].split(':')[1]
+                prefix_name = parts[0].split(':')[1] + ":"
                 prefix_iri = parts[1].strip('"').strip('">')
                 prefixes[prefix_name] = prefix_iri
         
