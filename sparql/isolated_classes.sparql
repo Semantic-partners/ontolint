@@ -1,6 +1,6 @@
 # Number of Isolated Elements
 # Classes declared but never used in any other triple connecting them to the rest of the ontology.
-# TO DO: classes connected through properties defined in the current namespace.
+# TO DO: classes connected through properties defined in the current namespace (maybe for metamodelling?).
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
@@ -8,10 +8,8 @@ SELECT DISTINCT ?c
 WHERE {  
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  MINUS { ?c rdfs:subClassOf ?o }
-  MINUS { ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?c }
-  # FILTER NOT EXISTS {
-  #   ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?o .
-  #   FILTER(?c IN (?s, ?o))
-  # }
+ FILTER NOT EXISTS { ?c rdfs:subClassOf|owl:equivalentClass [] }
+ FILTER NOT EXISTS { ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?c }
+ # exclude blank nodes
+ FILTER(isIRI(?c))
 }
