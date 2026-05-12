@@ -5,7 +5,19 @@ PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?p
 WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
+  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
   ?p a ?type .
-  FILTER NOT EXISTS { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
+  FILTER NOT EXISTS { 
+    { ?p rdfs:comment|dcterms:description|skos:definition [] }
+    UNION
+    {
+      ?p ?predicate [] .
+      ?predicate a owl:AnnotationProperty .
+    }
+  }
+  # Exclude deprecated properties
+  FILTER NOT EXISTS {
+    ?p owl:deprecated ?isDeprecated .
+    FILTER (?isDeprecated = true || LCASE(STR(?isDeprecated)) = "true" || STR(?isDeprecated) = "1")
+  }
 }

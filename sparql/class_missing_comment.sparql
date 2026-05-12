@@ -6,5 +6,19 @@ SELECT DISTINCT ?c
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  FILTER NOT EXISTS { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
+  FILTER NOT EXISTS { 
+    { ?c rdfs:comment|dcterms:description|skos:definition [] }
+    UNION
+    {
+      ?c ?p [] .
+      ?p a owl:AnnotationProperty .
+    }
+  }
+  # exclude blank nodes
+  FILTER(isIRI(?c))
+  # Exclude deprecated classes
+  FILTER NOT EXISTS {
+    ?c owl:deprecated ?isDeprecated .
+    FILTER (?isDeprecated = true || LCASE(STR(?isDeprecated)) = "true" || STR(?isDeprecated) = "1")
+  }
 }

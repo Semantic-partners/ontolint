@@ -1,8 +1,16 @@
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
-  FILTER NOT EXISTS { ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+  FILTER NOT EXISTS { 
+    { ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel [] }
+    UNION
+    {
+      ?ns ?p [] .
+      ?p a owl:AnnotationProperty .
+    }
+  }
 }
