@@ -20,6 +20,7 @@ import json
 from datetime import datetime
 from dataclasses import dataclass, field
 import yaml
+import time
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.argv[0])) + '/../sparql') # Use ENV variable or default value.
@@ -79,26 +80,23 @@ def exec_sparql(model, key):
     try:
         results = model.query(sparql_query)
         # Convert Polars DataFrame to list of named tuples
-        if isinstance(results, pl.DataFrame):
-            if results.height == 0:
-                return []
-            # Use iter_rows(named=True) to get named tuples
-            results_list = list(results.iter_rows(named=True))
+        # .height is the Polars-native way to check row count
+        if results.height > 0:
+            results_list = results.to_dicts()
+
             # remove <> from URIs in the results
             for row in results_list:
-                for key, value in row.items():
+                for dict_key, value in row.items():
                     if isinstance(value, str) and value.startswith('<') and value.endswith('>'):
-                        row[key] = value.strip('<>')
-            
+                        row[dict_key] = value.strip('<>')
+
             return results_list
-        elif results is None:
-            return []
-        else:
-            # Already in correct format
-            return results
+    
+        # Fallback: Create a dict from column names with 0 as values
+        return [dict.fromkeys(results.columns, 0)]
+    
     except Exception as e:
-        print(f"Error executing SPARQL query '{key}': {e}")
-        return []
+        sys.stderr.write(f"Error executing SPARQL query '{key}': {e}")
 
 def get_namespace(uri):
     """Extract namespace from a URIRef."""
@@ -390,23 +388,15 @@ def profiling(graph, prefixes):
 
     # Count classes, properties before inferencing.
     results = exec_sparql(graph, 'count_cp')
-    (row,) = results
-    metrics['classCount'] = row['classCount']
-    metrics['propertyCount'] = row['propertyCount']
+    metrics['classCount'] = results[0].get('classCount')
+    metrics['propertyCount'] = results[0].get('propertyCount')
 
     # Count shapes.
     results = exec_sparql(graph, 'node_shape')
-    if results:
-        (row,) = results
-        metrics['nodeShapes'] = row['shapeCount']
-    else:
-        metrics['nodeShapes'] = 0
+    metrics['nodeShapes'] = results[0].get('shapeCount')
+
     results = exec_sparql(graph, 'property_shape')
-    if results:
-        (row,) = results
-        metrics['propertyShapes'] = row['shapeCount']
-    else:
-        metrics['propertyShapes'] = 0
+    metrics['propertyShapes'] = results[0].get('shapeCount')
     
     # Count classes in NodeShapes.
     results = exec_sparql(graph, 'classes_in_node_shape')
@@ -496,8 +486,7 @@ def profiling(graph, prefixes):
 
     # average branching factor
     results = exec_sparql(graph, 'average_branching_factor')
-    (row,) = results
-    metrics['aveBranchFactor'] = row['avgBranchingFactor']
+    metrics['aveBranchFactor'] = results[0].get('avgBranchingFactor')
 
     # use of restrictions
     results = exec_sparql(graph, 'cardinality_restrictions')
@@ -571,7 +560,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     c, log = qa_check_results(name, c)
     results = exec_sparql(graph, 'owl_declaration')
 
-    if not results:
+    if results[0].get('ont') == 0:
         status += 1
     else:
         for row in results:
@@ -648,7 +637,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = "No ontology declared"
     else:
         results = exec_sparql(graph, 'no_ont_description')
-        if not results:
+        if results[0].get('ont') == 0:
             log += "PASS - All declared ontologies have a description.\n"
             metrics[check] = 0 # yes
             violations[check] = ""
@@ -697,7 +686,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     metrics[check] = 0 # 'missingClassLabel'
     violations[check] = ""
 
-    if not results and int(in_metrics['classCount']) > 0:
+    if results[0].get('c') == 0 and int(in_metrics['classCount']) > 0:
         log += "PASS - All classes have a label annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'class_labels')
@@ -708,7 +697,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
         status += 1
@@ -746,7 +735,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     metrics[check] = 0 # 'missingPropertyLabel'
     violations[check] = ""
 
-    if not results and int(in_metrics['propertyCount']) > 0:
+    if results[0].get('p') == 0 and int(in_metrics['propertyCount']) > 0:
         log += "PASS - All properties have a label annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'property_labels')
@@ -757,7 +746,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
@@ -795,7 +784,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
     metrics[check] = 0 # 'missingNSLabel'
     violations[check] = ""
 
-    if not results and int(in_metrics['nodeShapes']) > 0:
+    if results[0].get('ns') == 0 and int(in_metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a label annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'node_shape_labels')
@@ -806,7 +795,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
         status += 1
@@ -844,7 +833,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     metrics[check] = 0 # 'missingPSLabel'
     violations[check] = ""
 
-    if not results and int(in_metrics['propertyShapes']) > 0:
+    if results[0].get('ps') == 0 and int(in_metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a label annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'property_shape_labels')
@@ -854,8 +843,8 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
-              
-    elif results:
+    
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
         status += 1
@@ -893,7 +882,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     metrics[check] = 0 # 'missingClassDescription'
     violations[check] = ""
 
-    if not results and int(in_metrics['classCount']) > 0:
+    if results[0].get('c') == 0 and int(in_metrics['classCount']) > 0:
         log += "PASS - All classes have a description annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'class_comments')
@@ -904,7 +893,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
         status += 1
@@ -942,7 +931,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     metrics[check] = 0 # 'missingPropertyDescription'
     violations[check] = ""
 
-    if not results and int(in_metrics['propertyCount']) > 0:
+    if results[0].get('p') == 0 and int(in_metrics['propertyCount']) > 0:
         log += "PASS - All properties have a description annotation.\n"
         if verbose:
             log_results = exec_sparql(graph, 'property_comments')
@@ -953,7 +942,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
@@ -991,7 +980,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     metrics[check] = 0 # 'missingNSDescription'
     violations[check] = ""
 
-    if not results and int(in_metrics['nodeShapes']) > 0:
+    if results[0].get('ns') == 0 and int(in_metrics['nodeShapes']) > 0:
         log += "PASS - All NodeShape have a description annotation.\n"
         if verbose:
             results = exec_sparql(graph, 'node_shape_comments')
@@ -1001,7 +990,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
         status += 1
@@ -1039,7 +1028,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     metrics[check] = 0 # 'missingPSDescription'
     violations[check] = ""
 
-    if not results and int(in_metrics['propertyShapes']) > 0:
+    if results[0].get('ps') == 0 and int(in_metrics['propertyShapes']) > 0:
         log += "PASS - All PropertyShape have a description annotation.\n"
         if verbose:
             results = exec_sparql(graph, 'property_shape_comments')
@@ -1050,7 +1039,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
     
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
         status += 1
@@ -1088,13 +1077,13 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'nonUniqueClassLabels'
     violations[check] = ""
     
-    if not results and int(in_metrics['classCount']) > 0:
+    if results[0].get('label') == 0 and int(in_metrics['classCount']) > 0:
         log += "PASS - No classes share the same label.\n"
 
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple classes.\n"
         status += 1
@@ -1137,13 +1126,13 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
     metrics[check] = 0 # 'nonUniquePropertyLabels'
     violations[check] = ""
 
-    if not results and int(in_metrics['propertyCount']) > 0:
+    if results[0].get('label') == 0 and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No property share the same label.\n"
 
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple properties.\n"
         status += 1
@@ -1185,13 +1174,13 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
     metrics[check] = 0 # 'nonUniqueNSLabels'
     violations[check] = ""
 
-    if not results and int(in_metrics['nodeShapes']) > 0:
+    if results[0].get('label') == 0 and int(in_metrics['nodeShapes']) > 0:
         log += "PASS - No NodeShape share the same label.\n"
 
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple NodeShapes.\n"
         status += 1
@@ -1234,13 +1223,13 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
     metrics[check] = 0 # 'nonUniquePSLabels'
     violations[check] = ""
 
-    if not results and int(in_metrics['propertyShapes']) > 0:
+    if results[0].get('label') == 0 and int(in_metrics['propertyShapes']) > 0:
        log += "PASS - No PropertyShape share the same label.\n"
 
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple PropertyShapes.\n"
         status += 1
@@ -1283,12 +1272,12 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'isolatedClasses'
     violations[check] = ""
 
-    if not results and int(in_metrics['classCount']) > 0:
+    if results[0].get('c') == 0 and int(in_metrics['classCount']) > 0:
         log += "PASS - All classes are connected to another class through a subclass or property relation.\n"
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
         status += 1
@@ -1335,7 +1324,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         rCount = []
 
         # Print the output of the check only once.
-        if not results and int(in_metrics['propertyCount']) > 0:
+        if results[0].get('p') == 0 and int(in_metrics['propertyCount']) > 0:
             log += "INFO - All properties have domain and range defined.\n"
             if verbose: log += f"\n"
 
@@ -1421,7 +1410,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         rCount = []
 
         # Analyse the results
-        if results:
+        if results[0].get('p') != 0:
             for row in results:
                 predicate = row['p']
                 if not row['range']:
@@ -1493,10 +1482,10 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
     metrics[check] = 0 # 'nonUniqueIdentifiers'
     violations[check] = ""
 
-    if not results:
+    if results[0].get('iri') == 0:
         log += "PASS - No violations found.\n"
         
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} elements with non-unique identifiers.\n"
         log += "| URI | Declared as |\n|--|--|\n"
@@ -1538,13 +1527,13 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'subclassCycles'
     violations[check] = ""
 
-    if not results and int(in_metrics['classCount']) > 0:
+    if results[0].get('c') == 0 and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
         status += 1
@@ -1585,13 +1574,13 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
     ontology_check = False
     if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
-    if not results and int(in_metrics['classCount']) > 0:
+    if results[0].get('c') == 0 and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
@@ -1640,13 +1629,13 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     ontology_check = False
     if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
-    if not results and int(in_metrics['propertyCount']) > 0:
+    if results[0].get('p') == 0 and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
               
     elif not results and int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
@@ -1704,10 +1693,10 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'hijacking'
     violations[check] = ""
 
-    if not results:
+    if results[0].get('resource') == 0:
         log += "PASS - No violations found.\n"
 
-    elif results:
+    else:
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
         string = violation_formatting([row['resource'] for row in results])
@@ -1796,8 +1785,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
 
-    import_urls = [(str(row['ontology']), str(row['imp'])) for row in results]
-    import_urls.sort()
+    if results[0].get('ontology') != 0:
+        import_urls = [(str(row['ontology']), str(row['imp'])) for row in results]
+        import_urls.sort()
 
     if not import_urls:
         log += "WARNING - No owl:imports statements found.\n"
@@ -2179,8 +2169,10 @@ def main():
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
     parser.add_argument('-c', '--config', type=str, metavar='path/to/config.yml', help='Path to a YAML configuration file to enable or disable individual checks. Note that if the current directory contains a .rdf-lint.yml file, it will be used by default.')
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
+    parser.add_argument('-t', '--time', action='store_true', help='Print timing information.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
+    if args.time: start_time = time.time()
 
     # Validate arguments: data_files is required unless -i is used.
     if not args.init and not args.data_files:
@@ -2195,6 +2187,7 @@ def main():
     log_output = "# Ontology Quality Assurance\n\n"
     file_counter, files_processed, g, log_results, prefixes = load_rdf(args.data_files, verbose=args.verbose)
     log_output += log_results
+    if args.time: sys.stderr.write(f"File loaded at time {time.time() - start_time:.2f} sec\n")
 
     if file_counter == 0:
         print(f"{log_output}\nERROR - No RDF data in input files or directories.")
@@ -2214,11 +2207,14 @@ def main():
        
     # Simulate Inference (optional)
     if args.inference:
+        if args.time: inference_time = time.time()
         g, inference_log = infer_subclass_relations(g)
         if not args.profile_only: log_output += inference_log
+        if args.time: sys.stderr.write(f"Inference duration time {time.time() - inference_time:.2f} sec\n")
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
+        if args.time: profiling_time = time.time()
         qa_metrics = {'filesProcessed': files_processed, 'triples': g.size()}
         qa_violations = {}
         metrics, violations = profiling(g, prefixes)
@@ -2232,10 +2228,13 @@ def main():
         log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
         log_output += print_profiling_table(qa_metrics)
         qa_terminate(args.output, log_output)
+        if args.time: sys.stderr.write(f"Profiling time: {time.time() - profiling_time:.2f} sec\n Total execution time {time.time() - start_time:.2f} sec.")
         return
 
     # Full QA path
+    if args.time: qa_time = time.time()
     result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, prefix=prefixes)
+    if args.time: sys.stderr.write(f"Checks execution time {time.time() - qa_time:.2f} sec\n")
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
