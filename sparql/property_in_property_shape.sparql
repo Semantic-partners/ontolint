@@ -15,6 +15,6 @@ WHERE {
     BIND(?propertyShape AS ?ps)
   }
   ?ps sh:path ?prop .
-  VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty }
+  VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty owl:AnnotationProperty }
   ?prop a ?type .
 }
