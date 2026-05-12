@@ -1,5 +1,5 @@
 # Classes with the same label
-SELECT ?label (GROUP_CONCAT(DISTINCT ?class; separator=", ") AS ?classes)
+SELECT ?label (GROUP_CONCAT(DISTINCT STR(?class); separator=", ") AS ?classes)
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?class a ?type .
