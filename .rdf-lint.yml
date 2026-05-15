@@ -37,3 +37,6 @@
 #   - isolated-classes
 #   - property-missing-domain
         
+ignore-imports:
+  - http://www.w3.org/ns/shacl
+  - https://schema.org/

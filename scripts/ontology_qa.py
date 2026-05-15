@@ -1675,7 +1675,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
+def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore_imports=None):
     """
     QA test verifying that all owl:imports URLs resolve and contain triples.
 
@@ -1702,7 +1702,12 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
 
-    import_urls = [(str(row.ontology), str(row.imp)) for row in results]
+    ignored = set(ignore_imports or [])
+    import_urls = [
+        (str(row.ontology), str(row.imp))
+        for row in results
+        if str(row.imp) not in ignored
+    ]
 
     if not import_urls:
         log += "PASS - No owl:imports statements found.\n"
@@ -1930,9 +1935,10 @@ def parse_lint_config(config):
 
     Args:
         config (str): Path to the YAML configuration file.
-    
+
     Returns:
         transformed_selection (dict): User-selected metrics.
+        ignore_imports (list): Import URLs that should be skipped by the resolvability check.
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -1942,17 +1948,19 @@ def parse_lint_config(config):
             selection = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML in config file: {e}")
-    
+
     if selection is None:
         selection = { "disable": [] }
 
-    # Transform the dictionary
+    ignore_imports = [str(u) for u in selection.pop("ignore-imports", None) or []]
+
+    # Transform the dictionary (check enable/disable keys only)
     transformed_selection = {
         key: [f"check_{item.replace('-', '_')}" for item in value_list]
         for key, value_list in selection.items()
     }
 
-    return transformed_selection
+    return transformed_selection, ignore_imports
 
 def lint_selection(selection, checklist):
         """
@@ -2026,7 +2034,7 @@ CHECKLIST = [
 ]
 
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
@@ -2052,8 +2060,9 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     num_violations = 0
     for enabled, func, display_name, key in checklist:
         if enabled:
+            kwargs = {"ignore_imports": ignore_imports} if func is check_owl_imports else {}
             metrics, violations, log_results, test_counter, num_violations = func(
-                qa_metrics, graph, display_name, key, test_counter, num_violations, verbose
+                qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
             qa_metrics.update(metrics)
             qa_violations.update(violations)
@@ -2123,7 +2132,11 @@ def write_lint_config(checklist):
 # disable:
 #   - hijacking
 #   - isolated-classes
-#   - property-missing-domain
+#   - property-missing-domain\n
+# Skip the resolvability check entirely for specific imported ontologies
+# ignore-imports:
+#   - http://www.w3.org/ns/shacl
+#   - https://schema.org/
         """)
 
 def main():
@@ -2185,16 +2198,17 @@ def main():
 
     # Apply lint config to enable/disable individual checks.
     checklist = list(CHECKLIST)
+    ignore_imports = []
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config = parse_lint_config(config_path)
+        lint_config, ignore_imports = parse_lint_config(config_path)
         checklist, log_results = lint_selection(lint_config, checklist)
         log_output += log_results
 
     # Full QA path
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
