@@ -19,10 +19,7 @@ WHERE {
     BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
   }
   FILTER (!BOUND(?ns) || STRSTARTS(STR(?c), ?ns))
-
-  # Use FILTER NOT EXISTS instead of MINUS to avoid join-key type errors
-  FILTER NOT EXISTS { ?c rdf:type owl:Class }
-  FILTER NOT EXISTS { ?c rdf:type rdfs:Class }
-  FILTER NOT EXISTS { ?c rdf:type rdfs:Datatype }
-
+  MINUS { ?c rdf:type owl:Class }
+  MINUS { ?c rdf:type rdfs:Class }
+  MINUS { ?c rdf:type rdfs:Datatype }
 }
