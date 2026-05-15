@@ -1710,7 +1710,10 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     ]
 
     if not import_urls:
-        log += "PASS - No owl:imports statements found.\n"
+        if ignored:
+            log += f"PASS - All owl:imports URLs are ignored by configuration.\n"
+        else:
+            log += "PASS - No owl:imports statements found.\n"
         log += sep()
         return metrics, violations, log, c, status
 
@@ -1997,8 +2000,8 @@ def lint_selection(selection, checklist):
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
                 checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
 
-        else:
-            # Print a warning
+        elif selection:
+            # Non-empty dict with no recognised top-level key
             log += f"\nWARNING - Invalid keyword in config file:\n\n```yaml\n"
             log += yaml.dump(selection, default_flow_style=False)
             log += f"```"
