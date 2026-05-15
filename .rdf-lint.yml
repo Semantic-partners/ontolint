@@ -38,6 +38,6 @@
 #   - property-missing-domain
         
 ignore-imports:
-    -  http://www.example.com/
+    -  http://www.example.com
 #   - http://www.w3.org/ns/shacl
 #   - https://schema.org/
