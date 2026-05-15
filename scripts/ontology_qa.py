@@ -663,7 +663,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             string = violation_formatting([row['ont'] for row in results])
             violations[check] = string
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
-            log += string.replace(",<br> ", "\n - ")
+            log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
     return metrics, violations, log, c, status
