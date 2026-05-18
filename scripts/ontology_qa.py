@@ -79,9 +79,13 @@ def exec_sparql(graph, key):
 def get_namespace(uri):
     """Extract namespace from a URIRef."""
     if '#' in uri:
-        return uri.rsplit('#', 1)[0] + '#'
+        base = uri.rsplit('#', 1)[0]
+        if len(base) >= 8:
+            return base + '#'
     elif '/' in uri:
-        return uri.rsplit('/', 1)[0] + '/'
+        base = uri.rsplit('/', 1)[0]
+        if len(base) >= 8:
+            return base + '/'
     return uri  # fallback
 
 def prefixes(g):
