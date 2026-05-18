@@ -9,6 +9,7 @@ WHERE {
     FILTER NOT EXISTS {
         VALUES ?type { owl:Ontology skos:ConceptScheme }
         ?namespace a ?type .
-        FILTER(CONTAINS(LCASE(STR(?resource)), LCASE(STR(?namespace))))
+        BIND(REPLACE(STR(?namespace), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
+        FILTER(STRSTARTS(STR(?resource), ?ns))
     }
 }

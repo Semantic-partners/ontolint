@@ -7,13 +7,18 @@ WHERE {
   { ?s rdfs:range ?c . }
   UNION
   { ?s sh:class ?c . }
+  UNION
+  { ?s rdfs:subClassOf ?c . }
   
   # exclude blank nodes
   FILTER(isIRI(?c))
 
   # Restrict to ontology namespace
-  ?ontology a owl:Ontology .
-  FILTER(STRSTARTS(STR(?c), STR(?ontology)))
+  OPTIONAL {
+    ?ontology a owl:Ontology .
+    BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
+  }
+  FILTER(STRSTARTS(STR(?c), ?ns))
 
   MINUS { ?c rdf:type owl:Class }
   MINUS { ?c rdf:type rdfs:Class }

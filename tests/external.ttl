@@ -1,0 +1,11 @@
+@prefix ex: <http://example.org/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex: a owl:Ontology ;
+  rdfs:label "External Animal Ontology" ;
+  rdfs:comment "An additional animal ontology which may be imported by another one."@en .
+
+ex:Reptiles a owl:Class ;
+    rdfs:label "Reptiles" ;
+    rdfs:comment "A reptile is an egg-laying vertebrate with cold blood and scale-covered skin." .

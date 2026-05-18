@@ -1,0 +1,28 @@
+## Fallback if the ontology is not declared.
+# Namespace hijacking
+# Define a resource in the current namespace using an external vocabulary prefix.
+SELECT DISTINCT ?resource
+WHERE {
+  ?resource ?p ?o .
+  FILTER(isIRI(?resource))
+  BIND(REPLACE(str(?resource), "^(.{8,})[#/][^#/]*$", "$1") AS ?resNamespace)
+  
+  # Find the most common namespace among subjects (the "main" namespace)
+  {
+    SELECT ?mainNamespace WHERE {
+      {
+        SELECT ?namespace (COUNT(*) AS ?nsCount) WHERE {
+          ?subject ?predicate ?object .
+          BIND(REPLACE(str(?subject), "^(.{8,})[#/][^#/]*$", "$1") AS ?namespace)
+        }
+        GROUP BY ?namespace
+        ORDER BY DESC(?nsCount)
+        LIMIT 1
+      }
+      BIND(?namespace AS ?mainNamespace)
+    }
+  }
+  
+  # Flag resources whose namespace doesn't match the main namespace
+  FILTER(?resNamespace != ?mainNamespace)
+}
