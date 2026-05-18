@@ -2246,11 +2246,12 @@ def main():
 
     # Apply lint config to enable/disable individual checks.
     checklist = list(CHECKLIST)
+    ignore_imports = []
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config = parse_lint_config(config_path)
+        lint_config, ignore_imports = parse_lint_config(config_path)
         checklist, log_results = lint_selection(lint_config, checklist)
         log_output += log_results
        
