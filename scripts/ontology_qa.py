@@ -1833,7 +1833,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
             local_subjects.add(str(s))
 
     if not used_terms:
-        log += "PASS - No terms to check.\n"
+        log += "WARNING - No terms to check.\n"
         log += sep()
         return metrics, violations, log, c, status
 
@@ -1889,10 +1889,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
     else:
         metrics[check] = len(undefined_terms)
         status += 1
-        string = ""
-        for term in undefined_terms:
-            string += f"{term},<br> "
-        string = string.removesuffix(",<br> ")
+        string = violation_formatting(undefined_terms)
         violations[check] = string
         log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
