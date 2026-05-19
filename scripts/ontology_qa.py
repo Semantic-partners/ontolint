@@ -1825,6 +1825,12 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
     c, log = qa_check_results(name, c)
     metrics[check] = 0  # 'undefinedTerms'
     violations[check] = ""
+    
+    # Identify the local namespace(s) from declared owl:Ontology URIs.
+    # For local namespaces we already hold the full graph — no remote fetch needed.
+    local_namespaces = set()
+    for ont_uri in in_metrics.get('ontologyURI', []):
+        local_namespaces.add(get_namespace(str(ont_uri)))
 
     # Collect all URIRefs that appear anywhere in the graph and those used as subjects
     used_terms = set()
@@ -1833,19 +1839,15 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
         for term in (s, p, o):
             if isinstance(term, rdflib.URIRef):
                 used_terms.add(str(term))
-        if isinstance(s, rdflib.URIRef):
+        
+        # prevents namespace hijacking
+        if isinstance(s, rdflib.URIRef) and get_namespace(s) in local_namespaces:
             local_subjects.add(str(s))
 
     if not used_terms:
         log += "WARNING - No terms to check.\n"
         log += sep()
         return metrics, violations, log, c, status
-
-    # Identify the local namespace(s) from declared owl:Ontology URIs.
-    # For local namespaces we already hold the full graph — no remote fetch needed.
-    local_namespaces = set()
-    for ont_uri in in_metrics.get('ontologyURI', []):
-        local_namespaces.add(get_namespace(str(ont_uri)))
 
     # Collect every HTTP namespace used that falls outside the local namespace(s)
     remote_namespaces = set()
@@ -1881,8 +1883,8 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
             continue
         if ns in local_namespaces:
             undefined_terms.append(uri)
-    # if the term is not from a local namespace, and it's namespace does resolve, but it is not known,
-    # then it is undef. What to do with the term when the namespace is a fetch failure?
+        # if the term is not from a local namespace, and its namespace resolves but it's not known,
+        # then it is undef. What to do with the term when the namespace is a fetch failure?
         elif ns not in fetch_failures:
             undefined_terms.append(uri)
 
