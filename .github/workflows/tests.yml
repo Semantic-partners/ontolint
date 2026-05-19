@@ -9,6 +9,25 @@ permissions:
   checks: write
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Lint
+        run: poetry run ruff check scripts/ tests/
+
   test:
     runs-on: ubuntu-latest
 
@@ -26,20 +45,21 @@ jobs:
         run: poetry install
 
       - name: Run tests with coverage
-        run: poetry run pytest --junitxml=test-results.xml --cov=scripts --cov-report=xml:coverage.xml
-        if: always()
+        run: |
+          poetry run pytest \
+            --junitxml=test-results.xml \
+            --cov=scripts \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
 
       - name: Publish test report
-        uses: dorny/test-reporter@v1
-        if: always()
+        uses: mikepenz/action-junit-report@v6
+        if: success() || failure()
         with:
-          name: pytest results
-          path: test-results.xml
-          reporter: java-junit
+          report_paths: test-results.xml
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: coverage.xml
+      - name: Write coverage summary
+        if: success() || failure()
+        run: |
+          echo '## Coverage' >> $GITHUB_STEP_SUMMARY
+          poetry run python -m coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
