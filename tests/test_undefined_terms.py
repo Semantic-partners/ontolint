@@ -1,4 +1,3 @@
-import pytest
 import rdflib
 import scripts.ontology_qa as qa_module
 from scripts.ontology_qa import check_undefined_terms

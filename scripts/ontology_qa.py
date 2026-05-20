@@ -1753,7 +1753,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
 
     if not import_urls:
         if ignored:
-            log += f"PASS - All owl:imports URLs are ignored by configuration.\n"
+            log += "PASS - All owl:imports URLs are ignored by configuration.\n"
         else:
             log += "PASS - No owl:imports statements found.\n"
         log += sep()
@@ -2072,7 +2072,7 @@ def lint_selection(selection, checklist):
         # 2. Enable owl-declaration if only owl-imports is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
             checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
-            log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
+            log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
         return checklist, log
 
 CHECKLIST = [
