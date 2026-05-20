@@ -44,6 +44,14 @@ def test_one_of_two_classes_missing_description_fails(make_graph):
     assert check.count == 1
 
 
+def test_class_with_rdfs_comment_verbose_is_printed(make_graph):
+    g = make_graph("""
+    :Cat a owl:Class ; rdfs:comment "The class of all cats." .
+    """)
+    logs = run_qa(g, verbose=True).logs
+    assert any("The class of all cats." in log for log in logs)
+
+
 # ── Properties ────────────────────────────────────────────────────────────────
 
 def test_property_with_rdfs_comment_passes(make_graph):
@@ -61,6 +69,7 @@ def test_property_without_description_fails(make_graph):
     assert not check.passed
     assert check.count == 1
     assert "hasFur" in check.elements
+
 
 def test_property_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
@@ -88,6 +97,14 @@ def test_node_shape_without_description_fails(make_graph):
     assert check.count == 1
 
 
+def test_node_shape_with_rdfs_comment_verbose_is_printed(make_graph):
+    g = make_graph("""
+    :CatShape a sh:NodeShape ; rdfs:comment "Validates cat entities." .
+    """)
+    logs = run_qa(g, verbose=True).logs
+    assert any("Validates cat entities." in log for log in logs)
+
+
 # ── PropertyShapes ────────────────────────────────────────────────────────────
 
 def test_property_shape_with_rdfs_comment_passes(make_graph):
@@ -104,3 +121,11 @@ def test_property_shape_without_description_fails(make_graph):
     check = run_qa(g).get("PropertyShape without description")
     assert not check.passed
     assert check.count == 1
+
+
+def test_property_shape_with_rdfs_comment_verbose_is_printed(make_graph):
+    g = make_graph("""
+    :hasFurShape a sh:PropertyShape ; rdfs:comment "Validates fur property." .
+    """)
+    logs = run_qa(g, verbose=True).logs
+    assert any("Validates fur property." in log for log in logs)

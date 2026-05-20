@@ -1,6 +1,6 @@
 [project]
 name = "ontolint"
-version = "0.2.0"
+version = "0.2.1"
 description = "Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline"
 authors = [
     {name = "Otello M Roscioni",email = "otello.roscioni@semanticpartners.com"}
@@ -20,6 +20,7 @@ package-mode = false
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3"
 pytest-cov = ">=5.0"
+ruff = ">=0.9"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -32,3 +33,9 @@ omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.ruff]
+src = ["scripts", "tests"]
+
+[tool.ruff.lint]
+ignore = ["E701"]  # inline `if x: y` — intentional style in this codebase

@@ -5,8 +5,10 @@ SELECT DISTINCT ?c
 WHERE {  
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  FILTER NOT EXISTS {
-    ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?o .
-    FILTER(?c IN (?s, ?o))
-  }
+  MINUS { ?c rdfs:subClassOf ?o }
+  MINUS { ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?c }
+  # FILTER NOT EXISTS {
+  #   ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?o .
+  #   FILTER(?c IN (?s, ?o))
+  # }
 }

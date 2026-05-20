@@ -43,16 +43,17 @@ WHERE {
   {
     SELECT ?class (COUNT(DISTINCT ?link) AS ?connectivity)
     WHERE {
-      ?class a owl:Class .
+      VALUES ?type { owl:Class rdfs:Class }
+	    ?class a ?type .
       {
         # subclass relationships
         { ?class rdfs:subClassOf ?link }
         UNION
+        # superclass relationship
         { ?link rdfs:subClassOf ?class }
-        # object property domain/range usage
+        #  domain/range usage
         UNION
-        { ?prop a owl:ObjectProperty .
-          ?prop rdfs:domain|rdfs:range ?class .
+        { ?prop rdfs:domain|rdfs:range ?class .
           BIND(?prop AS ?link)
         }
       }
