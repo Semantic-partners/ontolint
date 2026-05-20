@@ -36,7 +36,7 @@ def test_rdf_property_counted(make_graph):
 
 
 def test_no_classes_or_properties(make_graph):
-    g = make_graph("")
+    g = make_graph(": a owl:Ontology .")
     metrics, _ = profiling(g)
     assert int(metrics['classCount']) == 0
     assert int(metrics['propertyCount']) == 0
@@ -60,7 +60,7 @@ def test_property_shape_count(make_graph):
 
 
 def test_no_shapes(make_graph):
-    g = make_graph("")
+    g = make_graph(": a owl:Ontology .")
     metrics, _ = profiling(g)
     assert int(metrics['nodeShapes']) == 0
     assert int(metrics['propertyShapes']) == 0
@@ -117,3 +117,146 @@ def test_properties_in_property_shapes(make_graph):
     """)
     metrics, _ = profiling(g)
     assert metrics['propertiesInPropertyShapes'] == 1
+
+
+def test_ontology_imports(make_graph):
+    g = make_graph("""
+    : a owl:Ontology ;
+    rdfs:label "Animal Ontology" ;
+    owl:imports <http://example.org/>, <http://my.ont.example#> .
+    """)
+    metrics, _ = profiling(g)
+    assert metrics['imports'] == 2
+
+
+def test_ontology_depth(make_graph):
+    g = make_graph("""
+    :Animal a rdfs:Class .
+    :Cat a rdfs:Class ;
+    rdfs:subClassOf :Animal .
+    :Siamese a rdfs:Class ;
+    rdfs:subClassOf :Cat .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['HierarchyDepth']) == 2
+
+
+def test_average_branching_factor(make_graph):
+    g = make_graph("""
+    :Animal a rdfs:Class .
+    :Cat a rdfs:Class ;
+    rdfs:subClassOf :Animal .
+    :Siamese a rdfs:Class ;
+    rdfs:subClassOf :Cat .
+    :Tabby a rdfs:Class ;
+    rdfs:subClassOf :Cat .
+    """)
+    metrics, _ = profiling(g)
+    assert float(metrics['aveBranchFactor']) == 1.5
+
+# Examples from https://protegeproject.github.io/protege/class-expression-syntax/
+def test_cardinality_restrictions_some(make_graph):
+    g = make_graph("""
+    :Dog a rdfs:Class .
+    :hasPet a owl:ObjectProperty .
+    :DogOwner a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :hasPet ;
+        owl:someValuesFrom :Dog
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
+
+
+def test_cardinality_restriction_value(make_graph):
+    g = make_graph("""
+    :Dog a rdfs:Class .
+    :Tibbs a :Dog .
+    :hasPet a owl:ObjectProperty .
+    :TibbsOwner a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :hasPet ;
+        owl:hasValue :Tibbs
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
+
+
+def test_cardinality_restriction_only(make_graph):
+    g = make_graph("""
+    :Dog a rdfs:Class .
+    :hasPet a owl:ObjectProperty .
+    :DogOwner a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :hasPet ;
+        owl:allValuesFrom :Dog
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
+
+
+def test_cardinality_restriction_min(make_graph):
+    g = make_graph("""
+    :Dog a rdfs:Class .
+    :hasPet a owl:ObjectProperty .
+    :DogOwner a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :hasPet ;
+        owl:minQualifiedCardinality 1 ;
+        owl:onClass :Dog
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
+
+
+def test_cardinality_restriction_max(make_graph):
+    g = make_graph("""
+    :Dog a rdfs:Class .
+    :hasPet a owl:ObjectProperty .
+    :ModestDogOwner a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :hasPet ;
+        owl:maxQualifiedCardinality 2 ;
+        owl:onClass :Dog
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
+
+
+def test_cardinality_restriction_exactly(make_graph):
+    g = make_graph("""
+    :Dog a rdfs:Class .
+    :hasPet a owl:ObjectProperty .
+    :MassiveDogOwner a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :hasPet ;
+        owl:qualifiedCardinality 20 ;
+        owl:onClass :Dog
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
+
+def test_cardinality_restriction_self(make_graph):
+    g = make_graph("""
+    :loves a owl:ObjectProperty .
+    :NarcissisticPerson a rdfs:Class ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty :loves ;
+        owl:hasSelf 1
+    ] .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['CardinalityRestrictions']) == 1
