@@ -486,8 +486,8 @@ def profiling(graph):
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
-    if len(results) > 1:
-        (row,) = results 
+    if len(results) > 0:
+        (row,) = results
         metrics['HierarchyDepth'] = row.maxDepth
     else:
         metrics['HierarchyDepth'] = 0
