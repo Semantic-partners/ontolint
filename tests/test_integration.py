@@ -74,17 +74,6 @@ def test_nonexistent_file_prints_error(capsys):
     out = capsys.readouterr().out
     assert "ERROR" in out or "Failed" in out
 
-# Disabled test, as the inference function is now called in main()
-# def test_inference_log_reports_new_triples(make_graph):
-#     # :Fluffy a :Cat + :Cat subClassOf :Animal → inference adds :Fluffy a :Animal
-#     g = make_graph("""
-#     :Animal a owl:Class .
-#     :Cat a owl:Class ; rdfs:subClassOf :Animal .
-#     :Fluffy a :Cat .
-#     """)
-#     result = run_qa(g)
-#     assert "Added 1 new triples" in result.inference_log
-
 def test_inference_example_via_run_main(tmp_path, capsys):
     # :Fluffy a :Cat + :Cat subClassOf :Animal → inference adds :Fluffy a :Animal
     ttl = tmp_path / "inference_test.ttl"
