@@ -2,8 +2,11 @@ SELECT (MAX(?depth) AS ?maxDepth)
 WHERE {
     SELECT ?child (COUNT(DISTINCT ?parent) AS ?depth)
     WHERE {
-        # Check that the entities are of the same type, without specifying if it's owl:Class or rdfs:Class
-        ?child a ?type ; rdfs:subClassOf+ ?parent .
-        ?parent a ?type .
+        # Check that the entities are of the same type
+        ?child a ?type .
+        OPTIONAL {
+            ?child rdfs:subClassOf+ ?parent .
+            ?parent a ?type .
+        }
     } GROUP BY ?child
 }
