@@ -539,7 +539,7 @@ def infer_subclass_relations(graph):
 
 def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     """
-    QA test verifying that the ontology has a namespace declared as `owl:Ontology` and also contain a description.
+    QA test verifying that the ontology has a namespace declared as `owl:Ontology`.
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
