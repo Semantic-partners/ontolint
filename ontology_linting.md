@@ -1,26 +1,22 @@
 # Ontology Linting
 
-[Linting](https://en.wikipedia.org/wiki/Lint_(software)) is the automated analysis of source code to check for coding style or formatting errors. In ontology quality assurance, this process involves defining some quality 
+[Linting](https://en.wikipedia.org/wiki/Lint_(software)) is the automated analysis of source code to check for coding style or formatting errors. In ontology quality assurance, this process involves defining quality checks that are deemed appropriate for the scope of the ontology. The result of the linting can be used in CI/CD to ensure consistent code quality throughout the development process.
 
-It acts like an automated code review, catching issues like unused variables and improper indentation.
+The quality checks focus on completeness, documentation quality, and structural integrity of ontologies. All checks are enabled by default. However, they can be selectively disabled or enabled to fine-control the quality metrics to be enforced. A detailed list of each QA tests is reported below.
 
-The quality checks focus on completeness, documentation quality, and structural integrity of
-the ontologies. The presence of an ontology declaration and a clear ontology description are
-essential for attaching metadata such as version, licence, and authorship. The existence of
-labels and descriptions across classes, properties, NodeShapes, and PropertyShapes
-ensure human-readable annotations that are vital for usability and knowledge sharing.
-Additional checks identify duplicate labels, which can create ambiguity, and isolated classes,
-which signal weak integration within the ontology. The quality checks assess whether
-properties have defined domains and ranges, ensuring they are semantically grounded
+In addition to the quality metrics, `ontolint` returns profiling metrics to characterise the ontology. These metrics provide a basic understanding of an ontology and allow different ontologies to be compared on a consistent basis. 
 
+# Quality Assurance Tests
 
+Individual tests can be enabled or disabled using a configuration file in YAML format. If a configuration named `.rdf-lint.yml` is present in the working directory from which `ontolint` is launched, it will be automatically parsed and used. Additionally, any file could be specified with the `-c` option.
 
-Profiling section
-
-
-
-## Quality Assurance Tests
-
+The configuration file needs to contain one of two mutually exclusive dictionary keys: `enable:` or `disable:`. If both are specified, only the first key will be used. In the following example, only specific checks are enabled (empty = all checks enabled)
+```yaml
+enable:
+  - owl-declaration	
+  - class-missing-label
+  - property-missing-label
+```
 ### Ontology without declaration
 
 <dl>
@@ -272,7 +268,7 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test counting classes in the current namespace without <code>owl:Class</code> or <code>rdfs:Class</code> declaration.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd></dd>
+  <dd>If a concept is used somewhere in the ontology, it must also be unambiguously defined. This test identifies objects of triples which have not been explicitly declared using the primitives <code>owl:Class</code> or <code>rdfs:Class</code> in the current namespace. </dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>untyped-class</code></dd>
 </dl>
@@ -281,19 +277,21 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
 
 <dl>
   <dt><strong>Metric Description</strong></dt>
-  <dd></dd>
+  <dd>QA test counting properties in the current namespace without <code>rdf:Property</code>, <code>owl:ObjectProperty</code> or <code>owl:DatatypeProperty</code> declaration.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd></dd>
+  <dd>If a predicate is used somewhere in the ontology, it must also be unambiguously defined. This test identifies predicates which have not been explicitly declared using the primitives <code>rdf:Property</code>, <code>owl:ObjectProperty</code> or <code>owl:DatatypeProperty</code> in the current namespace. </dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>untyped-property</code></dd>
 </dl>
+
 ### Namespace hijacking
 
 <dl>
   <dt><strong>Metric Description</strong></dt>
-  <dd></dd>
+  <dd>QA test counting instances of hijacking, that is, resources defined in the current namespace but using a URI prefix from an external vocabulary.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>the current version of namespace hijacking is designed to be very strict, basically flagging any external resource used as a subject of a triple. For example, the triple <code>skos:Concept a owl:Class</code> will be reported as namespace hijacking, despite being a perfectly valid (although unnecessary) statement.</dd>
+  <dd>Hijacking refers to a misuse of well-known vocabularies by defining
+new classes under a different namespace. The current version of namespace hijacking is designed to be very strict, basically flagging any external resource used as a subject of a triple. For example, the triple <code>skos:Concept a owl:Class</code> will be reported as namespace hijacking, despite being a perfectly valid (although unnecessary) statement.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>hijacking</code></dd>
 </dl>

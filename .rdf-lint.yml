@@ -29,7 +29,7 @@
 
 # Enable only specific checks (empty = all checks enabled)
 # enable:
-#   - owl-description
+#   - owl-declaration
 #   - class-missing-label
 #   - property-missing-label
 

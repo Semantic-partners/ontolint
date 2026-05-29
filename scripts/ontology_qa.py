@@ -1659,7 +1659,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
 
 def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     """
-    QA test counting instances of hijacking, that is, resources defined in the current namespace but using a URI from an external vocabulary.
+    QA test counting instances of hijacking, that is, resources defined in the current namespace but using a URI prefix from an external vocabulary.
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
@@ -2192,7 +2192,7 @@ def write_lint_config(checklist):
 {chr(10).join(f'# - {s}' for s in sequence)}\n
 # Enable only specific checks (empty = all checks enabled)
 # enable:
-#   - owl-description
+#   - owl-declaration
 #   - class-missing-label
 #   - property-missing-label\n
 # Disable specific checks
