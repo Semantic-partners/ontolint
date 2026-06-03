@@ -56,7 +56,7 @@ enable:
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test finding terms used in the ontology that are not defined locally (as a subject in the graph file) nor in any successfully-fetched remote ontology for their namespace.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>An undefined term is an RDF resource which has been used in a triple but never as the subject in the local namespace. Alternatively, it is a resource declared in an external namespace but not present in it. This test overlaps with <code>hijacking</code>, <code>untyped-class</code>, and <code>untyped-property</code>. While these other tests are more granular and rely on a SPARQL query to identify any violation, this test explicitly control that a given resource is present in the corresponding external ontology or vocabulary.</dd>
+  <dd>An undefined term is an RDF resource which has been used in a triple but never as the subject in the local namespace. Alternatively, it is a resource declared in an external namespace but not present in it. This test overlaps with <code>hijacking</code>, <code>untyped-class</code>, and <code>untyped-property</code>. While these other tests are more granular and rely on a SPARQL query to identify any violation, this test explicitly controls that a given resource is present in the corresponding external ontology or vocabulary.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>undefined-terms</code></dd>
 </dl>
