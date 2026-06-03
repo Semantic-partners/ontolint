@@ -34,7 +34,7 @@ enable:
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test verifying that the ontology has a human-readable description. The annotation is expected to be specified with one of the following predicates: <code>rdfs:comment</code>, <code>dcterms:abstract</code>, <code>dcterms:description</code>, <code>skos:definition</code>, or <code>skos:note</code>.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>An ontology is a repository for knowledge and must contain human-readable documentation, starting from its own description. This test implies the one on ontology declaration is also enabled.</dd>
+  <dd>An ontology is a repository for knowledge and must contain human-readable documentation, starting from its own description. This test implies <code>owl-declaration</code> is also enabled.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>owl-description </code></dd>
 </dl>
