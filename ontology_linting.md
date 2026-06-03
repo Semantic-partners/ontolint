@@ -45,7 +45,7 @@ enable:
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test verifying that all <code>owl:imports</code> URLs resolve and contain triples.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>Resolving imported ontologies and vocabularies enables modular design and semantic consistency. This test implies the one on ontology declaration is also enabled.</dd>
+  <dd>Resolving imported ontologies and vocabularies enables modular design and semantic consistency. This test implies <code>owl-declaration</code> is also enabled.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>owl-imports</code></dd>
 </dl>
