@@ -56,7 +56,7 @@ enable:
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test finding terms used in the ontology that are not defined locally (as a subject in the graph file) nor in any successfully-fetched remote ontology for their namespace.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>An undefined term is an RDF resource which has been used in a triple but never as the subject in the local namespace. Alternatively, it is a resource declared in an external namespace but not present in it. This test overlaps with <b>namespace hijacking</b>, <b>untyped classes</b>, and <b>untyped properties</b>. While these other tests are more granular and rely on a SPARQL query to identify any violation, this test explicitly control that a given resource is present in the corresponding external ontology or vocabulary.</dd>
+  <dd>An undefined term is an RDF resource which has been used in a triple but never as the subject in the local namespace. Alternatively, it is a resource declared in an external namespace but not present in it. This test overlaps with <code>hijacking</code>, <code>untyped-class</code>, and <code>untyped-property</code>. While these other tests are more granular and rely on a SPARQL query to identify any violation, this test explicitly control that a given resource is present in the corresponding external ontology or vocabulary.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>undefined-terms</code></dd>
 </dl>
@@ -70,7 +70,7 @@ enable:
   <dd>All entities in an ontology should have human-readable annotations for documentation purposes.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>class-missing-label</code></dd>
-</dl>rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel
+</dl>
 
 ### Property without label
 
@@ -224,7 +224,7 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test checking properties without <code>rdfs:domain</code> declaration.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>This test is only relevant if the design principles require properties to be restricted to a certain domain.</dd>
+  <dd>Restricting the domain of a property can lead to a more semantically rich model and sometimes enable rules and inference. Note that this test is only relevant if the design principles require properties to be restricted to a certain domain.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>property-missing-domain</code></dd>
 </dl>
@@ -235,7 +235,7 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test checking properties without <code>rdfs:range</code> declaration.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>This test is only relevant if the design principles require properties to be restricted to a certain range.</dd>
+  <dd>Restricting the range of a property can lead to a more semantically rich model and sometimes enable rules and inference. Note that this test is only relevant if the design principles require properties to be restricted to a certain range.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>property-missing-range</code></dd>
 </dl>
@@ -257,7 +257,7 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test counting classes involved in <code>rdfs:subClassOf+</code>  cycles.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>It is a logical inconsistency that may occur if a chain of <code>rdfs:subClassOf</code> relations eventually lands on the same class it originated from. This error may go unnoticed, especially in a large ontology.</dd>
+  <dd> While vacuosly true that a class is a subclass of itself, it is almost always a mistake if this axiom is declared in an ontology. If a chain of <code>rdfs:subClassOf</code> relations eventually lands on the same class it originated from, it is taken to be an error.</dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>subclass-cycles</code></dd>
 </dl>
@@ -279,7 +279,7 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
   <dt><strong>Metric Description</strong></dt>
   <dd>QA test counting properties in the current namespace without <code>rdf:Property</code>, <code>owl:ObjectProperty</code> or <code>owl:DatatypeProperty</code> declaration.</dd>
   <dt><strong>Rationale</strong></dt>
-  <dd>If a predicate is used somewhere in the ontology, it must also be unambiguously defined. This test identifies predicates which have not been explicitly declared using the primitives <code>rdf:Property</code>, <code>owl:ObjectProperty</code> or <code>owl:DatatypeProperty</code> in the current namespace. </dd>
+  <dd>If a predicate is used somewhere in the ontology, it must also be unambiguously defined. This test identifies predicates which have not been explicitly declared using the primitive <code>rdf:Property</code>, <code>owl:ObjectProperty</code> or <code>owl:DatatypeProperty</code> in the current namespace. </dd>
   <dt><strong>Lint keyword</strong></dt>
   <dd><code>untyped-property</code></dd>
 </dl>
