@@ -199,8 +199,8 @@ def print_qa_table(metrics, checks):
     log += "| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += "| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += "| Property without domain | Property without range "
-    log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking | SHACL Cardinality Consistency |\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingClassLabel', 'classCount')} "
@@ -220,7 +220,8 @@ def print_qa_table(metrics, checks):
     log += f"| {normalise_if_executed(metrics, checks, 'missingRange', 'propertyCount')} "
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
-    log += f"| {print_if_executed(metrics, checks, 'hijacking')} |\n"
+    log += f"| {print_if_executed(metrics, checks, 'hijacking')} "
+    log += f"| {print_if_executed(metrics, checks, 'shaclCardinalityConsistency')} |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -1710,6 +1711,27 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
+def check_shacl_cardinality_consistency(in_metrics, graph, name, check, c, status, verbose):
+    metrics = {}
+    violations = {}
+    c, log = qa_check_results(name, c)
+    results = exec_sparql(graph, 'shacl_cardinality_consistency')
+    metrics[check] = 0  # 'shaclCardinalityConsistency'
+    violations[check] = ""
+
+    if not results:
+        log += "PASS - No violations found.\n"
+
+    elif results:
+        metrics[check] = len(results)
+        log += f"VIOLATION - Found {metrics[check]} SHACL property path(s) where minCount exceeds maxCount.\n"
+        status += 1
+        string = violation_formatting([str(row.shape) for row in results])
+        violations[check] = string
+
+    log += sep()
+    return metrics, violations, log, c, status
+
 def load_rdf_file(file):
     """
     Load RDF data from a file and return an RDFLib Graph.
@@ -1893,6 +1915,7 @@ CHECKLIST = [
     (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
     (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
     (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
+    (True, check_shacl_cardinality_consistency,  "SHACL Cardinality Consistency",      'shaclCardinalityConsistency'),
 ]
 
 

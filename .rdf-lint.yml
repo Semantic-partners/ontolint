@@ -20,6 +20,7 @@
 # - property-shape-missing-comment
 # - property-shape-missing-label
 # - property-shape-same-label
+# - shacl-cardinality-consistency
 # - subclass-cycles
 # - unique-identifiers
 # - untyped-class

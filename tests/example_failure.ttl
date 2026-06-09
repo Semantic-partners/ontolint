@@ -95,3 +95,11 @@ skos:Creature a rdfs:Class ;
   :hasClaws :dogClaws .
   
 :dogClaws a :Claw .
+
+# Unsatisfiable SHACL shapes
+
+:shapeA sh:targetClass :Dog .
+:shapeB sh:targetClass :Dog .
+
+:shapeA sh:property [ sh:path :name ; sh:minCount 2 ] .
+:shapeB sh:property [ sh:path :name ; sh:maxCount 1 ] .
