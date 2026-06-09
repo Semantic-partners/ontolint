@@ -55,3 +55,56 @@ jobs:
         with:
           name: ctrf-reports
           path: ctrf/
+
+  validate-action-single-path:
+    name: validate-composite-action (single path)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Run ontolint action against example_pass.ttl with explicit config-path
+        uses: ./
+        with:
+          ontology-paths: tests/example_pass.ttl
+          fail-on-violations: 'true'
+          verbose: 'true'
+          config-path: .rdf-lint.yml
+          artifact-name: ontolint-ctrf-single-path
+
+  validate-action-multi-path:
+    name: validate-composite-action (multiple paths)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Run ontolint action against multiple ontologies
+        uses: ./
+        with:
+          ontology-paths: |
+            tests/example_pass.ttl
+            tests/example_failure.ttl
+          fail-on-violations: 'false'
+          verbose: 'false'
+          artifact-name: ontolint-ctrf-multi-path
+
+  validate-action-profile-only:
+    name: validate-composite-action (profile-only)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Run ontolint action in profile-only mode
+        uses: ./
+        with:
+          ontology-paths: tests/example_pass.ttl
+          profile-only: 'true'
+          artifact-name: ontolint-ctrf-profile-only
+
+      - name: Assert profile-only wrote report.md
+        run: test -s ctrf/report.md
