@@ -1,9 +1,9 @@
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 
-SELECT ?class
+SELECT ?node
 WHERE{
-    ?shape1 sh:targetClass ?class .
-    ?shape2 sh:targetClass ?class .
+    ?shape1 sh:targetClass ?node .
+    ?shape2 sh:targetClass ?node .
     ?shape1 sh:property [ sh:path ?path ; sh:minCount ?mincount ] .
     ?shape2 sh:property [ sh:path ?path ; sh:maxCount ?maxcount ] .
     FILTER (?mincount > ?maxcount )

@@ -1726,7 +1726,7 @@ def check_shacl_cardinality_consistency(in_metrics, graph, name, check, c, statu
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} SHACL property path(s) where minCount exceeds maxCount.\n"
         status += 1
-        string = violation_formatting([str(row.shape) for row in results])
+        string = violation_formatting([str(row.node) for row in results])
         violations[check] = string
 
     log += sep()
