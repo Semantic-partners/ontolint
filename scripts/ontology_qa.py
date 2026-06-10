@@ -629,8 +629,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     c, log = qa_check_results(name, c)
 
     if in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
-        c += 1
+        log += "WARNING - No ontology declared, invalid metric.\n"
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
     else:
