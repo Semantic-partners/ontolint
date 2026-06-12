@@ -1794,11 +1794,16 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     return metrics, violations, log, c, status
 
 
-def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
+def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
+                           uri_parser=lambda uri: rdflib.Graph().parse(uri)):
     """
     QA test finding terms used in the ontology that are not defined locally (as a subject
     in the graph file) nor in any successfully-fetched remote ontology for their namespace.
 
+    Note that the URI parser defaults to the standard rdflib parse function unless specified.
+    In a non networked env (see this repo's tests), you can override the URI parser to fetch 
+    from elsewhere. 
+    
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
@@ -1856,8 +1861,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
     fetch_failures = set()
     for ns_uri in remote_namespaces:
         try:
-            remote_g = rdflib.Graph()
-            remote_g.parse(ns_uri)
+            remote_g = uri_parser(ns_uri)
             for s, _, _ in remote_g:
                 if isinstance(s, rdflib.URIRef):
                     remote_subjects.add(str(s))
@@ -2103,7 +2107,7 @@ CHECKLIST = [
 ]
 
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
@@ -2127,7 +2131,11 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     num_violations = 0
     for enabled, func, display_name, key in checklist:
         if enabled:
-            kwargs = {"ignore_imports": ignore_imports} if func is check_owl_imports else {}
+            kwargs = {}
+            if func is check_owl_imports:
+                kwargs["ignore_imports"] = ignore_imports
+            if func is check_undefined_terms and uri_parser is not None:
+                kwargs["uri_parser"] = uri_parser
             metrics, violations, log_results, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
