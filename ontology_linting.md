@@ -4,7 +4,165 @@
 
 The quality checks focus on completeness, documentation quality, and structural integrity of ontologies. All checks are enabled by default. However, they can be selectively disabled or enabled to fine-control the quality metrics to be enforced. A detailed list of each QA tests is reported below.
 
-In addition to the quality metrics, `ontolint` returns profiling metrics to characterise the ontology. These metrics provide a basic understanding of an ontology and allow different ontologies to be compared on a consistent basis. 
+In addition to the quality metrics, `ontolint` returns profiling metrics to characterise the ontology. These metrics provide a basic understanding of an ontology and allow different ontologies to be compared on a consistent basis.
+
+# Profiling Metrics
+
+Profiling metrics are computed by default 
+
+### Number of triples
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Class count
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Property count
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### NodeShape count
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### PropertyShape count
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Local classes in NodeShape
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Local properties in PropertyShape
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Deprecated Class count
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Deprecated Property count
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Vocabularies used
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Ontologies Imported
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Hierarchy dept
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Average branching factor
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
+
+### Cardinality restrictions
+
+<dl>
+  <dt><strong>Metric Description</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Rationale</strong></dt>
+  <dd>.</dd>
+  <dt><strong>Category</strong></dt>
+  <dd></dd>
+</dl>
 
 # Quality Assurance Tests
 
