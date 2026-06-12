@@ -78,9 +78,13 @@ def exec_sparql(graph, key):
 def get_namespace(uri):
     """Extract namespace from a URIRef."""
     if '#' in uri:
-        return uri.rsplit('#', 1)[0] + '#'
+        base = uri.rsplit('#', 1)[0]
+        if len(base) >= 8:
+            return base + '#'
     elif '/' in uri:
-        return uri.rsplit('/', 1)[0] + '/'
+        base = uri.rsplit('/', 1)[0]
+        if len(base) >= 8:
+            return base + '/'
     return uri  # fallback
 
 def prefixes(g):
@@ -195,15 +199,16 @@ def print_qa_table(metrics, checks):
     """
     name = get_ontology_name(metrics)
     log = "\n## Quality Assurance Metrics\n"
-    log += "| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
+    log += "| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
     log += "| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += "| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += "| Property without domain | Property without range "
     log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
     log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} "
+    log += f"| {print_if_executed(metrics, checks, 'undefinedTerms')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingClassLabel', 'classCount')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingPropertyLabel', 'propertyCount')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingNSLabel', 'nodeShapes')} "
@@ -221,7 +226,7 @@ def print_qa_table(metrics, checks):
     log += f"| {normalise_if_executed(metrics, checks, 'missingRange', 'propertyCount')} "
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
-    log += f"| {print_if_executed(metrics, checks, 'hijacking')} |\n"
+    log += f"| {print_if_executed(metrics, checks, 'hijacking')}  |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -1712,7 +1717,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
+def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore_imports=None):
     """
     QA test verifying that all owl:imports URLs resolve and contain triples.
 
@@ -1739,11 +1744,19 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
 
-    import_urls = [(str(row.ontology), str(row.imp)) for row in results]
+    ignored = set(ignore_imports or [])
+    import_urls = [
+        (str(row.ontology), str(row.imp))
+        for row in results
+        if str(row.imp) not in ignored
+    ]
     import_urls.sort()
 
     if not import_urls:
-        log += "PASS - No owl:imports statements found.\n"
+        if ignored:
+            log += "PASS - All owl:imports URLs are ignored by configuration.\n"
+        else:
+            log += "PASS - No owl:imports statements found.\n"
         log += sep()
         return metrics, violations, log, c, status
 
@@ -1778,6 +1791,119 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose):
         for ontology, url in import_urls:
             log += f"| {ontology} | {url} | {_check(url)} |\n"
     
+    log += sep()
+    return metrics, violations, log, c, status
+
+
+def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose):
+    """
+    QA test finding terms used in the ontology that are not defined locally (as a subject
+    in the graph file) nor in any successfully-fetched remote ontology for their namespace.
+
+    Args:
+        in_metrics (dict): Number of violations for various ontology metrics.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        check (str): Dictionary key of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
+        status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
+
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    c, log = qa_check_results(name, c)
+    metrics[check] = 0  # 'undefinedTerms'
+    violations[check] = ""
+    
+    # Identify the local namespace(s) from declared owl:Ontology URIs.
+    # For local namespaces we already hold the full graph — no remote fetch needed.
+    local_namespaces = set()
+    for ont_uri in in_metrics.get('ontologyURI', []):
+        local_namespaces.add(get_namespace(str(ont_uri)))
+
+    # Collect all URIRefs that appear anywhere in the graph and those used as subjects
+    used_terms = set()
+    local_subjects = set()
+    for s, p, o in graph:
+        for term in (s, p, o):
+            if isinstance(term, rdflib.URIRef):
+                used_terms.add(str(term))
+        
+        # prevents namespace hijacking
+        if isinstance(s, rdflib.URIRef) and get_namespace(s) in local_namespaces:
+            local_subjects.add(str(s))
+
+    if not used_terms:
+        log += "WARNING - No terms to check.\n"
+        log += sep()
+        return metrics, violations, log, c, status
+
+    # Collect every HTTP namespace used that falls outside the local namespace(s)
+    remote_namespaces = set()
+    for uri in used_terms:
+        ns = get_namespace(uri)
+        if ns.startswith(('http://', 'https://')) and ns not in local_namespaces:
+            remote_namespaces.add(ns)
+
+    # Fetch each remote namespace and collect the subjects it defines
+    remote_subjects = set()
+    fetch_failures = set()
+    for ns_uri in remote_namespaces:
+        try:
+            remote_g = rdflib.Graph()
+            remote_g.parse(ns_uri)
+            for s, _, _ in remote_g:
+                if isinstance(s, rdflib.URIRef):
+                    remote_subjects.add(str(s))
+        except Exception:
+            fetch_failures.add(ns_uri)
+
+    known_terms = local_subjects | remote_subjects
+
+    # A term is undefined if it is used but:
+    # - not in known_terms, AND
+    # - its namespace is either local (we have the full graph) or was successfully fetched
+    undefined_terms = []
+    for uri in sorted(used_terms):
+        if uri in known_terms:
+            continue
+        ns = get_namespace(uri)
+        if not ns.startswith(('http://', 'https://')):
+            continue
+        if ns in local_namespaces:
+            undefined_terms.append(uri)
+        # if the term is not from a local namespace, and its namespace resolves but it's not known,
+        # then it is undef. What to do with the term when the namespace is a fetch failure?
+        elif ns not in fetch_failures:
+            undefined_terms.append(uri)
+
+    if not undefined_terms:
+        log += "PASS - All used terms are defined locally or in their respective remote ontologies.\n"
+        if verbose:
+            log += f"\nChecked {len(used_terms)} term(s) across {len(remote_namespaces) - len(fetch_failures)} remote namespace(s).\n"
+    else:
+        metrics[check] = len(undefined_terms)
+        status += 1
+        string = violation_formatting(undefined_terms)
+        violations[check] = string
+        log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
+        log += string.replace(",<br> ", "\n - ") + "\n"
+    # do we want unresolved namespaces to be skipped or treated as a fail condition?
+    if fetch_failures:
+        log += f"\nWARNING - Could not fetch {len(fetch_failures)} namespace(s); terms from these were not checked:\n"
+        for ns in sorted(fetch_failures):
+            log += f" - {ns}\n"
+
+    if not local_namespaces:
+        log += "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.\n"
+
     log += sep()
     return metrics, violations, log, c, status
 
@@ -1867,9 +1993,10 @@ def parse_lint_config(config):
 
     Args:
         config (str): Path to the YAML configuration file.
-    
+
     Returns:
         transformed_selection (dict): User-selected metrics.
+        ignore_imports (list): Import URLs that should be skipped by the resolvability check.
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -1879,17 +2006,19 @@ def parse_lint_config(config):
             selection = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML in config file: {e}")
-    
+
     if selection is None:
         selection = { "disable": [] }
 
-    # Transform the dictionary
+    ignore_imports = [str(u) for u in selection.pop("ignore-imports", None) or []]
+
+    # Transform the dictionary (check enable/disable keys only)
     transformed_selection = {
         key: [f"check_{item.replace('-', '_')}" for item in value_list]
         for key, value_list in selection.items()
     }
 
-    return transformed_selection
+    return transformed_selection, ignore_imports
 
 def lint_selection(selection, checklist):
         """
@@ -1923,9 +2052,9 @@ def lint_selection(selection, checklist):
             if 'check_property_missing_range' in selection['disable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
                 checklist[index][0] = False
-
-        else:
-            # Print a warning
+        
+        elif selection:
+            # Non-empty dict with no recognised top-level key
             log += ">\n> WARNING - Invalid keyword in config file:\n> ```yaml\n"
             log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
             log += "> ```"
@@ -1944,13 +2073,14 @@ def lint_selection(selection, checklist):
         # 2. Enable owl-declaration if only owl-imports is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
             checklist[index_owl_declaration][0] = True
-            log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
+            log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
         return checklist, log
 
 CHECKLIST = [
     [True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ],
     [True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ],
     [True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ],
+    [True, check_undefined_terms,                "Undefined terms",                    'undefinedTerms'            ],
     [True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ],
     [True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ],
     [True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ],
@@ -1974,7 +2104,7 @@ CHECKLIST = [
 ]
 
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
@@ -1998,8 +2128,9 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     num_violations = 0
     for enabled, func, display_name, key in checklist:
         if enabled:
+            kwargs = {"ignore_imports": ignore_imports} if func is check_owl_imports else {}
             metrics, violations, log_results, test_counter, num_violations = func(
-                qa_metrics, graph, display_name, key, test_counter, num_violations, verbose
+                qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
             qa_metrics.update(metrics)
             qa_violations.update(violations)
@@ -2039,7 +2170,7 @@ def write_lint_config(checklist):
         sys.exit(1)
 
     sequence = []
-    for i, item in enumerate(checklist):
+    for item in checklist:
         name = item[1].__name__.replace("check_", "").replace("_", "-")
         sequence.append(name)
     
@@ -2069,7 +2200,11 @@ def write_lint_config(checklist):
 # disable:
 #   - hijacking
 #   - isolated-classes
-#   - property-missing-domain
+#   - property-missing-domain\n
+# Skip the resolvability check entirely for specific imported ontologies
+# ignore-imports:
+#   - http://www.w3.org/ns/shacl
+#   - https://schema.org/
         """)
 
 def main():
@@ -2110,11 +2245,12 @@ def main():
 
     # Apply lint config to enable/disable individual checks.
     checklist = list(CHECKLIST)
+    ignore_imports = []
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config = parse_lint_config(config_path)
+        lint_config, ignore_imports = parse_lint_config(config_path)
         checklist, log_results = lint_selection(lint_config, checklist)
         log_output += log_results
        
@@ -2141,7 +2277,7 @@ def main():
         return
 
     # Full QA path
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 

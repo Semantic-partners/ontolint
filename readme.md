@@ -87,16 +87,18 @@ And QA metrics:
 
 | Metric Name                                   | Metric Description                                           |
 | --------------------------------------------- | ------------------------------------------------------------ |
-| Missing ontology declaration                  | No owl:Ontology tag declared                                 |
-| Missing ontology description                  | rdfs:comment, dcterms:abstract or dcterms:description predicates not present |
-| Classes missing label annotation              | rdfs:label or skos:prefLabel predicates not present          |
-| Properties missing label annotation           | rdfs:label or skos:prefLabel predicates not present          |
-| NodeShapes missing label annotation           | sh:name, rdfs:label or skos:prefLabel predicates not present |
-| PropertyShapes missing label annotation       | sh:name, rdfs:label or skos:prefLabel predicates not present |
-| Classes missing description annotation        | rdfs:comment, dcterms:description, or skos:definition predicates not present |
-| Properties missing description annotation     | rdfs:comment, dcterms:description, or skos:definition predicates not present |
-| NodeShapes missing description annotation     | sh:description, rdfs:comment, dcterms:description, or skos:definition predicates not present |
-| PropertyShapes missing description annotation | sh:description, rdfs:comment, dcterms:description, or skos:definition predicates not present |
+| Missing ontology declaration                  | No `owl:Ontology` tag declared                               |
+| Missing ontology description                  | `rdfs:comment`, `dcterms:abstract` or `dcterms:description` predicates not present |
+| Unresolvable imports                          | Verify that all `owl:imports` URLs resolve and contain triples |
+| Undefined terms                               | Find terms used in the ontology that are not defined locally (as a subject in the graph file) nor in any successfully-fetched remote ontology |
+| Classes missing label annotation              | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
+| Properties missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
+| NodeShapes missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
+| PropertyShapes missing label annotation       | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
+| Classes missing description annotation        | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
+| Properties missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
+| NodeShapes missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
+| PropertyShapes missing description annotation | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
 | Classes with the same label                   | Two or more entities have an identical label annotation in the same language tag |
 | Properties with the same label                | Same as above.                                               |
 | NodeShapes with the same label                | Same as above.                                               |
@@ -104,10 +106,10 @@ And QA metrics:
 | Number of isolated classes                    | Classes declared but never used in any triple that connects them to the rest of the ontology. |
 | Property without domain                       | Property without rdfs:domain declaration.                    |
 | Property without range                        | Property without rdfs:range declaration.                     |
-| Non-unique identifiers                        | The same identifier is used to define multiple owl:Class, rdfs:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, or owl:AnnotationProperty. The value refers to the total count. |
-| Subclass cycles                               | Classes involved in a rdfs:subClassOf+ cycle.  The value refers to the total count. |
-| Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives owl:Class or rdfs:Class. The value refers to the actual number of untyped classes, as they do not appear in the total class count. |
-| Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives rdf:Property, owl:ObjectProperty or owl:DatatypeProperty. The value refers to the actual number of untyped properties, as they do not appear in the total class count. |
+| Non-unique identifiers                        | The same identifier is used to define multiple `owl:Class`, `rdfs:Class`, `rdf:Property`, `owl:ObjectProperty`, `owl:DatatypeProperty`, or `owl:AnnotationProperty`. The value refers to the total count. |
+| Subclass cycles                               | Classes involved in a `rdfs:subClassOf+` cycle.  The value refers to the total count. |
+| Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives `owl:Class` or `rdfs:Class`. The value refers to the actual number of untyped classes, as they do not appear in the total class count. |
+| Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives `rdf:Property`, `owl:ObjectProperty` or `owl:DatatypeProperty`. The value refers to the actual number of untyped properties, as they do not appear in the total class count. |
 | Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. The script reports the count of subjects sorted by namespace. The user should then verify that the subjects are defined in the external ontology and not minted *ex-novo*. |
 
 For example, the test ontology [`example_failure.ttl`](tests/example_failure.ttl) returns the following results:

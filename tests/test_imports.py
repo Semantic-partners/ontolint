@@ -1,4 +1,3 @@
-import pytest
 from scripts.ontology_qa import run_qa
 
 CHECK_NAME = "Unresolvable imports"
@@ -115,3 +114,53 @@ def test_failing_import_url_appears_in_elements(make_graph):
     """)
     check = run_qa(g).get(CHECK_NAME)
     assert bad_url in check.elements
+
+
+# ── ignore-imports ────────────────────────────────────────────────────────────
+
+def test_ignored_unresolvable_import_passes(make_graph):
+    bad_url = "http://ignored.invalid/ont.ttl"
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{bad_url}> .
+    """)
+    check = run_qa(g, ignore_imports=[bad_url]).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
+
+
+def test_ignored_import_not_in_elements(make_graph):
+    bad_url = "http://ignored.invalid/ont.ttl"
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{bad_url}> .
+    """)
+    check = run_qa(g, ignore_imports=[bad_url]).get(CHECK_NAME)
+    assert bad_url not in check.elements
+
+
+def test_ignore_only_affects_listed_url(make_graph):
+    ignored_url = "http://ignored.invalid/ont.ttl"
+    bad_url = "http://still-bad.invalid/ont.ttl"
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{ignored_url}> .
+    : owl:imports <{bad_url}> .
+    """)
+    check = run_qa(g, ignore_imports=[ignored_url]).get(CHECK_NAME)
+    assert not check.passed
+    assert check.count == 1
+    assert bad_url in check.elements
+    assert ignored_url not in check.elements
+
+
+def test_all_imports_ignored_passes(make_graph):
+    urls = ["http://a.invalid/ont.ttl", "http://b.invalid/ont.ttl"]
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{urls[0]}> .
+    : owl:imports <{urls[1]}> .
+    """)
+    check = run_qa(g, ignore_imports=urls).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
