@@ -1,0 +1,125 @@
+name: 'Ontolint'
+description: 'Ontology quality assessment — runs SPARQL-based QA checks against RDF files and produces a CTRF report.'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  ontology-paths:
+    description: |
+      One or more paths to ontology files or directories, relative to the repository root.
+      Provide a single path on one line, or several paths one per line using YAML block scalar syntax:
+        ontology-paths: |
+          ontologies/core.ttl
+          ontologies/shapes.ttl
+          ontologies/extras/
+    required: true
+  fail-on-violations:
+    description: 'Exit with code 1 if any violations are found'
+    required: false
+    default: 'true'
+  verbose:
+    description: 'List violating elements per check in the output'
+    required: false
+    default: 'false'
+  profile-only:
+    description: 'Compute profiling metrics only, skip QA checks'
+    required: false
+    default: 'false'
+  config-path:
+    description: |
+      Path to a lint configuration YAML file (same format as `.rdf-lint.yml`), relative
+      to the repository root. The config file controls which QA checks are enabled or
+      disabled — see the ontolint docs for the supported `enable:` / `disable:` keys.
+      If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses
+      it automatically when present; otherwise the full default checklist runs.
+    required: false
+    default: ''
+  artifact-name:
+    description: |
+      Name of the uploaded CTRF artifact. Must be unique within a single workflow run —
+      override this when invoking the action in multiple jobs (e.g. a matrix) so that
+      `actions/upload-artifact` does not reject duplicate names.
+    required: false
+    default: 'ontolint-ctrf'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install ontolint dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: poetry install --without dev --no-interaction
+
+    - name: Run ontolint
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        QA_SPARQL_DIR: ${{ github.action_path }}/sparql
+        ONTOLOGY_PATHS: ${{ inputs.ontology-paths }}
+        WORKSPACE: ${{ github.workspace }}
+        FAIL_ON_VIOLATIONS: ${{ inputs.fail-on-violations }}
+        VERBOSE: ${{ inputs.verbose }}
+        PROFILE_ONLY: ${{ inputs.profile-only }}
+        CONFIG_PATH: ${{ inputs.config-path }}
+      run: |
+        ARGS=()
+        while IFS= read -r path; do
+          path="${path%$'\r'}"
+          [ -z "$path" ] && continue
+          if [ ! -e "$WORKSPACE/$path" ]; then
+            echo "::error::ontology-paths entry '$path' does not exist in the repository"
+            exit 1
+          fi
+          ARGS+=("$WORKSPACE/$path")
+        done <<< "$ONTOLOGY_PATHS"
+        if [ ${#ARGS[@]} -eq 0 ]; then
+          echo "::error::ontology-paths input is empty — provide at least one path"
+          exit 1
+        fi
+        mkdir -p "$WORKSPACE/ctrf"
+        ARGS+=(--ctrf-dir "$WORKSPACE/ctrf")
+        [ "$FAIL_ON_VIOLATIONS" = "true" ] && ARGS+=(-e)
+        [ "$VERBOSE" = "true" ] && ARGS+=(-v)
+        if [ "$PROFILE_ONLY" = "true" ]; then
+          ARGS+=(-p -o "$WORKSPACE/ctrf/report.md")
+        fi
+        if [ -n "$CONFIG_PATH" ]; then
+          if [ ! -f "$WORKSPACE/$CONFIG_PATH" ]; then
+            echo "::error::config-path '$CONFIG_PATH' does not exist in the repository"
+            exit 1
+          fi
+          ARGS+=(-c "$WORKSPACE/$CONFIG_PATH")
+        elif [ -f "$WORKSPACE/.rdf-lint.yml" ]; then
+          ARGS+=(-c "$WORKSPACE/.rdf-lint.yml")
+        fi
+        poetry run scripts/ontology_qa.py "${ARGS[@]}"
+
+    - name: Generate report
+      if: always() && hashFiles('ctrf/*.json') != ''
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        poetry run scripts/generate_custom_report.py \
+          --ctrf-dir "${{ github.workspace }}/ctrf" \
+          --template-path "${{ github.action_path }}/templates/ctrf-report.hbs" \
+          --output-path "${{ github.workspace }}/ctrf/report.md"
+
+    - name: Write job summary
+      if: always() && hashFiles('ctrf/report.md') != ''
+      shell: bash
+      run: cat "${{ github.workspace }}/ctrf/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload CTRF report
+      if: always() && hashFiles('ctrf/**') != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ctrf/
+        if-no-files-found: ignore

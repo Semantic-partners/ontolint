@@ -11,7 +11,6 @@ It reports any violations found in the ontology data.
 """
 import rdflib
 import argparse
-from urllib.parse import urlparse
 import sys
 import os
 import json
@@ -174,9 +173,9 @@ def print_profiling_table(metrics):
 
     name = get_ontology_name(metrics)
     log = "\n## Profiling Metrics\n"
-    log += f"| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
-    log += f"| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported "
-    log += f"| Hierarchy depth | Ave branching factor | Cardinality restrictions |\n"
+    log += "| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
+    log += "| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported "
+    log += "| Hierarchy depth | Ave branching factor | Cardinality restrictions |\n"
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} "
     log += f"| {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} "
@@ -196,11 +195,11 @@ def print_qa_table(metrics, checks):
     """
     name = get_ontology_name(metrics)
     log = "\n## Quality Assurance Metrics\n"
-    log += f"| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
-    log += f"| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
-    log += f"| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
-    log += f"| Property without domain | Property without range "
-    log += f"| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
+    log += "| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
+    log += "| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
+    log += "| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
+    log += "| Property without domain | Property without range "
+    log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
@@ -309,7 +308,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     return ctrf_report, log
 
 def print_profiling_metrics(metrics, elements, verbose):
-    log  = f"\n## Profiling Details\n\n"
+    log  = "\n## Profiling Details\n\n"
     log += f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
@@ -488,12 +487,9 @@ def profiling(graph):
     
     # hierarchy depth
     results = exec_sparql(graph, 'hierarchy_depth')
-    if len(results) > 1:
-        (row,) = results 
-        metrics['HierarchyDepth'] = row.maxDepth
-    else:
-        metrics['HierarchyDepth'] = 0
-
+    (row,) = results
+    metrics['HierarchyDepth'] = row.maxDepth
+    
     # average branching factor
     results = exec_sparql(graph, 'average_branching_factor')
     (row,) = results
@@ -578,14 +574,14 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     
     elif metrics[check] > 0 and metrics[check] < num_files:
         if metrics[check] == 1:
-            log += f"VIOLATION - 1 ontology without `owl:Ontology` declaration.\n"
+            log += "VIOLATION - 1 ontology without `owl:Ontology` declaration.\n"
         else:
             log += f"VIOLATION - {metrics[check]} ontologies without `owl:Ontology` declaration.\n"
         violations[check] = "**Some** processed files missing ontology declaration.<br> Check files individually."
     
     else:
         if num_uri == 1:
-            log += f"PASS - Found 1 ontology with `owl:Ontology` declaration.\n"
+            log += "PASS - Found 1 ontology with `owl:Ontology` declaration.\n"
         else:
             log += f"PASS - Found {num_uri} ontologies with `owl:Ontology` declaration.\n"
         
@@ -651,7 +647,6 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
                     log += f" - {row.ont}\n   *{row.d}*\n"
                 
         else:
-            owd = len(results)
             metrics[check] = len(results) #  violations
             status += 1
             string = violation_formatting([row.ont for row in results])
@@ -1329,7 +1324,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         # Print the output of the check only once.
         if not results and int(in_metrics['propertyCount']) > 0:
             log += "INFO - All properties have domain and range defined.\n"
-            if verbose: log += f"\n"
+            if verbose: log += "\n"
 
         elif int(in_metrics['propertyCount']) == 0:
             log += "WARNING - No properties defined, invalid metric.\n"
@@ -1337,7 +1332,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         elif results:
             metrics['missingDomainRange'] = len(results)
             log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n\n"
-            if not verbose: log += f"| Property | Domain | Range |\n|--|--|--|\n"
+            if not verbose: log += "| Property | Domain | Range |\n|--|--|--|\n"
             status += 1
             for row in results:
                 predicate = row.p
@@ -1353,13 +1348,13 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                     rCount.append(predicate)
                 if not verbose: log += f"| {predicate} | {domain} | {range} |\n"
 
-            if not verbose: log  += f"\n"
+            if not verbose: log  += "\n"
 
         # If verbose, print a table with domain and range for all properties.
         if verbose and int(in_metrics['propertyCount']) > 0:
             # Show all properties in the results.
             results = exec_sparql(graph, 'dr_property')
-            log += f"| Property | Domain | Range |\n|--|--|--|\n"
+            log += "| Property | Domain | Range |\n|--|--|--|\n"
             for row in results:
                 if row.domain:
                     domain = row.domain
@@ -1373,7 +1368,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 
                 log += f"| {row.p} | {domain} | {range} |\n"
             
-            log  += f"\n"
+            log  += "\n"
         
         # Control which check triggered the first execution.
         if check == 'missingDomain':
@@ -1593,11 +1588,11 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
 
     if ontology_check:
         if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += f"WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+            log += "WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
         elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+            log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     else:
-        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1648,11 +1643,11 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     
     if ontology_check:
         if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += f"WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+            log += "WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
         elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+            log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     else:
-        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1708,11 +1703,11 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     
     if ontology_check:
         if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += f"WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
+            log += "WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
         elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += f"WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+            log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     else:
-        log += f"WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1931,9 +1926,9 @@ def lint_selection(selection, checklist):
 
         else:
             # Print a warning
-            log += f">\n> WARNING - Invalid keyword in config file:\n> ```yaml\n"
+            log += ">\n> WARNING - Invalid keyword in config file:\n> ```yaml\n"
             log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
-            log += f"> ```"
+            log += "> ```"
         
         # Constraints
         for i, item in enumerate(checklist):
@@ -1944,7 +1939,7 @@ def lint_selection(selection, checklist):
         # 1. Enable owl-declaration if only owl-description is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
             checklist[index_owl_declaration][0] = True
-            log += f"> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
+            log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
         
         # 2. Enable owl-declaration if only owl-imports is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
@@ -2035,7 +2030,7 @@ def write_lint_config(checklist):
     """
     Generate a default .rdf-lint.yml config file
     """
-    sys.stderr.write(f"Ontolint: creating default configuration file .rdf-lint.yml in the current directory.\n")
+    sys.stderr.write("Ontolint: creating default configuration file .rdf-lint.yml in the current directory.\n")
 
     # abort if path exists
     path = os.path.join(os.getcwd(), '.rdf-lint.yml')

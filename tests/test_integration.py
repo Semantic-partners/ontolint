@@ -1,10 +1,9 @@
 import json
-import sys
 import os
 from unittest.mock import patch
 import pytest
 
-from scripts.ontology_qa import main, run_qa
+from scripts.ontology_qa import main
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
@@ -75,17 +74,6 @@ def test_nonexistent_file_prints_error(capsys):
     out = capsys.readouterr().out
     assert "ERROR" in out or "Failed" in out
 
-# Disabled test, as the inference function is now called in main()
-# def test_inference_log_reports_new_triples(make_graph):
-#     # :Fluffy a :Cat + :Cat subClassOf :Animal → inference adds :Fluffy a :Animal
-#     g = make_graph("""
-#     :Animal a owl:Class .
-#     :Cat a owl:Class ; rdfs:subClassOf :Animal .
-#     :Fluffy a :Cat .
-#     """)
-#     result = run_qa(g)
-#     assert "Added 1 new triples" in result.inference_log
-
 def test_inference_example_via_run_main(tmp_path, capsys):
     # :Fluffy a :Cat + :Cat subClassOf :Animal → inference adds :Fluffy a :Animal
     ttl = tmp_path / "inference_test.ttl"
@@ -98,3 +86,17 @@ def test_inference_example_via_run_main(tmp_path, capsys):
     run_main(str(ttl), '-i')
     out = capsys.readouterr().out
     assert "Added 1 new triples" in out
+    assert "Final graph size after inference: 5 triples." in out
+    assert "| inference_test.ttl | 5 | 2 | 0 |" in out
+    
+def test_no_inference(tmp_path, capsys):
+    ttl = tmp_path / "inference_test.ttl"
+    ttl.write_text("""@prefix : <http://example.org#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    :Animal a rdfs:Class.
+    :Cat a rdfs:Class ; rdfs:subClassOf :Animal .
+    :Fluffy a :Cat .
+    """)
+    run_main(str(ttl))
+    out = capsys.readouterr().out
+    assert "| inference_test.ttl | 4 | 2 | 0 |" in out

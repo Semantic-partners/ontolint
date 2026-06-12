@@ -1,4 +1,3 @@
-import pytest
 from scripts.ontology_qa import run_qa
 
 
