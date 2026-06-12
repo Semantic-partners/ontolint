@@ -1,4 +1,4 @@
-SELECT (AVG(?childCount) AS ?avgBranchingFactor)
+SELECT (COALESCE(AVG(?childCount), 0) AS ?avgBranchingFactor)
 WHERE {
     SELECT ?parent (COUNT(DISTINCT ?child) AS ?childCount)
     WHERE {
