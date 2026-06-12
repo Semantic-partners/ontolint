@@ -199,15 +199,16 @@ def print_qa_table(metrics, checks):
     """
     name = get_ontology_name(metrics)
     log = "\n## Quality Assurance Metrics\n"
-    log += "| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
+    log += "| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
     log += "| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += "| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += "| Property without domain | Property without range "
-    log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking | Unresolvable Imports | Undefined Terms |\n"
+    log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
     log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} "
+    log += f"| {print_if_executed(metrics, checks, 'undefinedTerms')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingClassLabel', 'classCount')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingPropertyLabel', 'propertyCount')} "
     log += f"| {normalise_if_executed(metrics, checks, 'missingNSLabel', 'nodeShapes')} "
@@ -225,9 +226,7 @@ def print_qa_table(metrics, checks):
     log += f"| {normalise_if_executed(metrics, checks, 'missingRange', 'propertyCount')} "
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
-    log += f"| {print_if_executed(metrics, checks, 'hijacking')} "
-    log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} "
-    log += f"| {print_if_executed(metrics, checks, 'undefinedTerms')} |\n"
+    log += f"| {print_if_executed(metrics, checks, 'hijacking')}  |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
