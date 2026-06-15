@@ -9,6 +9,7 @@ It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL quer
 check for common ontology quality issues.
 It reports any violations found in the ontology data.
 """
+import copy
 import rdflib
 import argparse
 import sys
@@ -2120,7 +2121,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     Returns structured pass/fail results — no file I/O, no arg parsing.
     """
     if checklist is None:
-        checklist = CHECKLIST
+        checklist = copy.deepcopy(CHECKLIST)
 
     qa_metrics = {
         'filesProcessed': files_processed or [],
@@ -2262,7 +2263,7 @@ def main():
     log_output += ">\n"
 
     # Apply lint config to enable/disable individual checks.
-    checklist = list(CHECKLIST)
+    checklist = copy.deepcopy(CHECKLIST)
     ignore_imports = []
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
