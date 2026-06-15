@@ -226,7 +226,7 @@ def print_qa_table(metrics, checks):
     log += f"| {normalise_if_executed(metrics, checks, 'missingRange', 'propertyCount')} "
     log += f"| {print_if_executed(metrics, checks, 'nonUniqueIdentifiers')} | {print_if_executed(metrics, checks, 'subclassCycles')} "
     log += f"| {print_if_executed(metrics, checks, 'untypedClasses')} | {print_if_executed(metrics, checks, 'untypedProperties')} "
-    log += f"| {print_if_executed(metrics, checks, 'hijacking')}  |\n"
+    log += f"| {print_if_executed(metrics, checks, 'hijacking')} |\n"
     return log
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -1752,9 +1752,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
 
     if not import_urls:
         if ignored:
-            log += "PASS - All owl:imports URLs are ignored by configuration.\n"
+            log += "WARNING - All owl:imports URLs are ignored by configuration.\n"
         else:
-            log += "PASS - No owl:imports statements found.\n"
+            log += "WARNING - No owl:imports statements found.\n"
         log += sep()
         return metrics, violations, log, c, status
 
