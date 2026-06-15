@@ -2041,7 +2041,7 @@ def lint_selection(selection, checklist):
         log = "> Lint configuration file found!\n"
         if 'enable' in selection and isinstance(selection['enable'], list):
             for i, item in enumerate(checklist):
-                if not item[1].__name__ in selection['enable']: checklist[i][0] = False
+                if item[1].__name__ not in selection['enable']: checklist[i][0] = False
 
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' in selection['enable']:
