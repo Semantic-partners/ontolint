@@ -2252,7 +2252,7 @@ def main():
 
     log_output += f"\n> {file_counter} files processed.\n"
     for f in files_processed:
-        log_output += f"- `{f}`\n"
+        log_output += f"> - `{f}`\n"
 
     # Apply lint config to enable/disable individual checks.
     checklist = list(CHECKLIST)
