@@ -1410,6 +1410,8 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
         # This condition is satisfied only for range violations.
         # It relies on the fact that the array test_checklist is ordered,
         # with missingDomain defined before missingRange.
+        local_name = "Missing Range in Properties"
+        c, log = qa_check_results(local_name, c)
         rCount = []
 
         # Analyse the results
