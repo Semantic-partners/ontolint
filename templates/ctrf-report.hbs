@@ -16,6 +16,10 @@
 
 Generated: `{{ results.timestamp }}`
 
+Files checked:
+{{#each filesProcessed}}- `{{this}}`
+{{/each}}
+
 | Test Name | Status | Violations | Elements |
 |-----------|--------|--------|--------|
 {{#each results.tests}}| {{name}} | {{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}} | {{#if (eq status "passed")}}0{{else}}{{failure.violations}}{{/if}} | {{#if (eq status "passed")}} {{else}}{{failure.elements}}{{/if}} |

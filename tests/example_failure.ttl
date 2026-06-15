@@ -9,10 +9,13 @@
 
 : a owl:Ontology ;
   rdfs:label "Animal Ontology" ;
-  owl:imports ex: .
- 
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
+    owl:imports <http://www.example.com> , <htt://www.exmp.com>.
+# Resolves to empty graph, doesn't resolve
 :Dog a rdfs:Class ;
-     rdfs:subClassOf :Animal .
+     rdfs:subClassOf :Animal , :Mammal ; #failure: Mammal isn't defined.
+     skos:preferredLabel "Dog" .
+# skos:preferredLabel does not exist, so is an undef term.
 
 :Cat a rdfs:Class ;
      rdfs:subClassOf :Animal .

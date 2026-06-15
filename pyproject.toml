@@ -25,7 +25,7 @@ ruff = ">=0.9"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-v"
+addopts = "-v --cov=scripts --cov-report=xml"
 
 [tool.coverage.run]
 source = ["scripts"]

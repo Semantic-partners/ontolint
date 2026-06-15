@@ -2,7 +2,9 @@
 
 name: Validate ontolint
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
 
 permissions:
   contents: read

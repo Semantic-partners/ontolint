@@ -1,4 +1,5 @@
 # Ontolint configuration file: use it to enable or disable specific QA checks.
+# Also allows users to ignore known unresolvable import URLs.
 # Place this file as .rdf-lint.yml in your project root.
 
 # Available checks:
@@ -12,6 +13,7 @@
 # - node-shape-same-label
 # - owl-declaration
 # - owl-description
+# - owl-imports
 # - property-missing-comment
 # - property-missing-domain
 # - property-missing-label
@@ -37,3 +39,9 @@
 #   - isolated-classes
 #   - property-missing-domain
         
+# Exclude certain URLs from resolvability check. 
+# Works on string matching, use URL only, do not include the ? or # at the end if pasting from a prefix.
+# ignore-imports:
+#   -  http://www.example.com
+#   - http://www.w3.org/ns/shacl
+#   - https://schema.org/
