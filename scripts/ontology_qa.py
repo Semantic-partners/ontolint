@@ -636,8 +636,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     c, log = qa_check_results(name, c)
 
     if in_metrics['ontologyNotDeclared'] == num_files:
-        log += f"\nSkipping check {c}: Ontology description (no ontology declared).\n"
-        c += 1
+        log += "WARNING - No ontology declared, invalid metric.\n"
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
     else:
@@ -1292,14 +1291,14 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_property_missing_domain_range(in_metrics, graph, name, check, c, status, verbose):
+def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, verbose):
     """
     QA test checking properties for rdfs:domain or rdfs:range declaration.
     
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
-        name (str): Name of the QA check being carried out.
+        _ (str): Not used. The name of the QA check is determined from `check`
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
@@ -1324,6 +1323,11 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
     # Check if the test has been run already.
     if 'missingDomainRange' not in in_metrics:
         metrics['missingDomainRange'] = 0
+        if check == 'missingDomain':
+            local_name = "Missing Domain in Properties"
+        else:
+            local_name = "Missing Range in Properties"
+        c, log = qa_check_results(local_name, c)
         dCount = []
         rCount = []
 
@@ -1389,7 +1393,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
             else:
                 violations[check] = ""
-                log += "PASS - All properties have domain defined.\n"
+                if int(in_metrics['propertyCount']) > 0: log += "PASS - All properties have domain defined.\n"
 
         elif check == 'missingRange':
             # remove duplicates from rCount list.
@@ -1403,7 +1407,7 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
             else:
                 violations[check] = ""
-                log += "PASS - All properties have range defined.\n"
+                if int(in_metrics['propertyCount']) > 0: log += "PASS - All properties have range defined.\n"
         
         log += sep()
 
@@ -1424,7 +1428,10 @@ def check_property_missing_domain_range(in_metrics, graph, name, check, c, statu
         rCount = list(set(rCount))
         rCount.sort()
         metrics[check]  = len(rCount)
-        if metrics[check] > 0:
+        if int(in_metrics['propertyCount']) == 0:
+            violations[check] = ""
+            log += "WARNING - No properties defined, invalid metric.\n"
+        elif metrics[check] > 0:
             string = violation_formatting(rCount)
             violations[check] = string
             string = string.replace(',<br> ', '\n - ')
