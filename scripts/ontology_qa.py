@@ -1314,11 +1314,6 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
     metrics = {}
     violations = {}
     results = exec_sparql(graph, 'missing_dr_property')
-    if check == 'missingDomain':
-        local_name = "Missing Domain in Properties"
-    else:
-        local_name = "Missing Range in Properties"
-    c, log = qa_check_results(local_name, c)
 
     # Check if the test has been run already.
     if 'missingDomainRange' not in in_metrics:
