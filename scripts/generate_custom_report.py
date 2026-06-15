@@ -37,6 +37,7 @@ def aggregate_ctrf_reports(ctrf_dir):
             
             report_entry = {
                 'ontologyFile': ontology_file,
+                'filesProcessed': ctrf_data['results'].get('filesProcessed', []),
                 'results': ctrf_data['results'],
                 'failedTests': failed_tests,
                 'hasFailures': len(failed_tests) > 0
@@ -129,6 +130,8 @@ def simple_handlebars_render(template_content, context):
                 item_context = ctx.copy()
                 if isinstance(item, dict):
                     item_context.update(item)
+                else:
+                    item_context['this'] = item
                 
                 # Recursively render the block content with item context
                 rendered_block = render_recursive(block_content, item_context)

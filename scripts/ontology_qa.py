@@ -296,6 +296,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
                 "failed": failed
             },
             "tests": test_cases,
+            "filesProcessed": result.profiling.get("filesProcessed", []),
             "timestamp": datetime.now().isoformat()
         }
     }
@@ -1980,7 +1981,7 @@ def load_rdf(paths):
         success, file_graph, log_msg = load_rdf_file(file_path)
         log_results += log_msg
         if success:
-            files_processed.append(os.path.basename(file_path))
+            files_processed.append(file_path)
             file_counter += 1
             graph += file_graph
             _bind_namespaces(graph, file_graph)
@@ -2248,6 +2249,8 @@ def main():
         return
 
     log_output += f"\n> {file_counter} files processed.\n"
+    for f in files_processed:
+        log_output += f"- `{f}`\n"
 
     # Apply lint config to enable/disable individual checks.
     checklist = list(CHECKLIST)
