@@ -2247,12 +2247,15 @@ def main():
     log_output += log_results
 
     if file_counter == 0:
-        print(f"{log_output}\nERROR - No RDF data in input files or directories.")
+        log_output += "ERROR - No RDF data in input files or directories."  
+        qa_terminate(args.output, log_output)
+        if args.exit_status: sys.exit(1)
         return
 
     log_output += f"\n> {file_counter} files processed.\n"
     for f in files_processed:
         log_output += f"> - `{f}`\n"
+    log_output += ">\n"
 
     # Apply lint config to enable/disable individual checks.
     checklist = list(CHECKLIST)
