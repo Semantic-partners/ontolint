@@ -297,7 +297,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
     
