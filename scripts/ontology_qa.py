@@ -9,7 +9,6 @@ It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL quer
 check for common ontology quality issues.
 It reports any violations found in the ontology data.
 """
-import copy
 import rdflib
 import argparse
 import sys
@@ -2113,6 +2112,17 @@ CHECKLIST = [
     [True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ],
 ]
 
+def deepcopy_list(nested_list):
+    """
+    Creates a true deep copy of a list of lists (of lists...) 
+    using recursion.
+    """
+    # Base case: if the item is not a list, return it as-is (primitive value)
+    if not isinstance(nested_list, list):
+        return nested_list
+    
+    # Recursive case: map the function over every element in the list
+    return [deepcopy_list(item) for item in nested_list]
 
 def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None) -> QAResult:
     """
@@ -2121,7 +2131,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     Returns structured pass/fail results — no file I/O, no arg parsing.
     """
     if checklist is None:
-        checklist = copy.deepcopy(CHECKLIST)
+        checklist = deepcopy_list(CHECKLIST)
 
     qa_metrics = {
         'filesProcessed': files_processed or [],
@@ -2263,7 +2273,7 @@ def main():
     log_output += ">\n"
 
     # Apply lint config to enable/disable individual checks.
-    checklist = copy.deepcopy(CHECKLIST)
+    checklist = deepcopy_list(CHECKLIST)
     ignore_imports = []
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
