@@ -4,7 +4,7 @@ Get an instant, user-friendly snapshot of your ontology’s size and health, rig
 
 ## Usage
 
-We have a [Github workflow](/.github/workflows/ci-test.yml) running against two [example ontologies](./tests/) - use this as a reference.
+We have a [Github workflow](/.github/workflows/validate-ontolint.yml) running against two [example ontologies](./tests/) - use this as a reference.
 
 The [`ontology_qa.py`](./scripts/ontology_qa.py) script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
 
@@ -152,37 +152,87 @@ done
 ```
 ## GitHub Actions
 
-To deploy the QA script on a different repository, create the following folder in the root of the repository: `.github/workflows` and adapt the template workflow [`ci-example.yml`](templates/ci-example.yml). The workflow will need to be changed in the following sections:
+Ontolint is published as a composite GitHub Action. No PAT or local setup is required — any repository in the Semantic Partners organisation can use it directly.
+
+### Minimal setup
+
+Create `.github/workflows/ontolint.yml` in your ontology repository:
 
 ```yaml
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  ontolint:
+    runs-on: ubuntu-latest
     steps:
-      - name: Check out the current repository
-        uses: actions/checkout@v5
-
-      # Updated with token
-      - name: Check out ontology QA repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+      - uses: Semantic-partners/ontolint@main
         with:
-          repository: Semantic-partners/ontolint
-          ref: v0.2.1
-          token: ${{ secrets.PAT_TOKEN }}
-          path: ontology-quality-assessment
+          ontology-paths: ontologies/
+```
 
-      # Updated path
-      - name: Install dependencies
-        run: |
-          cd $GITHUB_WORKSPACE
-          ln -s ontolint/pyproject.toml
-          poetry install
-       
-      # Updated path
-      - name: Check all ontologies
-        run: | 
-          poetry run ${GITHUB_WORKSPACE}/ontolint/scripts/ontology_qa.py path/to/your/ontology.ttl -e --ctrf-dir ctrf
-        if: always()
-        
-      # Updated path
-      - name: Generate CTRF report
-        run: poetry run ${GITHUB_WORKSPACE}/ontolint/scripts/generate_custom_report.py --ctrf-dir ctrf --template-path ${GITHUB_WORKSPACE}/ontolint/templates/ctrf-report.hbs --output-path out/ctrf_report.md
-        if: always()
+Replace `ontologies/` with the path to your ontology file or directory (relative to your repository root). That is all that is required.
+
+A ready-to-use template is at [`templates/ci-example.yml`](templates/ci-example.yml).
+
+### Checking multiple ontologies
+
+`ontology-paths` accepts any number of files or directories — provide them one per line using YAML block scalar syntax (`|`):
+
+```yaml
+- uses: Semantic-partners/ontolint@main
+  with:
+    ontology-paths: |
+      ontologies/core.ttl
+      ontologies/shapes.ttl
+      ontologies/extras/
+```
+
+All paths are loaded into a single combined graph before QA runs, so cross-ontology references resolve correctly.
+
+### Inputs
+
+All inputs are strings (composite action convention). Pass booleans as `'true'` / `'false'`.
+
+| Input | Default | Description |
+|---|---|---|
+| `ontology-paths` | — | **Required.** One or more paths to ontology files or directories, relative to the repository root. |
+| `fail-on-violations` | `'true'` | Exit with code 1 if any violations are found, causing the step to fail. |
+| `verbose` | `'false'` | List every violating element under each failed check. |
+| `profile-only` | `'false'` | Run profiling metrics only; skip all QA checks. |
+| `config-path` | _(auto-detect)_ | Path to a lint configuration YAML file relative to the repository root. If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses it when present. |
+| `artifact-name` | `'ontolint-ctrf'` | Name of the uploaded CTRF artifact. Override when invoking the action in multiple jobs of the same run. |
+
+### What it produces
+
+Each run writes a Markdown report to the Actions job summary (visible directly in the GitHub UI) and uploads a CTRF JSON artifact. Both are published whether the job passes or fails.
+
+### Disabling individual checks
+
+Place a `.rdf-lint.yml` file at your repository root:
+
+```yaml
+disable:
+  - property-missing-domain
+  - property-missing-range
+```
+
+The action picks it up automatically. To use a different location, pass `config-path`:
+
+```yaml
+- uses: Semantic-partners/ontolint@main
+  with:
+    ontology-paths: ontologies/
+    config-path: config/ontolint.yml
+```
+
+### Pinning to a version
+
+For production use, pin to a specific release tag instead of `main`:
+
+```yaml
+- uses: Semantic-partners/ontolint@v1
 ```

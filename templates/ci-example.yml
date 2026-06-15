@@ -1,52 +1,30 @@
 # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+#
+# Drop this into .github/workflows/ontolint.yml in your ontology repository.
+# Replace `ontologies/` with the path to your ontology file or directory.
 
-name: Example Ontology QA Workflow
+name: Ontolint
 
-# Controls when the workflow will run
-on: [push]
+on: [push, pull_request]
 
-# The permissions granted to the GITHUB_TOKEN for this workflow
 permissions:
   contents: read
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job
-  validate:
-    name: validate-ontology
-
-    # The type of runner that the job will run on
+  ontolint:
     runs-on: ubuntu-latest
-
-    # Cancel all in-progress and queued jobs in the matrix if any job in the matrix fails. 
-    strategy:
-      fail-fast: true
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v5
-      
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - uses: actions/checkout@v5
+
+      - uses: Semantic-partners/ontolint@main
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-      
-      - name: Install dependencies
-        run: poetry install
-      
-      - name: Check all ontologies
-        run: | 
-          poetry run scripts/ontology_qa.py tests/example_pass.ttl -e --ctrf-dir ctrf
-        if: always()
-
-      - name: Generate CTRF report
-        run: poetry run scripts/generate_custom_report.py --ctrf-dir ctrf --template-path templates/ctrf-report.hbs --output-path out/ctrf_report.md
-        if: always()
-
-      # Append report to workflow summary
-      - name: Create workflow summary
-        run: |
-          cat out/ctrf_report.md >> $GITHUB_STEP_SUMMARY
-        if: always()
+          # One path on a single line, or several paths one per line:
+          #   ontology-paths: |
+          #     ontologies/core.ttl
+          #     ontologies/shapes.ttl
+          #     ontologies/extras/
+          ontology-paths: ontologies/
+          # fail-on-violations: 'true'        # exit non-zero on any violation (default true)
+          # verbose: 'false'                  # list violating elements per check
+          # profile-only: 'false'             # skip QA checks, only report profiling metrics
+          # config-path: config/ontolint.yml  # custom .rdf-lint.yml location (default: repo-root .rdf-lint.yml if present)
