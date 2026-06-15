@@ -49,10 +49,9 @@ def test_property_with_domain_and_range_passes(make_graph):
         rdfs:domain :Cat ;
         rdfs:range :Fur .
     """)
-    check_d = run_qa(g).get("Property without domain")
-    check_r = run_qa(g).get("Property without range")
-    assert check_d.passed
-    assert check_r.passed
+    result = run_qa(g)
+    assert result.get("Property without domain").passed
+    assert result.get("Property without range").passed
 
 
 def test_property_missing_domain_fails(make_graph):
@@ -82,6 +81,16 @@ def test_property_missing_both_domain_and_range_fails(make_graph):
     result = run_qa(g)
     assert not result.get("Property without domain").passed
     assert not result.get("Property without range").passed
+
+def test_property_with_domain_and_range_markdown(make_graph):
+    g = make_graph("""
+    :hasFur a owl:ObjectProperty ;
+        rdfs:domain :Cat ;
+        rdfs:range :Fur .
+    """)
+    result = run_qa(g)
+    assert any("Missing Domain in Properties" in log for log in result.logs)
+    assert any("Missing Range in Properties" in log for log in result.logs)
 
 
 # ── Non-Unique Identifiers ────────────────────────────────────────────────────
