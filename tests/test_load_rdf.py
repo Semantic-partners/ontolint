@@ -41,7 +41,7 @@ def test_direct_load_single_rdfxml_file(tmp_path):
     assert str(file) in log_msg
 
 def test_direct_load_nonexistent_file(tmp_path):
-    """Test loading a file file directly"""
+    """Test loading a nonexistent file directly"""
     file = tmp_path / "nonexistent.ttl"
     success, file_graph, log_msg = load_rdf_file(str(file))
     assert not success
@@ -99,7 +99,7 @@ def test_load_single_rdfxml_file(tmp_path):
     assert str(file) in log_results
 
 def test_load_nonexistent_file(tmp_path):
-    """Test loading a file file"""
+    """Test loading a nonexistent file"""
     file = tmp_path / "nonexistent.ttl"
     file_counter, files_processed, graph, log_results = load_rdf([str(file)])
     assert file_counter == 0
