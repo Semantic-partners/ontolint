@@ -7,7 +7,7 @@ WHERE {
   UNION
   {
     ?p a ?type ;
-    owl:deprecated [] .
+    owl:deprecated ?o .
     VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty owl:AnnotationProperty }
   }
 }

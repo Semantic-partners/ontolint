@@ -3,10 +3,10 @@ WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   FILTER NOT EXISTS { 
-    { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel [] }
+    { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
     UNION
     {
-      ?c ?p [] .
+      ?c ?p ?lbl .
       ?p a owl:AnnotationProperty .
     }
   }

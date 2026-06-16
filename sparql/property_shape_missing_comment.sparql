@@ -7,10 +7,10 @@ WHERE {
       	FILTER(isBlank(?ps)) .
     }
     FILTER NOT EXISTS { 
-    { ?ps rdfs:comment|dcterms:description|skos:definition [] }
+    { ?ps rdfs:comment|dcterms:description|skos:definition ?lbl }
     UNION
     {
-      ?ps ?p [] .
+      ?ps ?p ?lbl .
       ?p a owl:AnnotationProperty .
     }
   }

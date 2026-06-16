@@ -6,7 +6,7 @@ WHERE {
   UNION
   {
     ?c a ?type ;
-    owl:deprecated [] .
+    owl:deprecated ?o .
     VALUES ?type { owl:Class rdfs:Class }
   }
 }

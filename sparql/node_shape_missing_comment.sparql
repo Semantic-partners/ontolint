@@ -2,10 +2,10 @@ SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
   FILTER NOT EXISTS { 
-    { ?ns rdfs:comment|dcterms:description|skos:definition [] }
+    { ?ns rdfs:comment|dcterms:description|skos:definition ?lbl }
     UNION
     {
-      ?ns ?p [] .
+      ?ns ?p ?lbl .
       ?p a owl:AnnotationProperty .
     }
   }

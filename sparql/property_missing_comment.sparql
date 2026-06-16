@@ -3,10 +3,10 @@ WHERE {
   VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
   ?p a ?type .
   FILTER NOT EXISTS { 
-    { ?p rdfs:comment|dcterms:description|skos:definition [] }
+    { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
     UNION
     {
-      ?p ?predicate [] .
+      ?p ?predicate ?lbl .
       ?predicate a owl:AnnotationProperty .
     }
   }

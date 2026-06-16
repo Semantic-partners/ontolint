@@ -7,10 +7,10 @@ WHERE {
       	FILTER(isBlank(?ps)) .
     }
     FILTER NOT EXISTS { 
-    { ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel [] }
+    { ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
     UNION
     {
-      ?ps ?p [] .
+      ?ps ?p ?lbl .
       ?p a owl:AnnotationProperty .
     }
   }
