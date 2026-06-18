@@ -20,7 +20,7 @@ WHERE {
     }
     UNION
     {
-      ?property rdfs:subClassOf* rdf:Property
+      ?property rdfs:subClassOf+ rdf:Property
     }
     UNION
     {

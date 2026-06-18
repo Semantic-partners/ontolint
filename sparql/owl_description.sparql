@@ -1,5 +1,14 @@
-SELECT ?ont ?d
+SELECT ?ont ?comment
 WHERE {
   ?ont a owl:Ontology .
-    ?ont rdfs:comment|dcterms:abstract|dcterms:description|skos:definition|skos:note ?d .
+  {
+    VALUES ?commentProperty { rdfs:comment dcterms:abstract dcterms:description skos:definition skos:note }
+    ?ont ?commentProperty ?comment .
+  }
+  UNION
+  {
+    ?ont ?predicate ?comment .
+    ?predicate a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:comment .
+  }
 }

@@ -5,9 +5,9 @@ WHERE {
   { ?c a owl:DeprecatedClass }
   UNION
   {
+    VALUES ?type { owl:Class rdfs:Class }
     ?c a ?type ;
     owl:deprecated ?isDeprecated .
-    VALUES ?type { owl:Class rdfs:Class }
     FILTER(xsd:boolean(?isDeprecated))
   }
 }

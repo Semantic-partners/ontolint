@@ -8,13 +8,14 @@ WHERE {
   ?c a ?type .
   # Gather all labels
   {
-    ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label
+    VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+    ?c ?labelProperty ?label
   }
   UNION
   {
-    ?c ?p ?label .
-    ?p a owl:AnnotationProperty ;
-    ?p rdfs:subPropertyOf* rdfs:label .
+    ?c ?predicate ?label .
+    ?predicate a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:label .
   }
   
   # Exclude deprecated classes

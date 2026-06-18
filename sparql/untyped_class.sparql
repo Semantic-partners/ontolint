@@ -19,7 +19,8 @@ WHERE {
     BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
   }
   FILTER (!BOUND(?ns) || STRSTARTS(STR(?c), ?ns))
-  MINUS { ?c rdf:type owl:Class }
-  MINUS { ?c rdf:type rdfs:Class }
-  MINUS { ?c rdf:type rdfs:Datatype }
+  MINUS {
+    VALUES ?type { owl:Class rdfs:Class rdfs:Datatype }
+    ?c a ?type .
+  }
 }

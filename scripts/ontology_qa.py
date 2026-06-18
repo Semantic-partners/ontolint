@@ -436,7 +436,7 @@ def profiling(graph):
             }
         for row in results:
             elements['propertiesInPropertyShapes']['ps'].append(row.ps)
-            elements['propertiesInPropertyShapes']['propCount'].append(row.prop)
+            elements['propertiesInPropertyShapes']['propCount'].append(row.property)
 
     # Number of Deprecated Classes and Properties
     results = exec_sparql(graph, 'deprecated_class')
@@ -640,7 +640,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
     else:
-        results = exec_sparql(graph, 'no_ont_description')
+        results = exec_sparql(graph, 'owl_no_description')
         if not results:
             log += "PASS - All declared ontologies have a description.\n"
             metrics[check] = 0 # yes
@@ -649,7 +649,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
                 log_results = exec_sparql(graph, 'owl_description')
                 log += "\n**Ontology + Description:**\n"
                 for row in log_results:
-                    log += f" - {row.ont}\n   *{row.d}*\n"
+                    log += f" - {row.ont}\n   *{row.comment}*\n"
                 
         else:
             metrics[check] = len(results) #  violations
@@ -695,7 +695,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
             log_results = exec_sparql(graph, 'class_labels')
             log += "\n|  Class | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.c} | {row.lbl} |\n"
+                log += f"| {row.c} | {row.label} |\n"
             
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
@@ -744,7 +744,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
             log_results = exec_sparql(graph, 'property_labels')
             log += "|  Property | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.p} | {row.lbl} |\n"
+                log += f"| {row.property} | {row.label} |\n"
 
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
@@ -753,7 +753,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row.property for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -793,7 +793,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
             log_results = exec_sparql(graph, 'node_shape_labels')
             log += "|  NodeShape | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.ns} | {row.lbl} |\n"
+                log += f"| {row.ns} | {row.label} |\n"
             
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
@@ -842,7 +842,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
             log_results = exec_sparql(graph, 'property_shape_labels')
             log += "|  PropertyShape | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.ps} | {row.lbl} |\n"
+                log += f"| {row.ps} | {row.label} |\n"
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
@@ -891,7 +891,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
             log_results = exec_sparql(graph, 'class_comments')
             log += "|  Class | Description |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.c} | {row.lbl} |\n"
+                log += f"| {row.c} | {row.comment} |\n"
     
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
@@ -940,7 +940,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
             log_results = exec_sparql(graph, 'property_comments')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.p} | {row.lbl} |\n"
+                log += f"| {row.property} | {row.comment} |\n"
     
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
@@ -949,7 +949,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row.property for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -989,7 +989,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
             results = exec_sparql(graph, 'node_shape_comments')
             log += "| NodeShape | Description |\n|--|--|\n"
             for row in results:
-                log += f"| {row.ns} | {row.lbl} |\n"
+                log += f"| {row.ns} | {row.comment} |\n"
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
     
@@ -1037,7 +1037,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
             results = exec_sparql(graph, 'property_shape_comments')
             log += "| PropertyShape | Description |\n|--|--|\n"
             for row in results:
-                log += f"| {row.ps} | {row.lbl} |\n"
+                log += f"| {row.ps} | {row.comment} |\n"
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
@@ -1340,7 +1340,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             if not verbose: log += "| Property | Domain | Range |\n|--|--|--|\n"
             status += 1
             for row in results:
-                predicate = row.p
+                predicate = row.property
                 if row.domain:
                     domain = row.domain
                 else:
@@ -1371,7 +1371,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
                 else:
                     range = 'None'
                 
-                log += f"| {row.p} | {domain} | {range} |\n"
+                log += f"| {row.property} | {domain} | {range} |\n"
             
             log  += "\n"
         
@@ -1417,7 +1417,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
         # Analyse the results
         if results:
             for row in results:
-                predicate = row.p
+                predicate = row.property
                 if not row.range:
                     rCount.append(predicate)
         
@@ -1647,7 +1647,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row.property for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     

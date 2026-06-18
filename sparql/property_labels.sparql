@@ -1,28 +1,28 @@
-SELECT DISTINCT ?p ?lbl
+SELECT DISTINCT ?property ?label
 WHERE {
   # Gather OWL and RDFS properties.
   {
     VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
-    ?p a ?type .
+    ?property a ?type .
   }
   UNION
   {
-    ?p rdfs:subClassOf* rdf:Property
+    ?property rdfs:subClassOf+ rdf:Property
   }
   UNION
   {
-    ?p rdfs:subPropertyOf ?parent
+    ?property rdfs:subPropertyOf ?parent
   }
-  ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
 
   # Gather all labels
   {
-    ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+    VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+    ?property ?labelProperty ?label
   }
   UNION
   {
-    ?p ?predicate ?lbl .
+    ?property ?predicate ?label .
     ?predicate a owl:AnnotationProperty ;
-    ?predicate rdfs:subPropertyOf* rdfs:label .
+    rdfs:subPropertyOf* rdfs:label .
   }
 }

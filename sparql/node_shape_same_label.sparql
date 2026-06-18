@@ -4,13 +4,14 @@ WHERE {
   ?ns a sh:NodeShape .
     # Gather all labels
     {
-      ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label
+      VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+      ?ns ?labelProperty ?label
     }
     UNION
     {
-      ?ns ?p ?label .
-      ?p a owl:AnnotationProperty ;
-      ?p rdfs:subPropertyOf* rdfs:label .
+      ?ns ?predicate ?label .
+      ?predicate a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:label .
     }
 }
 GROUP BY ?label

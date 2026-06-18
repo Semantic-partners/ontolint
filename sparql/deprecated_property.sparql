@@ -6,9 +6,9 @@ WHERE {
   { ?p a owl:DeprecatedProperty }
   UNION
   {
+    VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty owl:AnnotationProperty }
     ?p a ?type ;
     owl:deprecated ?isDeprecated .
-    VALUES ?type { owl:ObjectProperty rdf:Property owl:DatatypeProperty owl:AnnotationProperty }
     FILTER(xsd:boolean(?isDeprecated))
   }
 }

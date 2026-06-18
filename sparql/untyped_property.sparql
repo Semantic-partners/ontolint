@@ -1,9 +1,9 @@
 # Untyped property
 # Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
-SELECT DISTINCT ?p
+SELECT DISTINCT ?property
 WHERE {
   # Find resources used as predicates
-  ?s ?p ?o .
+  ?s ?property ?o .
 
   # exclude blank nodes
   FILTER(isIRI(?s))
@@ -13,11 +13,10 @@ WHERE {
     ?ontology a owl:Ontology .
     BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
   }
-  FILTER (!BOUND(?ns) || STRSTARTS(STR(?p), ?ns))
-  MINUS { ?p a rdf:Property }
-  MINUS { ?p a owl:ObjectProperty }
-  MINUS { ?p a owl:DatatypeProperty }
-  MINUS { ?p a owl:AnnotationProperty }
-  MINUS { ?p a sh:ConstraintComponent }
-  MINUS { ?res a sh:Parameter ; sh:path ?p }
+  FILTER (!BOUND(?ns) || STRSTARTS(STR(?property), ?ns))
+  MINUS {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty rdf:Property sh:ConstraintComponent }
+    ?property a ?type .
+  }
+  MINUS { ?res a sh:Parameter ; sh:path ?property }
 }

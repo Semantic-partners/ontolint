@@ -1,15 +1,16 @@
-SELECT DISTINCT ?c ?lbl
+SELECT DISTINCT ?c ?label
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   # Gather all labels
   {
-    ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+    VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+    ?c ?labelProperty ?label .
   }
   UNION
   {
-    ?c ?p ?lbl .
-    ?p a owl:AnnotationProperty ;
-    ?p rdfs:subPropertyOf* rdfs:label .
+    ?c ?predicate ?label .
+    ?predicate a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:label .
   }
 }

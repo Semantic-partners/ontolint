@@ -2,11 +2,17 @@
 # Classes declared but never used in any other triple connecting them to the rest of the ontology.
 # TO DO: classes connected through properties defined in the current namespace (maybe for metamodelling?).
 SELECT DISTINCT ?c
-WHERE {  
+WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
- MINUS { ?c rdfs:subClassOf|owl:equivalentClass ?o }
- MINUS { ?s rdfs:subClassOf|rdfs:domain|rdfs:range|sh:targetClass|sh:class ?c }
- # exclude blank nodes
- FILTER(isIRI(?c))
+  MINUS {
+    VALUES ?p { rdfs:subClassOf owl:equivalentClass }
+     ?c ?p ?o .
+  }
+  MINUS {
+    VALUES ?p { rdfs:subClassOf rdfs:domain rdfs:range sh:targetClass sh:class }
+    ?s ?p ?c .
+  }
+  # exclude blank nodes
+  FILTER(isIRI(?c))
 }

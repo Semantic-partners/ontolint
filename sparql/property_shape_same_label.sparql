@@ -10,13 +10,14 @@ WHERE {
 
     # Gather all labels
     {
-      ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label
+      VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+      ?ps ?labelProperty ?label .
     }
     UNION
     {
       ?PropertyShape ?predicate ?label .
       ?predicate a owl:AnnotationProperty ;
-      ?predicate rdfs:subPropertyOf* rdfs:label .
+      rdfs:subPropertyOf* rdfs:label .
     }
 }
 GROUP BY ?label

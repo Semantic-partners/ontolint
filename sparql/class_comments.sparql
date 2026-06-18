@@ -1,15 +1,16 @@
-SELECT DISTINCT ?c ?lbl
+SELECT DISTINCT ?c ?comment
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
   # Gather all comments
   {
-    ?c rdfs:comment|dcterms:description|skos:definition ?lbl
+    VALUES ?commentProperty { rdfs:comment dcterms:description skos:definition }
+    ?c ?commentProperty ?comment
   }
   UNION
   {
-    ?c ?p ?lbl .
-    ?p a owl:AnnotationProperty ;
-    ?p rdfs:subPropertyOf* rdfs:comment .
+    ?c ?predicate ?comment .
+    ?predicate a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:comment .
   }
 }

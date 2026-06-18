@@ -1,0 +1,18 @@
+# Return ontology without description
+SELECT ?ont
+WHERE {
+  ?ont a owl:Ontology .
+  FILTER NOT EXISTS {
+    # Gather all comments
+    {
+      VALUES ?commentProperty { rdfs:comment dcterms:abstract dcterms:description skos:definition skos:note }
+      ?ont ?commentProperty ?comment .
+    }
+    UNION
+    {
+      ?ont ?predicate ?comment .
+      ?predicate a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:comment .
+    }
+  }
+}
