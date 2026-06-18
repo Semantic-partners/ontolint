@@ -1,12 +1,16 @@
 SELECT DISTINCT ?ns
 WHERE {
   ?ns a sh:NodeShape .
-  FILTER NOT EXISTS { 
-    { ?ns rdfs:comment|dcterms:description|skos:definition ?lbl }
+  FILTER NOT EXISTS {
+    # Gather all comments
+    {
+      ?ns rdfs:comment|dcterms:description|skos:definition ?lbl
+    }
     UNION
     {
       ?ns ?p ?lbl .
-      ?p a owl:AnnotationProperty .
+      ?p a owl:AnnotationProperty ;
+      ?p rdfs:subPropertyOf* rdfs:comment .
     }
   }
 }

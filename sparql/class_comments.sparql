@@ -2,5 +2,14 @@ SELECT DISTINCT ?c ?lbl
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  ?c rdfs:comment|dcterms:description|skos:definition ?lbl
+  # Gather all comments
+  {
+    ?c rdfs:comment|dcterms:description|skos:definition ?lbl
+  }
+  UNION
+  {
+    ?c ?p ?lbl .
+    ?p a owl:AnnotationProperty ;
+    ?p rdfs:subPropertyOf* rdfs:comment .
+  }
 }

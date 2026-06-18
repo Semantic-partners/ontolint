@@ -1,9 +1,33 @@
 # Classes with the same label
-SELECT ?label (GROUP_CONCAT(DISTINCT STR(?class); separator=", ") AS ?classes)
+
+# To add all labels to this and all *same_label.sparql
+
+SELECT ?label (GROUP_CONCAT(DISTINCT STR(?c); separator=", ") AS ?classes)
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
-  ?class a ?type .
-  ?class rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+  ?c a ?type .
+  # Gather all labels
+  {
+    ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label
+  }
+  UNION
+  {
+    ?c ?p ?label .
+    ?p a owl:AnnotationProperty ;
+    ?p rdfs:subPropertyOf* rdfs:label .
+  }
+  
+  # Exclude deprecated classes
+  FILTER NOT EXISTS {
+    {
+      ?c a owl:DeprecatedClass .
+    }
+    UNION
+    {
+      ?c owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
+  }
 }
 GROUP BY ?label
-HAVING (COUNT(DISTINCT ?class) > 1)
+HAVING (COUNT(DISTINCT ?c) > 1)

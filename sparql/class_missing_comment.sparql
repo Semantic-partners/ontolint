@@ -2,19 +2,29 @@ SELECT DISTINCT ?c
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  FILTER NOT EXISTS { 
-    { ?c rdfs:comment|dcterms:description|skos:definition ?lbl }
+  FILTER NOT EXISTS {
+    # Gather all comments
+    {
+      ?c rdfs:comment|dcterms:description|skos:definition ?lbl
+    }
     UNION
     {
       ?c ?p ?lbl .
-      ?p a owl:AnnotationProperty .
+      ?p a owl:AnnotationProperty ;
+      ?p rdfs:subPropertyOf* rdfs:comment .
     }
   }
   # exclude blank nodes
   FILTER(isIRI(?c))
   # Exclude deprecated classes
   FILTER NOT EXISTS {
-    ?c owl:deprecated ?isDeprecated .
-    FILTER (?isDeprecated = true || LCASE(STR(?isDeprecated)) = "true" || STR(?isDeprecated) = "1")
+    {
+      ?c a owl:DeprecatedClass .
+    }
+    UNION
+    {
+      ?c owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
   }
 }

@@ -1,5 +1,14 @@
 SELECT DISTINCT ?ns ?lbl
 WHERE {
-  ?ns a sh:NodeShape ;
-  rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+  ?ns a sh:NodeShape .
+  # Gather all labels
+  {
+    ?ns rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+  }
+  UNION
+  {
+    ?ns ?p ?lbl .
+    ?p a owl:AnnotationProperty ;
+    ?p rdfs:subPropertyOf* rdfs:label .
+  }
 }

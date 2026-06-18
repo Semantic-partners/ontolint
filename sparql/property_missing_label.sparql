@@ -1,18 +1,40 @@
 SELECT DISTINCT ?p
 WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
-  ?p a ?type .
-  FILTER NOT EXISTS { 
-    { ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+  # Gather OWL and RDFS properties.
+  {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
+    ?p a ?type .
+  }
+  UNION
+  {
+    ?p rdfs:subClassOf* rdf:Property
+  }
+  UNION
+  {
+    ?p rdfs:subPropertyOf ?parent
+  }
+  
+  FILTER NOT EXISTS {
+    # Gather all labels
+    {
+      ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+    }
     UNION
     {
       ?p ?predicate ?lbl .
-      ?predicate a owl:AnnotationProperty .
+      ?predicate a owl:AnnotationProperty ;
+      ?predicate rdfs:subPropertyOf* rdfs:label .
     }
   }
   # Exclude deprecated properties
   FILTER NOT EXISTS {
-    ?p owl:deprecated ?isDeprecated .
-    FILTER (?isDeprecated = true || LCASE(STR(?isDeprecated)) = "true" || STR(?isDeprecated) = "1")
+    {
+      ?p a owl:DeprecatedProperty .
+    }
+    UNION
+    {
+      ?p owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
   }
 }

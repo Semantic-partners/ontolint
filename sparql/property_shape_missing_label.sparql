@@ -6,12 +6,16 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    FILTER NOT EXISTS { 
-    { ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+    FILTER NOT EXISTS {
+    # Gather all labels
+    {
+      ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+    }
     UNION
     {
-      ?ps ?p ?lbl .
-      ?p a owl:AnnotationProperty .
+      ?PropertyShape ?predicate ?lbl .
+      ?predicate a owl:AnnotationProperty ;
+      ?predicate rdfs:subPropertyOf* rdfs:label .
     }
   }
 }
