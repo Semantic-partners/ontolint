@@ -11,7 +11,7 @@ WHERE {
         rdfs:subClassOf+ ?parent .
         ?parent a ?type .
     } 
-    GROUP BY ?child
+    GROUP BY ?child ?type
   }
   
   # If a child has no parents, ?childDepth is unbound. 
