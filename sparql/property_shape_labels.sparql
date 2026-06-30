@@ -1,4 +1,4 @@
-SELECT ?ps ?lbl
+SELECT ?ps ?label
 WHERE {
     {
      	?ps a sh:PropertyShape  
@@ -6,5 +6,15 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl
+    # Gather all labels
+    {
+      VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+      ?ps ?labelProperty ?label .
+    }
+    UNION
+    {
+      ?ps ?predicate ?label .
+      ?predicate a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:label .
+    }
 }

@@ -18,9 +18,9 @@ WHERE {
     ?ontology a owl:Ontology .
     BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
   }
-  FILTER(STRSTARTS(STR(?c), ?ns))
-
-  MINUS { ?c rdf:type owl:Class }
-  MINUS { ?c rdf:type rdfs:Class }
-
+  FILTER (!BOUND(?ns) || STRSTARTS(STR(?c), ?ns))
+  MINUS {
+    VALUES ?type { owl:Class rdfs:Class rdfs:Datatype }
+    ?c a ?type .
+  }
 }

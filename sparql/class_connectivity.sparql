@@ -6,20 +6,23 @@ WHERE {
     SELECT ?class (COUNT(DISTINCT ?link) AS ?connectivity)
     WHERE {
       VALUES ?type { owl:Class rdfs:Class }
-      ?c a ?type .
-      FILTER(isIRI(?c))
+      ?class a ?type .
+      FILTER(isIRI(?class))
       {
         # subclass and superclass relationships
-        { ?class rdfs:subClassOf ?link }
+        {
+          ?class rdfs:subClassOf ?link
+        }
         UNION
-        { ?link rdfs:subClassOf ?class }
+        {
+          ?link rdfs:subClassOf ?class 
+        }
         # object property domain/range usage
         UNION
         { 
-          VALUES ?ptype { owl:ObjectProperty rdf:Property }
-          ?p a ?ptype .
-          ?prop rdfs:domain|rdfs:range ?class .
-          BIND(?prop AS ?link)
+          VALUES ?predicate { rdfs:domain rdfs:range }
+          ?s ?predicate ?class .
+          BIND(?s AS ?link)
         }
       }
     }

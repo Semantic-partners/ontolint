@@ -6,5 +6,17 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    FILTER NOT EXISTS { ?ps rdfs:comment|dcterms:description|skos:definition ?lbl }
+    FILTER NOT EXISTS {
+      # Gather all comments
+      {
+        VALUES ?commentProperty { rdfs:comment dcterms:description skos:definition }
+        ?ps ?commentProperty ?comment .
+      }
+      UNION
+      {
+        ?ps ?predicate ?comment .
+        ?predicate a owl:AnnotationProperty ;
+        rdfs:subPropertyOf* rdfs:comment .
+      }
+    }
 }

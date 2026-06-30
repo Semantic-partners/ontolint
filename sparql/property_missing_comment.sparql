@@ -1,6 +1,42 @@
-SELECT DISTINCT ?p
+SELECT DISTINCT ?property
 WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  FILTER NOT EXISTS { ?p rdfs:comment|dcterms:description|skos:definition ?lbl }
+  # Gather OWL and RDFS properties.
+  {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
+    ?property a ?type .
+  }
+  UNION
+  {
+    ?property rdfs:subClassOf+ rdf:Property
+  }
+  UNION
+  {
+    ?property rdfs:subPropertyOf ?parent
+  }
+
+  FILTER NOT EXISTS {
+    # Gather all comments
+    {
+      VALUES ?commentProperty { rdfs:comment dcterms:description skos:definition }
+      ?property ?commentProperty ?comment
+    }
+    UNION
+    {
+      ?property ?predicate ?comment .
+      ?predicate a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:comment .
+    }
+  }
+
+  # Exclude deprecated properties
+  FILTER NOT EXISTS {
+    {
+      ?property a owl:DeprecatedProperty .
+    }
+    UNION
+    {
+      ?property owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
+  }
 }

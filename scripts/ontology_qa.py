@@ -436,7 +436,7 @@ def profiling(graph):
             }
         for row in results:
             elements['propertiesInPropertyShapes']['ps'].append(row.ps)
-            elements['propertiesInPropertyShapes']['propCount'].append(row.prop)
+            elements['propertiesInPropertyShapes']['propCount'].append(row.property)
 
     # Number of Deprecated Classes and Properties
     results = exec_sparql(graph, 'deprecated_class')
@@ -640,7 +640,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
     else:
-        results = exec_sparql(graph, 'no_ont_description')
+        results = exec_sparql(graph, 'owl_no_description')
         if not results:
             log += "PASS - All declared ontologies have a description.\n"
             metrics[check] = 0 # yes
@@ -649,7 +649,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
                 log_results = exec_sparql(graph, 'owl_description')
                 log += "\n**Ontology + Description:**\n"
                 for row in log_results:
-                    log += f" - {row.ont}\n   *{row.d}*\n"
+                    log += f" - {row.ont}\n   *{row.comment}*\n"
                 
         else:
             metrics[check] = len(results) #  violations
@@ -695,7 +695,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
             log_results = exec_sparql(graph, 'class_labels')
             log += "\n|  Class | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.c} | {row.lbl} |\n"
+                log += f"| {row.c} | {row.label} |\n"
             
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
@@ -744,7 +744,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
             log_results = exec_sparql(graph, 'property_labels')
             log += "|  Property | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.p} | {row.lbl} |\n"
+                log += f"| {row.property} | {row.label} |\n"
 
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
@@ -753,7 +753,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row.property for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -793,7 +793,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
             log_results = exec_sparql(graph, 'node_shape_labels')
             log += "|  NodeShape | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.ns} | {row.lbl} |\n"
+                log += f"| {row.ns} | {row.label} |\n"
             
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
@@ -842,7 +842,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
             log_results = exec_sparql(graph, 'property_shape_labels')
             log += "|  PropertyShape | Label |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.ps} | {row.lbl} |\n"
+                log += f"| {row.ps} | {row.label} |\n"
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
@@ -891,7 +891,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
             log_results = exec_sparql(graph, 'class_comments')
             log += "|  Class | Description |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.c} | {row.lbl} |\n"
+                log += f"| {row.c} | {row.comment} |\n"
     
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
@@ -940,7 +940,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
             log_results = exec_sparql(graph, 'property_comments')
             log += "| Property | Description |\n|--|--|\n"
             for row in log_results:
-                log += f"| {row.p} | {row.lbl} |\n"
+                log += f"| {row.property} | {row.comment} |\n"
     
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
@@ -949,7 +949,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row.property for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -989,7 +989,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
             results = exec_sparql(graph, 'node_shape_comments')
             log += "| NodeShape | Description |\n|--|--|\n"
             for row in results:
-                log += f"| {row.ns} | {row.lbl} |\n"
+                log += f"| {row.ns} | {row.comment} |\n"
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
     
@@ -1037,7 +1037,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
             results = exec_sparql(graph, 'property_shape_comments')
             log += "| PropertyShape | Description |\n|--|--|\n"
             for row in results:
-                log += f"| {row.ps} | {row.lbl} |\n"
+                log += f"| {row.ps} | {row.comment} |\n"
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
@@ -1340,7 +1340,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             if not verbose: log += "| Property | Domain | Range |\n|--|--|--|\n"
             status += 1
             for row in results:
-                predicate = row.p
+                predicate = row.property
                 if row.domain:
                     domain = row.domain
                 else:
@@ -1371,7 +1371,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
                 else:
                     range = 'None'
                 
-                log += f"| {row.p} | {domain} | {range} |\n"
+                log += f"| {row.property} | {domain} | {range} |\n"
             
             log  += "\n"
         
@@ -1417,7 +1417,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
         # Analyse the results
         if results:
             for row in results:
-                predicate = row.p
+                predicate = row.property
                 if not row.range:
                     rCount.append(predicate)
         
@@ -1647,7 +1647,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
-        string = violation_formatting([row.p for row in results])
+        string = violation_formatting([row.property for row in results])
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1755,6 +1755,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         for row in results
         if str(row.imp) not in ignored
     ]
+    import_urls.sort()
 
     if not import_urls:
         if ignored:
@@ -1786,9 +1787,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     
     def _check(failed):
         if failed in failed_imports:
-            return "❌"
+            return chr(10060) # X
         else:
-            return "✅"
+            return chr(9989)  # V
 
     if verbose:
         log += "\n| Ontology | Import URL | Resolves? |\n|--|--|--|\n"
@@ -1945,12 +1946,13 @@ def load_rdf_file(file):
         log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
         return False, graph, log
 
-def load_rdf(paths):
+def load_rdf(paths, verbose: bool = False):
     """
     Load RDF files from files or directories.
 
     Args:
         paths (list): List of file and/or directory paths.
+        verbose (bool): Logical flag for printing additional information during loading.
     
     Returns:
         file_counter (int): Number of files successfully loaded.
@@ -1984,8 +1986,9 @@ def load_rdf(paths):
 
     for file_path in files_to_load:
         success, file_graph, log_msg = load_rdf_file(file_path)
-        log_results += log_msg
+        if verbose: log_results += log_msg
         if success:
+            if not verbose: log_results += log_msg
             files_processed.append(file_path)
             file_counter += 1
             graph += file_graph
@@ -2035,31 +2038,29 @@ def lint_selection(selection, checklist):
         log = "> Lint configuration file found!\n"
         if 'enable' in selection and isinstance(selection['enable'], list):
             for i, item in enumerate(checklist):
-                if item[1].__name__ not in selection['enable']:
-                    checklist[i] = (False, item[1], item[2], item[3])
+                if item[1].__name__ not in selection['enable']: checklist[i][0] = False
 
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = True
             
             if 'check_property_missing_range' in selection['enable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index] = (True, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = True
         
         elif 'disable' in selection and isinstance(selection['disable'], list):
             for i, item in enumerate(checklist):
-                if item[1].__name__ in selection['disable']:
-                    checklist[i] = (False, item[1], item[2], item[3])
+                if item[1].__name__ in selection['disable']: checklist[i][0] = False
             
             # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
             if 'check_property_missing_domain' in selection['disable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = False
 
             if 'check_property_missing_range' in selection['disable']:
                 index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index] = (False, checklist[index][1], checklist[index][2], checklist[index][3])
+                checklist[index][0] = False
         
         elif selection:
             # Non-empty dict with no recognised top-level key
@@ -2075,42 +2076,53 @@ def lint_selection(selection, checklist):
         
         # 1. Enable owl-declaration if only owl-description is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
-            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            checklist[index_owl_declaration][0] = True
             log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
         
         # 2. Enable owl-declaration if only owl-imports is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
-            checklist[index_owl_declaration] = (True, checklist[index_owl_declaration][1], checklist[index_owl_declaration][2], checklist[index_owl_declaration][3])
+            checklist[index_owl_declaration][0] = True
             log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
         return checklist, log
 
 CHECKLIST = [
-    (True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ),
-    (True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ),
-    (True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ),
-    (True, check_undefined_terms,                "Undefined terms",                    'undefinedTerms'            ),
-    (True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ),
-    (True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ),
-    (True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ),
-    (True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ),
-    (True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ),
-    (True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'),
-    (True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ),
-    (True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ),
-    (True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ),
-    (True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ),
-    (True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ),
-    (True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ),
-    (True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ),
-    (True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ),
-    (True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ),
-    (True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ),
-    (True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ),
-    (True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ),
-    (True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ),
-    (True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ),
+    [True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ],
+    [True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ],
+    [True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ],
+    [True, check_undefined_terms,                "Undefined terms",                    'undefinedTerms'            ],
+    [True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ],
+    [True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ],
+    [True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ],
+    [True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ],
+    [True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ],
+    [True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'],
+    [True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ],
+    [True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ],
+    [True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ],
+    [True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ],
+    [True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ],
+    [True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ],
+    [True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ],
+    [True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ],
+    [True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ],
+    [True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ],
+    [True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ],
+    [True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ],
+    [True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ],
+    [True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ],
 ]
 
+def deepcopy_list(nested_list):
+    """
+    Creates a true deep copy of a list of lists (of lists...) 
+    using recursion.
+    """
+    # Base case: if the item is not a list, return it as-is (primitive value)
+    if not isinstance(nested_list, list):
+        return nested_list
+    
+    # Recursive case: map the function over every element in the list
+    return [deepcopy_list(item) for item in nested_list]
 
 def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None) -> QAResult:
     """
@@ -2119,7 +2131,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     Returns structured pass/fail results — no file I/O, no arg parsing.
     """
     if checklist is None:
-        checklist = CHECKLIST
+        checklist = deepcopy_list(CHECKLIST)
 
     qa_metrics = {
         'filesProcessed': files_processed or [],
@@ -2246,19 +2258,22 @@ def main():
 
     # Load Data and create an rdflib.Graph()
     log_output = "# Ontology Quality Assurance\n\n"
-    file_counter, files_processed, g, log_results = load_rdf(args.data_files)
+    file_counter, files_processed, g, log_results = load_rdf(args.data_files, verbose=args.verbose)
     log_output += log_results
 
     if file_counter == 0:
-        print(f"{log_output}\nERROR - No RDF data in input files or directories.")
+        log_output += "ERROR - No RDF data in input files or directories."  
+        qa_terminate(args.output, log_output)
+        if args.exit_status: sys.exit(1)
         return
 
     log_output += f"\n> {file_counter} files processed.\n"
     for f in files_processed:
-        log_output += f"- `{f}`\n"
+        log_output += f"> - `{f}`\n"
+    log_output += ">\n"
 
     # Apply lint config to enable/disable individual checks.
-    checklist = list(CHECKLIST)
+    checklist = deepcopy_list(CHECKLIST)
     ignore_imports = []
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
@@ -2271,7 +2286,7 @@ def main():
     # Simulate Inference (optional)
     if args.inference:
         g, inference_log = infer_subclass_relations(g)
-        log_output += inference_log
+        if not args.profile_only: log_output += inference_log
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
@@ -2280,7 +2295,8 @@ def main():
         metrics, violations = profiling(g)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
-        log_output += "\n> Profile-only mode enabled. Skipping additional QA checks.\n\n"
+        log_output += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
+        if args.inference: log_output += inference_log
         metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
         qa_metrics.update(metrics)
         qa_violations.update(violations)

@@ -5,17 +5,27 @@
 SELECT  ?classCount ?propertyCount
 WHERE {
  {
-   SELECT (COUNT(DISTINCT ?c) AS ?classCount)
+   SELECT (COUNT(DISTINCT ?class) AS ?classCount)
    WHERE {
     VALUES ?type { owl:Class rdfs:Class }
-    ?c a ?type .
+    ?class a ?type .
    }
  }
  {
-   SELECT (COUNT(DISTINCT ?p) AS ?propertyCount)
+   SELECT (COUNT(DISTINCT ?property) AS ?propertyCount)
    WHERE {
-    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-    ?p a ?type .
+    {
+      VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
+      ?property a ?type .
+    }
+    UNION
+    {
+      ?property rdfs:subClassOf+ rdf:Property
+    }
+    UNION
+    {
+      ?property rdfs:subPropertyOf ?parent
+    }
    }
  }
 }

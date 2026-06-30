@@ -7,7 +7,18 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    ?ps rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+
+    # Gather all labels
+    {
+      VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+      ?ps ?labelProperty ?label .
+    }
+    UNION
+    {
+      ?PropertyShape ?predicate ?label .
+      ?predicate a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:label .
+    }
 }
 GROUP BY ?label
 HAVING (COUNT(DISTINCT ?ps) > 1)

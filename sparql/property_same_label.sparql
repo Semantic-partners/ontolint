@@ -1,9 +1,43 @@
 # Properties with the same label
-SELECT ?label (GROUP_CONCAT(DISTINCT ?p; separator=", ") AS ?properties)
+SELECT ?label (GROUP_CONCAT(DISTINCT STR(?property); separator=", ") AS ?properties)
 WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property }
-  ?p a ?type .
-  ?p rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?label .
+  # Gather OWL and RDFS properties.
+  {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
+    ?property a ?type .
+  }
+  UNION
+  {
+    ?property rdfs:subClassOf+ rdf:Property
+  }
+  UNION
+  {
+    ?property rdfs:subPropertyOf ?parent
+  }
+  
+  # Gather all labels
+  {
+    VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+    ?property ?labelProperty ?label .
+  }
+  UNION
+  {
+    ?property ?predicate ?label .
+    ?predicate a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:label .
+  }
+  
+  # Exclude deprecated properties
+  FILTER NOT EXISTS {
+    {
+      ?property a owl:DeprecatedProperty .
+    }
+    UNION
+    {
+      ?property owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
+  }
 }
 GROUP BY ?label
-HAVING (COUNT(DISTINCT ?p) > 1)
+HAVING (COUNT(DISTINCT ?property) > 1)

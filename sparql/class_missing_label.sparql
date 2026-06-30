@@ -2,6 +2,31 @@ SELECT DISTINCT ?c
 WHERE {
   VALUES ?type { owl:Class rdfs:Class }
   ?c a ?type .
-  FILTER NOT EXISTS { ?c rdfs:label|skos:prefLabel|skos:altLabel|skos:hiddenLabel ?lbl }
+  FILTER NOT EXISTS {
+    # Gather all labels
+    {
+      VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+      ?c ?labelProperty ?label .
+    }
+    UNION
+    {
+      ?c ?predicate ?label .
+      ?predicate a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:label .
+    }
+  }
+  # exclude blank nodes
+  FILTER(isIRI(?c))
+  # Exclude deprecated classes
+  FILTER NOT EXISTS {
+    {
+      ?c a owl:DeprecatedClass .
+    }
+    UNION
+    {
+      ?c owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
+  }
 }
 

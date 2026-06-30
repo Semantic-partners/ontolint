@@ -118,13 +118,13 @@ For example, the test ontology [`example_failure.ttl`](tests/example_failure.ttl
 
 | Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported | Hierarchy depth | Ave branching factor | Cardinality restrictions |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | 66 | 11 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 6 | 1 | 0 | 3.500 | 0 |
+| http://my.ont.example# | 68 | 11 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 6 | 2 | 0 | 3.500 | 0 |
 
-### Quality Metrics
+### Quality Assurance Metrics
 
-| Name | Ontology not declared | Ontology without description | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | 0 | 1 | 0.636 | 0.800 | 0.667 | 1 | 0.909 | 1 | 1 | 1 | 0.091 | 0 | 0 | 0 | 0.273 | 0 | 0.400 | 1 | 0 | 3 | 0 | 1 |
+| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+| http://my.ont.example# | 0 | 0 | 1 | 0.636 | 0.800 | 0.667 | 1 | 0.909 | 1 | 1 | 1 | 0.091 | 0 | 0 | 0 | 0.273 | 0 | 0.400 | 1 | 0 | 3 | 0 | 1 |
 
 ### Batch Processing
 

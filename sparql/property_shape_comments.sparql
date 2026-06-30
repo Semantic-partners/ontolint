@@ -1,4 +1,4 @@
-SELECT DISTINCT ?ps ?lbl
+SELECT DISTINCT ?ps ?comment
 WHERE {
     {
      	?ps a sh:PropertyShape  
@@ -6,5 +6,15 @@ WHERE {
       	?ns sh:property ?ps .
       	FILTER(isBlank(?ps)) .
     }
-    ?ps rdfs:comment|dcterms:description|skos:definition ?lbl
+    # Gather all comments
+    {
+        VALUES ?commentProperty { rdfs:comment dcterms:description skos:definition }
+        ?ps ?commentProperty ?comment .
+    }
+    UNION
+    {
+        ?ps ?predicate ?comment .
+        ?predicate a owl:AnnotationProperty ;
+        rdfs:subPropertyOf* rdfs:comment .
+    }
 }

@@ -1,6 +1,6 @@
 import os
 import pytest
-from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECKLIST
+from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECKLIST, deepcopy_list
 
 
 # ── parse_lint_config ─────────────────────────────────────────────────────────
@@ -57,10 +57,6 @@ def test_parse_lint_config_missing_file_raises(tmp_path):
 
 # ── lint_selection ────────────────────────────────────────────────────────────
 
-def _checklist_copy():
-    return list(CHECKLIST)
-
-
 def _enabled_names(checklist):
     return {item[1].__name__ for item in checklist if item[0]}
 
@@ -70,7 +66,7 @@ def _disabled_names(checklist):
 
 
 def test_lint_selection_disable_removes_check():
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"disable": ["check_hijacking"]}
     checklist, _ = lint_selection(selection, checklist)
     assert "check_hijacking" in _disabled_names(checklist)
@@ -78,7 +74,7 @@ def test_lint_selection_disable_removes_check():
 
 
 def test_lint_selection_disable_multiple_checks():
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"disable": ["check_hijacking", "check_isolated_classes"]}
     checklist, _ = lint_selection(selection, checklist)
     disabled = _disabled_names(checklist)
@@ -87,7 +83,7 @@ def test_lint_selection_disable_multiple_checks():
 
 
 def test_lint_selection_enable_only_keeps_listed_checks():
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"enable": ["check_class_missing_label", "check_property_missing_label"]}
     checklist, _ = lint_selection(selection, checklist)
     enabled = _enabled_names(checklist)
@@ -96,7 +92,7 @@ def test_lint_selection_enable_only_keeps_listed_checks():
 
 def test_lint_selection_enable_uses_first_key_when_both_present():
     # enable takes precedence over disable (first key wins)
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"enable": ["check_class_missing_label"], "disable": ["check_hijacking"]}
     checklist, _ = lint_selection(selection, checklist)
     enabled = _enabled_names(checklist)
@@ -105,7 +101,7 @@ def test_lint_selection_enable_uses_first_key_when_both_present():
 
 
 def test_lint_selection_invalid_key_produces_warning():
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"unknown-key": ["check_class_missing_label"]}
     checklist, log = lint_selection(selection, checklist)
     assert "WARNING" in log
@@ -114,7 +110,7 @@ def test_lint_selection_invalid_key_produces_warning():
 
 
 def test_lint_selection_disable_domain_leaves_range_enabled():
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"disable": ["check_property_missing_domain"]}
     checklist, _ = lint_selection(selection, checklist)
     domain_entry = next(item for item in checklist if item[3] == 'missingDomain')
@@ -124,7 +120,7 @@ def test_lint_selection_disable_domain_leaves_range_enabled():
 
 
 def test_lint_selection_disable_range_leaves_domain_enabled():
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     selection = {"disable": ["check_property_missing_range"]}
     checklist, _ = lint_selection(selection, checklist)
     domain_entry = next(item for item in checklist if item[3] == 'missingDomain')
@@ -143,7 +139,7 @@ def test_enable_single_check_passes_when_satisfied(make_graph):
     g = make_graph("""
     :Cat a owl:Class ; rdfs:label "Cat" .
     """)
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     checklist, _ = lint_selection({"enable": ["check_class_missing_label"]}, checklist)
     result = run_qa(g, checklist=checklist)
     assert result.get("Class without label").passed
@@ -153,7 +149,7 @@ def test_enable_additional_check_exposes_violation(make_graph):
     g = make_graph("""
     :Cat a owl:Class ; rdfs:label "Cat" .
     """)
-    checklist = _checklist_copy()
+    checklist = deepcopy_list(CHECKLIST)
     checklist, _ = lint_selection(
         {"enable": ["check_class_missing_label", "check_class_missing_comment"]}, checklist
     )
