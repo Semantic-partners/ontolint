@@ -367,6 +367,8 @@ def print_profiling_metrics(metrics, elements, verbose):
         log += "\n"
     
     log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
+    if metrics['HierarchyDepth'] == "N/A":
+        log += "WARNING - The ontology contains cycles in the subclass hierarchy, so the hierarchy depth cannot be computed.\n"
     log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
     log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
     return log
@@ -515,6 +517,8 @@ def exec_hierarchy_depth(graph):
         G.add_edge(str(parent), str(child))
     if not G.nodes:
         return 0
+    if not nx.is_directed_acyclic_graph(G):
+        return "N/A"
     return nx.dag_longest_path_length(G)
 
 def infer_subclass_relations(graph):
