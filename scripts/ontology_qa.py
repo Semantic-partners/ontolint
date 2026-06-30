@@ -17,6 +17,7 @@ import json
 from datetime import datetime
 from dataclasses import dataclass, field
 import yaml
+import networkx as nx
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.argv[0])) + '/../sparql') # Use ENV variable or default value.
@@ -492,9 +493,7 @@ def profiling(graph):
             elements['imports'][str(row.ontology)].append(str(row.imp))
     
     # hierarchy depth
-    results = exec_sparql(graph, 'hierarchy_depth')
-    (row,) = results
-    metrics['HierarchyDepth'] = row.maxDepth
+    metrics['HierarchyDepth'] = exec_hierarchy_depth(graph)
     
     # average branching factor
     results = exec_sparql(graph, 'average_branching_factor')
@@ -507,6 +506,16 @@ def profiling(graph):
     metrics['CardinalityRestrictions'] = row.counter
 
     return metrics, elements
+
+def exec_hierarchy_depth(graph):
+    """Compute the hierarchy depth of the ontology by constructing a directed graph of subclass relationships"""
+    results = exec_sparql(graph, 'hierarchy_depth')
+    G = nx.DiGraph()
+    for child, parent in results:
+        G.add_edge(str(parent), str(child))
+    if not G.nodes:
+        return 0
+    return nx.dag_longest_path_length(G)
 
 def infer_subclass_relations(graph):
     """
