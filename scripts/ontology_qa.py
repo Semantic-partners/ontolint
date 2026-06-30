@@ -20,7 +20,7 @@ import yaml
 import networkx as nx
 
 # Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.argv[0])) + '/../sparql') # Use ENV variable or default value.
+sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
 
 # check that the directory exists
 if not os.path.isdir(sparql_dir):
