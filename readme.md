@@ -48,13 +48,18 @@ optional arguments:
                         Path to write the CTRF markdown report file.
 ```
 
-## Dev setup
+## Dev setup & Running Ontolint locally
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.
 
 To test the script works, run the script using the example file:
 ```poetry run scripts/ontology_qa.py tests/example_pass.ttl```
 
-It should generate a JSON files in the ctrf directory.
+It should generate a JSON files in the `ctrf/` directory.
+
+To generate a markdown report, run the generate report script:
+```poetry run scripts/generate_custom_report.py```
+
+This generates a markdown file from any JSON files in the `ctrf/` directory and saves it to the `out/` directory
 
 ## New features
 
