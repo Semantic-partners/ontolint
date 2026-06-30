@@ -177,6 +177,10 @@ def print_profiling_table(metrics):
     """
 
     name = get_ontology_name(metrics)
+    if metrics['HierarchyDepth'] == -1:
+        HierarchyDepth = "N/A"
+    else:
+        HierarchyDepth = metrics['HierarchyDepth']
     log = "\n## Profiling Metrics\n"
     log += "| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
     log += "| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported "
@@ -184,7 +188,7 @@ def print_profiling_table(metrics):
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} "
     log += f"| {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} "
-    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} | {metrics['HierarchyDepth']} | {normalise(metrics['aveBranchFactor'], 1)} | {metrics['CardinalityRestrictions']} |\n"
+    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} | {HierarchyDepth} | {normalise(metrics['aveBranchFactor'], 1)} | {metrics['CardinalityRestrictions']} |\n"
     return log
 
 def print_qa_table(metrics, checks):
@@ -366,9 +370,11 @@ def print_profiling_metrics(metrics, elements, verbose):
             for res in elements['imports'][ont]: log += f"  - {res}\n" 
         log += "\n"
     
-    log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
-    if metrics['HierarchyDepth'] == "N/A":
+    if metrics['HierarchyDepth'] == -1:
+        log += "Hierarchy depth: N/A\n"
         log += "WARNING - The ontology contains cycles in the subclass hierarchy, so the hierarchy depth cannot be computed.\n"
+    else:
+        log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
     log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
     log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
     return log
@@ -518,7 +524,7 @@ def exec_hierarchy_depth(graph):
     if not G.nodes:
         return 0
     if not nx.is_directed_acyclic_graph(G):
-        return "N/A"
+        return -1
     return nx.dag_longest_path_length(G)
 
 def infer_subclass_relations(graph):
