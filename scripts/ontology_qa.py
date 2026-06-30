@@ -2211,15 +2211,11 @@ def write_lint_config(checklist):
         name = item[1].__name__.replace("check_", "").replace("_", "-")
         sequence.append(name)
     
-    for item in sequence:
-        if item == "property-missing-domain-range":
-            index = sequence.index(item)
-            sequence[index] = "property-missing-domain"
-        # Do it again :)
-        if item == "property-missing-domain-range":
-            index = sequence.index(item)
-            sequence[index] = "property-missing-range"
-    
+    # Replace the "property-missing-domain-range" check with two separate checks for domain and range.
+    sequence.remove("property-missing-domain-range")
+    sequence.remove("property-missing-domain-range")
+    sequence.append("property-missing-domain")
+    sequence.append("property-missing-range")
     sequence.sort()
 
     with open(path, 'w', encoding='utf-8') as f:
