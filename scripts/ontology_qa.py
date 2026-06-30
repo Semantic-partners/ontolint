@@ -2140,7 +2140,6 @@ def deepcopy_list(nested_list):
 def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
-    Applies RDFS subclass inference in-place, then runs all checks.
     Returns structured pass/fail results — no file I/O, no arg parsing.
     """
     if checklist is None:
