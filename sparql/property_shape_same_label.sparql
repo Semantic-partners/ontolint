@@ -15,7 +15,7 @@ WHERE {
     }
     UNION
     {
-      ?PropertyShape ?predicate ?label .
+      ?ps ?predicate ?label .
       ?predicate a owl:AnnotationProperty ;
       rdfs:subPropertyOf* rdfs:label .
     }
