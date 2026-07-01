@@ -39,9 +39,11 @@
 #   - isolated-classes
 #   - property-missing-domain
         
-# Exclude certain URLs from resolvability check. 
-# Works on string matching, use URL only, do not include the ? or # at the end if pasting from a prefix.
-# ignore-imports:
-#   -  http://www.example.com
-#   - http://www.w3.org/ns/shacl
-#   - https://schema.org/
+# Exclude certain URLs from resolvability check or provide local mappings for an imported IRI.
+# Given a local mapping, the script will not try and resolve the URL. 
+imports:
+  ignore:
+    - http://www.example.com     # skip this URL entirely
+  local:
+    http://www.example.com: local/tests/external.ttl   # used by owl:imports check
+#     http://namespace.example.org#: local/ns.ttl          # used by undefined-terms check

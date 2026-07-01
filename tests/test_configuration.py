@@ -8,46 +8,88 @@ from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECK
 def test_parse_lint_config_disable_transforms_keys(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text("disable:\n  - class-missing-label\n  - hijacking\n")
-    result, ignore = parse_lint_config(str(cfg))
+    result, ignore, local = parse_lint_config(str(cfg))
     assert result == {"disable": ["check_class_missing_label", "check_hijacking"]}
     assert ignore == []
+    assert local == {}
 
 
 def test_parse_lint_config_enable_transforms_keys(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text("enable:\n  - class-missing-label\n")
-    result, ignore = parse_lint_config(str(cfg))
+    result, ignore, local = parse_lint_config(str(cfg))
     assert result == {"enable": ["check_class_missing_label"]}
     assert ignore == []
+    assert local == {}
 
 
 def test_parse_lint_config_empty_file_returns_disable_empty(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text("")
-    result, ignore = parse_lint_config(str(cfg))
+    result, ignore, local = parse_lint_config(str(cfg))
     assert result == {"disable": []}
     assert ignore == []
+    assert local == {}
 
 
-def test_parse_lint_config_ignore_imports_returned_separately(tmp_path):
+def test_parse_lint_config_imports_ignore_returned_separately(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text(
         "disable:\n  - hijacking\n"
-        "ignore-imports:\n"
-        "  - http://www.w3.org/ns/shacl\n"
-        "  - https://schema.org/\n"
+        "imports:\n"
+        "  ignore:\n"
+        "    - http://www.w3.org/ns/shacl\n"
+        "    - https://schema.org/\n"
     )
-    result, ignore = parse_lint_config(str(cfg))
+    result, ignore, local = parse_lint_config(str(cfg))
     assert result == {"disable": ["check_hijacking"]}
     assert ignore == ["http://www.w3.org/ns/shacl", "https://schema.org/"]
+    assert local == {}
 
 
-def test_parse_lint_config_ignore_imports_only(tmp_path):
+def test_parse_lint_config_imports_ignore_only(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("ignore-imports:\n  - http://example.org/ont\n")
-    result, ignore = parse_lint_config(str(cfg))
+    cfg.write_text("imports:\n  ignore:\n    - http://example.org/ont\n")
+    result, ignore, local = parse_lint_config(str(cfg))
     assert result == {}
     assert ignore == ["http://example.org/ont"]
+    assert local == {}
+
+
+def test_parse_lint_config_imports_local_absolute_path(tmp_path):
+    local_file = tmp_path / "copy.ttl"
+    local_file.write_text("")
+    cfg = tmp_path / ".rdf-lint.yml"
+    cfg.write_text(
+        f"imports:\n  local:\n    http://remote.example.org/ont.ttl: {local_file}\n"
+    )
+    result, ignore, local = parse_lint_config(str(cfg))
+    assert ignore == []
+    assert local == {"http://remote.example.org/ont.ttl": str(local_file)}
+
+
+def test_parse_lint_config_imports_local_relative_path_resolved(tmp_path):
+    cfg = tmp_path / ".rdf-lint.yml"
+    cfg.write_text(
+        "imports:\n  local:\n    http://remote.example.org/ont.ttl: copy.ttl\n"
+    )
+    _, _, local = parse_lint_config(str(cfg))
+    expected = str(tmp_path / "copy.ttl")
+    assert local == {"http://remote.example.org/ont.ttl": expected}
+
+
+def test_parse_lint_config_imports_ignore_and_local_together(tmp_path):
+    cfg = tmp_path / ".rdf-lint.yml"
+    cfg.write_text(
+        "imports:\n"
+        "  ignore:\n"
+        "    - http://ignored.invalid/ont.ttl\n"
+        "  local:\n"
+        "    http://remote.example.org/ont.ttl: copy.ttl\n"
+    )
+    result, ignore, local = parse_lint_config(str(cfg))
+    assert ignore == ["http://ignored.invalid/ont.ttl"]
+    assert "http://remote.example.org/ont.ttl" in local
 
 
 def test_parse_lint_config_missing_file_raises(tmp_path):

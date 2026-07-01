@@ -1722,7 +1722,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore_imports=None):
+def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore_imports=None, local_imports=None):
     """
     QA test verifying that all owl:imports URLs resolve and contain triples.
 
@@ -1750,6 +1750,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     violations[check] = ""
 
     ignored = set(ignore_imports or [])
+    local_map = local_imports or {}
     import_urls = [
         (str(row.ontology), str(row.imp))
         for row in results
@@ -1769,7 +1770,8 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     for _, import_url in import_urls:
         try:
             tmp = rdflib.Graph()
-            tmp.parse(import_url)
+            source = local_map.get(import_url, import_url)
+            tmp.parse(source)
             if len(tmp) == 0:
                 failed_imports.append(import_url)
         except Exception:
@@ -1996,6 +1998,19 @@ def load_rdf(paths, verbose: bool = False):
 
     return file_counter, files_processed, graph, log_results
 
+def _collect_files(paths):
+    """Expand a list of file/directory paths into a flat list of individual file paths."""
+    result = []
+    for path in paths:
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for f in sorted(files):
+                    result.append(os.path.join(root, f))
+        else:
+            result.append(path)
+    return result
+
+
 def parse_lint_config(config):
     """
     Parse configuration dictionary to switch on/off selected metrics.
@@ -2005,7 +2020,11 @@ def parse_lint_config(config):
 
     Returns:
         transformed_selection (dict): User-selected metrics.
-        ignore_imports (list): Import URLs that should be skipped by the resolvability check.
+        ignore_imports (list): Import URLs skipped by the resolvability check.
+        local_imports (dict): Mapping of remote URL -> local file path; used by both
+            the owl:imports check (keyed on import URL) and the undefined-terms check
+            (keyed on namespace URI).  Relative paths are resolved relative to the
+            config file's directory.
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -2017,9 +2036,16 @@ def parse_lint_config(config):
             raise ValueError(f"Invalid YAML in config file: {e}")
 
     if selection is None:
-        selection = { "disable": [] }
+        selection = {"disable": []}
 
-    ignore_imports = [str(u) for u in selection.pop("ignore-imports", None) or []]
+    imports_section = selection.pop("imports", None) or {}
+    ignore_imports = [str(u) for u in (imports_section.get("ignore") or [])]
+    raw_local = imports_section.get("local") or {}
+    config_dir = os.path.dirname(os.path.abspath(config))
+    local_imports = {
+        str(url): (path if os.path.isabs(path) else os.path.join(config_dir, path))
+        for url, path in raw_local.items()
+    }
 
     # Transform the dictionary (check enable/disable keys only)
     transformed_selection = {
@@ -2027,7 +2053,7 @@ def parse_lint_config(config):
         for key, value_list in selection.items()
     }
 
-    return transformed_selection, ignore_imports
+    return transformed_selection, ignore_imports, local_imports
 
 def lint_selection(selection, checklist):
         """
@@ -2124,7 +2150,7 @@ def deepcopy_list(nested_list):
     # Recursive case: map the function over every element in the list
     return [deepcopy_list(item) for item in nested_list]
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Applies RDFS subclass inference in-place, then runs all checks.
@@ -2151,8 +2177,19 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
             kwargs = {}
             if func is check_owl_imports:
                 kwargs["ignore_imports"] = ignore_imports
-            if func is check_undefined_terms and uri_parser is not None:
-                kwargs["uri_parser"] = uri_parser
+                kwargs["local_imports"] = local_imports
+            if func is check_undefined_terms:
+                if uri_parser is not None:
+                    kwargs["uri_parser"] = uri_parser
+                elif local_imports:
+                    _lm = local_imports
+                    def _make_parser(lm):
+                        def _parser(uri):
+                            if uri in lm:
+                                return rdflib.Graph().parse(lm[uri])
+                            return rdflib.Graph().parse(uri)
+                        return _parser
+                    kwargs["uri_parser"] = _make_parser(_lm)
             metrics, violations, log_results, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
@@ -2225,11 +2262,56 @@ def write_lint_config(checklist):
 #   - hijacking
 #   - isolated-classes
 #   - property-missing-domain\n
-# Skip the resolvability check entirely for specific imported ontologies
-# ignore-imports:
-#   - http://www.w3.org/ns/shacl
-#   - https://schema.org/
+# Import settings: ignore or substitute remote imports with local files.
+# Keys under 'local' match owl:imports URLs (for the resolvability check) or
+# namespace URIs like 'https://schema.org/' (for the undefined-terms check).
+# Relative paths are resolved relative to this config file.
+# imports:
+#   ignore:
+#     - http://www.w3.org/ns/shacl
+#   local:
+#     https://schema.org/: local/schema.ttl
         """)
+
+def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None):
+    """
+    Run inference (if requested), then profiling or full QA on an already-loaded graph.
+    Returns (log_str, QAResult|None) — None in profile-only mode.
+    """
+    log = ""
+    inference_log = ""
+    if args.inference:
+        g, inference_log = infer_subclass_relations(g)
+        if not args.profile_only:
+            log += inference_log
+
+    if args.profile_only:
+        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
+        qa_elements = {}
+        metrics, elements = profiling(g)
+        qa_metrics.update(metrics)
+        qa_elements.update(elements)
+        log += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
+        if args.inference:
+            log += inference_log
+        metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
+        qa_metrics.update(metrics)
+        qa_elements.update(violations)
+        log += print_profiling_metrics(qa_metrics, qa_elements, args.verbose)
+        log += print_profiling_table(qa_metrics)
+        return log, None
+
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports)
+    qa_metrics = result.profiling
+    qa_tests = {key: enabled for enabled, _, _, key in checklist}
+    log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
+    log += "\n## Quality Assurance Checks\n"
+    for entry in result.logs:
+        log += entry
+    log += print_profiling_table(qa_metrics)
+    log += print_qa_table(qa_metrics, qa_tests)
+    return log, result
+
 
 def main():
     # Set up argument parser
@@ -2238,16 +2320,17 @@ def main():
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')
-    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks.(default: False)')
+    parser.add_argument('-i', '--inference', action='store_true', help='Enable inference of subclass relations before running QA checks.(default: False)')
+    parser.add_argument('--per-file', action='store_true', help='Run QA independently on each input file and produce a separate report per file.')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
-    parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
-    parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
+    parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern). Ignored with --per-file.')
+    parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout. Ignored with --per-file.')
     parser.add_argument('-c', '--config', type=str, metavar='path/to/config.yml', help='Path to a YAML configuration file to enable or disable individual checks. Note that if the current directory contains a .rdf-lint.yml file, it will be used by default.')
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
 
-    # Validate arguments: data_files is required unless -i is used.
+    # Validate arguments: data_files is required unless --init is used.
     if not args.init and not args.data_files:
         parser.error("data_files is required unless -i/--init option is used")
 
@@ -2256,13 +2339,58 @@ def main():
         write_lint_config(CHECKLIST)
         exit(0)
 
-    # Load Data and create an rdflib.Graph()
+    # Apply lint config (shared by both single-run and per-file modes).
+    checklist = deepcopy_list(CHECKLIST)
+    ignore_imports = []
+    local_imports = {}
+    config_log = ""
+    config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
+    if args.config or os.path.isfile(config_path):
+        if args.config:
+            config_path = args.config
+        lint_config, ignore_imports, local_imports = parse_lint_config(config_path)
+        checklist, config_log = lint_selection(lint_config, checklist)
+
+    # Per-file mode: process each input file independently.
+    if args.per_file:
+        individual_files = _collect_files(args.data_files)
+        if not individual_files:
+            print("ERROR - No files found in specified paths.")
+            return
+        any_violation = False
+        for fp in individual_files:
+            log_output = "# Ontology Quality Assurance\n\n"
+            if config_log:
+                log_output += config_log
+            file_counter, files_processed, g, load_log = load_rdf([fp], verbose=args.verbose)
+            log_output += load_log
+            if file_counter == 0:
+                log_output += f"ERROR - No RDF data in: {fp}"
+                qa_terminate(None, log_output)
+                continue
+            log_output += f"\n> {file_counter} file processed.\n"
+            for f in files_processed:
+                log_output += f"> - `{f}`\n"
+            log_output += ">\n"
+            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports)
+            log_output += qa_log
+            if result is not None:
+                stem = os.path.splitext(os.path.basename(fp))[0]
+                write_ctrf_report(result, args.ctrf_dir, f"{stem}-qa-report.json")
+                if not result.passed:
+                    any_violation = True
+            qa_terminate(None, log_output)
+        if args.exit_status and any_violation:
+            sys.exit(1)
+        return
+
+    # Single-run (default) mode.
     log_output = "# Ontology Quality Assurance\n\n"
     file_counter, files_processed, g, log_results = load_rdf(args.data_files, verbose=args.verbose)
     log_output += log_results
 
     if file_counter == 0:
-        log_output += "ERROR - No RDF data in input files or directories."  
+        log_output += "ERROR - No RDF data in input files or directories."
         qa_terminate(args.output, log_output)
         if args.exit_status: sys.exit(1)
         return
@@ -2271,58 +2399,18 @@ def main():
     for f in files_processed:
         log_output += f"> - `{f}`\n"
     log_output += ">\n"
+    if config_log:
+        log_output += config_log
 
-    # Apply lint config to enable/disable individual checks.
-    checklist = deepcopy_list(CHECKLIST)
-    ignore_imports = []
-    config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
-    if args.config or os.path.isfile(config_path):
-        if args.config:
-            config_path = args.config
-        lint_config, ignore_imports = parse_lint_config(config_path)
-        checklist, log_results = lint_selection(lint_config, checklist)
-        log_output += log_results
-       
-    # Simulate Inference (optional)
-    if args.inference:
-        g, inference_log = infer_subclass_relations(g)
-        if not args.profile_only: log_output += inference_log
+    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports)
+    log_output += qa_log
 
-    # Profile-only path: compute profiling metrics only, skip full QA
-    if args.profile_only:
-        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
-        qa_violations = {}
-        metrics, violations = profiling(g)
-        qa_metrics.update(metrics)
-        qa_violations.update(violations)
-        log_output += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        if args.inference: log_output += inference_log
-        metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
-        qa_metrics.update(metrics)
-        qa_violations.update(violations)
-        log_output += print_profiling_metrics(qa_metrics, qa_violations, args.verbose)
-        log_output += print_profiling_table(qa_metrics)
-        qa_terminate(args.output, log_output)
-        return
-
-    # Full QA path
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports)
-    qa_metrics = result.profiling
-    qa_tests = {key: enabled for enabled, _, _, key in checklist}
-
-    log_output += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
-    log_output += "\n## Quality Assurance Checks\n"
-    for log in result.logs:
-        log_output += log
-
-    log_output += print_profiling_table(qa_metrics)
-    log_output += print_qa_table(qa_metrics, qa_tests)
-
-    write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
+    if result is not None:
+        write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
 
     qa_terminate(args.output, log_output)
 
-    if args.exit_status and not result.passed:
+    if result is not None and args.exit_status and not result.passed:
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -100,3 +100,46 @@ def test_no_inference(tmp_path, capsys):
     run_main(str(ttl))
     out = capsys.readouterr().out
     assert "| inference_test.ttl | 4 | 2 | 0 |" in out
+
+
+# ── --per-file ────────────────────────────────────────────────────────────────
+
+def test_per_file_produces_one_ctrf_per_file(tmp_path):
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path))
+    reports = {r.name for r in tmp_path.glob('*.json')}
+    assert 'example_pass-qa-report.json' in reports
+    assert 'example_failure-qa-report.json' in reports
+    assert len(reports) == 2
+
+
+def test_per_file_ctrf_contents_reflect_individual_file(tmp_path):
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path))
+    pass_data = json.loads((tmp_path / 'example_pass-qa-report.json').read_text())
+    fail_data = json.loads((tmp_path / 'example_failure-qa-report.json').read_text())
+    assert pass_data['results']['summary']['failed'] == 0
+    assert fail_data['results']['summary']['failed'] > 0
+
+
+def test_per_file_exit_status_raised_when_any_file_fails(tmp_path):
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    with pytest.raises(SystemExit) as exc:
+        run_main(pass_ttl, fail_ttl, '--per-file', '-e', '--ctrf-dir', str(tmp_path))
+    assert exc.value.code == 1
+
+
+def test_per_file_exit_status_zero_when_all_pass(tmp_path):
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    run_main(pass_ttl, '--per-file', '-e', '--ctrf-dir', str(tmp_path))  # must not raise
+
+
+def test_per_file_output_contains_header_per_file(tmp_path, capsys):
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path))
+    out = capsys.readouterr().out
+    assert out.count('# Ontology Quality Assurance') == 2

@@ -201,3 +201,40 @@ def test_violation_elements_lists_undefined_uri(make_graph):
     """)
     check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
     assert "http://example.org#Mammal" in check.elements
+
+
+# ── local_imports substitution ────────────────────────────────────────────────
+
+def test_local_imports_substitutes_namespace_fetch(make_graph, tmp_path):
+    import rdflib as _rdflib
+    local_file = tmp_path / "remote_ns.ttl"
+    local_file.write_text(
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
+        "<http://remote.example.org#Mammal> a owl:Class .\n"
+    )
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
+    """)
+    check = run_qa(
+        g, local_imports={"http://remote.example.org#": str(local_file)}
+    ).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
+
+
+def test_local_imports_term_absent_in_local_file_fails(make_graph, tmp_path):
+    local_file = tmp_path / "remote_ns.ttl"
+    local_file.write_text(
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
+        "<http://remote.example.org#Other> a owl:Class .\n"
+    )
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
+    """)
+    check = run_qa(
+        g, local_imports={"http://remote.example.org#": str(local_file)}
+    ).get(CHECK_NAME)
+    assert not check.passed
+    assert check.count == 1
