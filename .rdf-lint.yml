@@ -43,7 +43,7 @@
 # Given a local mapping, the script will not try and resolve the URL. 
 imports:
   ignore:
-    - http://www.example.com     # skip this URL entirely
+    - http://www.ignored.com     # skip this URL entirely
   local:
     http://www.example.com: local/tests/external.ttl   # used by owl:imports check
 #     http://namespace.example.org#: local/ns.ttl          # used by undefined-terms check
