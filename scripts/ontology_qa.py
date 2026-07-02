@@ -87,6 +87,18 @@ def get_namespace(uri):
             return base + '/'
     return uri  # fallback
 
+TRUSTED_NAMESPACES = frozenset({
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "http://www.w3.org/2000/01/rdf-schema#",
+    "http://www.w3.org/2002/07/owl#",
+    "http://www.w3.org/2001/XMLSchema#",
+    "http://www.w3.org/ns/shacl#",
+    "http://www.w3.org/2004/02/skos/core#",
+    "http://purl.org/dc/terms/",
+    "http://purl.org/dc/elements/1.1/",
+    "http://xmlns.com/foaf/0.1/",
+})
+
 def prefixes(g):
     # Create a dictionary for the declared prefixes
     declared_prefixes = {}
@@ -1865,10 +1877,13 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         return metrics, violations, log, c, status
 
     # Collect every HTTP namespace used that falls outside the local namespace(s)
+    # and is not a well-known standard vocabulary (trusted to always define their terms).
     remote_namespaces = set()
     for uri in used_terms:
         ns = get_namespace(uri)
-        if ns.startswith(('http://', 'https://')) and ns not in local_namespaces:
+        if (ns.startswith(('http://', 'https://'))
+                and ns not in local_namespaces
+                and ns not in TRUSTED_NAMESPACES):
             remote_namespaces.add(ns)
 
     # Fetch each remote namespace and collect the subjects it defines
@@ -1893,29 +1908,35 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
 
     # A term is undefined if it is used but:
     # - not in known_terms, AND
-    # - its namespace is either local (we have the full graph) or was successfully fetched
+    # - its namespace is either local (we have the full graph) or was successfully fetched.
+    # Terms from namespaces that failed to fetch are included as (fetch failure) violations.
     undefined_terms = []
+    fetch_failure_terms = []
     for uri in sorted(used_terms):
         if uri in known_terms:
             continue
         ns = get_namespace(uri)
         if not ns.startswith(('http://', 'https://')):
             continue
-        if ns in local_namespaces:
+        if ns in TRUSTED_NAMESPACES:
+            continue
+        elif ns in local_namespaces:
             undefined_terms.append(uri)
-        # if the term is not from a local namespace, and its namespace resolves but it's not known,
-        # then it is undef. What to do with the term when the namespace is a fetch failure?
-        elif ns not in fetch_failures:
+        elif ns in fetch_failures:
+            fetch_failure_terms.append(uri)
+        else:
             undefined_terms.append(uri)
 
-    if not undefined_terms:
+    all_violations = undefined_terms + [f"{uri} (fetch failure)" for uri in fetch_failure_terms]
+
+    if not all_violations:
         log += "PASS - All used terms are defined locally or in their respective remote ontologies.\n"
         if verbose:
-            log += f"\nChecked {len(used_terms)} term(s) across {len(remote_namespaces) - len(fetch_failures)} remote namespace(s).\n"
+            log += f"\nChecked {len(used_terms)} term(s) across {len(remote_namespaces)} remote namespace(s).\n"
     else:
-        metrics[check] = len(undefined_terms)
+        metrics[check] = len(all_violations)
         status += 1
-        string = violation_formatting(undefined_terms)
+        string = violation_formatting(all_violations)
         violations[check] = string
         log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
@@ -1923,12 +1944,6 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         log += f"\n> NOTE - {len(applied_subs)} namespace(s) resolved from local file(s):\n"
         for ns, path in sorted(applied_subs):
             log += f">   `{ns}` → `{path}`\n"
-
-    # do we want unresolved namespaces to be skipped or treated as a fail condition?
-    if fetch_failures:
-        log += f"\nWARNING - Could not fetch {len(fetch_failures)} namespace(s); terms from these were not checked:\n"
-        for ns in sorted(fetch_failures):
-            log += f" - {ns}\n"
 
     if not local_namespaces:
         log += "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.\n"

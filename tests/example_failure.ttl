@@ -11,7 +11,6 @@
   rdfs:label "Animal Ontology" ;
     rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
     owl:imports <htt://www.exmp.com>  .
-# Local mapping overrides, doesn't resolve, ignored
 :Dog a rdfs:Class ;
      rdfs:subClassOf :Animal , :Mammal ; #failure: Mammal isn't defined.
      skos:preferredLabel "Dog" .
