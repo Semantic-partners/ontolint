@@ -45,5 +45,5 @@ imports:
   ignore:
     - http://www.ignored.com     # skip this URL entirely
   local:
-    http://www.example.org/: local/tests/external.ttl   # used by owl:imports check
-#     http://namespace.example.org#: local/ns.ttl          # used by undefined-terms check
+    http://example.org/: tests/external.ttl        # used by owl:imports check
+#     http://namespace.example.org#: local/ns.ttl            # used by undefined-terms check

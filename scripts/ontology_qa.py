@@ -1777,6 +1777,12 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         except Exception:
             failed_imports.append(import_url)
 
+    local_subs = [(url, local_map[url]) for _, url in import_urls if url in local_map]
+    if local_subs:
+        log += f"> NOTE - {len(local_subs)} import(s) resolved from local file(s):\n"
+        for url, path in local_subs:
+            log += f">   `{url}` → `{path}`\n"
+
     if not failed_imports:
         log += f"PASS - All {len(import_urls)} import(s) resolved and contain triples.\n"
     else:
@@ -1786,7 +1792,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         violations[check] = string
         log += f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
-    
+
     def _check(failed):
         if failed in failed_imports:
             return chr(10060) # X
@@ -1797,13 +1803,14 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         log += "\n| Ontology | Import URL | Resolves? |\n|--|--|--|\n"
         for ontology, url in import_urls:
             log += f"| {ontology} | {url} | {_check(url)} |\n"
-    
+
     log += sep()
     return metrics, violations, log, c, status
 
 
 def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
-                           uri_parser=lambda uri: rdflib.Graph().parse(uri)):
+                           uri_parser=lambda uri: rdflib.Graph().parse(uri),
+                           local_imports=None):
     """
     QA test finding terms used in the ontology that are not defined locally (as a subject
     in the graph file) nor in any successfully-fetched remote ontology for their namespace.
@@ -1865,11 +1872,17 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
             remote_namespaces.add(ns)
 
     # Fetch each remote namespace and collect the subjects it defines
+    local_map = local_imports or {}
     remote_subjects = set()
     fetch_failures = set()
+    applied_subs = []
     for ns_uri in remote_namespaces:
         try:
-            remote_g = uri_parser(ns_uri)
+            if ns_uri in local_map:
+                remote_g = rdflib.Graph().parse(local_map[ns_uri])
+                applied_subs.append((ns_uri, local_map[ns_uri]))
+            else:
+                remote_g = uri_parser(ns_uri)
             for s, _, _ in remote_g:
                 if isinstance(s, rdflib.URIRef):
                     remote_subjects.add(str(s))
@@ -1906,6 +1919,11 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         violations[check] = string
         log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
+    if applied_subs:
+        log += f"\n> NOTE - {len(applied_subs)} namespace(s) resolved from local file(s):\n"
+        for ns, path in sorted(applied_subs):
+            log += f">   `{ns}` → `{path}`\n"
+
     # do we want unresolved namespaces to be skipped or treated as a fail condition?
     if fetch_failures:
         log += f"\nWARNING - Could not fetch {len(fetch_failures)} namespace(s); terms from these were not checked:\n"
@@ -2181,15 +2199,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
             if func is check_undefined_terms:
                 if uri_parser is not None:
                     kwargs["uri_parser"] = uri_parser
-                elif local_imports:
-                    _lm = local_imports
-                    def _make_parser(lm):
-                        def _parser(uri):
-                            if uri in lm:
-                                return rdflib.Graph().parse(lm[uri])
-                            return rdflib.Graph().parse(uri)
-                        return _parser
-                    kwargs["uri_parser"] = _make_parser(_lm)
+                if local_imports:
+                    kwargs["local_imports"] = local_imports
             metrics, violations, log_results, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
@@ -2402,7 +2413,7 @@ def main():
     if config_log:
         log_output += config_log
 
-    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports)
+    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports)
     log_output += qa_log
 
     if result is not None:
