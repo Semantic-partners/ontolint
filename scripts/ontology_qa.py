@@ -17,9 +17,10 @@ import json
 from datetime import datetime
 from dataclasses import dataclass, field
 import yaml
+import networkx as nx
 
 # Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.dirname(os.path.realpath(sys.argv[0])) + '/../sparql') # Use ENV variable or default value.
+sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
 
 # check that the directory exists
 if not os.path.isdir(sparql_dir):
@@ -176,6 +177,10 @@ def print_profiling_table(metrics):
     """
 
     name = get_ontology_name(metrics)
+    if metrics['HierarchyDepth'] == -1:
+        HierarchyDepth = "N/A"
+    else:
+        HierarchyDepth = metrics['HierarchyDepth']
     log = "\n## Profiling Metrics\n"
     log += "| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape "
     log += "| Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported "
@@ -183,7 +188,7 @@ def print_profiling_table(metrics):
     log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {metrics['triples']} | {metrics['classCount']} | {metrics['propertyCount']} | {metrics['nodeShapes']} | {metrics['propertyShapes']} "
     log += f"| {metrics['classesInNodeShapes']} | {metrics['propertiesInPropertyShapes']} | {metrics['deprecatedClasses']} | {metrics['deprecatedProperties']} "
-    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} | {metrics['HierarchyDepth']} | {normalise(metrics['aveBranchFactor'], 1)} | {metrics['CardinalityRestrictions']} |\n"
+    log += f"| {metrics['vocabulariesUsed']} | {metrics['imports']} | {HierarchyDepth} | {normalise(metrics['aveBranchFactor'], 1)} | {metrics['CardinalityRestrictions']} |\n"
     return log
 
 def print_qa_table(metrics, checks):
@@ -365,7 +370,11 @@ def print_profiling_metrics(metrics, elements, verbose):
             for res in elements['imports'][ont]: log += f"  - {res}\n" 
         log += "\n"
     
-    log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
+    if metrics['HierarchyDepth'] == -1:
+        log += "Hierarchy depth: N/A\n"
+        log += "WARNING - The ontology contains cycles in the subclass hierarchy, so the hierarchy depth cannot be computed.\n"
+    else:
+        log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
     log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
     log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
     return log
@@ -492,9 +501,7 @@ def profiling(graph):
             elements['imports'][str(row.ontology)].append(str(row.imp))
     
     # hierarchy depth
-    results = exec_sparql(graph, 'hierarchy_depth')
-    (row,) = results
-    metrics['HierarchyDepth'] = row.maxDepth
+    metrics['HierarchyDepth'] = exec_hierarchy_depth(graph)
     
     # average branching factor
     results = exec_sparql(graph, 'average_branching_factor')
@@ -507,6 +514,18 @@ def profiling(graph):
     metrics['CardinalityRestrictions'] = row.counter
 
     return metrics, elements
+
+def exec_hierarchy_depth(graph):
+    """Compute the hierarchy depth of the ontology by constructing a directed graph of subclass relationships"""
+    results = exec_sparql(graph, 'hierarchy_depth')
+    G = nx.DiGraph()
+    for child, parent in results:
+        G.add_edge(str(parent), str(child))
+    if not G.nodes:
+        return 0
+    if not nx.is_directed_acyclic_graph(G):
+        return -1
+    return nx.dag_longest_path_length(G)
 
 def infer_subclass_relations(graph):
     """
@@ -2127,7 +2146,6 @@ def deepcopy_list(nested_list):
 def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
-    Applies RDFS subclass inference in-place, then runs all checks.
     Returns structured pass/fail results — no file I/O, no arg parsing.
     """
     if checklist is None:
@@ -2198,15 +2216,11 @@ def write_lint_config(checklist):
         name = item[1].__name__.replace("check_", "").replace("_", "-")
         sequence.append(name)
     
-    for item in sequence:
-        if item == "property-missing-domain-range":
-            index = sequence.index(item)
-            sequence[index] = "property-missing-domain"
-        # Do it again :)
-        if item == "property-missing-domain-range":
-            index = sequence.index(item)
-            sequence[index] = "property-missing-range"
-    
+    # Replace the "property-missing-domain-range" check with two separate checks for domain and range.
+    sequence.remove("property-missing-domain-range")
+    sequence.remove("property-missing-domain-range")
+    sequence.append("property-missing-domain")
+    sequence.append("property-missing-range")
     sequence.sort()
 
     with open(path, 'w', encoding='utf-8') as f:
