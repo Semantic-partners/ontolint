@@ -1822,7 +1822,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
 
 def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
                            uri_parser=lambda uri: rdflib.Graph().parse(uri),
-                           local_imports=None):
+                           local_imports=None, ignore_imports=None):
     """
     QA test finding terms used in the ontology that are not defined locally (as a subject
     in the graph file) nor in any successfully-fetched remote ontology for their namespace.
@@ -1878,12 +1878,15 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
 
     # Collect every HTTP namespace used that falls outside the local namespace(s)
     # and is not a well-known standard vocabulary (trusted to always define their terms).
+    ignored = set(ignore_imports or [])
     remote_namespaces = set()
     for uri in used_terms:
         ns = get_namespace(uri)
         if (ns.startswith(('http://', 'https://'))
                 and ns not in local_namespaces
-                and ns not in TRUSTED_NAMESPACES):
+                and ns not in TRUSTED_NAMESPACES
+                and uri not in ignored
+                and ns not in ignored):
             remote_namespaces.add(ns)
 
     # Fetch each remote namespace and collect the subjects it defines
@@ -1919,6 +1922,8 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         if not ns.startswith(('http://', 'https://')):
             continue
         if ns in TRUSTED_NAMESPACES:
+            continue
+        elif uri in ignored or ns in ignored:
             continue
         elif ns in local_namespaces:
             undefined_terms.append(uri)
@@ -2216,6 +2221,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                     kwargs["uri_parser"] = uri_parser
                 if local_imports:
                     kwargs["local_imports"] = local_imports
+                if ignore_imports:
+                    kwargs["ignore_imports"] = ignore_imports
             metrics, violations, log_results, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )

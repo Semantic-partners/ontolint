@@ -131,6 +131,20 @@ def test_unresolvable_remote_namespace_flagged_as_fetch_failure(make_graph):
     assert "http://remote.example.org#Mammal (fetch failure)" in check.elements
 
 
+def test_ignored_namespace_not_flagged(make_graph):
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
+    """)
+    check = run_qa(
+        g,
+        uri_parser=_no_fetch,
+        ignore_imports=["http://remote.example.org#"],
+    ).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
+
+
 def test_https_remote_term_found_passes(make_graph):
     def fake_parser(uri):
         g = rdflib.Graph()
