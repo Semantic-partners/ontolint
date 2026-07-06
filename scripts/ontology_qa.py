@@ -1892,6 +1892,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     # Fetch each remote namespace and collect the subjects it defines
     local_map = local_imports or {}
     remote_subjects = set()
+    remote_subjects_by_ns = {}
     fetch_failures = set()
     applied_subs = []
     for ns_uri in remote_namespaces:
@@ -1901,9 +1902,9 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
                 applied_subs.append((ns_uri, local_map[ns_uri]))
             else:
                 remote_g = uri_parser(ns_uri)
-            for s, _, _ in remote_g:
-                if isinstance(s, rdflib.URIRef):
-                    remote_subjects.add(str(s))
+            subjects = {str(s) for s, _, _ in remote_g if isinstance(s, rdflib.URIRef)}
+            remote_subjects_by_ns[ns_uri] = subjects
+            remote_subjects.update(subjects)
         except Exception:
             fetch_failures.add(ns_uri)
 
@@ -1945,10 +1946,17 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         violations[check] = string
         log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
-    if applied_subs:
-        log += f"\n> NOTE - {len(applied_subs)} namespace(s) resolved from local file(s):\n"
-        for ns, path in sorted(applied_subs):
-            log += f">   `{ns}` → `{path}`\n"
+    if remote_namespaces:
+        applied_subs_map = {ns: path for ns, path in applied_subs}
+        log += f"\n> **Remote namespace activity** — {len(remote_namespaces)} checked:\n"
+        for ns in sorted(remote_namespaces):
+            if ns in applied_subs_map:
+                log += f">   - {chr(9989)} `{ns}` — local file: `{applied_subs_map[ns]}`\n"
+            elif ns in fetch_failures:
+                log += f">   - {chr(10060)} `{ns}` — fetch failed\n"
+            else:
+                count = len(remote_subjects_by_ns.get(ns, set()))
+                log += f">   - {chr(9989)} `{ns}` — fetched ({count} subject(s))\n"
 
     if not local_namespaces:
         log += "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.\n"
