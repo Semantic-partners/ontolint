@@ -377,6 +377,18 @@ def print_profiling_metrics(metrics, elements, verbose):
             for res in elements['imports'][ont]: log += f"  - {res}\n" 
         log += "\n"
     
+    fa = metrics.get('fetchActivity', {})
+    total = len(fa.get('local', {})) + len(fa.get('fetched', {})) + len(fa.get('failed', []))
+    if total > 0:
+        log += f"\nRemote namespace resolution: {total} checked\n"
+        for ns, path in sorted(fa.get('local', {}).items()):
+            log += f"  - {chr(9989)} `{ns}` — local file: `{path}`\n"
+        for ns, count in sorted(fa.get('fetched', {}).items()):
+            log += f"  - {chr(9989)} `{ns}` — fetched ({count} subject(s))\n"
+        for ns in fa.get('failed', []):
+            log += f"  - {chr(10060)} `{ns}` — fetch failed\n"
+        log += "\n"
+
     log += f"Hierarchy depth: {metrics['HierarchyDepth']}\n"
     log += f"Average branching factor: {normalise(metrics['aveBranchFactor'], 1)}\n"
     log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
@@ -1935,6 +1947,17 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
 
     all_violations = undefined_terms + [f"{uri} (fetch failure)" for uri in fetch_failure_terms]
 
+    applied_subs_map = {ns: path for ns, path in applied_subs}
+    metrics['fetchActivity'] = {
+        'local': applied_subs_map,
+        'fetched': {
+            ns: len(remote_subjects_by_ns.get(ns, set()))
+            for ns in remote_namespaces
+            if ns not in fetch_failures and ns not in applied_subs_map
+        },
+        'failed': sorted(fetch_failures),
+    }
+
     if not all_violations:
         log += "PASS - All used terms are defined locally or in their respective remote ontologies.\n"
         if verbose:
@@ -2055,7 +2078,6 @@ def _collect_files(paths):
         else:
             result.append(path)
     return result
-
 
 def parse_lint_config(config):
     """
@@ -2257,7 +2279,6 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         elements=profiling_elements,
         logs=logs
     )
-
 
 def write_lint_config(checklist):
     """
