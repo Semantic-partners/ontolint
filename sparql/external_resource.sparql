@@ -1,5 +1,7 @@
 # Filter resources from external vocabularies.
 # The result is a URI that has to be checked to points to a valid resource on the web.
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?resource
 WHERE {
   # Resources declared as class
