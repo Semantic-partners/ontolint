@@ -222,7 +222,6 @@ def test_violation_elements_lists_undefined_uri(make_graph):
 # ── local_imports substitution ────────────────────────────────────────────────
 
 def test_local_imports_substitutes_namespace_fetch(make_graph, tmp_path):
-    import rdflib as _rdflib
     local_file = tmp_path / "remote_ns.ttl"
     local_file.write_text(
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
