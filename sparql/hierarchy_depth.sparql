@@ -1,20 +1,9 @@
-SELECT (MAX(?depth) AS ?maxDepth)
+SELECT ?child ?parent
 WHERE {
-  ?child a ?type .
-  
-  # make the whole subquery optional
-  OPTIONAL {
-    SELECT ?child ?type (COUNT(DISTINCT ?parent) AS ?childDepth)
-    WHERE {
-        # Check that child and parent are of the same type
-        ?child a ?type ;
-        rdfs:subClassOf+ ?parent .
-        ?parent a ?type .
-    } 
-    GROUP BY ?child
-  }
-  
-  # If a child has no parents, ?childDepth is unbound. 
-  # COALESCE safely converts that unbound state into a 0.
-  BIND(COALESCE(?childDepth, 0) AS ?depth)
-}
+  # Check that child and parent are of the same type
+  ?child a ?type ;
+  rdfs:subClassOf ?parent .
+  ?parent a ?type .
+  FILTER(!isBlank(?child) && !isBlank(?parent))
+} 
+

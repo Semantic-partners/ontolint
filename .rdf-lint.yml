@@ -1,5 +1,4 @@
 # Ontolint configuration file: use it to enable or disable specific QA checks.
-# Also allows users to ignore known unresolvable import URLs.
 # Place this file as .rdf-lint.yml in your project root.
 
 # Available checks:
@@ -23,6 +22,7 @@
 # - property-shape-missing-label
 # - property-shape-same-label
 # - subclass-cycles
+# - undefined-terms
 # - unique-identifiers
 # - untyped-class
 # - untyped-property
