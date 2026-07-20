@@ -527,6 +527,24 @@ def exec_hierarchy_depth(graph):
         return -1
     return nx.dag_longest_path_length(G)
 
+def exclude_instance_data(graph):
+    """
+    Find instance data and remove them from the graph.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+    
+    Returns:
+        instances (rdflib.Graph): A RDF graph with the instance to remove.
+        count (int): The number of instance subjects found.
+    """
+
+    instances = exec_sparql(graph, 'return_instances')
+    subjects = set()
+    subjects.add(s for s, p, o in instances)
+
+    return instances, len(subjects)
+
 def infer_subclass_relations(graph):
     """
     Construct sub-class relations recursively using the sub-class inference rule.
@@ -2252,7 +2270,8 @@ def main():
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')
-    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks.(default: False)')
+    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks. (default: False)')
+    parser.add_argument('-d', '--exclude-data',action='store_true', help='Exclude instance data from linting. (default: False)')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
@@ -2285,6 +2304,12 @@ def main():
     for f in files_processed:
         log_output += f"> - `{f}`\n"
     log_output += ">\n"
+
+    # Exclude instance data from linting.
+    if args.exclude_data:
+        exclusion_triples, instances = exclude_instance_data(g)
+        g -= exclusion_triples
+        log_output += f"\nFound {instances} instances.\n"
 
     # Apply lint config to enable/disable individual checks.
     checklist = deepcopy_list(CHECKLIST)
