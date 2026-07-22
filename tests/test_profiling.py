@@ -1,4 +1,4 @@
-from scripts.ontology_qa import profiling
+from scripts.ontology_qa import profiling, print_profiling_metrics, exclude_instance_data
 
 
 def test_class_count(make_graph):
@@ -280,3 +280,31 @@ def test_cardinality_restriction_self(make_graph):
     """)
     metrics, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
+
+def test_profiling_metrics_output(make_graph):
+    g = make_graph("""
+    :Cat a owl:Class .
+    :Dog a owl:Class .
+    :hasFur a owl:ObjectProperty .
+    :hasAge a owl:DatatypeProperty .
+    """)
+    metrics = {'filesProcessed': 0, 'triples': len(g), 'instances': 0}
+    p_metrics, violations = profiling(g)
+    metrics.update(p_metrics)
+    output = print_profiling_metrics(metrics, violations, True)
+    assert "RDF/OWL classes: 2" in output
+    assert "RDF/OWL properties: 2" in output
+    assert "Instance data: 0" in output
+    assert "SHACL Node Shapes: 0" in output
+    assert "SHACL Property Shapes: 0" in output
+
+def test_instance_data(make_graph):
+    g = make_graph("""
+    :Dog a owl:Class .
+    :fuffy a :Dog; rdfs:label "Fuffy" .
+    """)
+    initial_size = len(g)
+    exclusion_triples, instances = exclude_instance_data(g)
+    g -= exclusion_triples
+    assert initial_size > len(g)
+    assert instances == 1

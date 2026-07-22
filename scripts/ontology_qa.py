@@ -322,6 +322,7 @@ def print_profiling_metrics(metrics, elements, verbose):
     log  = "\n## Profiling Details\n\n"
     log += f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
+    log += f"Instance data: {metrics['instances']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
     log += f"SHACL Property Shapes: {metrics['propertyShapes']}\n"
 
@@ -2271,7 +2272,6 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')
     parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks. (default: False)')
-    parser.add_argument('-d', '--exclude-data',action='store_true', help='Exclude instance data from linting. (default: False)')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
@@ -2306,10 +2306,9 @@ def main():
     log_output += ">\n"
 
     # Exclude instance data from linting.
-    if args.exclude_data:
-        exclusion_triples, instances = exclude_instance_data(g)
+    exclusion_triples, instances = exclude_instance_data(g)
+    if (len(exclusion_triples) > 0):
         g -= exclusion_triples
-        log_output += f"\nFound {instances} instances.\n"
 
     # Apply lint config to enable/disable individual checks.
     checklist = deepcopy_list(CHECKLIST)
@@ -2329,7 +2328,7 @@ def main():
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
-        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
+        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g), 'instances': instances}
         qa_violations = {}
         metrics, violations = profiling(g)
         qa_metrics.update(metrics)
@@ -2347,6 +2346,7 @@ def main():
     # Full QA path
     result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports)
     qa_metrics = result.profiling
+    qa_metrics['instances'] = instances
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
     log_output += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
