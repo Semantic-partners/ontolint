@@ -398,6 +398,7 @@ def profiling(graph):
     Returns:
         metrics (dict): Count of ontology metrics.
         elements (dict): Elements in ontology metrics.
+        exclusions (rdflib.Graph): The RDF graph with instance data to exclude
     """
     metrics = {}
     elements = {}
@@ -514,7 +515,10 @@ def profiling(graph):
     (row,) = results
     metrics['CardinalityRestrictions'] = row.counter
 
-    return metrics, elements
+    # Exclude instance data from linting.
+    exclusions, metrics['instances'] = exclude_instance_data(graph)
+
+    return metrics, elements, exclusions
 
 def exec_hierarchy_depth(graph):
     """Compute the hierarchy depth of the ontology by constructing a directed graph of subclass relationships"""
@@ -541,8 +545,7 @@ def exclude_instance_data(graph):
     """
 
     instances = exec_sparql(graph, 'return_instances')
-    subjects = set()
-    subjects.add(s for s, p, o in instances)
+    subjects = {s for s, _, _ in instances}
 
     return instances, len(subjects)
 
@@ -2176,8 +2179,10 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     }
     qa_violations = {}
 
-    metrics, profiling_elements = profiling(graph)
+    metrics, profiling_elements, exclusions = profiling(graph)
     qa_metrics.update(metrics)
+    if (len(exclusions) > 0):
+        graph -= exclusions
 
     logs = []
     checks = []
@@ -2305,11 +2310,6 @@ def main():
         log_output += f"> - `{f}`\n"
     log_output += ">\n"
 
-    # Exclude instance data from linting.
-    exclusion_triples, instances = exclude_instance_data(g)
-    if (len(exclusion_triples) > 0):
-        g -= exclusion_triples
-
     # Apply lint config to enable/disable individual checks.
     checklist = deepcopy_list(CHECKLIST)
     ignore_imports = []
@@ -2328,9 +2328,9 @@ def main():
 
     # Profile-only path: compute profiling metrics only, skip full QA
     if args.profile_only:
-        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g), 'instances': instances}
+        qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
         qa_violations = {}
-        metrics, violations = profiling(g)
+        metrics, violations, _ = profiling(g)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
@@ -2346,7 +2346,6 @@ def main():
     # Full QA path
     result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports)
     qa_metrics = result.profiling
-    qa_metrics['instances'] = instances
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
 
     log_output += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
