@@ -8,4 +8,6 @@ WHERE {
     ?class a ?type .
 	?instance a ?class ;
 	?predicate ?object .
+	# Exclude meta modelling
+	FILTER NOT EXISTS { ?instance a ?type }
 }
