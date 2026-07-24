@@ -106,7 +106,7 @@ def test_node_shape_without_label_fails(make_graph):
     assert "CatShape" in check.elements
 
 
-def test_node_shape_with_rdfs_comment_verbose_is_printed(make_graph):
+def test_node_shape_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :CatShape a sh:NodeShape ; rdfs:label "Cat Shape" .
     """)
@@ -131,7 +131,7 @@ def test_property_shape_without_label_fails(make_graph):
     assert not check.passed
     assert check.count == 1
 
-def test_property_shape_with_rdfs_comment_verbose_is_printed(make_graph):
+def test_property_shape_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFurShape a sh:PropertyShape ; rdfs:label "Has Fur Shape" .
     """)

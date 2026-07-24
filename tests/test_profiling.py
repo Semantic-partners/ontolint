@@ -129,7 +129,7 @@ def test_ontology_imports(make_graph):
     assert metrics['imports'] == 2
 
 
-def test_ontology_depth(make_graph):
+def test_ontology_depth_linear(make_graph):
     g = make_graph("""
     :Animal a rdfs:Class .
     :Cat a rdfs:Class ;
@@ -140,6 +140,26 @@ def test_ontology_depth(make_graph):
     metrics, _ = profiling(g)
     assert int(metrics['HierarchyDepth']) == 2
 
+def test_ontology_depth_multiple_inheritance(make_graph):
+    g = make_graph("""
+    :Animal a rdfs:Class .
+    :Cat a rdfs:Class ;
+    rdfs:subClassOf :Animal .
+    :Pet a rdfs:Class ;
+    rdfs:subClassOf :Animal .
+    :Siamese a rdfs:Class ;
+    rdfs:subClassOf :Cat, :Pet .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['HierarchyDepth']) == 2
+
+def test_ontology_depth_non_dag(make_graph):
+    g = make_graph("""
+    :A a owl:Class ; rdfs:subClassOf :B .
+    :B a owl:Class ; rdfs:subClassOf :A .
+    """)
+    metrics, _ = profiling(g)
+    assert int(metrics['HierarchyDepth']) == -1
 
 def test_average_branching_factor(make_graph):
     g = make_graph("""

@@ -4,7 +4,7 @@ Get an instant, user-friendly snapshot of your ontology’s size and health, rig
 
 ## Usage
 
-We have a [Github workflow](/.github/workflows/validate-ontolint.yml) running against two [example ontologies](./tests/) - use this as a reference.
+We have a [GitHub workflow](/.github/workflows/validate-ontolint.yml) running against two [example ontologies](./tests/) - use this as a reference.
 
 The [`ontology_qa.py`](./scripts/ontology_qa.py) script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
 
