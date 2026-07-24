@@ -9,3 +9,5 @@ coverage.xml
 htmlcov/
 .vscode/
 .venv
+dist/
+*.egg-info/

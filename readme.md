@@ -2,14 +2,29 @@
 
 Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline. This tool profiles your ontology file (triples, classes, properties, etc.) and runs quality checks (declarations, descriptions, versioning, structure), then produces a clear report so you can track complexity over time, catch regressions early, and keep your ontology consistently high-quality.
 
+## Install & run on the command line
+
+Ontolint installs as a command-line tool with an `ontolint` entry point. The recommended way to install it is with [`uv`](https://docs.astral.sh/uv/) or [`pipx`](https://pipx.pypa.io/), which keep it in an isolated environment:
+
+```bash
+# Zero-install, run straight from the repo (works with a private repo too, given credentials):
+uvx --from git+https://github.com/Semantic-partners/ontolint ontolint path/to/ontology.ttl
+
+# Or install it persistently on your PATH:
+pipx install git+https://github.com/Semantic-partners/ontolint
+ontolint path/to/ontology.ttl
+```
+
+The `ontolint` command works from any directory — the SPARQL checks and report template are bundled inside the package.
+
 ## Usage
 
 We have a [GitHub workflow](/.github/workflows/validate-ontolint.yml) running against two [example ontologies](./tests/) - use this as a reference.
 
-The [`ontology_qa.py`](./scripts/ontology_qa.py) script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
+The `ontolint` command (implemented in [`ontolint/ontology_qa.py`](./ontolint/ontology_qa.py)) performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
 
 ```
-usage: ontology_qa.py [-h] [-e] [-v] [-p] [-i] [--ctrf-dir directory] [--ctrf-filename filename] [-o filename] [-c path/to/config.yml] [--init] [data_files ...]
+usage: ontolint [-h] [-e] [-v] [-p] [-i] [--ctrf-dir directory] [--ctrf-filename filename] [-o filename] [-c path/to/config.yml] [--init] [data_files ...]
 
 A script to perform basic QA on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and
 runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
@@ -34,16 +49,16 @@ options:
   --init                Generate a default .rdf-lint.yml config file in the current directory.
 ```
 
-The `generate_custom_report.py` script generates a custom markdown report from aggregated CTRF JSON files. Uses Handlebars template to render the report.
+The `ontolint-report` command (implemented in [`ontolint/generate_custom_report.py`](./ontolint/generate_custom_report.py)) generates a custom markdown report from aggregated CTRF JSON files. Uses Handlebars template to render the report. If `--template-path` is omitted, the template bundled with ontolint is used.
 
 ```
-usage: generate_custom_report.py [-h] [--ctrf-dir directory] [--template-path directory] [--output-path directory]
+usage: ontolint-report [-h] [--ctrf-dir directory] [--template-path directory] [--output-path directory]
 
 optional arguments:
   -h, --help            show this help message and exit
   --ctrf-dir directory  Directory to write CTRF report to.
   --template-path directory
-                        Path to the CTRF report template file.
+                        Path to the CTRF report template file. Defaults to the template bundled with ontolint.
   --output-path directory
                         Path to write the CTRF markdown report file.
 ```
@@ -51,13 +66,13 @@ optional arguments:
 ## Dev setup & Running Ontolint locally
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.
 
-To test the script works, run the script using the example file:
-```poetry run scripts/ontology_qa.py tests/example_pass.ttl```
+To test the script works, run the command using the example file:
+```poetry run ontolint tests/example_pass.ttl```
 
 It should generate a JSON files in the `ctrf/` directory.
 
-To generate a markdown report, run the generate report script:
-```poetry run scripts/generate_custom_report.py```
+To generate a markdown report, run the report command:
+```poetry run ontolint-report```
 
 This generates a markdown file from any JSON files in the `ctrf/` directory and saves it to the `out/` directory
 
@@ -133,18 +148,15 @@ For example, the test ontology [`example_failure.ttl`](tests/example_failure.ttl
 
 ### Batch Processing
 
-For quality assessment, one ontology at a time should be processed. The following script runs `ontology_qa.py` and then uses `grep` to collect the output to two markdown tables.
+For quality assessment, one ontology at a time should be processed. The following script runs `ontolint` and then uses `grep` to collect the output to two markdown tables.
 
 ```bash
 #!/bin/bash
 
-# Script path
-sp=path/to/ontolint/scripts
-
-# Run the QA metric script, save the results and grep the Profiling table.
+# Run the QA metric command, save the results and grep the Profiling table.
 for ont in *.ttl
 do
- python3 $sp/ontology_qa.py $ont > ${ont%.ttl}.out
+ ontolint $ont > ${ont%.ttl}.out
  grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | head -1 >> ont_tables.md
 done
 

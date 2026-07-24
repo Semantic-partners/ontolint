@@ -3,7 +3,7 @@ Tests for the load_rdf() and load_rdf_file() functions in ontology_qa.py
 """
 import os
 import rdflib
-from scripts.ontology_qa import load_rdf, load_rdf_file
+from ontolint.ontology_qa import load_rdf, load_rdf_file
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 

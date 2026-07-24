@@ -15,8 +15,16 @@ dependencies = [
     "networkx (>=3.2,<4.0)"
 ]
 
+[project.scripts]
+ontolint = "ontolint.ontology_qa:main"
+ontolint-report = "ontolint.generate_custom_report:main"
+
 [tool.poetry]
-package-mode = false
+packages = [{ include = "ontolint" }]
+include = [
+    { path = "ontolint/sparql/*.sparql", format = ["sdist", "wheel"] },
+    { path = "ontolint/templates/*.hbs", format = ["sdist", "wheel"] },
+]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3"
@@ -26,17 +34,17 @@ ruff = ">=0.9"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-v --cov=scripts --cov-report=xml"
+addopts = "-v --cov=ontolint --cov-report=xml"
 
 [tool.coverage.run]
-source = ["scripts"]
+source = ["ontolint"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true
 
 [tool.ruff]
-src = ["scripts", "tests"]
+src = ["ontolint", "tests"]
 
 [tool.ruff.lint]
 ignore = ["E701"]  # inline `if x: y` — intentional style in this codebase

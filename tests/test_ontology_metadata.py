@@ -1,4 +1,4 @@
-from scripts.ontology_qa import run_qa
+from ontolint.ontology_qa import run_qa
 
 
 def test_ontology_declared_passes(make_graph):

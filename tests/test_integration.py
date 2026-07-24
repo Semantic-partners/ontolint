@@ -3,7 +3,7 @@ import os
 from unittest.mock import patch
 import pytest
 
-from scripts.ontology_qa import main
+from ontolint.ontology_qa import main
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 

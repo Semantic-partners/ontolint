@@ -1,6 +1,6 @@
 import os
 import pytest
-from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECKLIST, deepcopy_list
+from ontolint.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECKLIST, deepcopy_list
 
 
 # ── parse_lint_config ─────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
 def run_main(*args):
     from unittest.mock import patch
-    from scripts.ontology_qa import main
+    from ontolint.ontology_qa import main
     with patch('sys.argv', ['ontology_qa.py', *args]):
         main()
 

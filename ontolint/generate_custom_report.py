@@ -9,6 +9,7 @@ import os
 import glob
 from pathlib import Path
 from datetime import datetime
+from importlib import resources
 import argparse
 
 def aggregate_ctrf_reports(ctrf_dir):
@@ -214,22 +215,27 @@ def evaluate_condition(condition, context):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
-    parser.add_argument('--template-path', type=str, metavar='directory', default='templates/ctrf-report.hbs', help='Path to the CTRF report template file.')
+    parser.add_argument('--template-path', type=str, metavar='directory', default=None, help='Path to the CTRF report template file. Defaults to the template bundled with ontolint.')
     parser.add_argument('--output-path', type=str, metavar='directory', default='out/ctrf_report.md', help='Path to write the CTRF markdown report file.')
 
     args = parser.parse_args()
 
+    template_source = args.template_path if args.template_path else 'bundled ctrf-report.hbs'
     print(f"Loading CTRF reports from: {args.ctrf_dir}")
-    print(f"Template file: {args.template_path}")
+    print(f"Template file: {template_source}")
     print(f"Output file: {args.output_path}")
-    
-    # Load template
-    if not os.path.exists(args.template_path):
-        print(f"Error: Template file not found: {args.template_path}")
-        return 1
-    
-    with open(args.template_path, 'r') as f:
-        template_content = f.read()
+
+    # Load template: explicit path from disk, else the template bundled with the package.
+    if args.template_path:
+        if not os.path.exists(args.template_path):
+            print(f"Error: Template file not found: {args.template_path}")
+            return 1
+        with open(args.template_path, 'r') as f:
+            template_content = f.read()
+    else:
+        template_content = resources.files(__package__).joinpath(
+            'templates', 'ctrf-report.hbs'
+        ).read_text(encoding='utf-8')
     
     # Aggregate reports
     reports, total_tests, total_passed, total_failed = aggregate_ctrf_reports(args.ctrf_dir)

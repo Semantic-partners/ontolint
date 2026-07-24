@@ -1,14 +1,8 @@
-import os
-
-# Must run before scripts.ontology_qa is imported so module-level SPARQL loading
-# resolves the sparql/ directory correctly regardless of where pytest is invoked from.
-os.environ.setdefault(
-    'QA_SPARQL_DIR',
-    os.path.join(os.path.dirname(__file__), '..', 'sparql')
-)
-
 import rdflib
 import pytest
+
+# SPARQL queries are bundled inside the ontolint package and loaded via
+# importlib.resources, so no QA_SPARQL_DIR override is needed for the tests.
 
 PREFIXES = """
 @prefix : <http://example.org#> .
