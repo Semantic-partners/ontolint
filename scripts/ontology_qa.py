@@ -1878,7 +1878,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         for term in (s, p, o):
             if isinstance(term, rdflib.URIRef):
                 used_terms.add(str(term))
-        
+
         # prevents namespace hijacking
         if isinstance(s, rdflib.URIRef) and get_namespace(s) in local_namespaces:
             local_subjects.add(str(s))

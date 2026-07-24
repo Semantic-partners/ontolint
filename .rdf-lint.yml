@@ -40,7 +40,8 @@
 #   - property-missing-domain
         
 # Exclude certain URLs from resolvability check or provide local mappings for an imported IRI.
-# Given a local mapping, the script will not try and resolve the URL. 
+# Given a local mapping, the script will not try and resolve the URL and instead just read from the file
+# Filepaths should be relative to the project root dir 
 imports:
   ignore:
     - http://www.ignored.com     # skip this URL entirely
