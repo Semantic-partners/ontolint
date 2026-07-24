@@ -1,5 +1,5 @@
 import rdflib
-from scripts.ontology_qa import run_qa
+from ontolint.ontology_qa import run_qa
 
 CHECK_NAME = "Undefined terms"
 

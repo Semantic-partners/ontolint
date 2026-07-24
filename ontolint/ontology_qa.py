@@ -16,30 +16,42 @@ import os
 import json
 from datetime import datetime
 from dataclasses import dataclass, field
+from importlib import resources
 import yaml
 import networkx as nx
 
-# Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
 
-# check that the directory exists
-if not os.path.isdir(sparql_dir):
-    sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
-    sys.exit(1)
-
-def load_sparql_queries(directory):
+def load_sparql_queries():
     """
     Create a dictionary of SPARQL queries, using file names as keys.
+
+    Queries are read from the bundled ``ontolint/sparql`` package resources so
+    the tool works regardless of the current working directory. Setting the
+    ``QA_SPARQL_DIR`` environment variable overrides this with a directory on
+    disk (used by tests and for custom query sets).
     """
     queries = {}
-    for filename in os.listdir(directory):
-        if filename.endswith('.sparql'):
-            var_name = os.path.splitext(filename)[0]
-            with open(os.path.join(directory, filename), 'r', encoding='utf-8') as f:
-                queries[var_name] = f.read()
+    override_dir = os.getenv('QA_SPARQL_DIR')
+    if override_dir:
+        if not os.path.isdir(override_dir):
+            sys.stderr.write(
+                f"SPARQL directory '{override_dir}' set via QA_SPARQL_DIR does not exist.\n"
+            )
+            sys.exit(1)
+        for filename in os.listdir(override_dir):
+            if filename.endswith('.sparql'):
+                var_name = os.path.splitext(filename)[0]
+                with open(os.path.join(override_dir, filename), 'r', encoding='utf-8') as f:
+                    queries[var_name] = f.read()
+        return queries
+
+    for entry in resources.files(__package__).joinpath('sparql').iterdir():
+        if entry.name.endswith('.sparql'):
+            var_name = os.path.splitext(entry.name)[0]
+            queries[var_name] = entry.read_text(encoding='utf-8')
     return queries
 
-sparql_queries = load_sparql_queries(sparql_dir)
+sparql_queries = load_sparql_queries()
 
 
 @dataclass

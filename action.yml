@@ -61,7 +61,6 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
-        QA_SPARQL_DIR: ${{ github.action_path }}/sparql
         ONTOLOGY_PATHS: ${{ inputs.ontology-paths }}
         WORKSPACE: ${{ github.workspace }}
         FAIL_ON_VIOLATIONS: ${{ inputs.fail-on-violations }}
@@ -99,16 +98,15 @@ runs:
         elif [ -f "$WORKSPACE/.rdf-lint.yml" ]; then
           ARGS+=(-c "$WORKSPACE/.rdf-lint.yml")
         fi
-        poetry run scripts/ontology_qa.py "${ARGS[@]}"
+        poetry run ontolint "${ARGS[@]}"
 
     - name: Generate report
       if: always() && hashFiles('ctrf/*.json') != ''
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        poetry run scripts/generate_custom_report.py \
+        poetry run ontolint-report \
           --ctrf-dir "${{ github.workspace }}/ctrf" \
-          --template-path "${{ github.action_path }}/templates/ctrf-report.hbs" \
           --output-path "${{ github.workspace }}/ctrf/report.md"
 
     - name: Write job summary

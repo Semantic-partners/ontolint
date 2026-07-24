@@ -1,4 +1,4 @@
-from scripts.ontology_qa import profiling
+from ontolint.ontology_qa import profiling
 
 
 def test_class_count(make_graph):

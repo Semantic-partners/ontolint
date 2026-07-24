@@ -29,21 +29,20 @@ jobs:
 
       - name: Verify example_failure.ttl produces violations
         run: |
-          poetry run scripts/ontology_qa.py tests/example_failure.ttl \
+          poetry run ontolint tests/example_failure.ttl \
             --ctrf-dir ctrf --ctrf-filename failure-report.json \
             -e && echo "ERROR: expected violations but got none" && exit 1 || true
 
       - name: Verify example_pass.ttl produces no violations
         run: |
-          poetry run scripts/ontology_qa.py tests/example_pass.ttl \
+          poetry run ontolint tests/example_pass.ttl \
             --ctrf-dir ctrf --ctrf-filename pass-report.json \
             -e
 
       - name: Generate summary report
         run: |
-          poetry run scripts/generate_custom_report.py \
+          poetry run ontolint-report \
             --ctrf-dir ctrf \
-            --template-path templates/ctrf-report.hbs \
             --output-path out/ctrf_report.md
         if: always()
 

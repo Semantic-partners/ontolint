@@ -18,21 +18,23 @@ poetry install
 
 ## Commands
 
+The package installs two console entry points: `ontolint` (QA) and `ontolint-report` (report aggregation). Use `poetry run ontolint …` in the repo, or install with `pipx`/`uvx` to run them from anywhere.
+
 ```bash
 # Run QA against an ontology file (outputs Markdown to stdout, CTRF JSON to ./ctrf/)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl
+poetry run ontolint tests/example_pass.ttl
 
 # Run with exit code 1 if violations found (for CI)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl -e --ctrf-dir ctrf
+poetry run ontolint tests/example_pass.ttl -e --ctrf-dir ctrf
 
 # Profile only (no QA checks)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl -p
+poetry run ontolint tests/example_pass.ttl -p
 
 # Verbose output (lists violating elements per check)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl -v
+poetry run ontolint tests/example_pass.ttl -v
 
-# Aggregate CTRF JSON files into a single Markdown report
-poetry run scripts/generate_custom_report.py --ctrf-dir ctrf --template-path templates/ctrf-report.hbs --output-path out/ctrf_report.md
+# Aggregate CTRF JSON files into a single Markdown report (uses the bundled template by default)
+poetry run ontolint-report --ctrf-dir ctrf --output-path out/ctrf_report.md
 ```
 
 ```bash
@@ -68,7 +70,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
 
-`tests/conftest.py` sets `QA_SPARQL_DIR` to an absolute path before any import, so tests work regardless of working directory.
+SPARQL queries are bundled inside the `ontolint` package and loaded via `importlib.resources`, so `tests/conftest.py` needs no `QA_SPARQL_DIR` override — tests work regardless of working directory.
 
 ## Architecture
 
@@ -82,7 +84,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 
 ### SPARQL query loading
 
-All `.sparql` files in `./sparql/` are loaded at **module import time** into the global `sparql_queries` dict (filename stem → query string). The directory is controlled by the `QA_SPARQL_DIR` environment variable; the default `./sparql` is relative to the working directory, so the script must be run from the repo root (or `QA_SPARQL_DIR` must be set).
+All `.sparql` files in the bundled `ontolint/sparql/` package directory are loaded at **module import time** into the global `sparql_queries` dict (filename stem → query string), via `importlib.resources`. This works regardless of the current working directory (including from an installed wheel). Setting the `QA_SPARQL_DIR` environment variable overrides this with a directory on disk (used for custom query sets).
 
 ### QA check function signature
 
@@ -100,12 +102,12 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 
 ### Report generation
 
-`generate_custom_report.py` aggregates all CTRF JSON files from a directory and renders a Markdown report using `templates/ctrf-report.hbs`. The Handlebars rendering (`simple_handlebars_render`) is implemented from scratch with no external dependency — it supports `{{#each}}`, `{{#if}}`, `{{else}}`, and `{{variable}}`.
+`generate_custom_report.py` (the `ontolint-report` command) aggregates all CTRF JSON files from a directory and renders a Markdown report using the bundled `ontolint/templates/ctrf-report.hbs` (or a `--template-path` override). The Handlebars rendering (`simple_handlebars_render`) is implemented from scratch with no external dependency — it supports `{{#each}}`, `{{#if}}`, `{{else}}`, and `{{variable}}`.
 
 ### Adding a new QA check
 
-1. Add a `.sparql` file to `sparql/` — it will be auto-loaded
-2. Write a `check_*` function in `ontology_qa.py` following the pattern above
+1. Add a `.sparql` file to `ontolint/sparql/` — it will be auto-loaded
+2. Write a `check_*` function in `ontolint/ontology_qa.py` following the pattern above
 3. Add an entry to `TEST_CHECKLIST` (module-level constant, before `run_qa`)
 4. Add the metric key to `CHECKS` (module-level constant, after the dataclasses)
 5. Add the column to `print_qa_table()`
