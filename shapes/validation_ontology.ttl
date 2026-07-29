@@ -1,4 +1,4 @@
-@prefix valid: <https://voc.semanticpartners.com/ontology/validation#> .
+@prefix oqa: <https://voc.semanticpartners.com/ontology/quality-assurance#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix sh:    <http://www.w3.org/ns/shacl#> .
@@ -7,78 +7,68 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+
+oqa: a owl:Ontology ;
+    rdfs:label "Quality Assurance Ontology"@en ;
+    rdfs:comment """An ontology for the quality assurance of ontologies. The OQA is a collection of SHACL shapes targeting various quality dimensions:
+
+* Ontology metadata: ensure that the ontology is declared and has a description; verify the resources specified in `owl:imports` ; 
+* Human-readable annotations: ensure that every resource has labels and comments.
+* Semantic clarity: ensure that each label is unique; ensure that properties have domain and range defined; ensure that the same resource is not defined as a class and a property; ensure that every resource in the ontology is properly defined;
+* Structural integrity: ensure terms from external ontologies exist; ensure that every class is connected to the rest of the ontology; flag namespace hijacking; 
+* Logical integrity: ensure that no cycles of `rdfs:subClassOf` exist."""@en ;
+    owl:versionInfo "0.1" .
+
 # SHACL Shapes
-# valid:Annotations a sh:NodeShape ;
-#     # pattern 1
-#     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
-#     # pattern 2
-#     # sh:or ( [ sh:targetClass owl:Class ] [ sh:targetClass rdfs:Class ] [ sh:targetClass owl:ObjectProperty ] [ sh:targetClass owl:DatatypeProperty ] [ sh:targetClass rdf:Property ] [ sh:targetClass owl:AnnotationProperty ] [ sh:targetClass sh:NodeShape ] [ sh:targetClass sh:PropertyShape ] ) ;
-#     rdfs:label "Annotations" ;
-#     rdfs:comment "Ensure that the target resources are annotated with one label and one comment." ;
-#     sh:or (
-#         [
-#             sh:message "valid:RegularLabel failed for {$this}: no standard label predicate such as rdfs:label, skos:prefLabel, skos:altLabel, or skos:hiddenLabel was found." ;
-#             sh:property valid:RegularLabel
-#         ]
-#         [
-#             sh:message "valid:CustomLabel failed for {$this}: no custom annotation property that is a sub-property of rdfs:label was found." ;
-#             sh:sparql valid:CustomLabel
-#         ]
-#     ) ;
-#     sh:or (
-#         [
-#             sh:message "valid:RegularComment failed for {$this}: no standard comment predicate such as rdfs:comment, dcterms:description, or skos:definition was found." ;
-#             sh:property valid:RegularComment
-#         ]
-#         [
-#             sh:message "valid:CustomComment failed for {$this}: no custom annotation property that is a sub-property of rdfs:comment was found." ;
-#             sh:sparql valid:CustomComment
-#         ]
-#     ) .
-
-valid:LabelAnnotation a sh:NodeShape ;
+oqa:LabelAnnotation
+    a sh:NodeShape ;
+    rdfs:label "Label Annotation"@en ;
+    rdfs:comment "Ensure that the target resources are annotated with one label."@en ;
     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
-    sh:message "Label annotation failure: a valid label must be supplied via either a standard predicate or a custom annotation property." ;
+    sh:message "Label annotation failure: a valid label must be supplied via either a standard label predicate such as rdfs:label, skos:prefLabel, skos:altLabel, or skos:hiddenLabel; or a custom annotation property that is rdfs:subPropertyOf* rdfs:label." ;
     sh:or (
-        [ sh:property valid:RegularLabel ]
-        [ sh:sparql valid:CustomLabel ]
+        [ sh:property oqa:RegularLabel ]
+        [ sh:sparql oqa:CustomLabel ]
     ) .
 
-valid:CommentAnnotation a sh:NodeShape ;
+oqa:CommentAnnotation
+    a sh:NodeShape ;
+    rdfs:label "Comment Annotation"@en ;
+    rdfs:comment "Ensure that the target resources are annotated with one comment."@en ;
     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
-    sh:message "Comment annotation failure: a valid comment must be supplied via either a standard predicate or a custom annotation property." ;
+    sh:message "Comment annotation failure: a valid comment must be supplied via either a standard comment predicate such as rdfs:comment, dcterms:description, or skos:definition; or a custom annotation property that is rdfs:subPropertyOf* rdfs:comment." ;
     sh:or (
-        [ sh:property valid:RegularComment ]
-        [ sh:sparql valid:CustomComment ]
+        [ sh:property oqa:RegularComment ]
+        [ sh:sparql oqa:CustomComment ]
     ) .
 
-valid:RegularLabel
+oqa:RegularLabel
         a sh:PropertyShape ;
+        rdfs:label "Regular Label"@en ;
+        rdfs:comment "Property shape targeting standard label annotation properties."@en ;
         sh:path [
             sh:alternativePath ( rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel )
         ] ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
         sh:message "Regular label failure: no standard label predicate such as rdfs:label, skos:prefLabel, skos:altLabel, or skos:hiddenLabel was found." ;
-        rdfs:label "Label" ;
-        rdfs:comment "Label shape targeting standard annotation properties" ;
         sh:name "Label Predicates" ;
         sh:description "A list of different predicates that can be used to specify a label." .
 
-valid:RegularComment
+oqa:RegularComment
         a sh:PropertyShape ;
+        rdfs:label "Regular Comment"@en ;
+        rdfs:comment "Property shape targeting standard comment annotation properties."@en ;
         sh:path [
             sh:alternativePath ( rdfs:comment dcterms:description skos:definition )
         ] ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
         sh:message "Regular comment failure: no standard comment predicate such as rdfs:comment, dcterms:description, or skos:definition was found." ;
-        rdfs:label "Comment" ;
-        rdfs:comment "Comment shape targeting standard annotation properties" ;
         sh:name "Comment Predicates" ;
         sh:description "A list of different predicates that can be used to specify a comment." .
 
-valid:CustomLabel
+oqa:CustomLabel
         a sh:SPARQLConstraint ;
         rdfs:label "Custom Label" ;
         rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:label is used, when no standard label predicate is present." ;
@@ -113,7 +103,7 @@ valid:CustomLabel
             }
         """ .
 
-valid:CustomComment
+oqa:CustomComment
         a sh:SPARQLConstraint ;
         rdfs:label "Custom Comment" ;
         rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:comment is used, when no standard comment predicate is present." ;
