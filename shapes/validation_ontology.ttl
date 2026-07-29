@@ -26,10 +26,11 @@ oqa:LabelAnnotation
     rdfs:comment "Ensure that the target resources are annotated with one label."@en ;
     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
     sh:message "Label annotation failure: a valid label must be supplied via either a standard label predicate such as rdfs:label, skos:prefLabel, skos:altLabel, or skos:hiddenLabel; or a custom annotation property that is rdfs:subPropertyOf* rdfs:label." ;
-    sh:or (
-        [ sh:property oqa:RegularLabel ]
-        [ sh:sparql oqa:CustomLabel ]
-    ) .
+    sh:sparql oqa:AnyLabel .
+    # sh:or (
+    #     [ sh:property oqa:RegularLabel ]
+    #     [ sh:sparql oqa:AnyLabel ]
+    # ) .
 
 oqa:CommentAnnotation
     a sh:NodeShape ;
@@ -37,10 +38,11 @@ oqa:CommentAnnotation
     rdfs:comment "Ensure that the target resources are annotated with one comment."@en ;
     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
     sh:message "Comment annotation failure: a valid comment must be supplied via either a standard comment predicate such as rdfs:comment, dcterms:description, or skos:definition; or a custom annotation property that is rdfs:subPropertyOf* rdfs:comment." ;
-    sh:or (
-        [ sh:property oqa:RegularComment ]
-        [ sh:sparql oqa:CustomComment ]
-    ) .
+    sh:sparql oqa:AnyComment .
+    # sh:or (
+    #     [ sh:property oqa:RegularComment ]
+    #     [ sh:sparql oqa:AnyComment ]
+    # ) .
 
 oqa:RegularLabel
         a sh:PropertyShape ;
@@ -68,9 +70,9 @@ oqa:RegularComment
         sh:name "Comment Predicates" ;
         sh:description "A list of different predicates that can be used to specify a comment." .
 
-oqa:CustomLabel
+oqa:AnyLabel
         a sh:SPARQLConstraint ;
-        rdfs:label "Custom Label" ;
+        rdfs:label "Any Label" ;
         rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:label is used, when no standard label predicate is present." ;
         sh:name "Local Label Annotation Property" ;
         sh:description "Accepts labels expressed via any owl:AnnotationProperty declared as rdfs:subPropertyOf* rdfs:label, in addition to the standard label predicates." ;
@@ -104,9 +106,9 @@ oqa:CustomLabel
             }
         """ .
 
-oqa:CustomComment
+oqa:AnyComment
         a sh:SPARQLConstraint ;
-        rdfs:label "Custom Comment" ;
+        rdfs:label "Any Comment" ;
         rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:comment is used, when no standard comment predicate is present." ;
         sh:name "Local Comment Annotation Property" ;
         sh:description "Accepts comments expressed via any owl:AnnotationProperty declared as rdfs:subPropertyOf* rdfs:comment, in addition to the standard comment predicates." ;
