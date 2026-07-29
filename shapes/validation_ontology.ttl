@@ -79,26 +79,27 @@ oqa:CustomLabel
             SELECT $this
             WHERE {
                 FILTER NOT EXISTS {
-                        {
-                            $this rdfs:label ?label .
-                        }
-                        UNION
-                        {
-                            $this skos:prefLabel ?label .
-                        }
-                        UNION
-                        {
-                            $this skos:altLabel ?label .
-                        }
-                        UNION
-                        {
-                            $this skos:hiddenLabel ?label .
-                        }
-                }
-                FILTER NOT EXISTS {
-                    $this ?predicate ?label .
-                    ?predicate a owl:AnnotationProperty ;
-                        rdfs:subPropertyOf* rdfs:label .
+                    {
+                        $this rdfs:label ?label .
+                    }
+                    UNION
+                    {
+                        $this skos:prefLabel ?label .
+                    }
+                    UNION
+                    {
+                        $this skos:altLabel ?label .
+                    }
+                    UNION
+                    {
+                        $this skos:hiddenLabel ?label .
+                    }
+                    UNION
+                    {
+                        $this ?predicate ?label .
+                        ?predicate a owl:AnnotationProperty ;
+                            rdfs:subPropertyOf* rdfs:label .
+                    }
                 }
             }
         """ .
@@ -114,22 +115,23 @@ oqa:CustomComment
             SELECT $this
             WHERE {
                 FILTER NOT EXISTS {
-                        {
-                            $this rdfs:comment ?comment .
-                        }
-                        UNION
-                        {
-                            $this dcterms:description ?comment .
-                        }
-                        UNION
-                        {
-                            $this skos:definition ?comment .
-                        }
-                }
-                FILTER NOT EXISTS {
-                    $this ?predicate ?comment .
-                    ?predicate a owl:AnnotationProperty ;
-                        rdfs:subPropertyOf* rdfs:comment .
+                    {
+                        $this rdfs:comment ?comment .
+                    }
+                    UNION
+                    {
+                        $this dcterms:description ?comment .
+                    }
+                    UNION
+                    {
+                        $this skos:definition ?comment .
+                    }
+                    UNION
+                    {
+                        $this ?predicate ?comment .
+                        ?predicate a owl:AnnotationProperty ;
+                            rdfs:subPropertyOf* rdfs:comment .
+                    }
                 }
             }
         """ .
