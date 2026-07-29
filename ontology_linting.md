@@ -8,7 +8,7 @@ In addition to the quality metrics, `ontolint` returns profiling metrics to char
 
 # Profiling Metrics
 
-Profiling metrics are computed by default 
+Profiling metrics are computed by default
 
 ### Number of triples
 
@@ -169,12 +169,14 @@ Profiling metrics are computed by default
 Individual tests can be enabled or disabled using a configuration file in YAML format. If a configuration named `.rdf-lint.yml` is present in the working directory from which `ontolint` is launched, it will be automatically parsed and used. Additionally, any file could be specified with the `-c` option.
 
 The configuration file needs to contain one of two mutually exclusive dictionary keys: `enable:` or `disable:`. If both are specified, only the first key will be used. In the following example, only specific checks are enabled (empty = all checks enabled)
+
 ```yaml
 enable:
-  - owl-declaration	
+  - owl-declaration
   - class-missing-label
   - property-missing-label
 ```
+
 ### Ontology without declaration
 
 <dl>
@@ -363,7 +365,7 @@ language tag.</dd>
   <dd><code>property-shape-same-label</code></dd>
 </dl>
 
-### Isolated classes 
+### Isolated classes
 
 <dl>
   <dt><strong>Metric Description</strong></dt>
@@ -402,7 +404,7 @@ with at least one of the predicates: <code>rdfs:subClassOf</code>, <code>rdfs:do
 
 <dl>
   <dt><strong>Metric Description</strong></dt>
-  <dd>QA test checking for the same resource being declared as semantically inconsistent elements, <i>e.g.</i> <code>owl:Class</code> or <code>rdfs:Class</code> and <code>owl:ObjectProperty</code>, <code>rdf:Property</code>, <code>owl:DatatypeProperty</code>, </code>owl:AnnotationProperty</code>.</dd>
+  <dd>QA test checking for the same resource being declared as semantically inconsistent elements, <i>e.g.</i> <code>owl:Class</code> or <code>rdfs:Class</code> and <code>owl:ObjectProperty</code>, <code>rdf:Property</code>, <code>owl:DatatypeProperty</code>, <code>owl:AnnotationProperty</code>.</dd>
   <dt><strong>Rationale</strong></dt>
   <dd>The same identifier (URI) should not be used for both a Class and Property.</dd>
   <dt><strong>Lint keyword</strong></dt>
