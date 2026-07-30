@@ -102,6 +102,7 @@ oqa:AnyLabel
                         ?predicate a owl:AnnotationProperty ;
                             rdfs:subPropertyOf* rdfs:label .
                     }
+                    FILTER(isLiteral(?label) && (datatype(?label) = xsd:string || lang(?label) != ""))
                 }
             }
         """ .
@@ -134,6 +135,7 @@ oqa:AnyComment
                         ?predicate a owl:AnnotationProperty ;
                             rdfs:subPropertyOf* rdfs:comment .
                     }
+                FILTER(isLiteral(?comment) && (datatype(?comment) = xsd:string || lang(?comment) != ""))
                 }
             }
         """ .

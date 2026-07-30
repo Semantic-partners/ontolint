@@ -1,0 +1,34 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT $this ?label
+FROM <workspace:///tests/example_test.ttl>
+WHERE {
+    $this ?p ?o ;
+    rdfs:label ?label .
+    FILTER NOT EXISTS {
+        {
+            $this rdfs:label ?label .
+        }
+        UNION
+        {
+            $this skos:prefLabel ?label .
+        }
+        UNION
+        {
+            $this skos:altLabel ?label .
+        }
+        UNION
+        {
+            $this skos:hiddenLabel ?label .
+        }
+        UNION
+        {
+            $this ?predicate ?label .
+            ?predicate a owl:AnnotationProperty ;
+                rdfs:subPropertyOf* rdfs:label .
+        }
+        FILTER(isLiteral(?label) && (datatype(?label) = xsd:string || lang(?label) != ""))
+    }
+}
