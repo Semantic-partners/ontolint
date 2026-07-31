@@ -6,10 +6,10 @@
 @prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
+@prefix vann: <http://purl.org/vocab/vann/> .
 
 oqa: a owl:Ontology ;
-    rdfs:label "Quality Assurance Ontology"@en ;
+    rdfs:label "Ontology Quality Assurance Ontology"@en ;
     rdfs:comment """An ontology for the quality assurance of ontologies. The OQA is a collection of SHACL shapes targeting various quality dimensions:
 
 * Ontology metadata: ensure that the ontology is declared and has a description; verify the resources specified in `owl:imports` ; 
@@ -17,125 +17,151 @@ oqa: a owl:Ontology ;
 * Semantic clarity: ensure that each label is unique; ensure that properties have domain and range defined; ensure that the same resource is not defined as a class and a property; ensure that every resource in the ontology is properly defined;
 * Structural integrity: ensure terms from external ontologies exist; ensure that every class is connected to the rest of the ontology; flag namespace hijacking; 
 * Logical integrity: ensure that no cycles of `rdfs:subClassOf` exist."""@en ;
-    owl:versionInfo "0.1" .
-
+    owl:versionInfo "0.1" ;
+    vann:preferredNamespacePrefix "oqa" ;
+    vann:preferredNamespaceUri oqa: .
+ 
 # SHACL Shapes
 oqa:LabelAnnotation
     a sh:NodeShape ;
     rdfs:label "Label Annotation"@en ;
     rdfs:comment "Ensure that the target resources are annotated with one label."@en ;
     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
-    sh:message "Label annotation failure: a valid label must be supplied via either a standard label predicate such as rdfs:label, skos:prefLabel, skos:altLabel, or skos:hiddenLabel; or a custom annotation property that is rdfs:subPropertyOf* rdfs:label." ;
-    sh:sparql oqa:AnyLabel .
-    # sh:or (
-    #     [ sh:property oqa:RegularLabel ]
-    #     [ sh:sparql oqa:AnyLabel ]
-    # ) .
+    sh:message "Label annotation failure: a valid label must be specified with a dedicated annotation property." ;
+    sh:property oqa:LabelRule .
 
 oqa:CommentAnnotation
     a sh:NodeShape ;
     rdfs:label "Comment Annotation"@en ;
     rdfs:comment "Ensure that the target resources are annotated with one comment."@en ;
     sh:targetClass owl:Class, rdfs:Class, owl:ObjectProperty, owl:DatatypeProperty, rdf:Property, owl:AnnotationProperty, sh:NodeShape, sh:PropertyShape ;
-    sh:message "Comment annotation failure: a valid comment must be supplied via either a standard comment predicate such as rdfs:comment, dcterms:description, or skos:definition; or a custom annotation property that is rdfs:subPropertyOf* rdfs:comment." ;
-    sh:sparql oqa:AnyComment .
-    # sh:or (
-    #     [ sh:property oqa:RegularComment ]
-    #     [ sh:sparql oqa:AnyComment ]
-    # ) .
+    sh:message "Comment annotation failure: a valid comment must be specified with a dedicated annotation property." ;
+    sh:property oqa:CommentRule .
 
-oqa:RegularLabel
+oqa:LabelRule
         a sh:PropertyShape ;
         rdfs:label "Regular Label"@en ;
-        rdfs:comment "Property shape targeting standard label annotation properties."@en ;
+        rdfs:comment "Label missing or not a string."@en ;
         sh:path [
             sh:alternativePath ( rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel )
         ] ;
         sh:minCount 1 ;
-        sh:datatype xsd:string ;
-        sh:message "Regular label failure: no standard label predicate such as rdfs:label, skos:prefLabel, skos:altLabel, or skos:hiddenLabel was found." ;
-        sh:name "Label Predicates" ;
+        sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+        sh:message "FAILURE: label annotation missing or not a string." ;
+        sh:name "Label predicates" ;
         sh:description "A list of different predicates that can be used to specify a label." .
 
-oqa:RegularComment
+oqa:CommentRule
         a sh:PropertyShape ;
         rdfs:label "Regular Comment"@en ;
-        rdfs:comment "Property shape targeting standard comment annotation properties."@en ;
+        rdfs:comment "Comment missing or not a string."@en ;
         sh:path [
             sh:alternativePath ( rdfs:comment dcterms:description skos:definition )
         ] ;
         sh:minCount 1 ;
-        sh:datatype xsd:string ;
-        sh:message "Regular comment failure: no standard comment predicate such as rdfs:comment, dcterms:description, or skos:definition was found." ;
-        sh:name "Comment Predicates" ;
+        sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+        sh:message "FAILURE: comment annotation missing or not a string." ;
+        sh:name "Comment predicates" ;
         sh:description "A list of different predicates that can be used to specify a comment." .
 
-oqa:AnyLabel
-        a sh:SPARQLConstraint ;
-        rdfs:label "Any Label" ;
-        rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:label is used, when no standard label predicate is present." ;
-        sh:name "Local Label Annotation Property" ;
-        sh:description "Accepts labels expressed via any owl:AnnotationProperty declared as rdfs:subPropertyOf* rdfs:label, in addition to the standard label predicates." ;
-        sh:message "{$this} has no label, neither via standard predicates nor via a local annotation property that is rdfs:subPropertyOf* rdfs:label." ;
-        sh:select """
-            SELECT $this
-            WHERE {
-                FILTER NOT EXISTS {
-                    {
-                        $this rdfs:label ?label .
-                    }
-                    UNION
-                    {
-                        $this skos:prefLabel ?label .
-                    }
-                    UNION
-                    {
-                        $this skos:altLabel ?label .
-                    }
-                    UNION
-                    {
-                        $this skos:hiddenLabel ?label .
-                    }
-                    UNION
-                    {
-                        $this ?predicate ?label .
-                        ?predicate a owl:AnnotationProperty ;
-                            rdfs:subPropertyOf* rdfs:label .
-                    }
-                    FILTER(isLiteral(?label) && (datatype(?label) = xsd:string || lang(?label) != ""))
-                }
-            }
-        """ .
+# The followint two instances of sh:SPARQLConstraint are kept as a reference for an alternative way to capture violations for a series of pre-determined annotation properties, or for custom-made annotation properties. This pattern is based on the assumption that a custom annotation property is also a subclass of the corresponding RDFS property, and that only a subsect of pre-defined predicates are allowed.
 
-oqa:AnyComment
-        a sh:SPARQLConstraint ;
-        rdfs:label "Any Comment" ;
-        rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:comment is used, when no standard comment predicate is present." ;
-        sh:name "Local Comment Annotation Property" ;
-        sh:description "Accepts comments expressed via any owl:AnnotationProperty declared as rdfs:subPropertyOf* rdfs:comment, in addition to the standard comment predicates." ;
-        sh:message "{$this} has no comment, neither via standard predicates nor via a local annotation property that is rdfs:subPropertyOf* rdfs:comment." ;
-        sh:select """
-            SELECT $this
-            WHERE {
-                FILTER NOT EXISTS {
-                    {
-                        $this rdfs:comment ?comment .
-                    }
-                    UNION
-                    {
-                        $this dcterms:description ?comment .
-                    }
-                    UNION
-                    {
-                        $this skos:definition ?comment .
-                    }
-                    UNION
-                    {
-                        $this ?predicate ?comment .
-                        ?predicate a owl:AnnotationProperty ;
-                            rdfs:subPropertyOf* rdfs:comment .
-                    }
-                FILTER(isLiteral(?comment) && (datatype(?comment) = xsd:string || lang(?comment) != ""))
-                }
-            }
-        """ .
+# oqa:AnyLabel
+#         a sh:SPARQLConstraint ;
+#         rdfs:label "Any Label" ;
+#         rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:label is used, when no standard label predicate is present." ;
+#         sh:name "Local Label Annotation Property" ;
+#         sh:description "Accepts labels expressed via any owl:AnnotationProperty declared as rdfs:subPropertyOf* rdfs:label, in addition to the standard label predicates." ;
+#         sh:message "{$this} has no label, neither via standard predicates nor via a local annotation property that is rdfs:subPropertyOf* rdfs:label." ;
+#         sh:select """
+#             SELECT $this
+#             WHERE {
+#                 FILTER NOT EXISTS {
+#                     {
+#                         $this rdfs:label ?label .
+#                     }
+#                     UNION
+#                     {
+#                         $this skos:prefLabel ?label .
+#                     }
+#                     UNION
+#                     {
+#                         $this skos:altLabel ?label .
+#                     }
+#                     UNION
+#                     {
+#                         $this skos:hiddenLabel ?label .
+#                     }
+#                     UNION
+#                     {
+#                         $this ?predicate ?label .
+#                         ?predicate a owl:AnnotationProperty ;
+#                             rdfs:subPropertyOf* rdfs:label .
+#                     }
+#                     FILTER(isLiteral(?label) && (datatype(?label) = xsd:string || lang(?label) != ""))
+#                 }
+#             }
+#         """ .
+
+# oqa:AnyComment
+#         a sh:SPARQLConstraint ;
+#         rdfs:label "Any Comment" ;
+#         rdfs:comment "Fail unless a local annotation property that is rdfs:subPropertyOf* rdfs:comment is used, when no standard comment predicate is present." ;
+#         sh:name "Local Comment Annotation Property" ;
+#         sh:description "Accepts comments expressed via any owl:AnnotationProperty declared as rdfs:subPropertyOf* rdfs:comment, in addition to the standard comment predicates." ;
+#         sh:message "{$this} has no comment, neither via standard predicates nor via a local annotation property that is rdfs:subPropertyOf* rdfs:comment." ;
+#         sh:select """
+#             SELECT $this
+#             WHERE {
+#                 FILTER NOT EXISTS {
+#                     {
+#                         $this rdfs:comment ?comment .
+#                     }
+#                     UNION
+#                     {
+#                         $this dcterms:description ?comment .
+#                     }
+#                     UNION
+#                     {
+#                         $this skos:definition ?comment .
+#                     }
+#                     UNION
+#                     {
+#                         $this ?predicate ?comment .
+#                         ?predicate a owl:AnnotationProperty ;
+#                             rdfs:subPropertyOf* rdfs:comment .
+#                     }
+#                 FILTER(isLiteral(?comment) && (datatype(?comment) = xsd:string || lang(?comment) != ""))
+#                 }
+#             }
+#         """ .
+
+#
+
+oqa:OntologyDeclaration
+    a sh:NodeShape ;
+    rdfs:label "Ontology Declaration"@en ;
+    rdfs:comment "Ensure that the ontology is declared."@en ;
+    sh:targetNode owl:Ontology ;
+    sh:property oqa:OntologyRule .
+
+oqa:OntologyRule
+    a sh:PropertyShape ;
+        sh:path [ sh:inversePath rdf:type ] ;
+        sh:minCount 1 ;
+        sh:message "FAILURE: No instance of 'owl:Ontology' was found in the graph." ;
+        rdfs:label "Ontology Declaration"@en ;
+        rdfs:comment "Verify that an ontology has been declared by checking that ^rdf:type has min cardinality 1" .
+
+oqa:OntologyMetadata
+    a sh:NodeShape ;
+    sh:targetClass owl:Ontology ;
+    rdfs:label "Ontology Metadata"@en ;
+    rdfs:comment "Ensure that the ontology has a minimal set of metadata declared."@en ;
+    sh:message "FAILURE: Ontology Metadata"@en ;
+    sh:node oqa:OntologyMetadataChecks .
+
+oqa:OntologyMetadataChecks
+    a sh:NodeShape ;
+    sh:property oqa:LabelRule, oqa:CommentRule .
+
