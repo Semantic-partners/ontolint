@@ -50,9 +50,9 @@
     rdfs:label "Fin" ;
     rdfs:comment "The class of all Fins" .
 
-: a owl:Ontology .
+: a owl:Ontology ;
     # rdfs:label "Animal Ontology"@en ;
-    # rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
 
 :AnimalShape a sh:NodeShape ;
     rdfs:comment "Make sure the entity belongs to the animal kingdom." ;

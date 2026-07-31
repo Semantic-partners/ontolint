@@ -163,5 +163,7 @@ oqa:OntologyMetadata
 
 oqa:OntologyMetadataChecks
     a sh:NodeShape ;
+    rdfs:label "Ontology Metadata Checks"@en ;
+    rdfs:comment "A shape nested into another one, carrying the messages of individual property shapes reporting individual failures."@en ;
     sh:property oqa:LabelRule, oqa:CommentRule .
 
