@@ -81,13 +81,13 @@ def test_inference_example_via_run_main(tmp_path, capsys):
     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
     :Animal a rdfs:Class.
     :Cat a rdfs:Class ; rdfs:subClassOf :Animal .
-    :Fluffy a :Cat .
+    :Fluffy a rdfs:Class, :Cat .
     """)
     run_main(str(ttl), '-i')
     out = capsys.readouterr().out
     assert "Added 1 new triples" in out
-    assert "Final graph size after inference: 5 triples." in out
-    assert "| inference_test.ttl | 5 | 2 | 0 |" in out
+    assert "Final graph size after inference: 6 triples." in out
+    assert "| inference_test.ttl | 6 | 3 | 0 |" in out
     
 def test_no_inference(tmp_path, capsys):
     ttl = tmp_path / "inference_test.ttl"
