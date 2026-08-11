@@ -4,6 +4,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 :Animal a rdfs:Class ;
     rdfs:label "Animal" ;
@@ -126,3 +127,18 @@
     rdfs:comment "The class of all Shrimps" ;
     rdfs:subClassOf :Animal .
 
+# Edge case: isolated element
+:PetName a owl:Class ;
+    rdfs:label "Pet Name" ;
+    rdfs:comment "The name of a pet. Not an isolated class!" .
+
+:isPet a owl:ObjectProperty ;
+    rdfs:label "is Pet" ;
+    rdfs:comment "If an animal has a name, than it's a pet." ;
+    rdfs:domain :Animal ;
+    rdfs:range [
+        a owl:Class ;
+        owl:unionOf ( rdfs:Literal xsd:string :PetName ) ;
+    ] .
+
+:ObiWan a :PetName, owl:NamedIndividual .

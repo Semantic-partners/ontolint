@@ -10,7 +10,7 @@ WHERE {
      ?c ?p ?o .
   }
   MINUS {
-    VALUES ?p { rdfs:subClassOf rdfs:domain rdfs:range sh:targetClass sh:class }
+    VALUES ?p { rdfs:subClassOf rdfs:domain rdfs:range sh:targetClass sh:class rdf:first }
     ?s ?p ?c .
   }
   # exclude blank nodes
