@@ -120,12 +120,27 @@ def test_remote_namespace_resolves_but_term_absent_fails(make_graph):
     assert check.count == 1
 
 
-def test_unresolvable_remote_namespace_is_skipped(make_graph):
+def test_unresolvable_remote_namespace_flagged_as_fetch_failure(make_graph):
     g = make_graph("""
     : a owl:Ontology .
     :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
     """)
     check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
+    assert not check.passed
+    assert check.count == 1
+    assert "http://remote.example.org#Mammal (fetch failure)" in check.elements
+
+
+def test_ignored_namespace_not_flagged(make_graph):
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
+    """)
+    check = run_qa(
+        g,
+        uri_parser=_no_fetch,
+        ignore_imports=["http://remote.example.org#"],
+    ).get(CHECK_NAME)
     assert check.passed
     assert check.count == 0
 
@@ -181,17 +196,18 @@ def test_multiple_remote_namespaces_partial_resolution(make_graph):
 
 # ── Edge cases ────────────────────────────────────────────────────────────────
 
-def test_no_ontology_declaration_local_undefined_not_flagged(make_graph):
-    # Without owl:Ontology the local namespace is unknown, so :Mammal cannot
-    # be identified as local. It falls through to an unresolvable remote
-    # namespace and is skipped rather than flagged.
+def test_no_ontology_declaration_remote_term_flagged_as_fetch_failure(make_graph):
+    # Without owl:Ontology the local namespace is unknown, so neither :Dog nor
+    # :Mammal can be identified as local — both fall through to an unresolvable
+    # remote namespace and are flagged as (fetch failure).
     g = make_graph("""
     :Dog a owl:Class .
     :Dog rdfs:subClassOf :Mammal .
     """)
     check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
-    assert check.passed
-    assert check.count == 0
+    assert not check.passed
+    assert check.count == 2
+    assert "fetch failure" in check.elements
 
 
 def test_violation_elements_lists_undefined_uri(make_graph):
@@ -201,3 +217,39 @@ def test_violation_elements_lists_undefined_uri(make_graph):
     """)
     check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
     assert "http://example.org#Mammal" in check.elements
+
+
+# ── local_imports substitution ────────────────────────────────────────────────
+
+def test_local_imports_substitutes_namespace_fetch(make_graph, tmp_path):
+    local_file = tmp_path / "remote_ns.ttl"
+    local_file.write_text(
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
+        "<http://remote.example.org#Mammal> a owl:Class .\n"
+    )
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
+    """)
+    check = run_qa(
+        g, local_imports={"http://remote.example.org#": str(local_file)}
+    ).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
+
+
+def test_local_imports_term_absent_in_local_file_fails(make_graph, tmp_path):
+    local_file = tmp_path / "remote_ns.ttl"
+    local_file.write_text(
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
+        "<http://remote.example.org#Other> a owl:Class .\n"
+    )
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
+    """)
+    check = run_qa(
+        g, local_imports={"http://remote.example.org#": str(local_file)}
+    ).get(CHECK_NAME)
+    assert not check.passed
+    assert check.count == 1

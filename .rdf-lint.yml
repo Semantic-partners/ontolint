@@ -38,9 +38,13 @@
 #   - hijacking
 #   - isolated-classes
 #   - property-missing-domain
-
-# Skip the resolvability check entirely for specific imported ontologies
-# ignore-imports:
-#   - http://www.w3.org/ns/shacl
-#   - https://schema.org/
         
+# Exclude certain URLs from resolvability check or provide local mappings for an imported IRI.
+# Given a local mapping, the script will not try and resolve the URL and instead just read from the file
+# Filepaths should be relative to the project root dir 
+imports:
+  ignore:
+    - http://www.ignored.com     # skip this URL entirely
+  local:
+    http://example.org/: tests/external.ttl        # used by owl:imports check
+#     http://namespace.example.org#: local/ns.ttl            # used by undefined-terms check

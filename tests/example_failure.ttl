@@ -10,8 +10,7 @@
 : a owl:Ontology ;
   rdfs:label "Animal Ontology" ;
     rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
-    owl:imports <http://www.example.com> , <htt://www.exmp.com>.
-# Resolves to empty graph, doesn't resolve
+    owl:imports <htt://www.exmp.com>  .
 :Dog a rdfs:Class ;
      rdfs:subClassOf :Animal , :Mammal ; #failure: Mammal isn't defined.
      skos:preferredLabel "Dog" .
@@ -98,3 +97,6 @@ skos:Creature a rdfs:Class ;
   :hasClaws :dogClaws .
   
 :dogClaws a :Claw .
+
+# Should fail because the external was not imported 
+:Gecko a ex:Reptiles .

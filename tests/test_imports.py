@@ -164,3 +164,54 @@ def test_all_imports_ignored_passes(make_graph):
     check = run_qa(g, ignore_imports=urls).get(CHECK_NAME)
     assert check.passed
     assert check.count == 0
+
+
+# ── local_imports substitution ────────────────────────────────────────────────
+
+def test_local_substitute_resolves_otherwise_failing_import(make_graph, tmp_path):
+    local_file = tmp_path / "local.ttl"
+    local_file.write_text(
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
+        "<http://remote.example.org#Thing> a owl:Class .\n"
+    )
+    remote_url = "http://does-not-exist.invalid/ont.ttl"
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{remote_url}> .
+    """)
+    check = run_qa(g, local_imports={remote_url: str(local_file)}).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
+
+
+def test_local_substitute_empty_file_still_fails(make_graph, tmp_path):
+    local_file = tmp_path / "empty.ttl"
+    local_file.write_text("# no triples\n")
+    remote_url = "http://does-not-exist.invalid/ont.ttl"
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{remote_url}> .
+    """)
+    check = run_qa(g, local_imports={remote_url: str(local_file)}).get(CHECK_NAME)
+    assert not check.passed
+    assert check.count == 1
+
+
+def test_local_substitute_only_affects_mapped_url(make_graph, tmp_path):
+    local_file = tmp_path / "local.ttl"
+    local_file.write_text(
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
+        "<http://remote.example.org#Thing> a owl:Class .\n"
+    )
+    mapped_url = "http://does-not-exist.invalid/mapped.ttl"
+    unmapped_url = "http://does-not-exist.invalid/unmapped.ttl"
+    g = make_graph(f"""
+    : a owl:Ontology .
+    : owl:imports <{mapped_url}> .
+    : owl:imports <{unmapped_url}> .
+    """)
+    check = run_qa(g, local_imports={mapped_url: str(local_file)}).get(CHECK_NAME)
+    assert not check.passed
+    assert check.count == 1
+    assert unmapped_url in check.elements
+    assert mapped_url not in check.elements
