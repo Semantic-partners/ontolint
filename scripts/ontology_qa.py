@@ -322,6 +322,7 @@ def print_profiling_metrics(metrics, elements, verbose):
     log  = "\n## Profiling Details\n\n"
     log += f"RDF/OWL classes: {metrics['classCount']}\n"
     log += f"RDF/OWL properties: {metrics['propertyCount']}\n"
+    log += f"Instance data: {metrics['instances']}\n"
     log += f"SHACL Node Shapes: {metrics['nodeShapes']}\n"
     log += f"SHACL Property Shapes: {metrics['propertyShapes']}\n"
 
@@ -397,6 +398,7 @@ def profiling(graph):
     Returns:
         metrics (dict): Count of ontology metrics.
         elements (dict): Elements in ontology metrics.
+        exclusions (rdflib.Graph): The RDF graph with instance data to exclude
     """
     metrics = {}
     elements = {}
@@ -513,7 +515,10 @@ def profiling(graph):
     (row,) = results
     metrics['CardinalityRestrictions'] = row.counter
 
-    return metrics, elements
+    # Exclude instance data from linting.
+    exclusions, metrics['instances'] = exclude_instance_data(graph)
+
+    return metrics, elements, exclusions
 
 def exec_hierarchy_depth(graph):
     """Compute the hierarchy depth of the ontology by constructing a directed graph of subclass relationships"""
@@ -526,6 +531,23 @@ def exec_hierarchy_depth(graph):
     if not nx.is_directed_acyclic_graph(G):
         return -1
     return nx.dag_longest_path_length(G)
+
+def exclude_instance_data(graph):
+    """
+    Find instance data and remove them from the graph.
+    
+    Args:
+        graph (rdflib.Graph): The RDF graph object to parse into.
+    
+    Returns:
+        instances (rdflib.Graph): A RDF graph with the instance to remove.
+        count (int): The number of instance subjects found.
+    """
+
+    instances = exec_sparql(graph, 'return_instances')
+    subjects = {s for s, _, _ in instances}
+
+    return instances, len(subjects)
 
 def infer_subclass_relations(graph):
     """
@@ -2157,8 +2179,10 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     }
     qa_violations = {}
 
-    metrics, profiling_elements = profiling(graph)
+    metrics, profiling_elements, exclusions = profiling(graph)
     qa_metrics.update(metrics)
+    if (len(exclusions) > 0):
+        graph -= exclusions
 
     logs = []
     checks = []
@@ -2252,7 +2276,7 @@ def main():
     parser.add_argument('-e', '--exit-status', action='store_true', help='Report an exit status to determine if one or more violations were detected.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
     parser.add_argument('-p', '--profile-only', action='store_true', help='Compute only the profiling metrics and skip the QA part.')
-    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks.(default: False)')
+    parser.add_argument('-i', '--inference',action='store_true', help='Enable inference of subclass relations before running QA checks. (default: False)')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout.')
@@ -2306,7 +2330,7 @@ def main():
     if args.profile_only:
         qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
         qa_violations = {}
-        metrics, violations = profiling(g)
+        metrics, violations, _ = profiling(g)
         qa_metrics.update(metrics)
         qa_violations.update(violations)
         log_output += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
