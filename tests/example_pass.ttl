@@ -127,13 +127,13 @@
     rdfs:comment "The class of all Shrimps" ;
     rdfs:subClassOf :Animal .
 
-# Edge case: isolated element
+# Edge cases: isolated element
 :PetName a owl:Class ;
     rdfs:label "Pet Name" ;
     rdfs:comment "The name of a pet. Not an isolated class!" .
 
-:isPet a owl:ObjectProperty ;
-    rdfs:label "is Pet" ;
+:hasName a owl:ObjectProperty ;
+    rdfs:label "has Name" ;
     rdfs:comment "If an animal has a name, than it's a pet." ;
     rdfs:domain :Animal ;
     rdfs:range [
@@ -142,3 +142,21 @@
     ] .
 
 :ObiWan a :PetName, owl:NamedIndividual .
+
+:hasPart a owl:ObjectProperty ;
+    rdfs:label "has Part" ;
+    rdfs:comment "Basic Parthood relation" ;
+    rdfs:domain owl:Thing ;
+    rdfs:range owl:Thing .
+
+:Pond a owl:Class ;
+    rdfs:label "Pond" ;
+    rdfs:comment "A region holding freshwater for most time of the year." .
+
+:FreshwaterEcosystem a owl:Class ;
+    rdfs:label "Freshwater Ecosystem" ;
+    rdfs:comment "A geographical area where interactions between living beings form an interconnected and inter-dependent web characterised by the presence of freshwater." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+                        owl:onProperty :hasPart ;
+                        owl:someValuesFrom :Pond 
+                    ] .
