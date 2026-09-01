@@ -9,6 +9,7 @@ WHERE {
    WHERE {
     VALUES ?type { owl:Class rdfs:Class }
     ?class a ?type .
+    FILTER(isIRI(?class))
    }
  }
  {
@@ -26,6 +27,7 @@ WHERE {
     {
       ?property rdfs:subPropertyOf ?parent
     }
+    FILTER(isIRI(?property))
    }
  }
 }
