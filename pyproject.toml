@@ -2,6 +2,7 @@
 name = "ontolint"
 version = "0.2.1"
 description = "Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline"
+license = "MIT OR Apache-2.0"
 authors = [
     {name = "Otello M Roscioni",email = "otello.roscioni@semanticpartners.com"}
 ]
