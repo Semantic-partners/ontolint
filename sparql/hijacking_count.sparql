@@ -1,6 +1,7 @@
 # Namespace hijacking
 # Define a resource in the current namespace using an external vocabulary prefix.
 # Count elements defined in each namespaces, except the current one.
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
 SELECT ?namespace (COUNT(DISTINCT ?resource) AS ?count)
 WHERE {
     ?resource ?property ?value .

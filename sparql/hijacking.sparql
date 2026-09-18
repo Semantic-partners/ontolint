@@ -1,5 +1,7 @@
 # Namespace hijacking
 # Define a resource in the current namespace using an external vocabulary prefix.
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT DISTINCT ?resource
 WHERE {
     ?resource ?property ?value .
