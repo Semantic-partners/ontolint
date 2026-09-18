@@ -1,5 +1,6 @@
 # Tangledness
 # List classes having more than one direct rdfs:subClassOf parent
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT ?c (COUNT(?parent) AS ?directAncestors)
 WHERE {
   ?c rdfs:subClassOf ?parent .

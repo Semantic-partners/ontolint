@@ -1,6 +1,9 @@
 # Number of locally defined properties specified in PropertyShapes through sh:path
 # The blank nodes created by sh:property in NodeShapes are also counted.
-# This behaviour can be disabled with FILTER(isIRI(?ps)) 
+# This behaviour can be disabled with FILTER(isIRI(?ps))
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT DISTINCT ?ps ?property
 WHERE {
   {
