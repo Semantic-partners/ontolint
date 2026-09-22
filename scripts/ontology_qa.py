@@ -2466,6 +2466,7 @@ def main():
             log_output += load_log
             if file_counter == 0:
                 log_output += f"ERROR - No RDF data in: {fp}"
+                any_violation = True
                 qa_terminate(None, log_output)
                 continue
             log_output += f"\n> {file_counter} file processed.\n"

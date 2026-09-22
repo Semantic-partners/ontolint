@@ -9,5 +9,5 @@ WHERE {
 	?instance a ?class ;
 	?predicate ?object .
 	# Exclude meta modelling
-	FILTER ( NOT EXISTS { ?instance a ?type } || NOT EXISTS { ?instance rdfs:subClassOf ?anything } )
+	FILTER ( NOT EXISTS { ?instance a ?type } && NOT EXISTS { ?instance rdfs:subClassOf ?anything } )
 }

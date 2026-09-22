@@ -1,6 +1,7 @@
 # Untyped class
 # Class without owl:Class or rdfs:Class declaration
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 SELECT DISTINCT ?c
@@ -12,6 +13,15 @@ WHERE {
   { ?s sh:class ?c . }
   UNION
   { ?s rdfs:subClassOf ?c . }
+  UNION
+  { ?s rdf:first ?c . }
+  UNION
+  {
+	VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
+    ?r a owl:Restriction ;
+    ?restriction ?c .
+
+  }
   
   # exclude blank nodes
   FILTER(isIRI(?c))
