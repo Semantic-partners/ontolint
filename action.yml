@@ -32,6 +32,8 @@ inputs:
       RDF files) instead of on a single merged graph. Produces one CTRF file and one
       report section per ontology file. Note that cross-file references are not
       resolved in this mode, since each file is checked on its own.
+      When combined with `profile-only: 'true'`, no CTRF files, report, job summary
+      or artifact are produced; profiling output is only printed to the step log.
     required: false
     default: 'false'
   config-path:
