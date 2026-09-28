@@ -68,11 +68,25 @@ class QAResult:
     def failures(self):
         return [c for c in self.checks if not c.passed]
 
-def exec_sparql(graph, key):
+# Placeholder comment in a SPARQL query marking where the exclude-types filter is injected.
+EXCLUDE_TYPES_PLACEHOLDER = "# {{EXCLUDE_TYPES}}"
+
+def exec_sparql(graph, key, exclude_types=None):
     """
     Execute a SPARQL query from the input RDFLib graph, retrieving it from a global dictionary.
+
+    If exclude_types is given, resources (bound to ?c) typed with any of those IRIs are
+    filtered out. The query must contain the EXCLUDE_TYPES_PLACEHOLDER comment.
     """
     sparql_query = sparql_queries[key]
+    if exclude_types:
+        if EXCLUDE_TYPES_PLACEHOLDER not in sparql_query:
+            raise ValueError(f"Query '{key}' does not support exclude-types")
+        values = " ".join(f"<{t}>" for t in exclude_types)
+        sparql_query = sparql_query.replace(
+            EXCLUDE_TYPES_PLACEHOLDER,
+            f"FILTER NOT EXISTS {{ VALUES ?excludedType {{ {values} }} ?c a ?excludedType . }}"
+        )
     results = graph.query(sparql_query)
     return results
 
@@ -727,7 +741,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose):
+def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes without a label.
     
@@ -739,6 +753,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -750,7 +765,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'class_missing_label')
+    results = exec_sparql(graph, 'class_missing_label', exclude_types)
     metrics[check] = 0 # 'missingClassLabel'
     violations[check] = ""
 
@@ -923,7 +938,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     log += sep()
     return metrics, violations, log, c, status
 
-def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbose):
+def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes without description.
     
@@ -935,6 +950,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -946,7 +962,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'class_missing_comment')
+    results = exec_sparql(graph, 'class_missing_comment', exclude_types)
     metrics[check] = 0 # 'missingClassDescription'
     violations[check] = ""
 
@@ -1118,7 +1134,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     log += sep()
     return metrics, violations, log, c, status
 
-def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
+def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes sharing the same label.
     
@@ -1130,6 +1146,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -1141,7 +1158,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'class_same_label')
+    results = exec_sparql(graph, 'class_same_label', exclude_types)
     metrics[check] = 0 # 'nonUniqueClassLabels'
     violations[check] = ""
     
@@ -1313,7 +1330,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
     log += sep()
     return metrics, violations, log, c, status
 
-def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
+def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes declared but never used in any other triple connecting them to the rest of the ontology.
     
@@ -1325,6 +1342,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -1336,7 +1354,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'isolated_classes')
+    results = exec_sparql(graph, 'isolated_classes', exclude_types)
     metrics[check] = 0 # 'isolatedClasses'
     violations[check] = ""
 
@@ -1617,7 +1635,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
+def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes in the current namespace without owl:Class or rdfs:Class declaration
     
@@ -1629,6 +1647,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -1640,7 +1659,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'untyped_class')
+    results = exec_sparql(graph, 'untyped_class', exclude_types)
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
@@ -1916,7 +1935,10 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     used_terms = set()
     local_subjects = set()
     for s, p, o in graph:
-        for term in (s, p, o):
+        # An owl:versionIRI object identifies a version of the ontology document,
+        # not a term, so there is nothing to resolve.
+        terms = (s, p) if p == rdflib.OWL.versionIRI else (s, p, o)
+        for term in terms:
             if isinstance(term, rdflib.URIRef):
                 used_terms.add(str(term))
 
@@ -2120,6 +2142,26 @@ def _collect_files(paths):
             result.append(path)
     return result
 
+# Prefixes accepted in compact IRIs in the lint config (e.g. `rdf:PropositionForm`).
+CONFIG_PREFIXES = {
+    'rdf': str(rdflib.RDF),
+    'rdfs': str(rdflib.RDFS),
+    'owl': str(rdflib.OWL),
+    'xsd': str(rdflib.XSD),
+    'skos': str(rdflib.SKOS),
+    'sh': str(rdflib.SH),
+    'dcterms': str(rdflib.DCTERMS),
+}
+
+def expand_curie(value):
+    """Expand a compact IRI using CONFIG_PREFIXES; full IRIs are returned unchanged."""
+    if value.startswith(('http://', 'https://', 'urn:')):
+        return value
+    prefix, sep, local = value.partition(':')
+    if sep and prefix in CONFIG_PREFIXES:
+        return CONFIG_PREFIXES[prefix] + local
+    raise ValueError(f"Cannot expand '{value}': use a full IRI or one of the prefixes {', '.join(CONFIG_PREFIXES)}")
+
 def parse_lint_config(config):
     """
     Parse configuration dictionary to switch on/off selected metrics.
@@ -2134,6 +2176,8 @@ def parse_lint_config(config):
             the owl:imports check (keyed on import URL) and the undefined-terms check
             (keyed on namespace URI).  Relative paths are resolved relative to the
             config file's directory.
+        exclude_types (list): Type IRIs whose instances are skipped by the class checks
+            (see TYPE_EXCLUDABLE_CHECKS).
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -2156,13 +2200,16 @@ def parse_lint_config(config):
         for url, path in raw_local.items()
     }
 
+    exclude_section = selection.pop("exclude", None) or {}
+    exclude_types = [expand_curie(str(t)) for t in (exclude_section.get("types") or [])]
+
     # Transform the dictionary (check enable/disable keys only)
     transformed_selection = {
         key: [f"check_{item.replace('-', '_')}" for item in value_list]
         for key, value_list in selection.items()
     }
 
-    return transformed_selection, ignore_imports, local_imports
+    return transformed_selection, ignore_imports, local_imports, exclude_types
 
 def lint_selection(selection, checklist):
         """
@@ -2259,7 +2306,16 @@ def deepcopy_list(nested_list):
     # Recursive case: map the function over every element in the list
     return [deepcopy_list(item) for item in nested_list]
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None) -> QAResult:
+# Class checks that skip resources typed with a configured `exclude.types` IRI.
+TYPE_EXCLUDABLE_CHECKS = (
+    check_class_missing_label,
+    check_class_missing_comment,
+    check_class_same_label,
+    check_isolated_classes,
+    check_untyped_class,
+)
+
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Returns structured pass/fail results — no file I/O, no arg parsing.
@@ -2295,6 +2351,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                     kwargs["local_imports"] = local_imports
                 if ignore_imports:
                     kwargs["ignore_imports"] = ignore_imports
+            if func in TYPE_EXCLUDABLE_CHECKS and exclude_types:
+                kwargs["exclude_types"] = exclude_types
             metrics, violations, log_results, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
@@ -2370,10 +2428,17 @@ def write_lint_config(checklist):
 #   ignore:
 #     - http://www.w3.org/ns/shacl
 #   local:
-#     https://schema.org/: local/schema.ttl
+#     https://schema.org/: local/schema.ttl\n
+# Skip resources of the listed types in the class checks (class-missing-label,
+# class-missing-comment, class-same-label, isolated-classes, untyped-class).
+# Accepts full IRIs or rdf:/rdfs:/owl:/xsd:/skos:/sh:/dcterms: compact IRIs.
+# e.g. rdf:PropositionForm stand-ins produced when downgrading RDF 1.2 to RDF 1.1.
+# exclude:
+#   types:
+#     - rdf:PropositionForm
         """)
 
-def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None):
+def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None):
     """
     Run inference (if requested), then profiling or full QA on an already-loaded graph.
     Returns (log_str, QAResult|None) — None in profile-only mode.
@@ -2401,7 +2466,7 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
         log += print_profiling_table(qa_metrics)
         return log, None
 
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
     log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
@@ -2443,13 +2508,16 @@ def main():
     checklist = deepcopy_list(CHECKLIST)
     ignore_imports = []
     local_imports = {}
+    exclude_types = []
     config_log = ""
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config, ignore_imports, local_imports = parse_lint_config(config_path)
+        lint_config, ignore_imports, local_imports, exclude_types = parse_lint_config(config_path)
         checklist, config_log = lint_selection(lint_config, checklist)
+        if exclude_types:
+            config_log += "> Class checks skip resources typed as: " + ", ".join(f"`{t}`" for t in exclude_types) + "\n"
 
     # Per-file mode: process each input file independently.
     if args.per_file:
@@ -2473,7 +2541,7 @@ def main():
             for f in files_processed:
                 log_output += f"> - `{f}`\n"
             log_output += ">\n"
-            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports)
+            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types)
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
@@ -2503,7 +2571,7 @@ def main():
     if config_log:
         log_output += config_log
 
-    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports)
+    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types)
     log_output += qa_log
 
     if result is not None:
