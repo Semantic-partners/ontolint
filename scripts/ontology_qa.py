@@ -2456,6 +2456,7 @@ def main():
         individual_files = _collect_files(args.data_files)
         if not individual_files:
             print("ERROR - No files found in specified paths.")
+            if args.exit_status: sys.exit(1)
             return
         any_violation = False
         for fp in individual_files:
