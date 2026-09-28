@@ -137,6 +137,22 @@ def test_per_file_exit_status_zero_when_all_pass(tmp_path):
     run_main(pass_ttl, '--per-file', '-e', '--ctrf-dir', str(tmp_path))  # must not raise
 
 
+def test_per_file_no_files_found_exit_status(tmp_path, capsys):
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+    with pytest.raises(SystemExit) as exc:
+        run_main(str(empty), '--per-file', '-e', '--ctrf-dir', str(tmp_path / 'ctrf'))
+    assert exc.value.code == 1
+    assert 'No files found' in capsys.readouterr().out
+
+
+def test_per_file_no_files_found_without_exit_status_returns(tmp_path, capsys):
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+    run_main(str(empty), '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'))  # must not raise
+    assert 'No files found' in capsys.readouterr().out
+
+
 def test_per_file_output_contains_header_per_file(tmp_path, capsys):
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')

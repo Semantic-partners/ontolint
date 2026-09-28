@@ -26,6 +26,16 @@ inputs:
     description: 'Compute profiling metrics only, skip QA checks'
     required: false
     default: 'false'
+  per-file:
+    description: |
+      Run QA independently on each ontology file (directories are expanded to their
+      RDF files) instead of on a single merged graph. Produces one CTRF file and one
+      report section per ontology file. Note that cross-file references are not
+      resolved in this mode, since each file is checked on its own.
+      When combined with `profile-only: 'true'`, no CTRF files, report, job summary
+      or artifact are produced; profiling output is only printed to the step log.
+    required: false
+    default: 'false'
   config-path:
     description: |
       Path to a lint configuration YAML file (same format as `.rdf-lint.yml`), relative
@@ -67,6 +77,7 @@ runs:
         FAIL_ON_VIOLATIONS: ${{ inputs.fail-on-violations }}
         VERBOSE: ${{ inputs.verbose }}
         PROFILE_ONLY: ${{ inputs.profile-only }}
+        PER_FILE: ${{ inputs.per-file }}
         CONFIG_PATH: ${{ inputs.config-path }}
       run: |
         ARGS=()
@@ -87,6 +98,7 @@ runs:
         ARGS+=(--ctrf-dir "$WORKSPACE/ctrf")
         [ "$FAIL_ON_VIOLATIONS" = "true" ] && ARGS+=(-e)
         [ "$VERBOSE" = "true" ] && ARGS+=(-v)
+        [ "$PER_FILE" = "true" ] && ARGS+=(--per-file)
         if [ "$PROFILE_ONLY" = "true" ]; then
           ARGS+=(-p -o "$WORKSPACE/ctrf/report.md")
         fi
