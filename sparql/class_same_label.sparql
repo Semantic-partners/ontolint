@@ -22,6 +22,8 @@ WHERE {
     rdfs:subPropertyOf* rdfs:label .
   }
   
+  # Exclude resources typed with a configured exclude-types IRI (injected at runtime)
+  # {{EXCLUDE_TYPES}}
   # Exclude deprecated classes
   FILTER NOT EXISTS {
     {

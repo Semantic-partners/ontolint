@@ -30,6 +30,28 @@ def test_local_undefined_term_fails(make_graph):
     assert check.count == 1
 
 
+def test_version_iri_is_not_an_undefined_term(make_graph):
+    # owl:versionIRI names a version of the ontology document, not a term to resolve.
+    g = make_graph("""
+    : a owl:Ontology ; owl:versionIRI <http://example.org/1.0.0> .
+    :Dog a owl:Class .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
+    assert check.passed
+    assert check.count == 0
+
+
+def test_version_iri_skip_does_not_hide_other_uses(make_graph):
+    # The same IRI used as an ordinary term elsewhere is still checked.
+    g = make_graph("""
+    : a owl:Ontology ; owl:versionIRI :v1 .
+    :Dog a owl:Class ; rdfs:seeAlso :v1 .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
+    assert not check.passed
+    assert "v1" in check.elements
+
+
 def test_local_predicate_not_declared_fails(make_graph):
     # :livesIn is used as a predicate but never declared as a subject
     g = make_graph("""

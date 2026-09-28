@@ -143,3 +143,26 @@ def test_per_file_output_contains_header_per_file(tmp_path, capsys):
     run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path))
     out = capsys.readouterr().out
     assert out.count('# Ontology Quality Assurance') == 2
+
+
+# ── exclude.types config ─────────────────────────────────────────────────────
+
+def test_exclude_types_config_applied_via_main(tmp_path, capsys):
+    ttl = tmp_path / "onto.ttl"
+    ttl.write_text("""@prefix : <http://example.org#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    : a owl:Ontology .
+    :Dog a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range :standIn1 .
+    :standIn1 a rdf:PropositionForm .
+    """)
+    cfg = tmp_path / "lint.yml"
+    cfg.write_text("exclude:\n  types:\n    - rdf:PropositionForm\n")
+    ctrf_dir = tmp_path / "ctrf"
+    run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(ctrf_dir))
+    data = json.loads(next(ctrf_dir.glob('*.json')).read_text())
+    untyped = [t for t in data['results']['tests'] if t['name'] == 'Untyped Classes'][0]
+    assert untyped['status'] == 'passed'
+    assert 'rdf-syntax-ns#PropositionForm' in capsys.readouterr().out

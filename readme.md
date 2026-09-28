@@ -234,6 +234,18 @@ The action picks it up automatically. To use a different location, pass `config-
     config-path: config/ontolint.yml
 ```
 
+### Excluding resources by type
+
+Some encodings introduce resources that aren't real ontology terms. For example, when an RDF 1.2 ontology is downgraded to RDF 1.1, each triple term becomes an `rdf:PropositionForm` stand-in in the ontology's own namespace, and these would otherwise be flagged as untyped classes. List such types under `exclude.types` to skip their instances in the class checks (`class-missing-label`, `class-missing-comment`, `class-same-label`, `isolated-classes`, `untyped-class`). All other resources are still checked:
+
+```yaml
+exclude:
+  types:
+    - rdf:PropositionForm
+```
+
+Entries can be full IRIs or compact IRIs using the `rdf:`, `rdfs:`, `owl:`, `xsd:`, `skos:`, `sh:` or `dcterms:` prefixes.
+
 ### Pinning to a version
 
 For production use, pin to a specific release tag instead of `main`:
