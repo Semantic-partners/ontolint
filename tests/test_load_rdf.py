@@ -248,6 +248,25 @@ def test_load_directory_ignores_non_files(tmp_path):
     assert files_failed == []
 
 
+def test_load_directory_order_is_deterministic(tmp_path):
+    """Test that files are loaded in sorted order, including across nested directories"""
+    ttl = """
+    @prefix : <http://example.org#> .
+    :Cat a <http://www.w3.org/2002/07/owl#Class> .
+    """
+    # Create directories out of alphabetical order
+    for d in ["c", "a", "b"]:
+        (tmp_path / d).mkdir()
+        (tmp_path / d / "z.ttl").write_text(ttl)
+        (tmp_path / d / "y.ttl").write_text(ttl)
+    (tmp_path / "top.ttl").write_text(ttl)
+    _, files_processed, _, _, _ = load_rdf([str(tmp_path)])
+    expected = [str(tmp_path / "top.ttl")] + [
+        str(tmp_path / d / f) for d in ["a", "b", "c"] for f in ["y.ttl", "z.ttl"]
+    ]
+    assert files_processed == expected
+
+
 def test_load_directory_reports_unparseable_rdf_file(tmp_path):
     """Test that an RDF-extension file in a directory that fails to parse is reported"""
     good = tmp_path / "good.ttl"

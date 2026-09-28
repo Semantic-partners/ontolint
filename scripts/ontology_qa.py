@@ -2070,7 +2070,8 @@ def _collect_files(paths):
     result = []
     for path in paths:
         if os.path.isdir(path):
-            for root, _, files in os.walk(path):
+            for root, dirs, files in os.walk(path):
+                dirs.sort()  # in-place, so os.walk descends in a deterministic order
                 for f in sorted(files):
                     if guess_format(f) is not None:
                         result.append(os.path.join(root, f))
