@@ -198,6 +198,17 @@ A ready-to-use template is at [`templates/ci-example.yml`](templates/ci-example.
 
 All paths are loaded into a single combined graph before QA runs, so cross-ontology references resolve correctly.
 
+To check each file on its own instead — one CTRF file and one report section per ontology — set `per-file: 'true'`:
+
+```yaml
+- uses: Semantic-partners/ontolint@main
+  with:
+    ontology-paths: ontologies/
+    per-file: 'true'
+```
+
+In this mode each file is a separate graph, so references between files are not resolved.
+
 ### Inputs
 
 All inputs are strings (composite action convention). Pass booleans as `'true'` / `'false'`.
@@ -208,6 +219,7 @@ All inputs are strings (composite action convention). Pass booleans as `'true'` 
 | `fail-on-violations` | `'true'` | Exit with code 1 if any violations are found, causing the step to fail. |
 | `verbose` | `'false'` | List every violating element under each failed check. |
 | `profile-only` | `'false'` | Run profiling metrics only; skip all QA checks. |
+| `per-file` | `'false'` | Run QA separately on each ontology file (directories expanded) rather than on one merged graph. Produces a CTRF file and report section per file. |
 | `config-path` | _(auto-detect)_ | Path to a lint configuration YAML file relative to the repository root. If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses it when present. |
 | `artifact-name` | `'ontolint-ctrf'` | Name of the uploaded CTRF artifact. Override when invoking the action in multiple jobs of the same run. |
 
