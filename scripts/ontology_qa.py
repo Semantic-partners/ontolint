@@ -10,6 +10,7 @@ check for common ontology quality issues.
 It reports any violations found in the ontology data.
 """
 import rdflib
+from rdflib.util import guess_format
 import argparse
 import sys
 import os
@@ -2058,6 +2059,25 @@ def load_rdf_file(file):
         log += f"Failed to parse {file} ({fmt if fmt else 'auto'}): {e}\n"
         return False, graph, log
 
+def _collect_files(paths):
+    """
+    Expand a list of file/directory paths into a flat list of individual file paths.
+
+    Files named explicitly are always included. Files found by walking a directory are
+    included only if rdflib recognises their extension as an RDF format, so that
+    READMEs, configs etc. sitting alongside ontologies are skipped rather than failing.
+    """
+    result = []
+    for path in paths:
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for f in sorted(files):
+                    if guess_format(f) is not None:
+                        result.append(os.path.join(root, f))
+        else:
+            result.append(path)
+    return result
+
 def load_rdf(paths, verbose: bool = False):
     """
     Load RDF files from files or directories.
@@ -2071,6 +2091,7 @@ def load_rdf(paths, verbose: bool = False):
         files_processed (list): List of successfully processed file names.
         graph (rdflib.Graph): The RDF graph object with all loaded data.
         log_results (str): Parsing result and status log.
+        files_failed (list): List of file names that could not be loaded.
     """
     def _bind_namespaces(target_graph, source_graph):
         """Bind namespaces from source to target graph."""
@@ -2080,45 +2101,34 @@ def load_rdf(paths, verbose: bool = False):
             except Exception:
                 pass  # ignore binding errors
 
-    # Collect all files to process
-    files_to_load = []
-    for path in paths:
-        if os.path.isdir(path):
-            for root, _, files in os.walk(path):
-                for file in files:
-                    files_to_load.append(os.path.join(root, file))
-        else:
-            files_to_load.append(path)
-
     # Process all files
     file_counter = 0
     files_processed = []
+    files_failed = []
     graph = rdflib.Graph()
     log_results = ""
 
-    for file_path in files_to_load:
+    for file_path in _collect_files(paths):
         success, file_graph, log_msg = load_rdf_file(file_path)
-        if verbose: log_results += log_msg
         if success:
-            if not verbose: log_results += log_msg
+            log_results += log_msg
             files_processed.append(file_path)
             file_counter += 1
             graph += file_graph
             _bind_namespaces(graph, file_graph)
-
-    return file_counter, files_processed, graph, log_results
-
-def _collect_files(paths):
-    """Expand a list of file/directory paths into a flat list of individual file paths."""
-    result = []
-    for path in paths:
-        if os.path.isdir(path):
-            for root, _, files in os.walk(path):
-                for f in sorted(files):
-                    result.append(os.path.join(root, f))
         else:
-            result.append(path)
-    return result
+            # Always report parse failures, regardless of verbosity.
+            log_results += f"ERROR - {log_msg}"
+            files_failed.append(file_path)
+
+    return file_counter, files_processed, graph, log_results, files_failed
+
+def _parse_failure_log(files_failed):
+    """Format a Markdown error block listing files that failed to parse."""
+    log = f"\nERROR - {len(files_failed)} file(s) could not be parsed:\n"
+    for f in files_failed:
+        log += f"> - `{f}`\n"
+    return log
 
 def parse_lint_config(config):
     """
@@ -2458,15 +2468,17 @@ def main():
             print("ERROR - No files found in specified paths.")
             return
         any_violation = False
+        any_parse_failure = False
         for fp in individual_files:
             log_output = "# Ontology Quality Assurance\n\n"
             if config_log:
                 log_output += config_log
-            file_counter, files_processed, g, load_log = load_rdf([fp], verbose=args.verbose)
+            file_counter, files_processed, g, load_log, files_failed = load_rdf([fp], verbose=args.verbose)
             log_output += load_log
-            if file_counter == 0:
-                log_output += f"ERROR - No RDF data in: {fp}"
-                any_violation = True
+            if files_failed:
+                log_output += _parse_failure_log(files_failed)
+                print(f"ERROR - Failed to parse: {fp}", file=sys.stderr)
+                any_parse_failure = True
                 qa_terminate(None, log_output)
                 continue
             log_output += f"\n> {file_counter} file processed.\n"
@@ -2481,14 +2493,24 @@ def main():
                 if not result.passed:
                     any_violation = True
             qa_terminate(None, log_output)
-        if args.exit_status and any_violation:
+        # Parse failures always fail the run; violations only with -e.
+        if any_parse_failure or (args.exit_status and any_violation):
             sys.exit(1)
         return
 
     # Single-run (default) mode.
     log_output = "# Ontology Quality Assurance\n\n"
-    file_counter, files_processed, g, log_results = load_rdf(args.data_files, verbose=args.verbose)
+    file_counter, files_processed, g, log_results, files_failed = load_rdf(args.data_files, verbose=args.verbose)
     log_output += log_results
+
+    # A file that can't be parsed would silently shrink the graph under test, so
+    # abort the run rather than report QA results for an incomplete ontology.
+    if files_failed:
+        log_output += _parse_failure_log(files_failed)
+        qa_terminate(args.output, log_output)
+        for f in files_failed:
+            print(f"ERROR - Failed to parse: {f}", file=sys.stderr)
+        sys.exit(1)
 
     if file_counter == 0:
         log_output += "ERROR - No RDF data in input files or directories."
