@@ -245,3 +245,28 @@ def test_relative_base_uri_is_rejected(tmp_path):
     assert exc.value.code == 2  # argparse usage error
     assert not list(tmp_path.glob('*.ttl'))
 
+
+# ── undefined-terms.skip-object-of config ─────────────────────────────────────
+
+def _undefined_terms_status(ctrf_dir):
+    data = json.loads(next(ctrf_dir.glob('*.json')).read_text())
+    return [t for t in data['results']['tests'] if t['name'] == 'Undefined terms'][0]['status']
+
+
+def test_skip_object_of_config_applied_via_main(tmp_path):
+    ttl = tmp_path / "onto.ttl"
+    ttl.write_text("""@prefix : <http://example.org#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    : a owl:Ontology .
+    :Dog a owl:Class ; rdfs:seeAlso <https://example.invalid/docs/dog.html> .
+    """)
+    run_main(str(ttl), '--ctrf-dir', str(tmp_path / 'default'))
+    assert _undefined_terms_status(tmp_path / 'default') == 'passed'
+
+    # An empty list overrides the defaults, so the seeAlso target is checked (and fails).
+    cfg = tmp_path / "lint.yml"
+    cfg.write_text("undefined-terms:\n  skip-object-of: []\n")
+    run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(tmp_path / 'override'))
+    assert _undefined_terms_status(tmp_path / 'override') == 'failed'
+

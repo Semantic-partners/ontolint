@@ -66,7 +66,7 @@ def test_every_term_is_labelled_and_described():
 def test_vocabulary_passes_ontolint():
     # Offline: the vocabulary's own config ignores link targets; DQV and SHACL terms are
     # external vocabularies we don't fetch in tests.
-    _, ignore_imports, _, _ = parse_lint_config(VOCAB_CONFIG)
+    _, ignore_imports, _, _, _ = parse_lint_config(VOCAB_CONFIG)
     ignore_imports += ["http://www.w3.org/ns/dqv#"]
     result = run_qa(_vocab(), files_processed=[VOCAB], ignore_imports=ignore_imports,
                     uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)))

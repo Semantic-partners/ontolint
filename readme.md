@@ -341,7 +341,25 @@ exclude:
     - rdf:PropositionForm
 ```
 
-Entries can be full IRIs or compact IRIs using the `rdf:`, `rdfs:`, `owl:`, `xsd:`, `skos:`, `sh:` or `dcterms:` prefixes.
+Entries can be full IRIs or compact IRIs using the `rdf:`, `rdfs:`, `owl:`, `xsd:`, `skos:`, `sh:`, `dcterms:`, `foaf:`, `schema:` or `vs:` prefixes.
+
+### Reference properties in the undefined-terms check
+
+The undefined-terms check skips the objects of reference and documentation properties. Those objects are links to documents (a Wikipedia page, a licence), not ontology terms, so they are neither reported nor fetched. The same IRI used as a real term, as a subject or as the object of any other property, is still checked. The default properties are:
+
+`rdfs:seeAlso`, `rdfs:isDefinedBy`, `dcterms:license`, `dcterms:source`, `dcterms:references`, `dcterms:relation`, `dcterms:conformsTo`, `owl:versionIRI`, `foaf:homepage`, `foaf:page`, `vs:*` (any [vocab-status](http://www.w3.org/2003/06/sw-vocab-status/ns#) property) and `schema:url` (both `https://` and `http://` schema.org).
+
+To use your own list, set `undefined-terms.skip-object-of`. It **replaces** the defaults, `prefix:*` matches a whole namespace, and an empty list checks every object:
+
+```yaml
+undefined-terms:
+  skip-object-of:
+    - rdfs:seeAlso
+    - dcterms:license
+    - https://example.org/ns#docs
+```
+
+Entries use the same prefixes as `exclude.types`, plus `foaf:`, `schema:` and `vs:`. You don't need `imports.ignore` entries for `rdfs:seeAlso`, licence or source links; keep `imports.ignore` for importable namespaces you choose not to resolve.
 
 ### Pinning to a version
 
