@@ -1974,9 +1974,16 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     return metrics, violations, log, c, status
 
 
+def _reference_predicate_matcher(predicates):
+    """A predicate test for skip-object-of: exact IRIs, or `<namespace>*` wildcards."""
+    exact = {p for p in predicates if not p.endswith('*')}
+    namespaces = tuple(p[:-1] for p in predicates if p.endswith('*'))
+    return lambda p: str(p) in exact or (bool(namespaces) and str(p).startswith(namespaces))
+
+
 def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
                            uri_parser=lambda uri: rdflib.Graph().parse(uri),
-                           local_imports=None, ignore_imports=None):
+                           local_imports=None, ignore_imports=None, skip_object_of=None):
     """
     QA test finding terms used in the ontology that are not defined locally (as a subject
     in the graph file) nor in any successfully-fetched remote ontology for their namespace.
@@ -2016,10 +2023,14 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     # Collect all URIRefs that appear anywhere in the graph and those used as subjects
     used_terms = set()
     local_subjects = set()
+    is_reference = _reference_predicate_matcher(
+        skip_object_of if skip_object_of is not None
+        else [expand_curie(t, allow_wildcard=True) for t in DEFAULT_SKIP_OBJECT_OF])
     for s, p, o in graph:
-        # An owl:versionIRI object identifies a version of the ontology document,
-        # not a term, so there is nothing to resolve.
-        terms = (s, p) if p == rdflib.OWL.versionIRI else (s, p, o)
+        # Objects of reference properties (rdfs:seeAlso, dcterms:license, owl:versionIRI, ...)
+        # link to documents, not terms, so they are neither reported nor fetched. The same
+        # IRI used elsewhere as a term is still collected from that other triple.
+        terms = (s, p) if is_reference(p) else (s, p, o)
         for term in terms:
             if isinstance(term, rdflib.URIRef):
                 used_terms.add(str(term))
@@ -2237,10 +2248,37 @@ CONFIG_PREFIXES = {
     'skos': str(rdflib.SKOS),
     'sh': str(rdflib.SH),
     'dcterms': str(rdflib.DCTERMS),
+    'foaf': str(rdflib.FOAF),
+    'schema': 'https://schema.org/',
+    'vs': 'http://www.w3.org/2003/06/sw-vocab-status/ns#',
 }
 
-def expand_curie(value):
-    """Expand a compact IRI using CONFIG_PREFIXES; full IRIs are returned unchanged."""
+# Reference/documentation properties whose objects are links to documents, not term uses:
+# the undefined-terms check neither reports nor fetches them. `prefix:*` matches a whole
+# namespace. Overridden by `undefined-terms: skip-object-of:` in the lint config.
+DEFAULT_SKIP_OBJECT_OF = [
+    'rdfs:seeAlso',
+    'rdfs:isDefinedBy',
+    'dcterms:license',
+    'dcterms:source',
+    'dcterms:references',
+    'dcterms:relation',
+    'dcterms:conformsTo',
+    'owl:versionIRI',
+    'foaf:homepage',
+    'foaf:page',
+    'vs:*',
+    'schema:url',
+    'http://schema.org/url',
+]
+
+def expand_curie(value, allow_wildcard=False):
+    """
+    Expand a compact IRI using CONFIG_PREFIXES; full IRIs are returned unchanged. With
+    allow_wildcard, a trailing `*` (e.g. `vs:*`) is kept, to match a whole namespace.
+    """
+    if value.endswith('*') and not allow_wildcard:
+        raise ValueError(f"Wildcards are not supported here: '{value}'")
     if value.startswith(('http://', 'https://', 'urn:')):
         return value
     prefix, sep, local = value.partition(':')
@@ -2264,6 +2302,8 @@ def parse_lint_config(config):
             config file's directory.
         exclude_types (list): Type IRIs whose instances are skipped by the class checks
             (see TYPE_EXCLUDABLE_CHECKS).
+        skip_object_of (list | None): Predicate IRIs (or `<namespace>*` wildcards) whose objects
+            the undefined-terms check ignores; None when not configured (use the defaults).
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -2289,13 +2329,21 @@ def parse_lint_config(config):
     exclude_section = selection.pop("exclude", None) or {}
     exclude_types = [expand_curie(str(t)) for t in (exclude_section.get("types") or [])]
 
+    # undefined-terms.skip-object-of replaces the defaults when present (an empty list skips nothing).
+    undefined_section = selection.pop("undefined-terms", None) or {}
+    if "skip-object-of" in undefined_section:
+        skip_object_of = [expand_curie(str(t), allow_wildcard=True)
+                          for t in (undefined_section["skip-object-of"] or [])]
+    else:
+        skip_object_of = None
+
     # Transform the dictionary (check enable/disable keys only)
     transformed_selection = {
         key: [f"check_{item.replace('-', '_')}" for item in value_list]
         for key, value_list in selection.items()
     }
 
-    return transformed_selection, ignore_imports, local_imports, exclude_types
+    return transformed_selection, ignore_imports, local_imports, exclude_types, skip_object_of
 
 def lint_selection(selection, checklist):
         """
@@ -2401,7 +2449,7 @@ TYPE_EXCLUDABLE_CHECKS = (
     check_untyped_class,
 )
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Returns structured pass/fail results — no file I/O, no arg parsing.
@@ -2437,6 +2485,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                     kwargs["local_imports"] = local_imports
                 if ignore_imports:
                     kwargs["ignore_imports"] = ignore_imports
+                if skip_object_of is not None:
+                    kwargs["skip_object_of"] = skip_object_of
             if func in TYPE_EXCLUDABLE_CHECKS and exclude_types:
                 kwargs["exclude_types"] = exclude_types
             metrics, violations, log_results, test_counter, num_violations = func(
@@ -2521,14 +2571,23 @@ def write_lint_config(checklist):
 #     https://schema.org/: local/schema.ttl\n
 # Skip resources of the listed types in the class checks (class-missing-label,
 # class-missing-comment, class-same-label, isolated-classes, untyped-class).
-# Accepts full IRIs or rdf:/rdfs:/owl:/xsd:/skos:/sh:/dcterms: compact IRIs.
+# Accepts full IRIs or rdf:/rdfs:/owl:/xsd:/skos:/sh:/dcterms:/foaf:/schema:/vs: compact IRIs.
 # e.g. rdf:PropositionForm stand-ins produced when downgrading RDF 1.2 to RDF 1.1.
 # exclude:
 #   types:
-#     - rdf:PropositionForm
+#     - rdf:PropositionForm\n
+# The undefined-terms check ignores objects of reference properties, which link to
+# documents rather than terms. Defaults (used when this key is absent):
+{chr(10).join(f'#   {p}' for p in DEFAULT_SKIP_OBJECT_OF)}
+# Listing properties here replaces the defaults; `prefix:*` matches a namespace and
+# an empty list checks every object.
+# undefined-terms:
+#   skip-object-of:
+#     - rdfs:seeAlso
+#     - dcterms:license
         """)
 
-def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None):
+def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None, skip_object_of=None):
     """
     Run inference (if requested), then profiling or full QA on an already-loaded graph.
     Returns (log_str, QAResult|None) — None in profile-only mode.
@@ -2556,7 +2615,7 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
         log += print_profiling_table(qa_metrics)
         return log, None
 
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types, skip_object_of=skip_object_of)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
     log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
@@ -2619,12 +2678,13 @@ def main():
     ignore_imports = []
     local_imports = {}
     exclude_types = []
+    skip_object_of = None
     config_log = ""
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config, ignore_imports, local_imports, exclude_types = parse_lint_config(config_path)
+        lint_config, ignore_imports, local_imports, exclude_types, skip_object_of = parse_lint_config(config_path)
         checklist, config_log = lint_selection(lint_config, checklist)
         if exclude_types:
             config_log += "> Class checks skip resources typed as: " + ", ".join(f"`{t}`" for t in exclude_types) + "\n"
@@ -2653,7 +2713,7 @@ def main():
             for f in files_processed:
                 log_output += f"> - `{f}`\n"
             log_output += ">\n"
-            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types)
+            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of)
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
@@ -2685,7 +2745,7 @@ def main():
     if config_log:
         log_output += config_log
 
-    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types)
+    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of)
     log_output += qa_log
 
     if result is not None:

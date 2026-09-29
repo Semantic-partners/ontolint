@@ -1,5 +1,6 @@
+import pytest
 import rdflib
-from scripts.ontology_qa import run_qa
+from scripts.ontology_qa import DEFAULT_SKIP_OBJECT_OF, expand_curie, run_qa
 
 CHECK_NAME = "Undefined terms"
 
@@ -45,7 +46,7 @@ def test_version_iri_skip_does_not_hide_other_uses(make_graph):
     # The same IRI used as an ordinary term elsewhere is still checked.
     g = make_graph("""
     : a owl:Ontology ; owl:versionIRI :v1 .
-    :Dog a owl:Class ; rdfs:seeAlso :v1 .
+    :Dog a owl:Class ; rdfs:subClassOf :v1 .
     """)
     check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
     assert not check.passed
@@ -275,3 +276,115 @@ def test_local_imports_term_absent_in_local_file_fails(make_graph, tmp_path):
     ).get(CHECK_NAME)
     assert not check.passed
     assert check.count == 1
+
+
+# ── Reference properties (skip-object-of) ─────────────────────────────────────
+
+WIKI = "https://en.wikipedia.org/wiki/Interval_algebra"
+LICENSE = "https://example.com/legal/license.md"
+
+
+class _RecordingFetch:
+    """uri_parser that records every namespace the check tries to fetch, then fails."""
+    def __init__(self):
+        self.fetched = []
+
+    def __call__(self, uri):
+        self.fetched.append(uri)
+        raise Exception(f"no network in tests: {uri}")
+
+
+def test_reference_property_objects_are_not_reported_or_fetched(make_graph):
+    # The ticket's example: document links are not term uses.
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :Foo a owl:Class ;
+        rdfs:seeAlso <{WIKI}> ;
+        dcterms:license <{LICENSE}> .
+    """)
+    fetch = _RecordingFetch()
+    check = run_qa(g, uri_parser=fetch).get(CHECK_NAME)
+    assert check.passed, check.elements
+    assert fetch.fetched == []
+
+
+def test_genuine_undefined_reference_still_fails(make_graph):
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :Foo a owl:Class ; rdfs:seeAlso <{WIKI}> ; rdfs:subClassOf :Undefined .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
+    assert not check.passed
+    assert "Undefined" in check.elements
+    assert "wikipedia" not in check.elements
+
+
+def test_reference_target_also_used_as_term_is_still_checked(make_graph):
+    # The same IRI as a real term (object of a non-reference property) is still checked,
+    # so its namespace is fetched and the failure reported.
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :Foo a owl:Class ; rdfs:seeAlso <{WIKI}> ; rdfs:subClassOf <{WIKI}> .
+    """)
+    fetch = _RecordingFetch()
+    check = run_qa(g, uri_parser=fetch).get(CHECK_NAME)
+    assert not check.passed
+    assert WIKI in check.elements
+    assert fetch.fetched == ["https://en.wikipedia.org/wiki/"]
+
+
+def test_reference_target_used_as_subject_is_still_checked(make_graph):
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :Foo a owl:Class ; rdfs:seeAlso <{WIKI}> .
+    <{WIKI}> rdfs:comment "A page." .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
+    assert not check.passed
+    assert WIKI in check.elements
+
+
+@pytest.mark.parametrize("prop", [p for p in DEFAULT_SKIP_OBJECT_OF if not p.endswith("*")])
+def test_every_default_reference_property_is_skipped(make_graph, prop):
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :Foo a owl:Class ; <{expand_curie(prop)}> <{LICENSE}> .
+    """)
+    fetch = _RecordingFetch()
+    check = run_qa(g, uri_parser=fetch).get(CHECK_NAME)
+    # Only the object is skipped; the predicate itself is in a trusted or fetched namespace.
+    assert LICENSE not in check.elements
+    assert "https://example.com/legal/" not in fetch.fetched
+
+
+def test_namespace_wildcard_default_skips_vocab_status_terms(make_graph):
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :Foo a owl:Class ; <http://www.w3.org/2003/06/sw-vocab-status/ns#userdocs> <{LICENSE}> .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch).get(CHECK_NAME)
+    assert LICENSE not in check.elements
+
+
+def test_skip_object_of_overrides_defaults(make_graph):
+    # A configured list replaces the defaults: seeAlso is checked again, the custom
+    # property is skipped.
+    g = make_graph(f"""
+    : a owl:Ontology .
+    :docs a owl:AnnotationProperty .
+    :Foo a owl:Class ; rdfs:seeAlso <{WIKI}> ; :docs <{LICENSE}> .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch, skip_object_of=["http://example.org#docs"]).get(CHECK_NAME)
+    assert WIKI in check.elements
+    assert LICENSE not in check.elements
+
+
+def test_empty_skip_object_of_checks_every_object(make_graph):
+    g = make_graph(f"""
+    : a owl:Ontology ; owl:versionIRI <http://example.org/1.0> .
+    :Foo a owl:Class ; rdfs:seeAlso <{WIKI}> .
+    """)
+    check = run_qa(g, uri_parser=_no_fetch, skip_object_of=[]).get(CHECK_NAME)
+    assert WIKI in check.elements
+    assert "http://example.org/1.0" in check.elements
+
