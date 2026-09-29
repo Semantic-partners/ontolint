@@ -74,7 +74,7 @@ inputs:
 
 outputs:
   dqv-path:
-    description: 'Absolute path of the DQV Turtle report, when `dqv` is true.'
+    description: 'Absolute path of the DQV Turtle report. Empty if `dqv` is false or no report was written (e.g. `profile-only`).'
     value: ${{ steps.ontolint.outputs.dqv-path }}
 
 runs:
@@ -129,7 +129,6 @@ runs:
         [ "$PER_FILE" = "true" ] && ARGS+=(--per-file)
         if [ "$DQV" = "true" ]; then
           ARGS+=(--dqv-dir "$WORKSPACE/ctrf" --dqv-filename "$DQV_FILENAME")
-          echo "dqv-path=$WORKSPACE/ctrf/$DQV_FILENAME" >> "$GITHUB_OUTPUT"
         fi
         [ -n "$BASE_URI" ] && ARGS+=(--base-uri "$BASE_URI")
         if [ "$PROFILE_ONLY" = "true" ]; then
@@ -144,7 +143,16 @@ runs:
         elif [ -f "$WORKSPACE/.rdf-lint.yml" ]; then
           ARGS+=(-c "$WORKSPACE/.rdf-lint.yml")
         fi
-        poetry run scripts/ontology_qa.py "${ARGS[@]}"
+        # Publish dqv-path only if the report was actually written (none is written in
+        # profile-only mode or when no RDF loads), keeping the CLI's exit status.
+        DQV_FILE="$WORKSPACE/ctrf/$DQV_FILENAME"
+        [ "$DQV" = "true" ] && rm -f "$DQV_FILE"   # don't report a stale file from an earlier step
+        status=0
+        poetry run scripts/ontology_qa.py "${ARGS[@]}" || status=$?
+        if [ "$DQV" = "true" ] && [ -f "$DQV_FILE" ]; then
+          echo "dqv-path=$DQV_FILE" >> "$GITHUB_OUTPUT"
+        fi
+        exit $status
 
     - name: Generate report
       if: always() && hashFiles('ctrf/*.json') != ''

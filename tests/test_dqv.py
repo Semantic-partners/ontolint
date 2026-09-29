@@ -3,8 +3,10 @@ from datetime import datetime, timezone
 import rdflib
 from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
+import pytest
+
 from scripts.ontology_qa import (
-    run_qa, build_dqv_graph, write_dqv_report, file_iri,
+    run_qa, build_dqv_graph, write_dqv_report, file_iri, _same_label_records, _check_dqv_filename,
     CHECKLIST, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
 )
 
@@ -360,3 +362,38 @@ def test_write_dqv_report(make_graph, tmp_path):
     assert out.exists()
     assert str(out) in log
     rdflib.Graph().parse(str(out), format="turtle")
+
+
+@pytest.mark.parametrize("bad", ["../escape.ttl", "/tmp/abs.ttl", "sub/report.ttl", "..", ".", ""])
+def test_dqv_filename_must_be_plain_name(bad):
+    with pytest.raises(ValueError):
+        _check_dqv_filename(bad)
+
+
+def test_write_dqv_report_does_not_escape_directory(make_graph, tmp_path):
+    g = make_graph(": a owl:Ontology .")
+    with pytest.raises(ValueError):
+        write_dqv_report([_qa(g)], str(tmp_path / "out"), "../escape.ttl", timestamp=TS)
+    assert not (tmp_path / "escape.ttl").exists()
+
+
+# ── reproducibility of GROUP_CONCAT-derived records ──────────────────────────
+
+def test_same_label_records_independent_of_group_concat_order():
+    a = "http://example.org#a"
+    b = "http://example.org#b"
+    first = _same_label_records(Literal("x"), f"{a}, {b}")
+    second = _same_label_records(Literal("x"), f"{b}, {a}")
+    assert first == second
+
+
+def test_non_unique_identifier_comment_is_sorted(make_graph):
+    g = make_graph("""
+    : a owl:Ontology .
+    :Thing a owl:Class, owl:ObjectProperty, owl:DatatypeProperty .
+    """)
+    check = _qa(g).get("Non-unique identifiers")
+    comment = check.violations[0].comment
+    declared = comment.removeprefix("declared as ").split(", ")
+    assert declared == sorted(declared)
+

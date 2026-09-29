@@ -30,7 +30,7 @@ from scripts.ontology_qa import main
 CASES_DIR = Path(__file__).parent / 'dqv'
 CASES = sorted(p.name for p in CASES_DIR.iterdir() if p.is_dir())
 BASE_URI = 'https://example.org/qa#'
-EPOCH = '1790000000'  # 2026-09-21T13:46:40Z
+EPOCH = '1790000000'  # 2026-09-21T14:13:20Z
 
 
 def test_cases_exist():

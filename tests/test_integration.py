@@ -228,3 +228,12 @@ def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
     assert len(rollups) == 2
     assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
 
+
+def test_dqv_filename_with_directory_is_rejected(tmp_path):
+    ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    with pytest.raises(SystemExit) as exc:
+        run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path / 'dqv'),
+                 '--dqv-filename', '../escape.ttl')
+    assert exc.value.code == 2  # argparse usage error
+    assert not (tmp_path / 'escape.ttl').exists()
+

@@ -35,11 +35,11 @@ options:
   --dqv-filename filename
                         Filename for the DQV report (default: ontolint-dqv.ttl). With --per-file, all files are
                         written to this one report.
-  --base-uri uri        Namespace under which DQV assessment, measurement and violation IRIs are minted (default:
-                        urn:ontolint:).
-  -o, --output filename
+  --base-uri uri        Namespace under which DQV instance IRIs (metrics, dimensions, measurements, violations,
+                        assessment) are minted (default: urn:ontolint:).
+  -o filename, --output filename
                         Output file name (optional). If omitted, print to stdout. Ignored with --per-file.
-  -c, --config path/to/config.yml
+  -c path/to/config.yml, --config path/to/config.yml
                         Path to a YAML configuration file to enable or disable individual checks. Note that if the
                         current directory contains a .rdf-lint.yml file, it will be used by default.
   --init                Generate a default .rdf-lint.yml config file in the current directory.
@@ -283,7 +283,7 @@ All inputs are strings (composite action convention). Pass booleans as `'true'` 
 
 | Output | Description |
 |---|---|
-| `dqv-path` | Absolute path of the DQV Turtle report when `dqv: 'true'`. Use it to upload or publish the report in a later step: |
+| `dqv-path` | Absolute path of the DQV Turtle report, set only when `dqv: 'true'` and the report was written (not in `profile-only` mode, or if no RDF loaded). Use it to upload or publish the report in a later step: |
 
 ```yaml
 - uses: Semantic-partners/ontolint@main

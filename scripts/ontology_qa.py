@@ -576,7 +576,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
             g.add((measurement, OLQ.severity, severity))
             for v in check.violations:
                 resource = _resource_node(base, v.resource, result.bnode_keys)
-                related = [_resource_node(base, r, result.bnode_keys) for r in v.related]
+                related = sorted((_resource_node(base, r, result.bnode_keys) for r in v.related), key=str)
                 node = _mint(base, 'violation', measurement, resource or '', _hash_key(v.value),
                              v.comment or '', *related)
                 g.add((measurement, OLQ.violation, node))
@@ -607,11 +607,20 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     return g
 
 
+def _check_dqv_filename(filename):
+    """Reject anything but a plain file name, so the report can't escape --dqv-dir."""
+    if (not filename or filename in ('.', '..') or os.path.isabs(filename)
+            or os.path.basename(filename) != filename or '/' in filename or '\\' in filename):
+        raise ValueError(f"--dqv-filename must be a file name without directories, got {filename!r}; use --dqv-dir for the location")
+
+
 def write_dqv_report(results, file_path, filename=None, base_uri=None, timestamp=None):
     """Serialise the DQV graph for the given QAResults to Turtle. Returns (graph, log)."""
+    filename = filename or DEFAULT_DQV_FILENAME
+    _check_dqv_filename(filename)
     g = build_dqv_graph(results, base_uri=base_uri, timestamp=timestamp)
     os.makedirs(file_path, exist_ok=True)
-    output_file = os.path.join(file_path, filename or DEFAULT_DQV_FILENAME)
+    output_file = os.path.join(file_path, filename)
     g.serialize(destination=output_file, format='turtle')
     return g, f"\nDQV report written to: {output_file}\n"
 
@@ -1834,7 +1843,9 @@ def _term_from_string(value):
 def _same_label_records(label, members):
     """One Violation per member of a same-label group, each related to the other members."""
     # GROUP_CONCAT flattens members to strings; blank nodes come back as their bare id.
-    iris = [_term_from_string(m.strip()) for m in str(members).split(", ") if m.strip()]
+    # GROUP_CONCAT has no defined order, so sort for reproducible records and hashes.
+    iris = sorted((_term_from_string(m.strip()) for m in str(members).split(", ") if m.strip()),
+                  key=lambda t: (isinstance(t, rdflib.BNode), str(t)))
     records = []
     for iri in iris:
         others = [o for o in iris if o != iri]
@@ -1907,7 +1918,8 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         for row in results:
             log += f"| {row.iri} | {row.declaredAs} |\n"
             iri.append(row.iri)
-            records.append(Violation(row.iri, comment=f"declared as {row.declaredAs}"))
+            declared = ", ".join(sorted(str(row.declaredAs).split(", ")))  # GROUP_CONCAT order is undefined
+            records.append(Violation(row.iri, comment=f"declared as {declared}"))
 
         violations[check] = violation_formatting(iri)
         violations[records_key(check)] = records
@@ -2891,6 +2903,11 @@ def main():
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
+    if args.dqv_filename is not None:
+        try:
+            _check_dqv_filename(args.dqv_filename)
+        except ValueError as e:
+            parser.error(str(e))
 
     # Validate arguments: data_files is required unless --init is used.
     if not args.init and not args.data_files:
