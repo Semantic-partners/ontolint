@@ -175,7 +175,7 @@
 <https://example.org/qa#measurement-5791db696f97d0c1> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/shapes#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-property-shapes-missing-label> ;
-    dqv:value 2 ;
+    dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
     olq:violation <https://example.org/qa#violation-d6aff4d3d544b88a> .
