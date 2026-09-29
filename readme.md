@@ -61,7 +61,7 @@ optional arguments:
 
 ### DQV report
 
-Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) to also write the results as a [W3C Data Quality Vocabulary](https://www.w3.org/TR/vocab-dqv/) Turtle file. Unlike the CTRF JSON, every violation is its own node, attributed to the check that raised it and the dataset it occurs in:
+Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) to also write the results as a [W3C Data Quality Vocabulary](https://www.w3.org/TR/vocab-dqv/) Turtle file. Unlike the CTRF JSON, every violation is its own node, attributed to the check that raised it and the dataset it occurs in. DQV provides the structure (metrics, dimensions and measurements), and each violation is a SHACL `sh:ValidationResult`:
 
 ```turtle
 <urn:ontolint:measurement-6c1e61d32df4c31d> a dqv:QualityMeasurement ;
@@ -69,14 +69,16 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
     dqv:computedOn <https://example.org/ontology/activities#> ;  # the file's owl:Ontology IRI
     dqv:value 1 ;                                             # same count as the CTRF report
     olq:conforms false ;
-    olq:severity "error" ;
+    olq:severity sh:Violation ;
     olq:violation <urn:ontolint:violation-01a3e80ce17842a3>, <urn:ontolint:violation-82177d1ab5877598> .
 
-<urn:ontolint:violation-01a3e80ce17842a3> a olq:Violation ;
-    olq:resource <https://example.org/ontology/activities#assignedTo> ;
-    olq:value "assigned to" ;
-    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> ;
-    rdfs:comment "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" .
+<urn:ontolint:violation-01a3e80ce17842a3> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/activities#assignedTo> ;
+    sh:value "assigned to"@en ;
+    sh:resultMessage "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> .
 ```
 
 What gets emitted:
@@ -84,13 +86,14 @@ What gets emitted:
 | Node | IRI | Notes |
 |---|---|---|
 | `dqv:Dimension` | `<base>dimension-<slug>` | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`. |
-| `dqv:Metric` | `<base>metric-<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`error` or `warning`). |
+| `dqv:Metric` | `<base>metric-<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`sh:Violation` or `sh:Warning`). |
 | `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per (dataset, failed check), with `dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement. |
 | Roll-up `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for `<base>metric-ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear. |
-| `olq:Violation` | `<base>violation-<hash>` | `olq:resource` (the offending IRI) plus, where applicable, `olq:value`, `olq:relatedResource` and `rdfs:comment`. |
+| `sh:ValidationResult` | `<base>violation-<hash>` | `sh:focusNode` (the offending IRI), `sh:resultSeverity`, `sh:sourceConstraintComponent sh:SPARQLConstraintComponent` and, where applicable, `sh:value`, `sh:resultMessage` and `olq:relatedResource` (other resources involved, e.g. the other side of a same-label clash). |
 | `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement. |
 
-- `olq:` is `https://ontolint.org/ns#`.
+- `olq:` is `https://ontolint.org/ns#`. It defines only the four terms that DQV and SHACL don't cover: `olq:conforms` and `olq:violation` on measurements (`sh:conforms` and `sh:result` have the domain `sh:ValidationReport`), `olq:severity` on metrics and measurements (`sh:severity` and `sh:resultSeverity` have the domains `sh:Shape` and `sh:AbstractResult`; its values are `sh:Severity` IRIs), and `olq:relatedResource` (SHACL has no equivalent).
+- **SHACL results:** violation nodes use the SHACL result vocabulary, so consumers can read them like a SHACL validation report. They omit `sh:sourceShape` (the checks are SPARQL queries, not shapes yet), so they are SHACL-shaped rather than strictly conforming results. The metric linked from the measurement identifies the check. Where a check can't name the offending resource (e.g. "some processed files have no `owl:Ontology`" in a merged run), the result has a message but no `sh:focusNode`.
 - **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to each input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph, so a measurement is `computedOn` every ontology in it. Use `--per-file` to attribute results to individual ontologies; all files still go into one DQV report.
 - **IRIs:** no blank nodes are emitted. All instance IRIs are minted under `--base-uri` (default `urn:ontolint:`); if the base doesn't end in `/`, `#` or `:`, a `/` is added. Metrics and dimensions use their slug (`<base>metric-<slug>`, `<base>dimension-<slug>`), so the same check has the same IRI across runs with the same base. Measurements, violations and the assessment use a SHA-256 hash of the run timestamp, input files, dataset, metric and violation, so they're unique per run and reproducible for a given run. The `olq:` namespace holds only vocabulary terms (properties and classes), never instance data.
 - No DQV report is written in `--profile-only` mode or when no file could be loaded.

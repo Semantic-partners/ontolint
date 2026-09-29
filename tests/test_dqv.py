@@ -6,7 +6,7 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
 from scripts.ontology_qa import (
     run_qa, build_dqv_graph, write_dqv_report, file_iri,
-    CHECKLIST, DQV_METRICS, DQV, OLQ, PROV, DEFAULT_BASE_URI,
+    CHECKLIST, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
 )
 
 EX = rdflib.Namespace("http://example.org#")
@@ -38,7 +38,7 @@ def _measurement(g, slug, dataset=None):
 
 
 def _violation_resources(g, measurement):
-    return {str(g.value(v, OLQ.resource)) for v in g.objects(measurement, OLQ.violation)}
+    return {str(g.value(v, SH.focusNode)) for v in g.objects(measurement, OLQ.violation)}
 
 
 # ── metric catalogue ──────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ def test_metrics_and_dimensions_are_declared(make_graph):
     assert g.value(m, SKOS.prefLabel) == Literal("Properties with the same label")
     assert g.value(m, RDFS.label) == Literal("Properties with the same label")
     assert g.value(m, SKOS.definition) is not None
-    assert g.value(m, OLQ.severity) == Literal("error")
+    assert g.value(m, OLQ.severity) == SH.Violation
     dim = g.value(m, DQV.inDimension)
     assert (dim, RDF.type, DQV.Dimension) in g
     assert g.value(dim, RDFS.label) is not None
@@ -82,7 +82,7 @@ def test_violations_attributed_to_check_and_dataset(make_graph):
     assert (same_label, RDF.type, DQV.QualityMeasurement) in dqv
     assert dqv.value(same_label, DQV.value) == Literal(1)
     assert dqv.value(same_label, OLQ.conforms) == Literal(False)
-    assert dqv.value(same_label, OLQ.severity) == Literal("error")
+    assert dqv.value(same_label, OLQ.severity) == SH.Violation
     assert _violation_resources(dqv, same_label) == {str(EX.assignedTo), str(EX.delegatedTo)}
 
     imports = _measurement(dqv, "unresolvable-imports", "http://example.org#")
@@ -98,11 +98,13 @@ def test_same_label_violations_are_structured(make_graph):
     """)
     dqv = build_dqv_graph([_qa(g)], timestamp=TS)
     m = _measurement(dqv, "properties-same-label")
-    node = next(v for v in dqv.objects(m, OLQ.violation) if dqv.value(v, OLQ.resource) == EX.assignedTo)
-    assert (node, RDF.type, OLQ.Violation) in dqv
-    assert dqv.value(node, OLQ.value) == Literal("assigned to", lang="en")
+    node = next(v for v in dqv.objects(m, OLQ.violation) if dqv.value(v, SH.focusNode) == EX.assignedTo)
+    assert (node, RDF.type, SH.ValidationResult) in dqv
+    assert dqv.value(node, SH.value) == Literal("assigned to", lang="en")
     assert dqv.value(node, OLQ.relatedResource) == EX.delegatedTo
-    assert "delegatedTo" in str(dqv.value(node, RDFS.comment))
+    assert "delegatedTo" in str(dqv.value(node, SH.resultMessage))
+    assert dqv.value(node, SH.resultSeverity) == SH.Violation
+    assert dqv.value(node, SH.sourceConstraintComponent) == SH.SPARQLConstraintComponent
 
 
 def test_import_violation_related_to_importing_ontology(make_graph):
@@ -110,6 +112,14 @@ def test_import_violation_related_to_importing_ontology(make_graph):
     dqv = build_dqv_graph([_qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})], timestamp=TS)
     node = dqv.value(_measurement(dqv, "unresolvable-imports"), OLQ.violation)
     assert dqv.value(node, OLQ.relatedResource) == URIRef("http://example.org#")
+
+
+def test_warning_severity_uses_shacl_warning(make_graph):
+    g = make_graph(": a owl:Ontology . :Dog a owl:Class ; rdfs:label \"Dog\" .")
+    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    m = _measurement(dqv, "classes-missing-description")
+    assert dqv.value(m, OLQ.severity) == SH.Warning
+    assert dqv.value(dqv.value(m, OLQ.violation), SH.resultSeverity) == SH.Warning
 
 
 def test_passing_checks_have_no_measurement(make_graph):
@@ -192,7 +202,7 @@ def test_instance_iris_minted_under_base_uri(make_graph):
     assert str(assessment).startswith("https://kh.example/qa/assessment-")
     for m in dqv.subjects(RDF.type, DQV.QualityMeasurement):
         assert str(m).startswith("https://kh.example/qa/measurement-")
-    for v in dqv.subjects(RDF.type, OLQ.Violation):
+    for v in dqv.subjects(RDF.type, SH.ValidationResult):
         assert str(v).startswith("https://kh.example/qa/violation-")
     # Metrics and dimensions are minted under the base URI too, by slug.
     metric = _metric("classes-missing-label", "https://kh.example/qa/")

@@ -374,6 +374,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
 DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
 PROV = rdflib.Namespace("http://www.w3.org/ns/prov#")
 OLQ = rdflib.Namespace("https://ontolint.org/ns#")
+SH = rdflib.SH
 
 # All instance IRIs (metrics, dimensions, assessment, measurements, violations) are
 # minted under this base unless --base-uri is given. OLQ holds only vocabulary terms.
@@ -389,32 +390,32 @@ DQV_DIMENSIONS = {
     'conformance':   ("Conformance",   "Terms are declared, resolvable and minted in the ontology's own namespace."),
 }
 
-# CHECKLIST key -> (metric slug, definition, dimension slug, default severity)
+# CHECKLIST key -> (metric slug, definition, dimension slug, default severity as a sh:Severity)
 DQV_METRICS = {
-    'ontologyNotDeclared':        ('ontology-not-declared',            "A processed file has no owl:Ontology declaration.",                                   'metadata',      'error'),
-    'ontologyDescription':        ('ontology-missing-description',     "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description.", 'metadata',      'error'),
-    'unresolvedImports':          ('unresolvable-imports',             "An owl:imports target could not be resolved or contains no triples.",                  'conformance',   'error'),
-    'undefinedTerms':             ('undefined-terms',                  "A term is used but defined neither locally nor in its fetched remote ontology.",       'conformance',   'error'),
-    'missingClassLabel':          ('classes-missing-label',            "A class has no label annotation.",                                                     'documentation', 'error'),
-    'missingPropertyLabel':       ('properties-missing-label',         "A property has no label annotation.",                                                  'documentation', 'error'),
-    'missingNSLabel':             ('node-shapes-missing-label',        "A SHACL NodeShape has no label annotation.",                                           'documentation', 'error'),
-    'missingPSLabel':             ('property-shapes-missing-label',    "A SHACL PropertyShape has no label annotation.",                                       'documentation', 'error'),
-    'missingClassDescription':    ('classes-missing-description',      "A class has no description annotation.",                                               'documentation', 'warning'),
-    'missingPropertyDescription': ('properties-missing-description',   "A property has no description annotation.",                                            'documentation', 'warning'),
-    'missingNSDescription':       ('node-shapes-missing-description',  "A SHACL NodeShape has no description annotation.",                                     'documentation', 'warning'),
-    'missingPSDescription':       ('property-shapes-missing-description', "A SHACL PropertyShape has no description annotation.",                              'documentation', 'warning'),
-    'nonUniqueClassLabels':       ('classes-same-label',               "Two or more classes share a label in the same language.",                              'uniqueness',    'error'),
-    'nonUniquePropertyLabels':    ('properties-same-label',            "Two or more properties share a label in the same language.",                           'uniqueness',    'error'),
-    'nonUniqueNSLabels':          ('node-shapes-same-label',           "Two or more SHACL NodeShapes share a label in the same language.",                     'uniqueness',    'error'),
-    'nonUniquePSLabels':          ('property-shapes-same-label',       "Two or more SHACL PropertyShapes share a label in the same language.",                 'uniqueness',    'error'),
-    'isolatedClasses':            ('isolated-classes',                 "A class is declared but not connected to the rest of the ontology.",                   'structure',     'warning'),
-    'missingDomain':              ('properties-missing-domain',        "A property has no rdfs:domain.",                                                       'structure',     'warning'),
-    'missingRange':               ('properties-missing-range',         "A property has no rdfs:range.",                                                        'structure',     'warning'),
-    'nonUniqueIdentifiers':       ('non-unique-identifiers',           "The same IRI is declared as more than one kind of class or property.",                'uniqueness',    'error'),
-    'subclassCycles':             ('subclass-cycles',                  "A class is involved in an rdfs:subClassOf cycle.",                                     'structure',     'error'),
-    'untypedClasses':             ('untyped-classes',                  "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class.", 'conformance', 'error'),
-    'untypedProperties':          ('untyped-properties',               "A term in the ontology namespace is used as a property but not declared as one.",      'conformance',   'error'),
-    'hijacking':                  ('namespace-hijacking',              "A resource is defined using an external vocabulary's namespace.",                      'conformance',   'error'),
+    'ontologyNotDeclared':        ('ontology-not-declared',            "A processed file has no owl:Ontology declaration.",                                   'metadata',      SH.Violation),
+    'ontologyDescription':        ('ontology-missing-description',     "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description.", 'metadata',      SH.Violation),
+    'unresolvedImports':          ('unresolvable-imports',             "An owl:imports target could not be resolved or contains no triples.",                  'conformance',   SH.Violation),
+    'undefinedTerms':             ('undefined-terms',                  "A term is used but defined neither locally nor in its fetched remote ontology.",       'conformance',   SH.Violation),
+    'missingClassLabel':          ('classes-missing-label',            "A class has no label annotation.",                                                     'documentation', SH.Violation),
+    'missingPropertyLabel':       ('properties-missing-label',         "A property has no label annotation.",                                                  'documentation', SH.Violation),
+    'missingNSLabel':             ('node-shapes-missing-label',        "A SHACL NodeShape has no label annotation.",                                           'documentation', SH.Violation),
+    'missingPSLabel':             ('property-shapes-missing-label',    "A SHACL PropertyShape has no label annotation.",                                       'documentation', SH.Violation),
+    'missingClassDescription':    ('classes-missing-description',      "A class has no description annotation.",                                               'documentation', SH.Warning),
+    'missingPropertyDescription': ('properties-missing-description',   "A property has no description annotation.",                                            'documentation', SH.Warning),
+    'missingNSDescription':       ('node-shapes-missing-description',  "A SHACL NodeShape has no description annotation.",                                     'documentation', SH.Warning),
+    'missingPSDescription':       ('property-shapes-missing-description', "A SHACL PropertyShape has no description annotation.",                              'documentation', SH.Warning),
+    'nonUniqueClassLabels':       ('classes-same-label',               "Two or more classes share a label in the same language.",                              'uniqueness',    SH.Violation),
+    'nonUniquePropertyLabels':    ('properties-same-label',            "Two or more properties share a label in the same language.",                           'uniqueness',    SH.Violation),
+    'nonUniqueNSLabels':          ('node-shapes-same-label',           "Two or more SHACL NodeShapes share a label in the same language.",                     'uniqueness',    SH.Violation),
+    'nonUniquePSLabels':          ('property-shapes-same-label',       "Two or more SHACL PropertyShapes share a label in the same language.",                 'uniqueness',    SH.Violation),
+    'isolatedClasses':            ('isolated-classes',                 "A class is declared but not connected to the rest of the ontology.",                   'structure',     SH.Warning),
+    'missingDomain':              ('properties-missing-domain',        "A property has no rdfs:domain.",                                                       'structure',     SH.Warning),
+    'missingRange':               ('properties-missing-range',         "A property has no rdfs:range.",                                                        'structure',     SH.Warning),
+    'nonUniqueIdentifiers':       ('non-unique-identifiers',           "The same IRI is declared as more than one kind of class or property.",                'uniqueness',    SH.Violation),
+    'subclassCycles':             ('subclass-cycles',                  "A class is involved in an rdfs:subClassOf cycle.",                                     'structure',     SH.Violation),
+    'untypedClasses':             ('untyped-classes',                  "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class.", 'conformance', SH.Violation),
+    'untypedProperties':          ('untyped-properties',               "A term in the ontology namespace is used as a property but not declared as one.",      'conformance',   SH.Violation),
+    'hijacking':                  ('namespace-hijacking',              "A resource is defined using an external vocabulary's namespace.",                      'conformance',   SH.Violation),
 }
 
 # Roll-up metric: one measurement per dataset, so clean datasets still appear.
@@ -457,7 +458,7 @@ def _add_metric(g, base, slug, label, definition, dimension, severity=None):
     g.add((m, rdflib.SKOS.definition, rdflib.Literal(definition)))
     g.add((m, DQV.inDimension, dimension_iri(base, dimension)))
     if severity:
-        g.add((m, OLQ.severity, rdflib.Literal(severity)))
+        g.add((m, OLQ.severity, severity))
     d = dimension_iri(base, dimension)
     d_label, d_definition = DQV_DIMENSIONS[dimension]
     g.add((d, rdflib.RDF.type, DQV.Dimension))
@@ -473,7 +474,9 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
 
     - One dqv:Metric per executed check (<base>metric-<slug>), grouped by dqv:Dimension
       (<base>dimension-<slug>); both are stable for a given base.
-    - One dqv:QualityMeasurement per (dataset, failed check), listing each olq:violation.
+    - One dqv:QualityMeasurement per (dataset, failed check), linking via olq:violation to one
+      sh:ValidationResult per offending resource (sh:focusNode, sh:value, sh:resultMessage,
+      sh:resultSeverity, sh:sourceConstraintComponent, plus olq:relatedResource).
     - One roll-up measurement per dataset (<base>metric-ontolint-conformance), so clean datasets appear.
     - A dqv:QualityMetadata assessment node linking every measurement.
     No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
@@ -484,7 +487,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     stamp = timestamp.isoformat()
 
     g = rdflib.Graph()
-    for prefix, ns in [('dqv', DQV), ('olq', OLQ), ('prov', PROV), ('skos', rdflib.SKOS),
+    for prefix, ns in [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('skos', rdflib.SKOS),
                        ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]:
         g.bind(prefix, ns)
 
@@ -525,21 +528,25 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
                 g.add((measurement, DQV.computedOn, ds))
             g.add((measurement, DQV.value, rdflib.Literal(check.count)))
             g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
-            g.add((measurement, OLQ.severity, rdflib.Literal(severity)))
+            g.add((measurement, OLQ.severity, severity))
             for v in check.violations:
                 node = _mint(base, 'violation', measurement, v.resource or '', v.value or '',
                              v.comment or '', *v.related)
                 g.add((measurement, OLQ.violation, node))
-                g.add((node, rdflib.RDF.type, OLQ.Violation))
+                # Each violation is a SHACL validation result. sh:sourceShape is omitted
+                # until checks are expressed as shapes; the metric identifies the check.
+                g.add((node, rdflib.RDF.type, SH.ValidationResult))
+                g.add((node, SH.resultSeverity, severity))
+                g.add((node, SH.sourceConstraintComponent, SH.SPARQLConstraintComponent))
                 if v.resource:
-                    g.add((node, OLQ.resource, rdflib.URIRef(v.resource)))
+                    g.add((node, SH.focusNode, rdflib.URIRef(v.resource)))
                 if v.comment:
-                    g.add((node, rdflib.RDFS.comment, rdflib.Literal(v.comment)))
-                for related in v.related:
-                    g.add((node, OLQ.relatedResource, rdflib.URIRef(related)))
+                    g.add((node, SH.resultMessage, rdflib.Literal(v.comment)))
                 if v.value is not None:
                     value = v.value if isinstance(v.value, rdflib.Literal) else rdflib.Literal(v.value)
-                    g.add((node, OLQ.value, value))
+                    g.add((node, SH.value, value))
+                for related in v.related:
+                    g.add((node, OLQ.relatedResource, rdflib.URIRef(related)))
 
         failed = len(result.failures)
         for ds in datasets:
