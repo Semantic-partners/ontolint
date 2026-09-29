@@ -92,7 +92,7 @@ What gets emitted:
 | `olq:Violation` | `<base>violation-<hash>` | `olq:resource` (the offending IRI) plus, where applicable, `olq:value`, `olq:relatedResource` and `rdfs:comment`. |
 | `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement. |
 
-- `olq:` is `https://ontolint.semanticpartners.com/ns#`.
+- `olq:` is `https://ontolint.org/ns#`.
 - **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to each input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph, so a measurement is `computedOn` every ontology in it. Use `--per-file` to attribute results to individual ontologies; all files still go into one DQV report.
 - **IRIs:** no blank nodes are emitted. Instance IRIs are a SHA-256 hash of the run timestamp, input files, dataset, metric and violation. They're unique per run and reproducible for a given run. They're minted under `--base-uri` (default `urn:ontolint:`). If the base doesn't end in `/`, `#` or `:`, a `/` is added. Metric and dimension IRIs always stay under `olq:`, so they're the same across runs regardless of base URI.
 - No DQV report is written in `--profile-only` mode or when no file could be loaded.

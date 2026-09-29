@@ -373,7 +373,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
 
 DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
 PROV = rdflib.Namespace("http://www.w3.org/ns/prov#")
-OLQ = rdflib.Namespace("https://ontolint.semanticpartners.com/ns#")
+OLQ = rdflib.Namespace("https://ontolint.org/ns#")
 
 # Instance IRIs (assessment, measurements, violations) are minted under this base
 # unless --base-uri is given. Metric and dimension IRIs always live under OLQ.
