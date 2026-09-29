@@ -1,0 +1,18 @@
+@prefix : <https://example.org/ontology/mixed#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# A spread of failures across dimensions, at both severities.
+
+: a owl:Ontology ; rdfs:label "Mixed" .                      # no description
+
+:Animal a owl:Class ; rdfs:label "Animal" ; rdfs:comment "A living creature." .
+:Cat a owl:Class ; rdfs:subClassOf :Animal .                  # no label, no description
+:Orphan a owl:Class ; rdfs:label "Orphan" ; rdfs:comment "Not connected to anything." .   # isolated
+:Egg a owl:Class ; rdfs:label "Egg" ; rdfs:comment "Comes first." ; rdfs:subClassOf :Chicken .
+:Chicken a owl:Class ; rdfs:label "Chicken" ; rdfs:comment "Comes second." ; rdfs:subClassOf :Egg .   # cycle
+
+:eats a owl:ObjectProperty ; rdfs:label "eats" ; rdfs:comment "Diet." ;
+    rdfs:domain :Animal ; rdfs:range :Food .                  # :Food is untyped and undefined
+:weight a owl:DatatypeProperty ; rdfs:label "weight" ; rdfs:comment "In kg." .   # no domain or range
+:Animal a owl:ObjectProperty .                                # class and property: non-unique identifier

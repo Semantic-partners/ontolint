@@ -45,6 +45,25 @@ inputs:
       it automatically when present; otherwise the full default checklist runs.
     required: false
     default: ''
+  dqv:
+    description: |
+      Also write a W3C Data Quality Vocabulary (DQV) Turtle report, with one measurement
+      per (dataset, failed check) listing each offending resource. It is written to
+      `ctrf/<dqv-filename>` in the workspace, included in the uploaded artifact, and its
+      path is exposed as the `dqv-path` output.
+    required: false
+    default: 'false'
+  dqv-filename:
+    description: 'Filename of the DQV Turtle report (only used when `dqv` is true).'
+    required: false
+    default: 'ontolint-dqv.ttl'
+  base-uri:
+    description: |
+      Namespace under which all DQV instance IRIs are minted (e.g. `https://example.org/qa/`):
+      metrics and dimensions (`<base>metric-<slug>`, stable across runs) and measurements,
+      violations and the assessment (hash-based, unique per run). Defaults to `urn:ontolint:`.
+    required: false
+    default: ''
   artifact-name:
     description: |
       Name of the uploaded CTRF artifact. Must be unique within a single workflow run —
@@ -52,6 +71,11 @@ inputs:
       `actions/upload-artifact` does not reject duplicate names.
     required: false
     default: 'ontolint-ctrf'
+
+outputs:
+  dqv-path:
+    description: 'Absolute path of the DQV Turtle report. Empty if `dqv` is false or no report was written (e.g. `profile-only`).'
+    value: ${{ steps.ontolint.outputs.dqv-path }}
 
 runs:
   using: 'composite'
@@ -68,6 +92,7 @@ runs:
       run: poetry install --without dev --no-interaction
 
     - name: Run ontolint
+      id: ontolint
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
@@ -78,6 +103,9 @@ runs:
         VERBOSE: ${{ inputs.verbose }}
         PROFILE_ONLY: ${{ inputs.profile-only }}
         PER_FILE: ${{ inputs.per-file }}
+        DQV: ${{ inputs.dqv }}
+        DQV_FILENAME: ${{ inputs.dqv-filename }}
+        BASE_URI: ${{ inputs.base-uri }}
         CONFIG_PATH: ${{ inputs.config-path }}
       run: |
         ARGS=()
@@ -99,6 +127,17 @@ runs:
         [ "$FAIL_ON_VIOLATIONS" = "true" ] && ARGS+=(-e)
         [ "$VERBOSE" = "true" ] && ARGS+=(-v)
         [ "$PER_FILE" = "true" ] && ARGS+=(--per-file)
+        if [ "$DQV" = "true" ]; then
+          # Validate before the name is used for deletion or written to $GITHUB_OUTPUT:
+          # a plain file name only, no directories, "." / "..", or control characters.
+          case "$DQV_FILENAME" in
+            ""|.|..|*/*|*\\*|*[[:cntrl:]]*)
+              echo "::error::dqv-filename must be a plain file name without directories or control characters"
+              exit 1 ;;
+          esac
+          ARGS+=(--dqv-dir "$WORKSPACE/ctrf" --dqv-filename "$DQV_FILENAME")
+        fi
+        [ -n "$BASE_URI" ] && ARGS+=(--base-uri "$BASE_URI")
         if [ "$PROFILE_ONLY" = "true" ]; then
           ARGS+=(-p -o "$WORKSPACE/ctrf/report.md")
         fi
@@ -111,7 +150,16 @@ runs:
         elif [ -f "$WORKSPACE/.rdf-lint.yml" ]; then
           ARGS+=(-c "$WORKSPACE/.rdf-lint.yml")
         fi
-        poetry run scripts/ontology_qa.py "${ARGS[@]}"
+        # Publish dqv-path only if the report was actually written (none is written in
+        # profile-only mode or when no RDF loads), keeping the CLI's exit status.
+        DQV_FILE="$WORKSPACE/ctrf/$DQV_FILENAME"
+        [ "$DQV" = "true" ] && rm -f -- "$DQV_FILE"   # don't report a stale file from an earlier step
+        status=0
+        poetry run scripts/ontology_qa.py "${ARGS[@]}" || status=$?
+        if [ "$DQV" = "true" ] && [ -f "$DQV_FILE" ]; then
+          echo "dqv-path=$DQV_FILE" >> "$GITHUB_OUTPUT"
+        fi
+        exit $status
 
     - name: Generate report
       if: always() && hashFiles('ctrf/*.json') != ''
