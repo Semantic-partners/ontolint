@@ -274,6 +274,23 @@ def test_blank_node_skolem_iris_are_stable_across_parses(make_graph):
     assert set(_shape_report(make_graph)) == set(_shape_report(make_graph))
 
 
+def test_identical_blank_nodes_get_distinct_skolem_iris(make_graph):
+    # Two structurally identical anonymous shapes under the same parent are still two
+    # violations; a local content key would give them one skolem IRI and one result.
+    ttl = """
+    : a owl:Ontology .
+    :DogShape a sh:NodeShape ; rdfs:label "Dog shape" ; rdfs:comment "Dogs." ;
+        sh:property [ a sh:PropertyShape ] , [ a sh:PropertyShape ] .
+    """
+    reports = [build_dqv_graph([_qa(make_graph(ttl))], timestamp=TS) for _ in range(2)]
+    m = _measurement(reports[0], "property-shapes-missing-label")
+    assert reports[0].value(m, DQV.value) == Literal(2)
+    nodes = list(reports[0].objects(m, OLQ.violation))
+    assert len(nodes) == 2
+    assert len({reports[0].value(n, SH.focusNode) for n in nodes}) == 2
+    assert set(reports[0]) == set(reports[1])  # still stable across parses
+
+
 def test_blank_node_related_resources_are_skolemized(make_graph):
     dqv = _shape_report(make_graph)
     m = _measurement(dqv, "property-shapes-same-label", base="https://kh.example/qa#")

@@ -81,6 +81,17 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
     olq:relatedResource <https://example.org/ontology/activities#delegatedTo> .
 ```
 
+**See real reports:** [`tests/dqv/`](tests/dqv/) has end-to-end examples, each an input ontology next to the exact report ontolint produces for it (run with `--base-uri https://example.org/qa#`). The tests keep these files current.
+
+| Example | Input | DQV report | Shows |
+|---|---|---|---|
+| clean | [clean.ttl](tests/dqv/clean/clean.ttl) | [expected.ttl](tests/dqv/clean/expected.ttl) | A passing ontology: metric definitions and one conforming roll-up. |
+| activities | [activities.ttl](tests/dqv/activities/activities.ttl) | [expected.ttl](tests/dqv/activities/expected.ttl) | Same-label clashes (shared label, related property, message) and an unresolvable import, each under its own check. |
+| mixed | [mixed.ttl](tests/dqv/mixed/mixed.ttl) | [expected.ttl](tests/dqv/mixed/expected.ttl) | Ten failing checks across all dimensions, at `sh:Violation` and `sh:Warning`. |
+| shapes | [shapes.ttl](tests/dqv/shapes/shapes.ttl) | [expected.ttl](tests/dqv/shapes/expected.ttl) | Anonymous SHACL property shapes, named by skolem IRIs. |
+| per-file | [a.ttl](tests/dqv/per-file/a.ttl), [b.ttl](tests/dqv/per-file/b.ttl) | [expected.ttl](tests/dqv/per-file/expected.ttl) | `--per-file`: one report, with each ontology's results computed on that ontology. |
+| merged | [one.ttl](tests/dqv/merged/one.ttl), [two.ttl](tests/dqv/merged/two.ttl) | [expected.ttl](tests/dqv/merged/expected.ttl) | A merged run over two ontologies, computed on one aggregate `dcat:Dataset`. |
+
 What gets emitted:
 
 | Node | IRI | Notes |
@@ -95,11 +106,10 @@ What gets emitted:
 - `olq:` is `https://ontolint.org/ns#`, defined in [`ontology/olq.ttl`](ontology/olq.ttl). It defines only the four terms that DQV and SHACL don't cover: `olq:conforms` and `olq:violation` on measurements (`sh:conforms` and `sh:result` have the domain `sh:ValidationReport`), `olq:severity` on metrics and measurements (`sh:severity` and `sh:resultSeverity` have the domains `sh:Shape` and `sh:AbstractResult`; its values are `sh:Severity` IRIs), and `olq:relatedResource` (SHACL has no equivalent).
 - **SHACL results:** violation nodes use the SHACL result vocabulary, so consumers can read them like a SHACL validation report. They omit `sh:sourceShape` (the checks are SPARQL queries, not shapes yet), so they are SHACL-shaped rather than strictly conforming results. The metric linked from the measurement identifies the check. Where a check can't name the offending resource (e.g. "some processed files have no `owl:Ontology`" in a merged run), the result has a message but no `sh:focusNode`.
 - **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to the input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph and a violation can't be traced to the ontology it came from. So when a merged run contains more than one ontology, its measurements are computed on a single aggregate `dcat:Dataset` (`<base>dataset-<hash>`, labelled `Merged: …`) that `dcterms:hasPart` each ontology, rather than being asserted on each of them. Use `--per-file` for per-ontology attribution; all files still go into one DQV report.
-- **Blank nodes in the data:** results about blank nodes, such as anonymous SHACL property shapes, name them by a skolem IRI `<base>bnode-<hash>`. The hash comes from the node's content in the checked graph (its triples, nested blank nodes and the IRIs that reference it), so the IRI is stable across parses and runs. Messages refer to such nodes as "a blank node".
+- **Blank nodes in the data:** results about blank nodes, such as anonymous SHACL property shapes, name them by a skolem IRI `<base>bnode-<hash>`. The hash is of the node's canonical label in the checked graph (rdflib's RGDA1 canonicalisation). Every blank node gets its own IRI, even structurally identical ones, and the IRI is the same for any parse of the same graph. Because the label depends on the whole graph, editing unrelated parts of the ontology can change it. Messages refer to such nodes as "a blank node". See the [shapes example](tests/dqv/shapes/expected.ttl).
 - **IRIs:** no blank nodes are emitted. All instance IRIs are minted under `--base-uri` (default `urn:ontolint:`); if the base doesn't end in `/`, `#` or `:`, a `/` is added. Metrics and dimensions use their slug (`<base>metric-<slug>`, `<base>dimension-<slug>`), so the same check has the same IRI across runs with the same base. Measurements, violations and the assessment use a SHA-256 hash of the run timestamp, input files, dataset, metric and violation, so they're unique per run and reproducible for a given run. The `olq:` namespace holds only vocabulary terms (properties and classes), never instance data.
 - No DQV report is written in `--profile-only` mode or when no file could be loaded.
 - **Reproducible output:** set `SOURCE_DATE_EPOCH` (seconds since the Unix epoch) to pin the report timestamp. With the same inputs and base URI, the report, including every minted IRI, is then byte-for-byte reproducible.
-- **Examples:** [`tests/dqv/`](tests/dqv/) has end-to-end cases, each an input ontology next to the exact DQV report ontolint produces for it (`expected.ttl`).
 
 ## Dev setup & Running Ontolint locally
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.

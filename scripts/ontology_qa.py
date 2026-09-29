@@ -77,7 +77,7 @@ class QAResult:
     elements: dict = field(default_factory=dict)
     logs: list = field(default_factory=list)
     datasets: list = field(default_factory=list)
-    bnode_keys: dict = field(default_factory=dict)  # BNode -> stable content key, for skolemizing
+    bnode_keys: dict = field(default_factory=dict)  # BNode -> canonical label, for skolemizing
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -455,8 +455,8 @@ def _mint(base, kind, *parts):
 def _resource_node(base, value, bnode_keys):
     """
     The IRI to emit for a violation's resource. Blank nodes (e.g. anonymous SHACL property
-    shapes) are skolemized to <base>bnode-<hash> from their content in the checked graph,
-    so the IRI is stable across parses and runs even though blank-node ids are not.
+    shapes) are skolemized to <base>bnode-<hash> of their canonical label in the checked
+    graph: unique per blank node, and stable across parses even though blank-node ids are not.
     """
     if value is None:
         return None
@@ -2671,22 +2671,23 @@ def _violation_bnodes(checks):
             for t in (v.resource, *v.related) if isinstance(t, rdflib.BNode)}
 
 
-def _bnode_key(graph, node, seen=frozenset()):
+def _canonical_bnode_labels(graph, bnodes):
     """
-    A content-based key for a blank node, independent of its (arbitrary) id: its outgoing
-    triples, recursing into nested blank nodes, plus the IRIs that reference it.
+    Canonical labels for the given blank nodes, unique across the whole graph and identical
+    for any isomorphic parse (rdflib's RGDA1 canonicalisation). Structurally identical blank
+    nodes, e.g. two `sh:property [ a sh:PropertyShape ]`, still get distinct labels.
     """
-    if node in seen:
-        return "_:cycle"
-    seen = seen | {node}
-    parts = []
-    for p, o in graph.predicate_objects(node):
-        obj = _bnode_key(graph, o, seen) if isinstance(o, rdflib.BNode) else o.n3()
-        parts.append(f"{p.n3()} {obj}")
-    for s, p in graph.subject_predicates(node):
-        if not isinstance(s, rdflib.BNode):
-            parts.append(f"^{p.n3()} {s.n3()}")
-    return "[" + " ; ".join(sorted(parts)) + "]"
+    if not bnodes:
+        return {}
+    from rdflib.compare import _TripleCanonicalizer
+    # canonical_triples() yields the graph's triples in iteration order with blank nodes
+    # relabelled, so pairing it with the graph gives the original -> canonical mapping.
+    labels = {}
+    for original, canonical in zip(graph, _TripleCanonicalizer(graph).canonical_triples()):
+        for term, label in zip(original, canonical):
+            if isinstance(term, rdflib.BNode) and labels.setdefault(term, str(label)) != str(label):
+                raise RuntimeError("inconsistent blank-node canonicalisation")
+    return {b: labels[b] for b in bnodes if b in labels}
 
 
 def _datasets(graph, qa_metrics):
@@ -2775,7 +2776,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         elements=profiling_elements,
         logs=logs,
         datasets=_datasets(graph, qa_metrics),
-        bnode_keys={b: _bnode_key(graph, b) for b in _violation_bnodes(checks)},
+        bnode_keys=_canonical_bnode_labels(graph, _violation_bnodes(checks)),
     )
 
 def write_lint_config(checklist):
