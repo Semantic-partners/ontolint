@@ -237,3 +237,11 @@ def test_dqv_filename_with_directory_is_rejected(tmp_path):
     assert exc.value.code == 2  # argparse usage error
     assert not (tmp_path / 'escape.ttl').exists()
 
+
+def test_relative_base_uri_is_rejected(tmp_path):
+    ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    with pytest.raises(SystemExit) as exc:
+        run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path), '--base-uri', 'qa')
+    assert exc.value.code == 2  # argparse usage error
+    assert not list(tmp_path.glob('*.ttl'))
+

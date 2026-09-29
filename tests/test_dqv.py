@@ -152,6 +152,21 @@ def test_warning_severity_uses_shacl_warning(make_graph):
     assert dqv.value(dqv.value(m, OLQ.violation), SH.resultSeverity) == SH.Warning
 
 
+def test_same_failing_import_from_two_ontologies_gives_two_violations(make_graph):
+    g = make_graph(f"""
+    : a owl:Ontology ; owl:imports <{MISSING_IMPORT}> .
+    <http://example.org/two#> a owl:Ontology ; owl:imports <{MISSING_IMPORT}> .
+    """)
+    result = _qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})
+    assert result.get("Unresolvable imports").count == 2
+    dqv = build_dqv_graph([result], timestamp=TS)
+    nodes = list(dqv.objects(_measurement(dqv, "unresolvable-imports"), OLQ.violation))
+    assert len(nodes) == 2
+    assert {dqv.value(n, SH.focusNode) for n in nodes} == {URIRef(MISSING_IMPORT)}
+    assert {dqv.value(n, OLQ.relatedResource) for n in nodes} == {
+        URIRef("http://example.org#"), URIRef("http://example.org/two#")}
+
+
 def test_passing_checks_have_no_measurement(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
     dqv = build_dqv_graph([_qa(g)], timestamp=TS)
@@ -344,6 +359,20 @@ def test_default_base_uri(make_graph):
     dqv = build_dqv_graph([_qa(g)], timestamp=TS)
     assessment = dqv.value(predicate=RDF.type, object=DQV.QualityMetadata, any=False)
     assert str(assessment).startswith(DEFAULT_BASE_URI)
+
+
+@pytest.mark.parametrize("bad", ["qa", "qa/", "/qa/", "//example.org/qa/", "https://ex ample.org/",
+                                 "https://example.org/<qa>/", "1http://x/"])
+def test_relative_or_malformed_base_uri_rejected(make_graph, bad):
+    g = make_graph(": a owl:Ontology .")
+    with pytest.raises(ValueError):
+        build_dqv_graph([_qa(g)], base_uri=bad, timestamp=TS)
+
+
+@pytest.mark.parametrize("good", ["https://example.org/qa#", "urn:ontolint:", "http://x", "tag:example.org,2026:qa/"])
+def test_absolute_base_uri_accepted(make_graph, good):
+    g = make_graph(": a owl:Ontology .")
+    build_dqv_graph([_qa(g)], base_uri=good, timestamp=TS)
 
 
 def test_base_uri_without_separator_gets_slash(make_graph):

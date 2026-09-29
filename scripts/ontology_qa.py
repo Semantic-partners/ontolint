@@ -14,6 +14,7 @@ import argparse
 import sys
 import os
 import json
+import re
 import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
@@ -441,8 +442,19 @@ def dimension_iri(base, slug):
     return rdflib.URIRef(f"{base}dimension-{slug}")
 
 
+# An absolute IRI: a scheme, then no whitespace or characters IRIs don't allow.
+_ABSOLUTE_IRI = re.compile(r'^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"{}|\\^`\x00-\x1f\x7f]*$')
+
+
+def _check_base_uri(base_uri):
+    """Reject relative or malformed bases: minted IRIs would resolve against the report's location."""
+    if not _ABSOLUTE_IRI.match(base_uri):
+        raise ValueError(f"--base-uri must be an absolute IRI (e.g. https://example.org/qa/), got {base_uri!r}")
+
+
 def _normalise_base(base_uri):
     base = base_uri or DEFAULT_BASE_URI
+    _check_base_uri(base)
     return base if base.endswith(('/', '#', ':')) else base + '/'
 
 
@@ -2193,15 +2205,20 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         return metrics, violations, log, c, status
 
     failed_imports = []
-    for _, import_url in import_urls:
-        try:
-            tmp = rdflib.Graph()
-            source = local_map.get(import_url, import_url)
-            tmp.parse(source)
-            if len(tmp) == 0:
-                failed_imports.append(import_url)
-        except Exception:
+    failed_pairs = []   # (importing ontology, url), one per failed owl:imports statement
+    resolved = {}       # url -> bool, so a URL imported by several ontologies is fetched once
+    for ontology, import_url in import_urls:
+        if import_url not in resolved:
+            try:
+                tmp = rdflib.Graph()
+                source = local_map.get(import_url, import_url)
+                tmp.parse(source)
+                resolved[import_url] = len(tmp) > 0
+            except Exception:
+                resolved[import_url] = False
+        if not resolved[import_url]:
             failed_imports.append(import_url)
+            failed_pairs.append((ontology, import_url))
 
     local_subs = [(url, local_map[url]) for _, url in import_urls if url in local_map]
     if local_subs:
@@ -2217,9 +2234,8 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         string = violation_formatting(failed_imports)
         violations[check] = string
         violations[records_key(check)] = [
-            Violation(url, comment="import could not be resolved or is empty",
-                      related=sorted({ont for ont, imp in import_urls if imp == url}))
-            for url in failed_imports
+            Violation(url, comment="import could not be resolved or is empty", related=[ontology])
+            for ontology, url in failed_pairs
         ]
         log += f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
@@ -2906,11 +2922,13 @@ def main():
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
-    if args.dqv_filename is not None:
-        try:
+    try:
+        if args.dqv_filename is not None:
             _check_dqv_filename(args.dqv_filename)
-        except ValueError as e:
-            parser.error(str(e))
+        if args.base_uri is not None:
+            _check_base_uri(args.base_uri)
+    except ValueError as e:
+        parser.error(str(e))
 
     # Validate arguments: data_files is required unless --init is used.
     if not args.init and not args.data_files:
