@@ -2610,7 +2610,7 @@ def _datasets(graph, qa_metrics):
     for iri in ontologies:
         label = None
         for p in (rdflib.RDFS.label, rdflib.DCTERMS.title, rdflib.SKOS.prefLabel):
-            labels = sorted(graph.objects(rdflib.URIRef(iri), p), key=lambda l: (getattr(l, 'language', None) not in (None, 'en'), str(l)))
+            labels = sorted(graph.objects(rdflib.URIRef(iri), p), key=lambda lit: (getattr(lit, 'language', None) not in (None, 'en'), str(lit)))
             if labels:
                 label = str(labels[0])
                 break
