@@ -5,9 +5,10 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
 import pytest
 
-from scripts.ontology_qa import (
-    run_qa, build_dqv_graph, write_dqv_report, file_iri, _same_label_records, _check_dqv_filename,
-    CHECKLIST, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
+from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST
+from scripts.dqv import (
+    build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
+    DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
 )
 
 EX = rdflib.Namespace("http://example.org#")
@@ -414,7 +415,7 @@ def test_write_dqv_report(make_graph, tmp_path):
                                  "../../important-file", "report.ttl\ninjected=1", "a\rb.ttl", "a\x00b.ttl"])
 def test_dqv_filename_must_be_plain_name(bad):
     with pytest.raises(ValueError):
-        _check_dqv_filename(bad)
+        check_dqv_filename(bad)
 
 
 def test_write_dqv_report_does_not_escape_directory(make_graph, tmp_path):

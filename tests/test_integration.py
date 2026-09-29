@@ -206,7 +206,7 @@ def test_dqv_dir_writes_default_filename(tmp_path):
 
 
 def test_dqv_filename_and_base_uri(tmp_path):
-    from scripts.ontology_qa import DQV
+    from scripts.dqv import DQV
     import rdflib
     ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path),
@@ -218,7 +218,7 @@ def test_dqv_filename_and_base_uri(tmp_path):
 
 
 def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
-    from scripts.ontology_qa import DQV, OLQ
+    from scripts.dqv import DQV, OLQ
     import rdflib
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
