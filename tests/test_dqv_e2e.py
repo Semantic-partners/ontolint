@@ -33,6 +33,14 @@ BASE_URI = 'https://example.org/qa#'
 EPOCH = '1790000000'  # 2026-09-21T13:46:40Z
 
 
+def test_cases_exist():
+    # An empty parameter list makes pytest skip the golden test rather than fail, so a
+    # missing or empty tests/dqv/ would otherwise pass silently.
+    assert CASES, f"no DQV cases found in {CASES_DIR}"
+    for case in CASES:
+        assert (CASES_DIR / case / 'expected.ttl').exists(), f"{case} has no expected.ttl"
+
+
 def _run_case(case_dir, out_dir):
     inputs = sorted(p.name for p in case_dir.glob('*.ttl') if p.name != 'expected.ttl')
     assert inputs, f"no input .ttl files in {case_dir}"

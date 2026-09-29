@@ -31,13 +31,22 @@ jobs:
         run: |
           poetry run scripts/ontology_qa.py tests/example_failure.ttl \
             --ctrf-dir ctrf --ctrf-filename failure-report.json \
+            --dqv-dir ctrf --dqv-filename failure-dqv.ttl --base-uri https://example.org/qa# \
             -e && echo "ERROR: expected violations but got none" && exit 1 || true
 
       - name: Verify example_pass.ttl produces no violations
         run: |
           poetry run scripts/ontology_qa.py tests/example_pass.ttl \
             --ctrf-dir ctrf --ctrf-filename pass-report.json \
+            --dqv-dir ctrf --dqv-filename pass-dqv.ttl --base-uri https://example.org/qa# \
             -e
+
+      # The failure step above passes whatever the exit code, so check its DQV output
+      # exists and actually reports violations.
+      - name: Verify DQV reports
+        run: |
+          poetry run python .github/scripts/assert_dqv.py ctrf/failure-dqv.ttl --violations --datasets 1
+          poetry run python .github/scripts/assert_dqv.py ctrf/pass-dqv.ttl --conforms --datasets 1
 
       - name: Generate summary report
         run: |
@@ -57,6 +66,35 @@ jobs:
         with:
           name: ctrf-reports
           path: ctrf/
+
+  validate-action-dqv:
+    name: validate-composite-action (DQV)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Run ontolint action per file with a DQV report
+        id: ontolint
+        uses: ./
+        with:
+          ontology-paths: |
+            tests/example_pass.ttl
+            tests/example_failure.ttl
+          per-file: 'true'
+          fail-on-violations: 'false'
+          dqv: 'true'
+          base-uri: https://example.org/qa#
+          artifact-name: ontolint-ctrf-dqv
+
+      - name: Verify DQV report from the action's dqv-path output
+        env:
+          DQV_PATH: ${{ steps.ontolint.outputs.dqv-path }}
+        run: |
+          test -n "$DQV_PATH" || { echo "::error::dqv-path output is empty"; exit 1; }
+          # One report covering both files: example_pass conforms, example_failure doesn't.
+          poetry run python .github/scripts/assert_dqv.py "$DQV_PATH" --violations --datasets 2
 
   validate-action-single-path:
     name: validate-composite-action (single path)
