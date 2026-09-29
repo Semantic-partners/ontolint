@@ -96,6 +96,50 @@ jobs:
           # One report covering both files: example_pass conforms, example_failure doesn't.
           poetry run python .github/scripts/assert_dqv.py "$DQV_PATH" --violations --datasets 2
 
+  validate-action-dqv-filename:
+    name: validate-composite-action (unsafe dqv-filename)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Create a file an escaping dqv-filename would target
+        run: echo keep > important-file
+
+      - name: Run action with a dqv-filename that escapes ctrf/
+        id: escape
+        continue-on-error: true
+        uses: ./
+        with:
+          ontology-paths: tests/example_pass.ttl
+          dqv: 'true'
+          dqv-filename: ../important-file
+          artifact-name: ontolint-ctrf-unsafe-escape
+
+      - name: Run action with a dqv-filename containing a newline
+        id: newline
+        continue-on-error: true
+        uses: ./
+        with:
+          ontology-paths: tests/example_pass.ttl
+          dqv: 'true'
+          dqv-filename: "report.ttl\ninjected=1"
+          artifact-name: ontolint-ctrf-unsafe-newline
+
+      - name: Assert both were rejected without side effects
+        env:
+          ESCAPE_OUTCOME: ${{ steps.escape.outcome }}
+          NEWLINE_OUTCOME: ${{ steps.newline.outcome }}
+          NEWLINE_DQV_PATH: ${{ steps.newline.outputs.dqv-path }}
+          INJECTED: ${{ steps.newline.outputs.injected }}
+        run: |
+          test "$ESCAPE_OUTCOME" = failure || { echo "::error::escaping dqv-filename was not rejected"; exit 1; }
+          test "$NEWLINE_OUTCOME" = failure || { echo "::error::dqv-filename with a newline was not rejected"; exit 1; }
+          test "$(cat important-file)" = keep || { echo "::error::important-file was deleted or changed"; exit 1; }
+          test -z "$NEWLINE_DQV_PATH$INJECTED" || { echo "::error::outputs were set for a rejected filename"; exit 1; }
+          echo "Unsafe dqv-filename values rejected; no files deleted, no outputs injected."
+
   validate-action-single-path:
     name: validate-composite-action (single path)
     runs-on: ubuntu-latest

@@ -608,10 +608,12 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
 
 
 def _check_dqv_filename(filename):
-    """Reject anything but a plain file name, so the report can't escape --dqv-dir."""
+    """Reject anything but a plain file name, so the report can't escape --dqv-dir (and
+    can't inject lines where the path is echoed, e.g. into $GITHUB_OUTPUT)."""
     if (not filename or filename in ('.', '..') or os.path.isabs(filename)
-            or os.path.basename(filename) != filename or '/' in filename or '\\' in filename):
-        raise ValueError(f"--dqv-filename must be a file name without directories, got {filename!r}; use --dqv-dir for the location")
+            or os.path.basename(filename) != filename or '/' in filename or '\\' in filename
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in filename)):
+        raise ValueError(f"--dqv-filename must be a file name without directories or control characters, got {filename!r}; use --dqv-dir for the location")
 
 
 def write_dqv_report(results, file_path, filename=None, base_uri=None, timestamp=None):

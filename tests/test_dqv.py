@@ -364,7 +364,8 @@ def test_write_dqv_report(make_graph, tmp_path):
     rdflib.Graph().parse(str(out), format="turtle")
 
 
-@pytest.mark.parametrize("bad", ["../escape.ttl", "/tmp/abs.ttl", "sub/report.ttl", "..", ".", ""])
+@pytest.mark.parametrize("bad", ["../escape.ttl", "/tmp/abs.ttl", "sub/report.ttl", "..", ".", "",
+                                 "../../important-file", "report.ttl\ninjected=1", "a\rb.ttl", "a\x00b.ttl"])
 def test_dqv_filename_must_be_plain_name(bad):
     with pytest.raises(ValueError):
         _check_dqv_filename(bad)

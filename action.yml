@@ -128,6 +128,13 @@ runs:
         [ "$VERBOSE" = "true" ] && ARGS+=(-v)
         [ "$PER_FILE" = "true" ] && ARGS+=(--per-file)
         if [ "$DQV" = "true" ]; then
+          # Validate before the name is used for deletion or written to $GITHUB_OUTPUT:
+          # a plain file name only, no directories, "." / "..", or control characters.
+          case "$DQV_FILENAME" in
+            ""|.|..|*/*|*\\*|*[[:cntrl:]]*)
+              echo "::error::dqv-filename must be a plain file name without directories or control characters"
+              exit 1 ;;
+          esac
           ARGS+=(--dqv-dir "$WORKSPACE/ctrf" --dqv-filename "$DQV_FILENAME")
         fi
         [ -n "$BASE_URI" ] && ARGS+=(--base-uri "$BASE_URI")
@@ -146,7 +153,7 @@ runs:
         # Publish dqv-path only if the report was actually written (none is written in
         # profile-only mode or when no RDF loads), keeping the CLI's exit status.
         DQV_FILE="$WORKSPACE/ctrf/$DQV_FILENAME"
-        [ "$DQV" = "true" ] && rm -f "$DQV_FILE"   # don't report a stale file from an earlier step
+        [ "$DQV" = "true" ] && rm -f -- "$DQV_FILE"   # don't report a stale file from an earlier step
         status=0
         poetry run scripts/ontology_qa.py "${ARGS[@]}" || status=$?
         if [ "$DQV" = "true" ] && [ -f "$DQV_FILE" ]; then
