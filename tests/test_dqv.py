@@ -24,7 +24,7 @@ def _qa(graph, **kwargs):
 
 
 def _metric(slug, base=DEFAULT_BASE_URI):
-    return URIRef(f"{base}metric/{slug}")
+    return URIRef(f"{base}metric-{slug}")
 
 
 def _measurement(g, slug, dataset=None):
@@ -197,7 +197,7 @@ def test_instance_iris_minted_under_base_uri(make_graph):
     # Metrics and dimensions are minted under the base URI too, by slug.
     metric = _metric("classes-missing-label", "https://kh.example/qa/")
     assert (metric, RDF.type, DQV.Metric) in dqv
-    assert str(dqv.value(metric, DQV.inDimension)).startswith("https://kh.example/qa/dimension/")
+    assert str(dqv.value(metric, DQV.inDimension)).startswith("https://kh.example/qa/dimension-")
 
 
 def test_olq_namespace_holds_no_instance_data(make_graph):

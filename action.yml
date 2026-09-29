@@ -60,7 +60,7 @@ inputs:
   base-uri:
     description: |
       Namespace under which all DQV instance IRIs are minted (e.g. `https://example.org/qa/`):
-      metrics and dimensions (`<base>metric/<slug>`, stable across runs) and measurements,
+      metrics and dimensions (`<base>metric-<slug>`, stable across runs) and measurements,
       violations and the assessment (hash-based, unique per run). Defaults to `urn:ontolint:`.
     required: false
     default: ''

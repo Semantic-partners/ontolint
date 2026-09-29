@@ -224,7 +224,7 @@ def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path))
     g = _dqv_graph(tmp_path / 'ontolint-dqv.ttl')
-    rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric/ontolint-conformance')))
+    rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric-ontolint-conformance')))
     assert len(rollups) == 2
     assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
 

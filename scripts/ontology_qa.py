@@ -429,13 +429,13 @@ def file_iri(path):
 
 
 def metric_iri(base, slug):
-    """Stable metric IRI: <base>metric/<slug>, the same for a check across runs and datasets."""
-    return rdflib.URIRef(f"{base}metric/{slug}")
+    """Stable metric IRI: <base>metric-<slug>, the same for a check across runs and datasets."""
+    return rdflib.URIRef(f"{base}metric-{slug}")
 
 
 def dimension_iri(base, slug):
-    """Stable dimension IRI: <base>dimension/<slug>."""
-    return rdflib.URIRef(f"{base}dimension/{slug}")
+    """Stable dimension IRI: <base>dimension-<slug>."""
+    return rdflib.URIRef(f"{base}dimension-{slug}")
 
 
 def _normalise_base(base_uri):
@@ -471,10 +471,10 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
 
-    - One dqv:Metric per executed check (<base>metric/<slug>), grouped by dqv:Dimension
-      (<base>dimension/<slug>); both are stable for a given base.
+    - One dqv:Metric per executed check (<base>metric-<slug>), grouped by dqv:Dimension
+      (<base>dimension-<slug>); both are stable for a given base.
     - One dqv:QualityMeasurement per (dataset, failed check), listing each olq:violation.
-    - One roll-up measurement per dataset (<base>metric/ontolint-conformance), so clean datasets appear.
+    - One roll-up measurement per dataset (<base>metric-ontolint-conformance), so clean datasets appear.
     - A dqv:QualityMetadata assessment node linking every measurement.
     No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
     under base_uri. The olq: namespace is used only for vocabulary terms.
