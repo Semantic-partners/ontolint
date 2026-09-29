@@ -45,6 +45,9 @@ poetry run pytest tests/test_labels.py
 # Run a single test
 poetry run pytest tests/test_labels.py::test_class_without_label_fails
 
+# Regenerate golden DQV reports in tests/dqv/*/expected.ttl after an intended change
+UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py
+
 # Run with coverage (HTML report in htmlcov/)
 poetry run pytest --cov=scripts --cov-report=html
 
@@ -66,6 +69,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_structural.py` | Isolated classes, domain/range, unique identifiers, subclass cycles, untyped classes/properties, namespace hijacking |
 | `test_dqv.py` | DQV Turtle report — metrics/dimensions, per-check measurements and violations, roll-up, dataset IRIs, minted IRIs |
 | `test_olq_vocabulary.py` | `ontology/olq.ttl` defines exactly the `olq:` terms the DQV report emits, each labelled and described, and passes ontolint |
+| `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.

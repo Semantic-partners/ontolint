@@ -468,6 +468,14 @@ def _add_metric(g, base, slug, label, definition, dimension, severity=None):
     return m
 
 
+def _report_timestamp():
+    """Now, or SOURCE_DATE_EPOCH (reproducible-builds convention) if set, in UTC."""
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if epoch:
+        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+    return datetime.now(timezone.utc)
+
+
 def build_dqv_graph(results, base_uri=None, timestamp=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
@@ -483,7 +491,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     under base_uri. The olq: namespace is used only for vocabulary terms.
     """
     base = _normalise_base(base_uri)
-    timestamp = timestamp or datetime.now(timezone.utc)
+    timestamp = timestamp or _report_timestamp()
     stamp = timestamp.isoformat()
 
     g = rdflib.Graph()

@@ -97,6 +97,8 @@ What gets emitted:
 - **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to each input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph, so a measurement is `computedOn` every ontology in it. Use `--per-file` to attribute results to individual ontologies; all files still go into one DQV report.
 - **IRIs:** no blank nodes are emitted. All instance IRIs are minted under `--base-uri` (default `urn:ontolint:`); if the base doesn't end in `/`, `#` or `:`, a `/` is added. Metrics and dimensions use their slug (`<base>metric-<slug>`, `<base>dimension-<slug>`), so the same check has the same IRI across runs with the same base. Measurements, violations and the assessment use a SHA-256 hash of the run timestamp, input files, dataset, metric and violation, so they're unique per run and reproducible for a given run. The `olq:` namespace holds only vocabulary terms (properties and classes), never instance data.
 - No DQV report is written in `--profile-only` mode or when no file could be loaded.
+- **Reproducible output:** set `SOURCE_DATE_EPOCH` (seconds since the Unix epoch) to pin the report timestamp. With the same inputs and base URI, the report, including every minted IRI, is then byte-for-byte reproducible.
+- **Examples:** [`tests/dqv/`](tests/dqv/) has end-to-end cases, each an input ontology next to the exact DQV report ontolint produces for it (`expected.ttl`).
 
 ## Dev setup & Running Ontolint locally
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.

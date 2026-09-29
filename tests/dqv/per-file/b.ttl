@@ -1,0 +1,9 @@
+@prefix : <https://example.org/ontology/b#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Failing dataset: measurements are computedOn <https://example.org/ontology/b#> only.
+
+: a owl:Ontology ; rdfs:label "B" ; rdfs:comment "Has unlabelled classes." .
+:Thing a owl:Class ; rdfs:subClassOf :Base .
+:Base a owl:Class .

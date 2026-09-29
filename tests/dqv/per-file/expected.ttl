@@ -1,0 +1,268 @@
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix olq: <https://ontolint.org/ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/qa#assessment-6d17a22ec7003d2a> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-1c6e3053cb1ff1e3>,
+        <https://example.org/qa#measurement-a12989575ba6d04f>,
+        <https://example.org/qa#measurement-c079f612e7d992ba>,
+        <https://example.org/qa#measurement-d35dab5b8641e717> ;
+    prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
+
+<https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
+    rdfs:label "Classes with the same label" ;
+    skos:definition "Two or more classes share a label in the same language." ;
+    skos:prefLabel "Classes with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-isolated-classes> a dqv:Metric ;
+    rdfs:label "Isolated classes" ;
+    skos:definition "A class is declared but not connected to the rest of the ontology." ;
+    skos:prefLabel "Isolated classes" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
+    rdfs:label "Namespace hijacking" ;
+    skos:definition "A resource is defined using an external vocabulary's namespace." ;
+    skos:prefLabel "Namespace hijacking" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-node-shapes-missing-description> a dqv:Metric ;
+    rdfs:label "NodeShape without description" ;
+    skos:definition "A SHACL NodeShape has no description annotation." ;
+    skos:prefLabel "NodeShape without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-node-shapes-missing-label> a dqv:Metric ;
+    rdfs:label "NodeShape without label" ;
+    skos:definition "A SHACL NodeShape has no label annotation." ;
+    skos:prefLabel "NodeShape without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-node-shapes-same-label> a dqv:Metric ;
+    rdfs:label "NodeShapes with the same label" ;
+    skos:definition "Two or more SHACL NodeShapes share a label in the same language." ;
+    skos:prefLabel "NodeShapes with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-non-unique-identifiers> a dqv:Metric ;
+    rdfs:label "Non-unique identifiers" ;
+    skos:definition "The same IRI is declared as more than one kind of class or property." ;
+    skos:prefLabel "Non-unique identifiers" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-ontology-missing-description> a dqv:Metric ;
+    rdfs:label "Ontology without description" ;
+    skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
+    skos:prefLabel "Ontology without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-ontology-not-declared> a dqv:Metric ;
+    rdfs:label "Ontology without declaration" ;
+    skos:definition "A processed file has no owl:Ontology declaration." ;
+    skos:prefLabel "Ontology without declaration" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-missing-description> a dqv:Metric ;
+    rdfs:label "Property without description" ;
+    skos:definition "A property has no description annotation." ;
+    skos:prefLabel "Property without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-missing-domain> a dqv:Metric ;
+    rdfs:label "Property without domain" ;
+    skos:definition "A property has no rdfs:domain." ;
+    skos:prefLabel "Property without domain" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-missing-label> a dqv:Metric ;
+    rdfs:label "Property without label" ;
+    skos:definition "A property has no label annotation." ;
+    skos:prefLabel "Property without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-missing-range> a dqv:Metric ;
+    rdfs:label "Property without range" ;
+    skos:definition "A property has no rdfs:range." ;
+    skos:prefLabel "Property without range" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
+    rdfs:label "Properties with the same label" ;
+    skos:definition "Two or more properties share a label in the same language." ;
+    skos:prefLabel "Properties with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-property-shapes-missing-description> a dqv:Metric ;
+    rdfs:label "PropertyShape without description" ;
+    skos:definition "A SHACL PropertyShape has no description annotation." ;
+    skos:prefLabel "PropertyShape without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-property-shapes-missing-label> a dqv:Metric ;
+    rdfs:label "PropertyShape without label" ;
+    skos:definition "A SHACL PropertyShape has no label annotation." ;
+    skos:prefLabel "PropertyShape without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-property-shapes-same-label> a dqv:Metric ;
+    rdfs:label "PropertyShapes with the same label" ;
+    skos:definition "Two or more SHACL PropertyShapes share a label in the same language." ;
+    skos:prefLabel "PropertyShapes with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-subclass-cycles> a dqv:Metric ;
+    rdfs:label "Subclass Cycles" ;
+    skos:definition "A class is involved in an rdfs:subClassOf cycle." ;
+    skos:prefLabel "Subclass Cycles" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
+    rdfs:label "Undefined terms" ;
+    skos:definition "A term is used but defined neither locally nor in its fetched remote ontology." ;
+    skos:prefLabel "Undefined terms" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-unresolvable-imports> a dqv:Metric ;
+    rdfs:label "Unresolvable imports" ;
+    skos:definition "An owl:imports target could not be resolved or contains no triples." ;
+    skos:prefLabel "Unresolvable imports" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-untyped-classes> a dqv:Metric ;
+    rdfs:label "Untyped Classes" ;
+    skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
+    skos:prefLabel "Untyped Classes" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-untyped-properties> a dqv:Metric ;
+    rdfs:label "Untyped Properties" ;
+    skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
+    skos:prefLabel "Untyped Properties" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/ontology/a#> rdfs:label "A" .
+
+<https://example.org/qa#measurement-1c6e3053cb1ff1e3> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/a#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 0 ;
+    olq:conforms true .
+
+<https://example.org/qa#measurement-a12989575ba6d04f> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-4dc6ae7af2113e2d>,
+        <https://example.org/qa#violation-60c21563bab045ac> .
+
+<https://example.org/qa#measurement-c079f612e7d992ba> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 2 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-d35dab5b8641e717> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-2a44c2131ea42c0a>,
+        <https://example.org/qa#violation-501406e05e14db16> .
+
+<https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
+    rdfs:label "Class without description" ;
+    skos:definition "A class has no description annotation." ;
+    skos:prefLabel "Class without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-classes-missing-label> a dqv:Metric ;
+    rdfs:label "Class without label" ;
+    skos:definition "A class has no label annotation." ;
+    skos:prefLabel "Class without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#violation-2a44c2131ea42c0a> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Base> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-4dc6ae7af2113e2d> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Base> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-501406e05e14db16> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Thing> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-60c21563bab045ac> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Thing> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#dimension-metadata> a dqv:Dimension ;
+    rdfs:label "Metadata" ;
+    skos:definition "The ontology declares itself and describes its purpose." ;
+    skos:prefLabel "Metadata" .
+
+<https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
+    rdfs:label "Ontolint conformance" ;
+    skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
+    skos:prefLabel "Ontolint conformance" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> .
+
+<https://example.org/ontology/b#> rdfs:label "B" .
+
+<https://example.org/qa#dimension-structure> a dqv:Dimension ;
+    rdfs:label "Structure" ;
+    skos:definition "Terms are connected into a well-formed hierarchy with domains and ranges." ;
+    skos:prefLabel "Structure" .
+
+<https://example.org/qa#dimension-uniqueness> a dqv:Dimension ;
+    rdfs:label "Uniqueness" ;
+    skos:definition "Labels and identifiers unambiguously denote a single term." ;
+    skos:prefLabel "Uniqueness" .
+
+<https://example.org/qa#dimension-conformance> a dqv:Dimension ;
+    rdfs:label "Conformance" ;
+    skos:definition "Terms are declared, resolvable and minted in the ontology's own namespace." ;
+    skos:prefLabel "Conformance" .
+
+<https://example.org/qa#dimension-documentation> a dqv:Dimension ;
+    rdfs:label "Documentation" ;
+    skos:definition "Terms carry human-readable labels and descriptions." ;
+    skos:prefLabel "Documentation" .
+

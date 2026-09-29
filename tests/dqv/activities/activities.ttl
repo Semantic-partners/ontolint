@@ -1,0 +1,24 @@
+@prefix : <https://example.org/ontology/activities#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# The spec's worked example: properties sharing labels, and an unresolvable import.
+# Expect separate measurements for properties-same-label (with each property, its shared
+# label and the clashing property) and unresolvable-imports (with the import IRI).
+
+: a owl:Ontology ;
+    rdfs:label "Activities" ;
+    rdfs:comment "Sub-model with two label clashes and a missing import." ;
+    owl:imports <https://example.org/ontology/some-missing-import> .
+
+:Activity a owl:Class ; rdfs:label "Activity" ; rdfs:comment "Something done." .
+:Person a owl:Class ; rdfs:label "Person" ; rdfs:comment "A human." .
+
+:assignedTo a owl:ObjectProperty ; rdfs:label "assigned to"@en ; rdfs:comment "Who does it." ;
+    rdfs:domain :Activity ; rdfs:range :Person .
+:delegatedTo a owl:ObjectProperty ; rdfs:label "assigned to"@en ; rdfs:comment "Who it was handed to." ;
+    rdfs:domain :Activity ; rdfs:range :Person .
+:confersOn a owl:ObjectProperty ; rdfs:label "confers on"@en ; rdfs:comment "Grants to." ;
+    rdfs:domain :Activity ; rdfs:range :Person .
+:grantsTo a owl:ObjectProperty ; rdfs:label "confers on"@en ; rdfs:comment "Also grants to." ;
+    rdfs:domain :Activity ; rdfs:range :Person .
