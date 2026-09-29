@@ -65,7 +65,7 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
 
 ```turtle
 <urn:ontolint:measurement-6c1e61d32df4c31d> a dqv:QualityMeasurement ;
-    dqv:isMeasurementOf olq:metric/properties-same-label ;   # one dqv:Metric per check
+    dqv:isMeasurementOf <urn:ontolint:metric/properties-same-label> ;   # one dqv:Metric per check
     dqv:computedOn <https://example.org/ontology/activities#> ;  # the file's owl:Ontology IRI
     dqv:value 1 ;                                             # same count as the CTRF report
     olq:conforms false ;
@@ -79,22 +79,20 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
     rdfs:comment "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" .
 ```
 
-(`olq:metric/…` is shorthand here; the serialiser writes these as full IRIs.)
-
 What gets emitted:
 
 | Node | IRI | Notes |
 |---|---|---|
-| `dqv:Dimension` | `olq:dimension/<slug>` | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`. |
-| `dqv:Metric` | `olq:metric/<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`error` or `warning`). |
+| `dqv:Dimension` | `<base>dimension/<slug>` | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`. |
+| `dqv:Metric` | `<base>metric/<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`error` or `warning`). |
 | `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per (dataset, failed check), with `dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement. |
-| Roll-up `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for `olq:metric/ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear. |
+| Roll-up `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for `<base>metric/ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear. |
 | `olq:Violation` | `<base>violation-<hash>` | `olq:resource` (the offending IRI) plus, where applicable, `olq:value`, `olq:relatedResource` and `rdfs:comment`. |
 | `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement. |
 
 - `olq:` is `https://ontolint.org/ns#`.
 - **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to each input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph, so a measurement is `computedOn` every ontology in it. Use `--per-file` to attribute results to individual ontologies; all files still go into one DQV report.
-- **IRIs:** no blank nodes are emitted. Instance IRIs are a SHA-256 hash of the run timestamp, input files, dataset, metric and violation. They're unique per run and reproducible for a given run. They're minted under `--base-uri` (default `urn:ontolint:`). If the base doesn't end in `/`, `#` or `:`, a `/` is added. Metric and dimension IRIs always stay under `olq:`, so they're the same across runs regardless of base URI.
+- **IRIs:** no blank nodes are emitted. All instance IRIs are minted under `--base-uri` (default `urn:ontolint:`); if the base doesn't end in `/`, `#` or `:`, a `/` is added. Metrics and dimensions use their slug (`<base>metric/<slug>`, `<base>dimension/<slug>`), so the same check has the same IRI across runs with the same base. Measurements, violations and the assessment use a SHA-256 hash of the run timestamp, input files, dataset, metric and violation, so they're unique per run and reproducible for a given run. The `olq:` namespace holds only vocabulary terms (properties and classes), never instance data.
 - No DQV report is written in `--profile-only` mode or when no file could be loaded.
 
 ## Dev setup & Running Ontolint locally
@@ -272,7 +270,7 @@ All inputs are strings (composite action convention). Pass booleans as `'true'` 
 | `config-path` | _(auto-detect)_ | Path to a lint configuration YAML file relative to the repository root. If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses it when present. |
 | `dqv` | `'false'` | Also write a [DQV](#dqv-report) Turtle report to `ctrf/<dqv-filename>`. It is included in the uploaded artifact and exposed as the `dqv-path` output. |
 | `dqv-filename` | `'ontolint-dqv.ttl'` | Filename of the DQV report. |
-| `base-uri` | _(`urn:ontolint:`)_ | Namespace under which DQV assessment, measurement and violation IRIs are minted. |
+| `base-uri` | _(`urn:ontolint:`)_ | Namespace under which all DQV instance IRIs are minted: metrics, dimensions, measurements, violations and the assessment. |
 | `artifact-name` | `'ontolint-ctrf'` | Name of the uploaded CTRF artifact. Override when invoking the action in multiple jobs of the same run. |
 
 ### Outputs

@@ -23,8 +23,8 @@ def _qa(graph, **kwargs):
     return run_qa(graph, **kwargs)
 
 
-def _metric(slug):
-    return OLQ[f"metric/{slug}"]
+def _metric(slug, base=DEFAULT_BASE_URI):
+    return URIRef(f"{base}metric/{slug}")
 
 
 def _measurement(g, slug, dataset=None):
@@ -194,8 +194,17 @@ def test_instance_iris_minted_under_base_uri(make_graph):
         assert str(m).startswith("https://kh.example/qa/measurement-")
     for v in dqv.subjects(RDF.type, OLQ.Violation):
         assert str(v).startswith("https://kh.example/qa/violation-")
-    # Metrics stay under the ontolint namespace regardless of base URI.
-    assert (_metric("classes-missing-label"), RDF.type, DQV.Metric) in dqv
+    # Metrics and dimensions are minted under the base URI too, by slug.
+    metric = _metric("classes-missing-label", "https://kh.example/qa/")
+    assert (metric, RDF.type, DQV.Metric) in dqv
+    assert str(dqv.value(metric, DQV.inDimension)).startswith("https://kh.example/qa/dimension/")
+
+
+def test_olq_namespace_holds_no_instance_data(make_graph):
+    g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
+    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa/", timestamp=TS)
+    subjects = {str(s) for s in dqv.subjects()}
+    assert not any(s.startswith(str(OLQ)) for s in subjects)
 
 
 def test_default_base_uri(make_graph):

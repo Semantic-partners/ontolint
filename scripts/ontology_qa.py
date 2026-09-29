@@ -375,8 +375,8 @@ DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
 PROV = rdflib.Namespace("http://www.w3.org/ns/prov#")
 OLQ = rdflib.Namespace("https://ontolint.org/ns#")
 
-# Instance IRIs (assessment, measurements, violations) are minted under this base
-# unless --base-uri is given. Metric and dimension IRIs always live under OLQ.
+# All instance IRIs (metrics, dimensions, assessment, measurements, violations) are
+# minted under this base unless --base-uri is given. OLQ holds only vocabulary terms.
 DEFAULT_BASE_URI = "urn:ontolint:"
 DEFAULT_DQV_FILENAME = "ontolint-dqv.ttl"
 
@@ -428,12 +428,14 @@ def file_iri(path):
     return Path(path).resolve().as_uri()
 
 
-def metric_iri(slug):
-    return OLQ[f"metric/{slug}"]
+def metric_iri(base, slug):
+    """Stable metric IRI: <base>metric/<slug>, the same for a check across runs and datasets."""
+    return rdflib.URIRef(f"{base}metric/{slug}")
 
 
-def dimension_iri(slug):
-    return OLQ[f"dimension/{slug}"]
+def dimension_iri(base, slug):
+    """Stable dimension IRI: <base>dimension/<slug>."""
+    return rdflib.URIRef(f"{base}dimension/{slug}")
 
 
 def _normalise_base(base_uri):
@@ -447,16 +449,16 @@ def _mint(base, kind, *parts):
     return rdflib.URIRef(f"{base}{kind}-{digest}")
 
 
-def _add_metric(g, slug, label, definition, dimension, severity=None):
-    m = metric_iri(slug)
+def _add_metric(g, base, slug, label, definition, dimension, severity=None):
+    m = metric_iri(base, slug)
     g.add((m, rdflib.RDF.type, DQV.Metric))
     g.add((m, rdflib.SKOS.prefLabel, rdflib.Literal(label)))
     g.add((m, rdflib.RDFS.label, rdflib.Literal(label)))
     g.add((m, rdflib.SKOS.definition, rdflib.Literal(definition)))
-    g.add((m, DQV.inDimension, dimension_iri(dimension)))
+    g.add((m, DQV.inDimension, dimension_iri(base, dimension)))
     if severity:
         g.add((m, OLQ.severity, rdflib.Literal(severity)))
-    d = dimension_iri(dimension)
+    d = dimension_iri(base, dimension)
     d_label, d_definition = DQV_DIMENSIONS[dimension]
     g.add((d, rdflib.RDF.type, DQV.Dimension))
     g.add((d, rdflib.RDFS.label, rdflib.Literal(d_label)))
@@ -469,11 +471,13 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
 
-    - One dqv:Metric per executed check (stable IRI under olq:metric/), grouped by dqv:Dimension.
+    - One dqv:Metric per executed check (<base>metric/<slug>), grouped by dqv:Dimension
+      (<base>dimension/<slug>); both are stable for a given base.
     - One dqv:QualityMeasurement per (dataset, failed check), listing each olq:violation.
-    - One roll-up measurement per dataset (olq:metric/ontolint-conformance), so clean datasets appear.
+    - One roll-up measurement per dataset (<base>metric/ontolint-conformance), so clean datasets appear.
     - A dqv:QualityMetadata assessment node linking every measurement.
-    No blank nodes are used: instance IRIs are hashes minted under base_uri.
+    No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
+    under base_uri. The olq: namespace is used only for vocabulary terms.
     """
     base = _normalise_base(base_uri)
     timestamp = timestamp or datetime.now(timezone.utc)
@@ -490,7 +494,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     g.add((assessment, PROV.generatedAtTime, rdflib.Literal(stamp, datatype=rdflib.XSD.dateTime)))
 
     slug, label, definition, dimension = DQV_ROLLUP_METRIC
-    rollup = _add_metric(g, slug, label, definition, dimension)
+    rollup = _add_metric(g, base, slug, label, definition, dimension)
 
     for index, result in enumerate(results):
         # Distinguishes runs over different files that declare the same ontology IRI.
@@ -510,7 +514,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
             if info is None:
                 continue
             m_slug, m_definition, m_dimension, severity = info
-            metric = _add_metric(g, m_slug, check.name, m_definition, m_dimension, severity)
+            metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, severity)
             if check.passed:
                 continue
             measurement = _mint(base, 'measurement', assessment, *run_key, *datasets, m_slug)
@@ -2795,7 +2799,7 @@ def main():
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern). Ignored with --per-file.')
     parser.add_argument('--dqv-dir', type=str, metavar='directory', default=None, help='Directory to write a DQV (W3C Data Quality Vocabulary) Turtle report to. Setting this or --dqv-filename enables DQV output.')
     parser.add_argument('--dqv-filename', type=str, metavar='filename', default=None, help=f'Filename for the DQV report (default: {DEFAULT_DQV_FILENAME}). With --per-file, all files are written to this one report.')
-    parser.add_argument('--base-uri', type=str, metavar='uri', default=None, help=f'Namespace under which DQV assessment, measurement and violation IRIs are minted (default: {DEFAULT_BASE_URI}).')
+    parser.add_argument('--base-uri', type=str, metavar='uri', default=None, help=f'Namespace under which DQV instance IRIs (metrics, dimensions, measurements, violations, assessment) are minted (default: {DEFAULT_BASE_URI}).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout. Ignored with --per-file.')
     parser.add_argument('-c', '--config', type=str, metavar='path/to/config.yml', help='Path to a YAML configuration file to enable or disable individual checks. Note that if the current directory contains a .rdf-lint.yml file, it will be used by default.')
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')

@@ -59,9 +59,9 @@ inputs:
     default: 'ontolint-dqv.ttl'
   base-uri:
     description: |
-      Namespace under which DQV assessment, measurement and violation IRIs are minted
-      (e.g. `https://example.org/qa/`). Defaults to `urn:ontolint:`. Metric and dimension
-      IRIs always use the ontolint namespace, so they are stable across runs.
+      Namespace under which all DQV instance IRIs are minted (e.g. `https://example.org/qa/`):
+      metrics and dimensions (`<base>metric/<slug>`, stable across runs) and measurements,
+      violations and the assessment (hash-based, unique per run). Defaults to `urn:ontolint:`.
     required: false
     default: ''
   artifact-name:
