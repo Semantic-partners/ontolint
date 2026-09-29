@@ -1,0 +1,11 @@
+# Lint configuration for the olq vocabulary:
+#   poetry run scripts/ontology_qa.py ontology/olq.ttl -e -c ontology/.rdf-lint.yml
+imports:
+  ignore:
+    # Annotation links to documents, not terms to resolve.
+    - https://opensource.org/licenses/MIT
+    - https://www.apache.org/licenses/LICENSE-2.0
+    - https://www.w3.org/TR/vocab-dqv/
+    - https://www.w3.org/TR/shacl/
+    # The VANN namespace serves HTML, not RDF, so it can't be fetched.
+    - http://purl.org/vocab/vann/
