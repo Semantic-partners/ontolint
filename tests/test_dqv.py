@@ -26,10 +26,10 @@ def _metric(slug, base=DEFAULT_BASE_URI):
     return URIRef(f"{base}metric-{slug}")
 
 
-def _measurement(g, slug, dataset=None):
+def _measurement(g, slug, dataset=None, base=DEFAULT_BASE_URI):
     """The single measurement of the given metric (optionally on the given dataset)."""
     found = [
-        m for m in g.subjects(DQV.isMeasurementOf, _metric(slug))
+        m for m in g.subjects(DQV.isMeasurementOf, _metric(slug, base))
         if dataset is None or (m, DQV.computedOn, URIRef(dataset)) in g
     ]
     assert len(found) == 1, f"expected one {slug} measurement, found {len(found)}"
@@ -206,6 +206,81 @@ def test_same_ontology_iri_in_two_runs_gives_distinct_measurements(make_graph):
     r2 = _qa(g, files_processed=["b.ttl"])
     dqv = build_dqv_graph([r1, r2], timestamp=TS)
     assert len(list(dqv.subjects(DQV.isMeasurementOf, _metric("ontolint-conformance")))) == 2
+
+
+def test_merged_run_uses_aggregate_dataset(make_graph):
+    # Two ontologies in one merged graph: violations can't be attributed to either, so
+    # results are computed on one aggregate dataset, not asserted on each ontology.
+    g = make_graph("""
+    : a owl:Ontology ; rdfs:label "One" .
+    <http://example.org/two#> a owl:Ontology ; rdfs:label "Two" .
+    :Dog a owl:Class .
+    """)
+    dqv = build_dqv_graph([_qa(g, files_processed=["one.ttl", "two.ttl"])], timestamp=TS)
+    computed_on = set(dqv.objects(None, DQV.computedOn))
+    assert len(computed_on) == 1
+    aggregate = computed_on.pop()
+    assert (aggregate, RDF.type, rdflib.DCAT.Dataset) in dqv
+    assert set(dqv.objects(aggregate, rdflib.DCTERMS.hasPart)) == {
+        URIRef("http://example.org#"), URIRef("http://example.org/two#")}
+    assert "One" in str(dqv.value(aggregate, RDFS.label))
+    assert len(list(dqv.subjects(DQV.isMeasurementOf, _metric("ontolint-conformance")))) == 1
+
+
+def test_aggregate_dataset_iri_is_stable_across_runs(make_graph):
+    g = make_graph(": a owl:Ontology . <http://example.org/two#> a owl:Ontology .")
+    result = _qa(g, files_processed=["one.ttl", "two.ttl"])
+    first = set(build_dqv_graph([result], timestamp=TS).objects(None, DQV.computedOn))
+    later = set(build_dqv_graph([result], timestamp=TS.replace(hour=11)).objects(None, DQV.computedOn))
+    assert first == later
+
+
+def test_single_ontology_is_computed_on_directly(make_graph):
+    g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
+    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    assert set(dqv.objects(None, DQV.computedOn)) == {URIRef("http://example.org#")}
+    assert not list(dqv.subjects(RDF.type, rdflib.DCAT.Dataset))
+
+
+# ── blank nodes ───────────────────────────────────────────────────────────────
+
+SHAPES = """
+: a owl:Ontology .
+:DogShape a sh:NodeShape ; rdfs:label "Dog shape" ; rdfs:comment "Dogs." ; sh:targetClass :Dog ;
+    sh:property [ a sh:PropertyShape ; sh:path :name ; rdfs:label "same" ] ,
+                [ a sh:PropertyShape ; sh:path :age ; rdfs:label "same" ] ,
+                [ a sh:PropertyShape ; sh:path :tail ] .
+"""
+
+
+def _shape_report(make_graph):
+    return build_dqv_graph([_qa(make_graph(SHAPES))], base_uri="https://kh.example/qa#", timestamp=TS)
+
+
+def test_blank_node_resources_are_skolemized_under_base(make_graph):
+    dqv = _shape_report(make_graph)
+    shapes = {o for o in dqv.objects(None, SH.focusNode) if "bnode-" in str(o)}
+    assert len(shapes) == 3  # three anonymous property shapes
+    assert all(str(o).startswith("https://kh.example/qa#bnode-") for o in shapes)
+    # No relative IRIs (the old bug: a bare blank-node id emitted as <n0123...>).
+    for term in [o for t in dqv for o in t if isinstance(o, URIRef)]:
+        assert ":" in str(term), term
+
+
+def test_blank_node_skolem_iris_are_stable_across_parses(make_graph):
+    # Blank-node ids differ on every parse; the report must not.
+    assert set(_shape_report(make_graph)) == set(_shape_report(make_graph))
+
+
+def test_blank_node_related_resources_are_skolemized(make_graph):
+    dqv = _shape_report(make_graph)
+    m = _measurement(dqv, "property-shapes-same-label", base="https://kh.example/qa#")
+    nodes = list(dqv.objects(m, OLQ.violation))
+    assert len(nodes) == 2
+    focus = {dqv.value(n, SH.focusNode) for n in nodes}
+    related = {dqv.value(n, OLQ.relatedResource) for n in nodes}
+    assert focus == related  # each shape is related to the other
+    assert all("a blank node" in str(dqv.value(n, SH.resultMessage)) for n in nodes)
 
 
 # ── IRIs ──────────────────────────────────────────────────────────────────────

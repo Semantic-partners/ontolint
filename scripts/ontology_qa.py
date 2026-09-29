@@ -47,9 +47,9 @@ sparql_queries = load_sparql_queries(sparql_dir)
 @dataclass
 class Violation:
     """A single offending resource raised by a QA check (used for the DQV report)."""
-    resource: str | None = None       # the offending IRI
+    resource: object = None           # the offending resource: URIRef/BNode, or an IRI string
     comment: str | None = None        # optional human-readable message
-    related: list = field(default_factory=list)  # other IRIs involved, e.g. a same-label clash
+    related: list = field(default_factory=list)  # other resources involved, e.g. a same-label clash
     value: object = None              # optional literal, e.g. the shared label
 
 
@@ -77,6 +77,7 @@ class QAResult:
     elements: dict = field(default_factory=dict)
     logs: list = field(default_factory=list)
     datasets: list = field(default_factory=list)
+    bnode_keys: dict = field(default_factory=dict)  # BNode -> stable content key, for skolemizing
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -373,6 +374,7 @@ def write_ctrf_report(result: QAResult, file_path, filename):
 
 DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
 PROV = rdflib.Namespace("http://www.w3.org/ns/prov#")
+DCAT = rdflib.DCAT
 OLQ = rdflib.Namespace("https://ontolint.org/ns#")
 SH = rdflib.SH
 
@@ -450,6 +452,19 @@ def _mint(base, kind, *parts):
     return rdflib.URIRef(f"{base}{kind}-{digest}")
 
 
+def _resource_node(base, value, bnode_keys):
+    """
+    The IRI to emit for a violation's resource. Blank nodes (e.g. anonymous SHACL property
+    shapes) are skolemized to <base>bnode-<hash> from their content in the checked graph,
+    so the IRI is stable across parses and runs even though blank-node ids are not.
+    """
+    if value is None:
+        return None
+    if isinstance(value, rdflib.BNode):
+        return _mint(base, 'bnode', bnode_keys.get(value, str(value)))
+    return rdflib.URIRef(str(value))
+
+
 def _hash_key(value):
     """Hash-key form of a violation value: N3 for RDF terms, so "x"@en and "x"@fr differ."""
     if value is None:
@@ -493,6 +508,9 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
       sh:ValidationResult per offending resource (sh:focusNode, sh:value, sh:resultMessage,
       sh:resultSeverity, sh:sourceConstraintComponent, plus olq:relatedResource).
     - One roll-up measurement per dataset (<base>metric-ontolint-conformance), so clean datasets appear.
+    - A result is computed on its single dataset (owl:Ontology IRI, or file IRI fallback); a
+      merged result over several is computed on one aggregate dcat:Dataset that
+      dcterms:hasPart each of them, rather than being asserted on every ontology.
     - A dqv:QualityMetadata assessment node linking every measurement.
     No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
     under base_uri. The olq: namespace is used only for vocabulary terms.
@@ -502,7 +520,8 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     stamp = timestamp.isoformat()
 
     g = rdflib.Graph()
-    for prefix, ns in [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('skos', rdflib.SKOS),
+    for prefix, ns in [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('dcat', DCAT),
+                       ('dcterms', rdflib.DCTERMS), ('skos', rdflib.SKOS),
                        ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]:
         g.bind(prefix, ns)
 
@@ -525,7 +544,19 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
                 g.add((iri, rdflib.RDFS.label, rdflib.Literal(ds.label)))
         if not datasets:
             # No owl:Ontology and no input files (e.g. an in-memory graph).
-            datasets.append(_mint(base, 'dataset', assessment, index, *run_key))
+            dataset = _mint(base, 'dataset', assessment, index, *run_key)
+        elif len(datasets) == 1:
+            dataset = datasets[0]
+        else:
+            # A merged run over several ontologies can't attribute a violation to the one it
+            # came from, so its results are computed on an aggregate of them (use --per-file
+            # for per-ontology attribution). The aggregate is stable for the same inputs.
+            dataset = _mint(base, 'dataset', *sorted(datasets), *run_key)
+            names = [ds.label or ds.iri for ds in result.datasets]
+            g.add((dataset, rdflib.RDF.type, DCAT.Dataset))
+            g.add((dataset, rdflib.RDFS.label, rdflib.Literal("Merged: " + ", ".join(names))))
+            for part in datasets:
+                g.add((dataset, rdflib.DCTERMS.hasPart, part))
 
         for check in result.checks:
             info = DQV_METRICS.get(check.key)
@@ -535,43 +566,43 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
             metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, severity)
             if check.passed:
                 continue
-            measurement = _mint(base, 'measurement', assessment, *run_key, *datasets, m_slug)
+            measurement = _mint(base, 'measurement', assessment, *run_key, dataset, m_slug)
             g.add((assessment, DQV.hasQualityMeasurement, measurement))
             g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
             g.add((measurement, DQV.isMeasurementOf, metric))
-            for ds in datasets:
-                g.add((measurement, DQV.computedOn, ds))
+            g.add((measurement, DQV.computedOn, dataset))
             g.add((measurement, DQV.value, rdflib.Literal(check.count)))
             g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
             g.add((measurement, OLQ.severity, severity))
             for v in check.violations:
-                node = _mint(base, 'violation', measurement, v.resource or '', _hash_key(v.value),
-                             v.comment or '', *v.related)
+                resource = _resource_node(base, v.resource, result.bnode_keys)
+                related = [_resource_node(base, r, result.bnode_keys) for r in v.related]
+                node = _mint(base, 'violation', measurement, resource or '', _hash_key(v.value),
+                             v.comment or '', *related)
                 g.add((measurement, OLQ.violation, node))
                 # Each violation is a SHACL validation result. sh:sourceShape is omitted
                 # until checks are expressed as shapes; the metric identifies the check.
                 g.add((node, rdflib.RDF.type, SH.ValidationResult))
                 g.add((node, SH.resultSeverity, severity))
                 g.add((node, SH.sourceConstraintComponent, SH.SPARQLConstraintComponent))
-                if v.resource:
-                    g.add((node, SH.focusNode, rdflib.URIRef(v.resource)))
+                if resource is not None:
+                    g.add((node, SH.focusNode, resource))
                 if v.comment:
                     g.add((node, SH.resultMessage, rdflib.Literal(v.comment)))
                 if v.value is not None:
                     value = v.value if isinstance(v.value, rdflib.Literal) else rdflib.Literal(v.value)
                     g.add((node, SH.value, value))
-                for related in v.related:
-                    g.add((node, OLQ.relatedResource, rdflib.URIRef(related)))
+                for r in related:
+                    g.add((node, OLQ.relatedResource, r))
 
         failed = len(result.failures)
-        for ds in datasets:
-            measurement = _mint(base, 'measurement', assessment, *run_key, ds, slug)
-            g.add((assessment, DQV.hasQualityMeasurement, measurement))
-            g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
-            g.add((measurement, DQV.isMeasurementOf, rollup))
-            g.add((measurement, DQV.computedOn, ds))
-            g.add((measurement, DQV.value, rdflib.Literal(failed)))
-            g.add((measurement, OLQ.conforms, rdflib.Literal(failed == 0)))
+        measurement = _mint(base, 'measurement', assessment, *run_key, dataset, slug)
+        g.add((assessment, DQV.hasQualityMeasurement, measurement))
+        g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
+        g.add((measurement, DQV.isMeasurementOf, rollup))
+        g.add((measurement, DQV.computedOn, dataset))
+        g.add((measurement, DQV.value, rdflib.Literal(failed)))
+        g.add((measurement, OLQ.conforms, rdflib.Literal(failed == 0)))
 
     return g
 
@@ -980,7 +1011,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             metrics[check] = len(results) #  violations
             status += 1
             string = violation_formatting([row.ont for row in results])
-            violations[records_key(check)] = [Violation(str(row.ont)) for row in results]
+            violations[records_key(check)] = [Violation(row.ont) for row in results]
             violations[check] = string
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
@@ -1032,7 +1063,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
-        violations[records_key(check)] = [Violation(str(row.c)) for row in results]
+        violations[records_key(check)] = [Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1082,7 +1113,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
         string = violation_formatting([row.property for row in results])
-        violations[records_key(check)] = [Violation(str(row.property)) for row in results]
+        violations[records_key(check)] = [Violation(row.property) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1132,7 +1163,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
         status += 1
         string = violation_formatting([row.ns for row in results])
-        violations[records_key(check)] = [Violation(str(row.ns)) for row in results]
+        violations[records_key(check)] = [Violation(row.ns) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1182,7 +1213,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
         status += 1
         string = violation_formatting([row.ps for row in results])
-        violations[records_key(check)] = [Violation(str(row.ps)) for row in results]
+        violations[records_key(check)] = [Violation(row.ps) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1233,7 +1264,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
-        violations[records_key(check)] = [Violation(str(row.c)) for row in results]
+        violations[records_key(check)] = [Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1283,7 +1314,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
         string = violation_formatting([row.property for row in results])
-        violations[records_key(check)] = [Violation(str(row.property)) for row in results]
+        violations[records_key(check)] = [Violation(row.property) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1332,7 +1363,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
         status += 1
         string = violation_formatting([row.ns for row in results])
-        violations[records_key(check)] = [Violation(str(row.ns)) for row in results]
+        violations[records_key(check)] = [Violation(row.ns) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1382,7 +1413,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
         status += 1
         string = violation_formatting([row.ps for row in results])
-        violations[records_key(check)] = [Violation(str(row.ps)) for row in results]
+        violations[records_key(check)] = [Violation(row.ps) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1635,7 +1666,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
         log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
-        violations[records_key(check)] = [Violation(str(row.c)) for row in results]
+        violations[records_key(check)] = [Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1734,7 +1765,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             metrics[check] = len(dCount)
             if metrics[check] > 0:
                 string = violation_formatting(dCount)
-                violations[records_key(check)] = [Violation(str(p)) for p in dCount]
+                violations[records_key(check)] = [Violation(p) for p in dCount]
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
@@ -1749,7 +1780,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             metrics[check]  = len(rCount)
             if metrics[check] > 0:
                 string = violation_formatting(rCount)
-                violations[records_key(check)] = [Violation(str(p)) for p in rCount]
+                violations[records_key(check)] = [Violation(p) for p in rCount]
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
@@ -1783,7 +1814,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             log += "WARNING - No properties defined, invalid metric.\n"
         elif metrics[check] > 0:
             string = violation_formatting(rCount)
-            violations[records_key(check)] = [Violation(str(p)) for p in rCount]
+            violations[records_key(check)] = [Violation(p) for p in rCount]
             violations[check] = string
             string = string.replace(',<br> ', '\n - ')
             log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
@@ -1795,13 +1826,22 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
 
     return metrics, violations, log, c, status
 
+def _term_from_string(value):
+    """An absolute IRI string as a URIRef; anything else is an rdflib blank-node id."""
+    return rdflib.URIRef(value) if ':' in value else rdflib.BNode(value)
+
+
 def _same_label_records(label, members):
     """One Violation per member of a same-label group, each related to the other members."""
-    iris = [m.strip() for m in str(members).split(", ") if m.strip()]
+    # GROUP_CONCAT flattens members to strings; blank nodes come back as their bare id.
+    iris = [_term_from_string(m.strip()) for m in str(members).split(", ") if m.strip()]
     records = []
     for iri in iris:
         others = [o for o in iris if o != iri]
-        comment = f"shares label '{label}' with " + ", ".join(others)
+        # Blank-node ids are arbitrary per parse, so name them generically; the skolem IRI
+        # is given by olq:relatedResource.
+        names = ["a blank node" if isinstance(o, rdflib.BNode) else str(o) for o in others]
+        comment = f"shares label '{label}' with " + ", ".join(names)
         records.append(Violation(iri, comment=comment, related=others, value=label))
     return records
 
@@ -1867,7 +1907,7 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         for row in results:
             log += f"| {row.iri} | {row.declaredAs} |\n"
             iri.append(row.iri)
-            records.append(Violation(str(row.iri), comment=f"declared as {row.declaredAs}"))
+            records.append(Violation(row.iri, comment=f"declared as {row.declaredAs}"))
 
         violations[check] = violation_formatting(iri)
         violations[records_key(check)] = records
@@ -1913,7 +1953,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
-        violations[records_key(check)] = [Violation(str(row.c)) for row in results]
+        violations[records_key(check)] = [Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1962,7 +2002,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
         log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
-        violations[records_key(check)] = [Violation(str(row.c)) for row in results]
+        violations[records_key(check)] = [Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
@@ -2018,7 +2058,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
         string = violation_formatting([row.property for row in results])
-        violations[records_key(check)] = [Violation(str(row.property)) for row in results]
+        violations[records_key(check)] = [Violation(row.property) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -2079,7 +2119,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
         string = violation_formatting([row.resource for row in results])
-        violations[records_key(check)] = [Violation(str(row.resource)) for row in results]
+        violations[records_key(check)] = [Violation(row.resource) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -2612,6 +2652,29 @@ TYPE_EXCLUDABLE_CHECKS = (
     check_untyped_class,
 )
 
+def _violation_bnodes(checks):
+    return {t for check in checks for v in check.violations
+            for t in (v.resource, *v.related) if isinstance(t, rdflib.BNode)}
+
+
+def _bnode_key(graph, node, seen=frozenset()):
+    """
+    A content-based key for a blank node, independent of its (arbitrary) id: its outgoing
+    triples, recursing into nested blank nodes, plus the IRIs that reference it.
+    """
+    if node in seen:
+        return "_:cycle"
+    seen = seen | {node}
+    parts = []
+    for p, o in graph.predicate_objects(node):
+        obj = _bnode_key(graph, o, seen) if isinstance(o, rdflib.BNode) else o.n3()
+        parts.append(f"{p.n3()} {obj}")
+    for s, p in graph.subject_predicates(node):
+        if not isinstance(s, rdflib.BNode):
+            parts.append(f"^{p.n3()} {s.n3()}")
+    return "[" + " ; ".join(sorted(parts)) + "]"
+
+
 def _datasets(graph, qa_metrics):
     """
     The datasets a QA run was computed on: each declared owl:Ontology IRI (labelled from its
@@ -2698,6 +2761,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         elements=profiling_elements,
         logs=logs,
         datasets=_datasets(graph, qa_metrics),
+        bnode_keys={b: _bnode_key(graph, b) for b in _violation_bnodes(checks)},
     )
 
 def write_lint_config(checklist):
