@@ -9,7 +9,10 @@ We have a [GitHub workflow](/.github/workflows/validate-ontolint.yml) running ag
 The [`ontology_qa.py`](./scripts/ontology_qa.py) script performs quality assurance on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
 
 ```
-usage: ontology_qa.py [-h] [-e] [-v] [-p] [-i] [--ctrf-dir directory] [--ctrf-filename filename] [-o filename] [-c path/to/config.yml] [--init] [data_files ...]
+usage: ontology_qa.py [-h] [-e] [-v] [-p] [-i] [--per-file] [--ctrf-dir directory] [--ctrf-filename filename]
+                      [--dqv-dir directory] [--dqv-filename filename] [--base-uri uri] [-o filename]
+                      [-c path/to/config.yml] [--init]
+                      [data_files ...]
 
 A script to perform basic QA on a set of ontologies. It loads RDF files, applies simple RDFS subclass inference, and
 runs SPARQL queries to check for common ontology quality issues. It reports any violations found in the ontology data.
@@ -22,15 +25,23 @@ options:
   -e, --exit-status     Report an exit status to determine if one or more violations were detected.
   -v, --verbose         Enable verbose output.
   -p, --profile-only    Compute only the profiling metrics and skip the QA part.
-  -i, --inference       Enable inference of subclass relations before running QA checks.(default: False)
+  -i, --inference       Enable inference of subclass relations before running QA checks. (default: False)
+  --per-file            Run QA independently on each input file and produce a separate report per file.
   --ctrf-dir directory  Directory to write CTRF report to.
   --ctrf-filename filename
-                        Filename for CTRF report (if None, uses default pattern).
-  -o filename, --output filename
-                        Output file name (optional). If omitted, print to stdout.
-  -c path/to/config.yml, --config path/to/config.yml
-                        Path to a YAML configuration file to enable or disable individual checks. Note that if
-                        the current directory contains a .rdf-lint.yml file, it will be used by default.
+                        Filename for CTRF report (if None, uses default pattern). Ignored with --per-file.
+  --dqv-dir directory   Directory to write a DQV (W3C Data Quality Vocabulary) Turtle report to. Setting this or
+                        --dqv-filename enables DQV output.
+  --dqv-filename filename
+                        Filename for the DQV report (default: ontolint-dqv.ttl). With --per-file, all files are
+                        written to this one report.
+  --base-uri uri        Namespace under which DQV assessment, measurement and violation IRIs are minted (default:
+                        urn:ontolint:).
+  -o, --output filename
+                        Output file name (optional). If omitted, print to stdout. Ignored with --per-file.
+  -c, --config path/to/config.yml
+                        Path to a YAML configuration file to enable or disable individual checks. Note that if the
+                        current directory contains a .rdf-lint.yml file, it will be used by default.
   --init                Generate a default .rdf-lint.yml config file in the current directory.
 ```
 
@@ -47,6 +58,44 @@ optional arguments:
   --output-path directory
                         Path to write the CTRF markdown report file.
 ```
+
+### DQV report
+
+Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) to also write the results as a [W3C Data Quality Vocabulary](https://www.w3.org/TR/vocab-dqv/) Turtle file. Unlike the CTRF JSON, every violation is its own node, attributed to the check that raised it and the dataset it occurs in:
+
+```turtle
+<urn:ontolint:measurement-6c1e61d32df4c31d> a dqv:QualityMeasurement ;
+    dqv:isMeasurementOf olq:metric/properties-same-label ;   # one dqv:Metric per check
+    dqv:computedOn <https://example.org/ontology/activities#> ;  # the file's owl:Ontology IRI
+    dqv:value 1 ;                                             # same count as the CTRF report
+    olq:conforms false ;
+    olq:severity "error" ;
+    olq:violation <urn:ontolint:violation-01a3e80ce17842a3>, <urn:ontolint:violation-82177d1ab5877598> .
+
+<urn:ontolint:violation-01a3e80ce17842a3> a olq:Violation ;
+    olq:resource <https://example.org/ontology/activities#assignedTo> ;
+    olq:value "assigned to" ;
+    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> ;
+    rdfs:comment "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" .
+```
+
+(`olq:metric/…` is shorthand here; the serialiser writes these as full IRIs.)
+
+What gets emitted:
+
+| Node | IRI | Notes |
+|---|---|---|
+| `dqv:Dimension` | `olq:dimension/<slug>` | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`. |
+| `dqv:Metric` | `olq:metric/<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`error` or `warning`). |
+| `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per (dataset, failed check), with `dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement. |
+| Roll-up `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for `olq:metric/ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear. |
+| `olq:Violation` | `<base>violation-<hash>` | `olq:resource` (the offending IRI) plus, where applicable, `olq:value`, `olq:relatedResource` and `rdfs:comment`. |
+| `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement. |
+
+- `olq:` is `https://ontolint.semanticpartners.com/ns#`.
+- **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to each input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph, so a measurement is `computedOn` every ontology in it. Use `--per-file` to attribute results to individual ontologies; all files still go into one DQV report.
+- **IRIs:** no blank nodes are emitted. Instance IRIs are a SHA-256 hash of the run timestamp, input files, dataset, metric and violation. They're unique per run and reproducible for a given run. They're minted under `--base-uri` (default `urn:ontolint:`). If the base doesn't end in `/`, `#` or `:`, a `/` is added. Metric and dimension IRIs always stay under `olq:`, so they're the same across runs regardless of base URI.
+- No DQV report is written in `--profile-only` mode or when no file could be loaded.
 
 ## Dev setup & Running Ontolint locally
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.
@@ -221,7 +270,27 @@ All inputs are strings (composite action convention). Pass booleans as `'true'` 
 | `profile-only` | `'false'` | Run profiling metrics only; skip all QA checks. |
 | `per-file` | `'false'` | Run QA separately on each ontology file (directories expanded) rather than on one merged graph. Produces a CTRF file and report section per file (none when combined with `profile-only`; profiling is only printed to the step log). |
 | `config-path` | _(auto-detect)_ | Path to a lint configuration YAML file relative to the repository root. If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses it when present. |
+| `dqv` | `'false'` | Also write a [DQV](#dqv-report) Turtle report to `ctrf/<dqv-filename>`. It is included in the uploaded artifact and exposed as the `dqv-path` output. |
+| `dqv-filename` | `'ontolint-dqv.ttl'` | Filename of the DQV report. |
+| `base-uri` | _(`urn:ontolint:`)_ | Namespace under which DQV assessment, measurement and violation IRIs are minted. |
 | `artifact-name` | `'ontolint-ctrf'` | Name of the uploaded CTRF artifact. Override when invoking the action in multiple jobs of the same run. |
+
+### Outputs
+
+| Output | Description |
+|---|---|
+| `dqv-path` | Absolute path of the DQV Turtle report when `dqv: 'true'`. Use it to upload or publish the report in a later step: |
+
+```yaml
+- uses: Semantic-partners/ontolint@main
+  id: ontolint
+  with:
+    ontology-paths: ontologies/
+    per-file: 'true'
+    dqv: 'true'
+    base-uri: https://example.org/qa/
+- run: echo "DQV report at ${{ steps.ontolint.outputs.dqv-path }}"
+```
 
 ### What it produces
 

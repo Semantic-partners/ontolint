@@ -45,6 +45,25 @@ inputs:
       it automatically when present; otherwise the full default checklist runs.
     required: false
     default: ''
+  dqv:
+    description: |
+      Also write a W3C Data Quality Vocabulary (DQV) Turtle report, with one measurement
+      per (dataset, failed check) listing each offending resource. It is written to
+      `ctrf/<dqv-filename>` in the workspace, included in the uploaded artifact, and its
+      path is exposed as the `dqv-path` output.
+    required: false
+    default: 'false'
+  dqv-filename:
+    description: 'Filename of the DQV Turtle report (only used when `dqv` is true).'
+    required: false
+    default: 'ontolint-dqv.ttl'
+  base-uri:
+    description: |
+      Namespace under which DQV assessment, measurement and violation IRIs are minted
+      (e.g. `https://example.org/qa/`). Defaults to `urn:ontolint:`. Metric and dimension
+      IRIs always use the ontolint namespace, so they are stable across runs.
+    required: false
+    default: ''
   artifact-name:
     description: |
       Name of the uploaded CTRF artifact. Must be unique within a single workflow run —
@@ -52,6 +71,11 @@ inputs:
       `actions/upload-artifact` does not reject duplicate names.
     required: false
     default: 'ontolint-ctrf'
+
+outputs:
+  dqv-path:
+    description: 'Absolute path of the DQV Turtle report, when `dqv` is true.'
+    value: ${{ steps.ontolint.outputs.dqv-path }}
 
 runs:
   using: 'composite'
@@ -68,6 +92,7 @@ runs:
       run: poetry install --without dev --no-interaction
 
     - name: Run ontolint
+      id: ontolint
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
@@ -78,6 +103,9 @@ runs:
         VERBOSE: ${{ inputs.verbose }}
         PROFILE_ONLY: ${{ inputs.profile-only }}
         PER_FILE: ${{ inputs.per-file }}
+        DQV: ${{ inputs.dqv }}
+        DQV_FILENAME: ${{ inputs.dqv-filename }}
+        BASE_URI: ${{ inputs.base-uri }}
         CONFIG_PATH: ${{ inputs.config-path }}
       run: |
         ARGS=()
@@ -99,6 +127,11 @@ runs:
         [ "$FAIL_ON_VIOLATIONS" = "true" ] && ARGS+=(-e)
         [ "$VERBOSE" = "true" ] && ARGS+=(-v)
         [ "$PER_FILE" = "true" ] && ARGS+=(--per-file)
+        if [ "$DQV" = "true" ]; then
+          ARGS+=(--dqv-dir "$WORKSPACE/ctrf" --dqv-filename "$DQV_FILENAME")
+          echo "dqv-path=$WORKSPACE/ctrf/$DQV_FILENAME" >> "$GITHUB_OUTPUT"
+        fi
+        [ -n "$BASE_URI" ] && ARGS+=(--base-uri "$BASE_URI")
         if [ "$PROFILE_ONLY" = "true" ]; then
           ARGS+=(-p -o "$WORKSPACE/ctrf/report.md")
         fi

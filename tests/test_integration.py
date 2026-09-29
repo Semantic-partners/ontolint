@@ -182,3 +182,49 @@ def test_exclude_types_config_applied_via_main(tmp_path, capsys):
     untyped = [t for t in data['results']['tests'] if t['name'] == 'Untyped Classes'][0]
     assert untyped['status'] == 'passed'
     assert 'rdf-syntax-ns#PropositionForm' in capsys.readouterr().out
+
+
+# ── DQV output ────────────────────────────────────────────────────────────────
+
+def _dqv_graph(path):
+    import rdflib
+    return rdflib.Graph().parse(str(path), format='turtle')
+
+
+def test_dqv_not_written_by_default(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    run_main(os.path.join(TESTS_DIR, 'example_pass.ttl'), '--ctrf-dir', str(tmp_path / 'ctrf'))
+    assert not list(tmp_path.rglob('*.ttl'))
+
+
+def test_dqv_dir_writes_default_filename(tmp_path):
+    ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path / 'dqv'))
+    out = tmp_path / 'dqv' / 'ontolint-dqv.ttl'
+    assert out.exists()
+    assert len(_dqv_graph(out)) > 0
+
+
+def test_dqv_filename_and_base_uri(tmp_path):
+    from scripts.ontology_qa import DQV
+    import rdflib
+    ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path),
+             '--dqv-filename', 'report.ttl', '--base-uri', 'https://kh.example/qa#')
+    g = _dqv_graph(tmp_path / 'report.ttl')
+    measurements = list(g.subjects(rdflib.RDF.type, DQV.QualityMeasurement))
+    assert measurements
+    assert all(str(m).startswith('https://kh.example/qa#measurement-') for m in measurements)
+
+
+def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
+    from scripts.ontology_qa import DQV, OLQ
+    import rdflib
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path))
+    g = _dqv_graph(tmp_path / 'ontolint-dqv.ttl')
+    rollups = list(g.subjects(DQV.isMeasurementOf, OLQ['metric/ontolint-conformance']))
+    assert len(rollups) == 2
+    assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
+
