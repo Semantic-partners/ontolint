@@ -450,6 +450,13 @@ def _mint(base, kind, *parts):
     return rdflib.URIRef(f"{base}{kind}-{digest}")
 
 
+def _hash_key(value):
+    """Hash-key form of a violation value: N3 for RDF terms, so "x"@en and "x"@fr differ."""
+    if value is None:
+        return ''
+    return value.n3() if isinstance(value, rdflib.term.Node) else str(value)
+
+
 def _add_metric(g, base, slug, label, definition, dimension, severity=None):
     m = metric_iri(base, slug)
     g.add((m, rdflib.RDF.type, DQV.Metric))
@@ -538,7 +545,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
             g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
             g.add((measurement, OLQ.severity, severity))
             for v in check.violations:
-                node = _mint(base, 'violation', measurement, v.resource or '', v.value or '',
+                node = _mint(base, 'violation', measurement, v.resource or '', _hash_key(v.value),
                              v.comment or '', *v.related)
                 g.add((measurement, OLQ.violation, node))
                 # Each violation is a SHACL validation result. sh:sourceShape is omitted

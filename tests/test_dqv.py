@@ -106,6 +106,35 @@ def test_same_label_violations_are_structured(make_graph):
     assert dqv.value(node, SH.sourceConstraintComponent) == SH.SPARQLConstraintComponent
 
 
+def test_same_label_in_two_languages_gives_distinct_violations(make_graph):
+    # "x"@en and "x"@fr are separate same-label clashes; hashing only the lexical form
+    # would merge them into one node with two sh:value.
+    g = make_graph("""
+    : a owl:Ontology .
+    :a a owl:ObjectProperty ; rdfs:label "x"@en, "x"@fr .
+    :b a owl:ObjectProperty ; rdfs:label "x"@en, "x"@fr .
+    """)
+    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    nodes = list(dqv.objects(_measurement(dqv, "properties-same-label"), OLQ.violation))
+    assert len(nodes) == 4
+    for node in nodes:
+        assert len(list(dqv.objects(node, SH.value))) == 1
+    values = {(dqv.value(n, SH.focusNode), dqv.value(n, SH.value)) for n in nodes}
+    assert values == {(p, Literal("x", lang=lang)) for p in (EX.a, EX.b) for lang in ("en", "fr")}
+
+
+def test_same_label_with_different_datatypes_gives_distinct_violations(make_graph):
+    g = make_graph("""
+    : a owl:Ontology .
+    :a a owl:ObjectProperty ; rdfs:label "1", "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+    :b a owl:ObjectProperty ; rdfs:label "1", "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+    """)
+    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    nodes = list(dqv.objects(_measurement(dqv, "properties-same-label"), OLQ.violation))
+    assert len(nodes) == 4
+    assert all(len(list(dqv.objects(n, SH.value))) == 1 for n in nodes)
+
+
 def test_import_violation_related_to_importing_ontology(make_graph):
     g = make_graph(f": a owl:Ontology ; owl:imports <{MISSING_IMPORT}> . :Dog a owl:Class .")
     dqv = build_dqv_graph([_qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})], timestamp=TS)
