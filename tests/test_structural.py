@@ -180,6 +180,62 @@ def test_untyped_class_check_requires_ontology_declaration(make_graph):
     assert run_qa(g).get("Untyped Classes").passed
 
 
+RDF_PROPOSITION_FORM = "http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm"
+
+
+def test_untyped_class_exclude_types_skips_stand_ins(make_graph):
+    # RDF 1.2 → 1.1 downgrades encode triple terms as rdf:PropositionForm stand-ins in the
+    # ontology's own namespace; these aren't classes and should not be flagged when excluded.
+    g = make_graph("""
+    : a owl:Ontology .
+    :DeclaredClass a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range :standIn1 .
+    :standIn1 a rdf:PropositionForm .
+    """)
+    assert not run_qa(g).get("Untyped Classes").passed
+    assert run_qa(g, exclude_types=[RDF_PROPOSITION_FORM]).get("Untyped Classes").passed
+
+
+def test_untyped_class_exclude_types_still_reports_real_untyped_class(make_graph):
+    g = make_graph("""
+    : a owl:Ontology .
+    :DeclaredClass a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range :standIn1 .
+    :hasClaw a owl:ObjectProperty ; rdfs:range :UndeclaredClass .
+    :standIn1 a rdf:PropositionForm .
+    """)
+    check = run_qa(g, exclude_types=[RDF_PROPOSITION_FORM]).get("Untyped Classes")
+    assert check.count == 1
+    assert "UndeclaredClass" in check.elements
+    assert "standIn1" not in check.elements
+
+
+def test_exclude_types_applies_to_other_class_checks(make_graph):
+    # A stand-in that is also typed as a class, with no label/comment and no connections.
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog a owl:Class ; rdfs:label "Dog" ; rdfs:comment "A dog." ; rdfs:subClassOf :Animal .
+    :Animal a owl:Class ; rdfs:label "Animal" ; rdfs:comment "An animal." .
+    :standIn1 a owl:Class, rdf:PropositionForm .
+    """)
+    names = ["Class without label", "Class without description", "Isolated classes"]
+    baseline = run_qa(g)
+    assert all(not baseline.get(n).passed for n in names)
+    result = run_qa(g, exclude_types=[RDF_PROPOSITION_FORM])
+    for n in names:
+        assert result.get(n).passed, n
+
+
+def test_exclude_types_applies_to_same_label_check(make_graph):
+    g = make_graph("""
+    : a owl:Ontology .
+    :Dog a owl:Class ; rdfs:label "Dog" .
+    :standIn1 a owl:Class, rdf:PropositionForm ; rdfs:label "Dog" .
+    """)
+    assert not run_qa(g).get("Classes with the same label").passed
+    assert run_qa(g, exclude_types=[RDF_PROPOSITION_FORM]).get("Classes with the same label").passed
+
+
 # ── Untyped Properties ────────────────────────────────────────────────────────
 
 def test_property_used_without_declaration_fails(make_graph):

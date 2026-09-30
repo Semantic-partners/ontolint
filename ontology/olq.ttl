@@ -1,0 +1,65 @@
+@prefix olq: <https://ontolint.org/ns#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+
+# The ontolint quality vocabulary (olq:).
+#
+# A small extension to the W3C Data Quality Vocabulary (DQV) and SHACL, covering only
+# what they don't: ontolint's DQV report uses DQV for metrics, dimensions and
+# measurements, and SHACL sh:ValidationResult nodes for individual violations. The
+# terms below link the two and carry ontolint's pass/fail and severity.
+#
+# This file defines vocabulary only. Instance data (metrics, dimensions, measurements,
+# violations, assessments) is minted under the report's --base-uri, never under olq:.
+
+olq: a owl:Ontology ;
+    rdfs:label "Ontolint quality vocabulary"@en ;
+    dcterms:title "Ontolint quality vocabulary"@en ;
+    rdfs:comment "Terms used by ontolint's DQV quality report that are not covered by the W3C Data Quality Vocabulary (DQV) or SHACL: whether a measurement conforms, its severity, the SHACL validation results behind it, and other resources involved in a violation."@en ;
+    dcterms:creator "Semantic Partners" ;
+    dcterms:license <https://opensource.org/licenses/MIT>, <https://www.apache.org/licenses/LICENSE-2.0> ;
+    dcterms:modified "2026-09-29"^^xsd:date ;
+    owl:versionInfo "0.1.0" ;
+    vann:preferredNamespacePrefix "olq" ;
+    vann:preferredNamespaceUri "https://ontolint.org/ns#" ;
+    rdfs:seeAlso <https://www.w3.org/TR/vocab-dqv/>, <https://www.w3.org/TR/shacl/> ;
+    skos:note "ontolint reports reference DQV (http://www.w3.org/ns/dqv#) and SHACL (http://www.w3.org/ns/shacl#) terms but this vocabulary does not owl:import them."@en .
+
+olq:conforms a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:label "conforms"@en ;
+    rdfs:comment "Whether a quality measurement passed: true if the check found no violations (or, for the roll-up measurement, if every executed check passed), false otherwise. The counterpart of sh:conforms, which is reserved for sh:ValidationReport."@en ;
+    rdfs:domain dqv:QualityMeasurement ;
+    rdfs:range xsd:boolean ;
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso sh:conforms .
+
+olq:violation a owl:ObjectProperty ;
+    rdfs:label "violation"@en ;
+    rdfs:comment "Links a quality measurement to one SHACL validation result per offending resource found by the measured check. The counterpart of sh:result, which is reserved for sh:ValidationReport."@en ;
+    rdfs:domain dqv:QualityMeasurement ;
+    rdfs:range sh:ValidationResult ;
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso sh:result .
+
+olq:severity a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "severity"@en ;
+    rdfs:comment "Ontolint's severity for a quality metric (its default) or a quality measurement: sh:Violation or sh:Warning. Consumers decide their own gating policy from it. Used instead of sh:severity (domain sh:Shape) and sh:resultSeverity (domain sh:AbstractResult), which would type DQV nodes as SHACL shapes or results."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( dqv:Metric dqv:QualityMeasurement ) ] ;
+    rdfs:range sh:Severity ;
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso sh:severity, sh:resultSeverity .
+
+olq:relatedResource a owl:ObjectProperty ;
+    rdfs:label "related resource"@en ;
+    rdfs:comment "Another resource involved in a violation besides its focus node, e.g. the other property in a same-label clash, or the ontology that declares an unresolvable owl:imports. SHACL has no equivalent: sh:detail links to nested results, not resources."@en ;
+    rdfs:domain sh:ValidationResult ;
+    rdfs:range rdfs:Resource ;
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso sh:focusNode .

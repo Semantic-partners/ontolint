@@ -1,0 +1,18 @@
+@prefix : <https://example.org/ontology/clean#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Passes every check: the report has only metric definitions and the roll-up measurement.
+
+: a owl:Ontology ;
+    rdfs:label "Clean" ;
+    rdfs:comment "An ontology that passes every ontolint check." .
+
+:Animal a owl:Class ; rdfs:label "Animal" ; rdfs:comment "A living creature." .
+:Dog a owl:Class ; rdfs:label "Dog" ; rdfs:comment "A domesticated canine." ; rdfs:subClassOf :Animal .
+
+:hasOwner a owl:ObjectProperty ;
+    rdfs:label "has owner" ;
+    rdfs:comment "The animal's owner." ;
+    rdfs:domain :Animal ;
+    rdfs:range :Animal .

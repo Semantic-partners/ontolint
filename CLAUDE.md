@@ -45,6 +45,9 @@ poetry run pytest tests/test_labels.py
 # Run a single test
 poetry run pytest tests/test_labels.py::test_class_without_label_fails
 
+# Regenerate golden DQV reports in tests/dqv/*/expected.ttl after an intended change
+UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py
+
 # Run with coverage (HTML report in htmlcov/)
 poetry run pytest --cov=scripts --cov-report=html
 
@@ -64,6 +67,9 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_descriptions.py` | Missing description checks for all four entity types |
 | `test_unique_labels.py` | Duplicate label checks for all four entity types |
 | `test_structural.py` | Isolated classes, domain/range, unique identifiers, subclass cycles, untyped classes/properties, namespace hijacking |
+| `test_dqv.py` | DQV Turtle report — metrics/dimensions, per-check measurements and violations, roll-up, dataset IRIs, minted IRIs |
+| `test_olq_vocabulary.py` | `ontology/olq.ttl` defines exactly the `olq:` terms the DQV report emits, each labelled and described, and passes ontolint |
+| `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
@@ -78,7 +84,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 2. RDFS subclass inference is applied iteratively via `infer_subclass_relations()` until no new triples are added — this is needed so checks like `isolated_classes` work correctly across the full class hierarchy
 3. `profiling()` runs counting queries (class count, shape count, deprecated elements, vocabularies used)
 4. Each QA check function runs its SPARQL query and returns four dicts: `metrics` (counts), `violations` (element lists), `test` (bool flags for CTRF), and a `log` string
-5. Results are printed as Markdown and written as CTRF JSON to `--ctrf-dir`
+5. Results are printed as Markdown and written as CTRF JSON to `--ctrf-dir`, and optionally as DQV Turtle to `--dqv-dir` (see *DQV report* below)
 
 ### SPARQL query loading
 
@@ -98,6 +104,15 @@ def check_*(in_metrics, graph, name, check, c, status, verbose) -> (metrics, vio
 
 QA metrics are normalised (0–1) against their totals in `print_qa_table()`; raw counts appear in verbose/detailed output.
 
+### DQV report
+
+`scripts/dqv.py` holds all DQV code and has no dependency on `ontology_qa.py`:
+- `Violation` / `Dataset` records, which the checks and `run_qa()` fill in;
+- the metric and dimension catalogue (`DQV_METRICS`, `DQV_DIMENSIONS`);
+- `build_dqv_graph()` / `write_dqv_report()`, IRI minting under the base URI, and blank-node skolemization (`canonical_bnode_labels()`).
+
+`ontology_qa.py` imports it as `dqv` (`from scripts import dqv`, falling back to `import dqv` when run as a script, since `scripts/` is then on `sys.path`). The CLI flags and `_write_dqv()` stay in `ontology_qa.py`. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
+
 ### Report generation
 
 `generate_custom_report.py` aggregates all CTRF JSON files from a directory and renders a Markdown report using `templates/ctrf-report.hbs`. The Handlebars rendering (`simple_handlebars_render`) is implemented from scratch with no external dependency — it supports `{{#each}}`, `{{#if}}`, `{{else}}`, and `{{variable}}`.
@@ -109,4 +124,6 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 3. Add an entry to `TEST_CHECKLIST` (module-level constant, before `run_qa`)
 4. Add the metric key to `CHECKS` (module-level constant, after the dataclasses)
 5. Add the column to `print_qa_table()`
-6. Add positive and negative tests to the appropriate `tests/test_*.py` file
+6. Add a `DQV_METRICS` entry in `scripts/dqv.py` (metric slug, definition, dimension, severity) — `tests/test_dqv.py` fails if one is missing
+7. Store structured violations with `violations[records_key(check)] = [dqv.Violation(term, ...)]` alongside the CTRF string, so the DQV report can list each offending resource. Pass RDF terms (e.g. `row.c`), not strings, so blank nodes are skolemized correctly
+8. Add positive and negative tests to the appropriate `tests/test_*.py` file

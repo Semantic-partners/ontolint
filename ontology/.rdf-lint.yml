@@ -1,0 +1,9 @@
+# Lint configuration for the olq vocabulary:
+#   poetry run scripts/ontology_qa.py ontology/olq.ttl -e -c ontology/.rdf-lint.yml
+#
+# The licence and spec links (dcterms:license, rdfs:seeAlso) need no entry here: the
+# undefined-terms check skips objects of reference properties by default.
+imports:
+  ignore:
+    # The VANN namespace serves HTML, not RDF, so its terms can't be fetched.
+    - http://purl.org/vocab/vann/

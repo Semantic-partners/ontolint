@@ -139,12 +139,139 @@ def test_per_file_exit_status_zero_when_all_pass(tmp_path):
     run_main(pass_ttl, '--per-file', '-e', '--ctrf-dir', str(tmp_path))  # must not raise
 
 
+def test_per_file_no_files_found_exit_status(tmp_path, capsys):
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+    with pytest.raises(SystemExit) as exc:
+        run_main(str(empty), '--per-file', '-e', '--ctrf-dir', str(tmp_path / 'ctrf'))
+    assert exc.value.code == 1
+    assert 'No files found' in capsys.readouterr().out
+
+
+def test_per_file_no_files_found_without_exit_status_returns(tmp_path, capsys):
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+    run_main(str(empty), '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'))  # must not raise
+    assert 'No files found' in capsys.readouterr().out
+
+
 def test_per_file_output_contains_header_per_file(tmp_path, capsys):
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path))
     out = capsys.readouterr().out
     assert out.count('# Ontology Quality Assurance') == 2
+
+
+# ── exclude.types config ─────────────────────────────────────────────────────
+
+def test_exclude_types_config_applied_via_main(tmp_path, capsys):
+    ttl = tmp_path / "onto.ttl"
+    ttl.write_text("""@prefix : <http://example.org#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    : a owl:Ontology .
+    :Dog a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range :standIn1 .
+    :standIn1 a rdf:PropositionForm .
+    """)
+    cfg = tmp_path / "lint.yml"
+    cfg.write_text("exclude:\n  types:\n    - rdf:PropositionForm\n")
+    ctrf_dir = tmp_path / "ctrf"
+    run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(ctrf_dir))
+    data = json.loads(next(ctrf_dir.glob('*.json')).read_text())
+    untyped = [t for t in data['results']['tests'] if t['name'] == 'Untyped Classes'][0]
+    assert untyped['status'] == 'passed'
+    assert 'rdf-syntax-ns#PropositionForm' in capsys.readouterr().out
+
+
+# ── DQV output ────────────────────────────────────────────────────────────────
+
+def _dqv_graph(path):
+    import rdflib
+    return rdflib.Graph().parse(str(path), format='turtle')
+
+
+def test_dqv_not_written_by_default(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    run_main(os.path.join(TESTS_DIR, 'example_pass.ttl'), '--ctrf-dir', str(tmp_path / 'ctrf'))
+    assert not list(tmp_path.rglob('*.ttl'))
+
+
+def test_dqv_dir_writes_default_filename(tmp_path):
+    ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path / 'dqv'))
+    out = tmp_path / 'dqv' / 'ontolint-dqv.ttl'
+    assert out.exists()
+    assert len(_dqv_graph(out)) > 0
+
+
+def test_dqv_filename_and_base_uri(tmp_path):
+    from scripts.dqv import DQV
+    import rdflib
+    ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path),
+             '--dqv-filename', 'report.ttl', '--base-uri', 'https://kh.example/qa#')
+    g = _dqv_graph(tmp_path / 'report.ttl')
+    measurements = list(g.subjects(rdflib.RDF.type, DQV.QualityMeasurement))
+    assert measurements
+    assert all(str(m).startswith('https://kh.example/qa#measurement-') for m in measurements)
+
+
+def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
+    from scripts.dqv import DQV, OLQ
+    import rdflib
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+    run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path))
+    g = _dqv_graph(tmp_path / 'ontolint-dqv.ttl')
+    rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric-ontolint-conformance')))
+    assert len(rollups) == 2
+    assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
+
+
+def test_dqv_filename_with_directory_is_rejected(tmp_path):
+    ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    with pytest.raises(SystemExit) as exc:
+        run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path / 'dqv'),
+                 '--dqv-filename', '../escape.ttl')
+    assert exc.value.code == 2  # argparse usage error
+    assert not (tmp_path / 'escape.ttl').exists()
+
+
+def test_relative_base_uri_is_rejected(tmp_path):
+    ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    with pytest.raises(SystemExit) as exc:
+        run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path), '--base-uri', 'qa')
+    assert exc.value.code == 2  # argparse usage error
+    assert not list(tmp_path.glob('*.ttl'))
+
+
+# ── undefined-terms.skip-object-of config ─────────────────────────────────────
+
+def _undefined_terms_status(ctrf_dir):
+    data = json.loads(next(ctrf_dir.glob('*.json')).read_text())
+    return [t for t in data['results']['tests'] if t['name'] == 'Undefined terms'][0]['status']
+
+
+def test_skip_object_of_config_applied_via_main(tmp_path):
+    ttl = tmp_path / "onto.ttl"
+    ttl.write_text("""@prefix : <http://example.org#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    : a owl:Ontology .
+    :Dog a owl:Class ; rdfs:seeAlso <https://example.invalid/docs/dog.html> .
+    """)
+    run_main(str(ttl), '--ctrf-dir', str(tmp_path / 'default'))
+    assert _undefined_terms_status(tmp_path / 'default') == 'passed'
+
+    # An empty list overrides the defaults, so the seeAlso target is checked (and fails).
+    cfg = tmp_path / "lint.yml"
+    cfg.write_text("undefined-terms:\n  skip-object-of: []\n")
+    run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(tmp_path / 'override'))
+    assert _undefined_terms_status(tmp_path / 'override') == 'failed'
+
 
 
 # ── parse failures ────────────────────────────────────────────────────────────

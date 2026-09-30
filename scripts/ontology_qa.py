@@ -20,6 +20,11 @@ from dataclasses import dataclass, field
 import yaml
 import networkx as nx
 
+try:  # imported as part of the scripts package (e.g. by the tests)
+    from scripts import dqv
+except ImportError:  # run as a script: scripts/ itself is on sys.path
+    import dqv
+
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
 
@@ -49,6 +54,8 @@ class CheckResult:
     passed: bool
     count: int
     elements: str
+    key: str = ''
+    violations: list = field(default_factory=list)
 
 
 @dataclass
@@ -57,6 +64,8 @@ class QAResult:
     checks: list
     elements: dict = field(default_factory=dict)
     logs: list = field(default_factory=list)
+    datasets: list = field(default_factory=list)
+    bnode_keys: dict = field(default_factory=dict)  # BNode -> canonical label, for skolemizing
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -69,11 +78,29 @@ class QAResult:
     def failures(self):
         return [c for c in self.checks if not c.passed]
 
-def exec_sparql(graph, key):
+def records_key(check):
+    """Key under which a check stores its list of dqv.Violation records in its violations dict."""
+    return (check, 'records')
+
+# Placeholder comment in a SPARQL query marking where the exclude-types filter is injected.
+EXCLUDE_TYPES_PLACEHOLDER = "# {{EXCLUDE_TYPES}}"
+
+def exec_sparql(graph, key, exclude_types=None):
     """
     Execute a SPARQL query from the input RDFLib graph, retrieving it from a global dictionary.
+
+    If exclude_types is given, resources (bound to ?c) typed with any of those IRIs are
+    filtered out. The query must contain the EXCLUDE_TYPES_PLACEHOLDER comment.
     """
     sparql_query = sparql_queries[key]
+    if exclude_types:
+        if EXCLUDE_TYPES_PLACEHOLDER not in sparql_query:
+            raise ValueError(f"Query '{key}' does not support exclude-types")
+        values = " ".join(f"<{t}>" for t in exclude_types)
+        sparql_query = sparql_query.replace(
+            EXCLUDE_TYPES_PLACEHOLDER,
+            f"FILTER NOT EXISTS {{ VALUES ?excludedType {{ {values} }} ?c a ?excludedType . }}"
+        )
     results = graph.query(sparql_query)
     return results
 
@@ -643,6 +670,10 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     if metrics[check] == num_files:
         log += "VIOLATION - No `owl:Ontology` declaration found.\n"
         violations[check] = "**All** processed files missing ontology declaration."
+        violations[records_key(check)] = [
+            dqv.Violation(dqv.file_iri(f), comment="no owl:Ontology declaration")
+            for f in in_metrics['filesProcessed']
+        ] or [dqv.Violation(comment="no owl:Ontology declaration")]
     
     elif metrics[check] > 0 and metrics[check] < num_files:
         if metrics[check] == 1:
@@ -650,6 +681,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
         else:
             log += f"VIOLATION - {metrics[check]} ontologies without `owl:Ontology` declaration.\n"
         violations[check] = "**Some** processed files missing ontology declaration.<br> Check files individually."
+        violations[records_key(check)] = [dqv.Violation(comment=f"{metrics[check]} processed file(s) have no owl:Ontology declaration; check files individually")]
     
     else:
         if num_uri == 1:
@@ -705,6 +737,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
         log += "WARNING - No ontology declared, invalid metric.\n"
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
+        violations[records_key(check)] = [dqv.Violation(comment="no ontology declared")]
     else:
         results = exec_sparql(graph, 'owl_no_description')
         if not results:
@@ -721,6 +754,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             metrics[check] = len(results) #  violations
             status += 1
             string = violation_formatting([row.ont for row in results])
+            violations[records_key(check)] = [dqv.Violation(row.ont) for row in results]
             violations[check] = string
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
@@ -728,7 +762,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     log += sep()
     return metrics, violations, log, c, status
 
-def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose):
+def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes without a label.
     
@@ -740,6 +774,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -751,7 +786,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'class_missing_label')
+    results = exec_sparql(graph, 'class_missing_label', exclude_types)
     metrics[check] = 0 # 'missingClassLabel'
     violations[check] = ""
 
@@ -771,6 +806,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -820,6 +856,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
         status += 1
         string = violation_formatting([row.property for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -869,6 +906,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
         status += 1
         string = violation_formatting([row.ns for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.ns) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -918,13 +956,14 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
         status += 1
         string = violation_formatting([row.ps for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.ps) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
     return metrics, violations, log, c, status
 
-def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbose):
+def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes without description.
     
@@ -936,6 +975,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -947,7 +987,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'class_missing_comment')
+    results = exec_sparql(graph, 'class_missing_comment', exclude_types)
     metrics[check] = 0 # 'missingClassDescription'
     violations[check] = ""
 
@@ -967,6 +1007,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1016,6 +1057,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
         status += 1
         string = violation_formatting([row.property for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1064,6 +1106,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
         status += 1
         string = violation_formatting([row.ns for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.ns) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1113,13 +1156,14 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
         status += 1
         string = violation_formatting([row.ps for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.ps) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
     return metrics, violations, log, c, status
 
-def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
+def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes sharing the same label.
     
@@ -1131,6 +1175,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -1142,7 +1187,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'class_same_label')
+    results = exec_sparql(graph, 'class_same_label', exclude_types)
     metrics[check] = 0 # 'nonUniqueClassLabels'
     violations[check] = ""
     
@@ -1157,13 +1202,16 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple classes.\n"
         status += 1
         string = ""
+        records = []
         log += "| Label | Classes |\n|--|--|\n"
         for row in results:
             log += f"| {row.label} | {row.classes} |\n"
             string += f"\"{row.label}\": {row.classes};<br> "
+            records.extend(_same_label_records(row.label, row.classes))
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
+        violations[records_key(check)] = records
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1206,12 +1254,15 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple properties.\n"
         status += 1
         string = ""
+        records = []
         log += "| Label | Properties |\n|--|--|\n"
         for row in results:
             log += f"| {row.label} | {row.properties} |\n"
             string += f"\"{row.label}\": {row.properties};<br> "
+            records.extend(_same_label_records(row.label, row.properties))
         string = string.removesuffix(";<br> ")
         violations[check] = string
+        violations[records_key(check)] = records
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1254,13 +1305,16 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple NodeShapes.\n"
         status += 1
         string = ""
+        records = []
         log += "| Label | NodeShapes |\n|--|--|\n"
         for row in results:
             log += f"| {row.label} | {row.nsList} |\n"
             string += f"\"{row.label}\": {row.nsList};<br> "
+            records.extend(_same_label_records(row.label, row.nsList))
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
+        violations[records_key(check)] = records
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1303,18 +1357,21 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         log += f"VIOLATION - Found {metrics[check]} labels shared by multiple PropertyShapes.\n"
         status += 1
         string = ""
+        records = []
         log += "| Label | PropertyShapes |\n|--|--|\n"
         for row in results:
             log += f"| {row.label} | {row.psList} |\n"
             string += f"\"{row.label}\": {row.psList};<br> "
+            records.extend(_same_label_records(row.label, row.psList))
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
+        violations[records_key(check)] = records
     
     log += sep()
     return metrics, violations, log, c, status
 
-def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
+def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes declared but never used in any other triple connecting them to the rest of the ontology.
     
@@ -1326,6 +1383,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -1337,7 +1395,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'isolated_classes')
+    results = exec_sparql(graph, 'isolated_classes', exclude_types)
     metrics[check] = 0 # 'isolatedClasses'
     violations[check] = ""
 
@@ -1351,6 +1409,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1449,6 +1508,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             metrics[check] = len(dCount)
             if metrics[check] > 0:
                 string = violation_formatting(dCount)
+                violations[records_key(check)] = [dqv.Violation(p) for p in dCount]
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
@@ -1463,6 +1523,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             metrics[check]  = len(rCount)
             if metrics[check] > 0:
                 string = violation_formatting(rCount)
+                violations[records_key(check)] = [dqv.Violation(p) for p in rCount]
                 violations[check] = string
                 string = string.replace(',<br> ', '\n - ')
                 log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
@@ -1496,6 +1557,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             log += "WARNING - No properties defined, invalid metric.\n"
         elif metrics[check] > 0:
             string = violation_formatting(rCount)
+            violations[records_key(check)] = [dqv.Violation(p) for p in rCount]
             violations[check] = string
             string = string.replace(',<br> ', '\n - ')
             log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
@@ -1506,6 +1568,27 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
         log += sep()
 
     return metrics, violations, log, c, status
+
+def _term_from_string(value):
+    """An absolute IRI string as a URIRef; anything else is an rdflib blank-node id."""
+    return rdflib.URIRef(value) if ':' in value else rdflib.BNode(value)
+
+
+def _same_label_records(label, members):
+    """One dqv.Violation per member of a same-label group, each related to the other members."""
+    # GROUP_CONCAT flattens members to strings; blank nodes come back as their bare id.
+    # GROUP_CONCAT has no defined order, so sort for reproducible records and hashes.
+    iris = sorted((_term_from_string(m.strip()) for m in str(members).split(", ") if m.strip()),
+                  key=lambda t: (isinstance(t, rdflib.BNode), str(t)))
+    records = []
+    for iri in iris:
+        others = [o for o in iris if o != iri]
+        # Blank-node ids are arbitrary per parse, so name them generically; the skolem IRI
+        # is given by olq:relatedResource.
+        names = ["a blank node" if isinstance(o, rdflib.BNode) else str(o) for o in others]
+        comment = f"shares label '{label}' with " + ", ".join(names)
+        records.append(dqv.Violation(iri, comment=comment, related=others, value=label))
+    return records
 
 def violation_formatting(array, unique=False):
     """
@@ -1565,11 +1648,15 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         log += "| URI | Declared as |\n|--|--|\n"
         status += 1
         iri = []
+        records = []
         for row in results:
             log += f"| {row.iri} | {row.declaredAs} |\n"
             iri.append(row.iri)
+            declared = ", ".join(sorted(str(row.declaredAs).split(", ")))  # GROUP_CONCAT order is undefined
+            records.append(dqv.Violation(row.iri, comment=f"declared as {declared}"))
 
         violations[check] = violation_formatting(iri)
+        violations[records_key(check)] = records
     
     log += sep()
     return metrics, violations, log, c, status
@@ -1612,13 +1699,14 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
     log += sep()
     return metrics, violations, log, c, status
 
-def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
+def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
     QA test counting classes in the current namespace without owl:Class or rdfs:Class declaration
     
@@ -1630,6 +1718,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
+        exclude_types (list): Type IRIs whose instances are skipped by this check.
     
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
@@ -1641,7 +1730,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     c, log = qa_check_results(name, c)
-    results = exec_sparql(graph, 'untyped_class')
+    results = exec_sparql(graph, 'untyped_class', exclude_types)
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
@@ -1659,6 +1748,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
         status += 1
         string = violation_formatting([row.c for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
@@ -1714,6 +1804,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
         status += 1
         string = violation_formatting([row.property for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1774,6 +1865,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
         metrics[check] = len(results)
         log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
         string = violation_formatting([row.resource for row in results])
+        violations[records_key(check)] = [dqv.Violation(row.resource) for row in results]
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
@@ -1833,15 +1925,20 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         return metrics, violations, log, c, status
 
     failed_imports = []
-    for _, import_url in import_urls:
-        try:
-            tmp = rdflib.Graph()
-            source = local_map.get(import_url, import_url)
-            tmp.parse(source)
-            if len(tmp) == 0:
-                failed_imports.append(import_url)
-        except Exception:
+    failed_pairs = []   # (importing ontology, url), one per failed owl:imports statement
+    resolved = {}       # url -> bool, so a URL imported by several ontologies is fetched once
+    for ontology, import_url in import_urls:
+        if import_url not in resolved:
+            try:
+                tmp = rdflib.Graph()
+                source = local_map.get(import_url, import_url)
+                tmp.parse(source)
+                resolved[import_url] = len(tmp) > 0
+            except Exception:
+                resolved[import_url] = False
+        if not resolved[import_url]:
             failed_imports.append(import_url)
+            failed_pairs.append((ontology, import_url))
 
     local_subs = [(url, local_map[url]) for _, url in import_urls if url in local_map]
     if local_subs:
@@ -1856,6 +1953,10 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         status += 1
         string = violation_formatting(failed_imports)
         violations[check] = string
+        violations[records_key(check)] = [
+            dqv.Violation(url, comment="import could not be resolved or is empty", related=[ontology])
+            for ontology, url in failed_pairs
+        ]
         log += f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
 
@@ -1874,9 +1975,16 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     return metrics, violations, log, c, status
 
 
+def _reference_predicate_matcher(predicates):
+    """A predicate test for skip-object-of: exact IRIs, or `<namespace>*` wildcards."""
+    exact = {p for p in predicates if not p.endswith('*')}
+    namespaces = tuple(p[:-1] for p in predicates if p.endswith('*'))
+    return lambda p: str(p) in exact or (bool(namespaces) and str(p).startswith(namespaces))
+
+
 def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
                            uri_parser=lambda uri: rdflib.Graph().parse(uri),
-                           local_imports=None, ignore_imports=None):
+                           local_imports=None, ignore_imports=None, skip_object_of=None):
     """
     QA test finding terms used in the ontology that are not defined locally (as a subject
     in the graph file) nor in any successfully-fetched remote ontology for their namespace.
@@ -1916,8 +2024,15 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     # Collect all URIRefs that appear anywhere in the graph and those used as subjects
     used_terms = set()
     local_subjects = set()
+    is_reference = _reference_predicate_matcher(
+        skip_object_of if skip_object_of is not None
+        else [expand_curie(t, allow_wildcard=True) for t in DEFAULT_SKIP_OBJECT_OF])
     for s, p, o in graph:
-        for term in (s, p, o):
+        # Objects of reference properties (rdfs:seeAlso, dcterms:license, owl:versionIRI, ...)
+        # link to documents, not terms, so they are neither reported nor fetched. The same
+        # IRI used elsewhere as a term is still collected from that other triple.
+        terms = (s, p) if is_reference(p) else (s, p, o)
+        for term in terms:
             if isinstance(term, rdflib.URIRef):
                 used_terms.add(str(term))
 
@@ -2009,6 +2124,10 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         status += 1
         string = violation_formatting(all_violations)
         violations[check] = string
+        violations[records_key(check)] = [dqv.Violation(uri) for uri in undefined_terms] + [
+            dqv.Violation(uri, comment=f"namespace {get_namespace(uri)} could not be fetched")
+            for uri in fetch_failure_terms
+        ]
         log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
     if remote_namespaces:
@@ -2131,6 +2250,53 @@ def _parse_failure_log(files_failed):
         log += f"> - `{f}`\n"
     return log
 
+# Prefixes accepted in compact IRIs in the lint config (e.g. `rdf:PropositionForm`).
+CONFIG_PREFIXES = {
+    'rdf': str(rdflib.RDF),
+    'rdfs': str(rdflib.RDFS),
+    'owl': str(rdflib.OWL),
+    'xsd': str(rdflib.XSD),
+    'skos': str(rdflib.SKOS),
+    'sh': str(rdflib.SH),
+    'dcterms': str(rdflib.DCTERMS),
+    'foaf': str(rdflib.FOAF),
+    'schema': 'https://schema.org/',
+    'vs': 'http://www.w3.org/2003/06/sw-vocab-status/ns#',
+}
+
+# Reference/documentation properties whose objects are links to documents, not term uses:
+# the undefined-terms check neither reports nor fetches them. `prefix:*` matches a whole
+# namespace. Overridden by `undefined-terms: skip-object-of:` in the lint config.
+DEFAULT_SKIP_OBJECT_OF = [
+    'rdfs:seeAlso',
+    'rdfs:isDefinedBy',
+    'dcterms:license',
+    'dcterms:source',
+    'dcterms:references',
+    'dcterms:relation',
+    'dcterms:conformsTo',
+    'owl:versionIRI',
+    'foaf:homepage',
+    'foaf:page',
+    'vs:*',
+    'schema:url',
+    'http://schema.org/url',
+]
+
+def expand_curie(value, allow_wildcard=False):
+    """
+    Expand a compact IRI using CONFIG_PREFIXES; full IRIs are returned unchanged. With
+    allow_wildcard, a trailing `*` (e.g. `vs:*`) is kept, to match a whole namespace.
+    """
+    if value.endswith('*') and not allow_wildcard:
+        raise ValueError(f"Wildcards are not supported here: '{value}'")
+    if value.startswith(('http://', 'https://', 'urn:')):
+        return value
+    prefix, sep, local = value.partition(':')
+    if sep and prefix in CONFIG_PREFIXES:
+        return CONFIG_PREFIXES[prefix] + local
+    raise ValueError(f"Cannot expand '{value}': use a full IRI or one of the prefixes {', '.join(CONFIG_PREFIXES)}")
+
 def parse_lint_config(config):
     """
     Parse configuration dictionary to switch on/off selected metrics.
@@ -2145,6 +2311,10 @@ def parse_lint_config(config):
             the owl:imports check (keyed on import URL) and the undefined-terms check
             (keyed on namespace URI).  Relative paths are resolved relative to the
             config file's directory.
+        exclude_types (list): Type IRIs whose instances are skipped by the class checks
+            (see TYPE_EXCLUDABLE_CHECKS).
+        skip_object_of (list | None): Predicate IRIs (or `<namespace>*` wildcards) whose objects
+            the undefined-terms check ignores; None when not configured (use the defaults).
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -2167,13 +2337,24 @@ def parse_lint_config(config):
         for url, path in raw_local.items()
     }
 
+    exclude_section = selection.pop("exclude", None) or {}
+    exclude_types = [expand_curie(str(t)) for t in (exclude_section.get("types") or [])]
+
+    # undefined-terms.skip-object-of replaces the defaults when present (an empty list skips nothing).
+    undefined_section = selection.pop("undefined-terms", None) or {}
+    if "skip-object-of" in undefined_section:
+        skip_object_of = [expand_curie(str(t), allow_wildcard=True)
+                          for t in (undefined_section["skip-object-of"] or [])]
+    else:
+        skip_object_of = None
+
     # Transform the dictionary (check enable/disable keys only)
     transformed_selection = {
         key: [f"check_{item.replace('-', '_')}" for item in value_list]
         for key, value_list in selection.items()
     }
 
-    return transformed_selection, ignore_imports, local_imports
+    return transformed_selection, ignore_imports, local_imports, exclude_types, skip_object_of
 
 def lint_selection(selection, checklist):
         """
@@ -2270,7 +2451,16 @@ def deepcopy_list(nested_list):
     # Recursive case: map the function over every element in the list
     return [deepcopy_list(item) for item in nested_list]
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None) -> QAResult:
+# Class checks that skip resources typed with a configured `exclude.types` IRI.
+TYPE_EXCLUDABLE_CHECKS = (
+    check_class_missing_label,
+    check_class_missing_comment,
+    check_class_same_label,
+    check_isolated_classes,
+    check_untyped_class,
+)
+
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Returns structured pass/fail results — no file I/O, no arg parsing.
@@ -2306,6 +2496,10 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                     kwargs["local_imports"] = local_imports
                 if ignore_imports:
                     kwargs["ignore_imports"] = ignore_imports
+                if skip_object_of is not None:
+                    kwargs["skip_object_of"] = skip_object_of
+            if func in TYPE_EXCLUDABLE_CHECKS and exclude_types:
+                kwargs["exclude_types"] = exclude_types
             metrics, violations, log_results, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
@@ -2318,7 +2512,9 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 name=display_name,
                 passed=(count == 0),
                 count=count,
-                elements=str(raw) if raw else ''
+                elements=str(raw) if raw else '',
+                key=key,
+                violations=qa_violations.get(records_key(key), []) if count else [],
             ))
     
     # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
@@ -2330,7 +2526,9 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         profiling=qa_metrics,
         checks=checks,
         elements=profiling_elements,
-        logs=logs
+        logs=logs,
+        datasets=dqv.datasets_for(graph, qa_metrics),
+        bnode_keys=dqv.canonical_bnode_labels(graph, dqv.violation_bnodes(checks)),
     )
 
 def write_lint_config(checklist):
@@ -2381,10 +2579,26 @@ def write_lint_config(checklist):
 #   ignore:
 #     - http://www.w3.org/ns/shacl
 #   local:
-#     https://schema.org/: local/schema.ttl
+#     https://schema.org/: local/schema.ttl\n
+# Skip resources of the listed types in the class checks (class-missing-label,
+# class-missing-comment, class-same-label, isolated-classes, untyped-class).
+# Accepts full IRIs or rdf:/rdfs:/owl:/xsd:/skos:/sh:/dcterms:/foaf:/schema:/vs: compact IRIs.
+# e.g. rdf:PropositionForm stand-ins produced when downgrading RDF 1.2 to RDF 1.1.
+# exclude:
+#   types:
+#     - rdf:PropositionForm\n
+# The undefined-terms check ignores objects of reference properties, which link to
+# documents rather than terms. Defaults (used when this key is absent):
+{chr(10).join(f'#   {p}' for p in DEFAULT_SKIP_OBJECT_OF)}
+# Listing properties here replaces the defaults; `prefix:*` matches a namespace and
+# an empty list checks every object.
+# undefined-terms:
+#   skip-object-of:
+#     - rdfs:seeAlso
+#     - dcterms:license
         """)
 
-def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None):
+def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None, skip_object_of=None):
     """
     Run inference (if requested), then profiling or full QA on an already-loaded graph.
     Returns (log_str, QAResult|None) — None in profile-only mode.
@@ -2412,7 +2626,7 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
         log += print_profiling_table(qa_metrics)
         return log, None
 
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types, skip_object_of=skip_object_of)
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
     log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
@@ -2423,6 +2637,16 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
     log += print_qa_table(qa_metrics, qa_tests)
     return log, result
 
+
+def _write_dqv(args, results):
+    """Write the DQV report if --dqv-dir or --dqv-filename was given."""
+    if not (args.dqv_dir or args.dqv_filename):
+        return
+    if not results:
+        sys.stderr.write("Ontolint: no QA results, DQV report not written.\n")
+        return
+    _, log = dqv.write_dqv_report(results, args.dqv_dir or '.', args.dqv_filename, args.base_uri)
+    sys.stderr.write(log.lstrip())
 
 def main():
     # Set up argument parser
@@ -2435,11 +2659,21 @@ def main():
     parser.add_argument('--per-file', action='store_true', help='Run QA independently on each input file and produce a separate report per file.')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
     parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern). Ignored with --per-file.')
+    parser.add_argument('--dqv-dir', type=str, metavar='directory', default=None, help='Directory to write a DQV (W3C Data Quality Vocabulary) Turtle report to. Setting this or --dqv-filename enables DQV output.')
+    parser.add_argument('--dqv-filename', type=str, metavar='filename', default=None, help=f'Filename for the DQV report (default: {dqv.DEFAULT_DQV_FILENAME}). With --per-file, all files are written to this one report.')
+    parser.add_argument('--base-uri', type=str, metavar='uri', default=None, help=f'Namespace under which DQV instance IRIs (metrics, dimensions, measurements, violations, assessment) are minted (default: {dqv.DEFAULT_BASE_URI}).')
     parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout. Ignored with --per-file.')
     parser.add_argument('-c', '--config', type=str, metavar='path/to/config.yml', help='Path to a YAML configuration file to enable or disable individual checks. Note that if the current directory contains a .rdf-lint.yml file, it will be used by default.')
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
     args = parser.parse_args()
+    try:
+        if args.dqv_filename is not None:
+            dqv.check_dqv_filename(args.dqv_filename)
+        if args.base_uri is not None:
+            dqv.check_base_uri(args.base_uri)
+    except ValueError as e:
+        parser.error(str(e))
 
     # Validate arguments: data_files is required unless --init is used.
     if not args.init and not args.data_files:
@@ -2454,22 +2688,27 @@ def main():
     checklist = deepcopy_list(CHECKLIST)
     ignore_imports = []
     local_imports = {}
+    exclude_types = []
+    skip_object_of = None
     config_log = ""
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config, ignore_imports, local_imports = parse_lint_config(config_path)
+        lint_config, ignore_imports, local_imports, exclude_types, skip_object_of = parse_lint_config(config_path)
         checklist, config_log = lint_selection(lint_config, checklist)
+        if exclude_types:
+            config_log += "> Class checks skip resources typed as: " + ", ".join(f"`{t}`" for t in exclude_types) + "\n"
 
     # Per-file mode: process each input file independently.
     if args.per_file:
         individual_files = _collect_files(args.data_files)
         if not individual_files:
             print("ERROR - No files found in specified paths.")
+            if args.exit_status: sys.exit(1)
             return
         any_violation = False
-        any_parse_failure = False
+        dqv_results = []
         for fp in individual_files:
             log_output = "# Ontology Quality Assurance\n\n"
             if config_log:
@@ -2479,23 +2718,24 @@ def main():
             if files_failed:
                 log_output += _parse_failure_log(files_failed)
                 print(f"ERROR - Failed to parse: {fp}", file=sys.stderr)
-                any_parse_failure = True
+                any_violation = True
                 qa_terminate(None, log_output)
                 continue
             log_output += f"\n> {file_counter} file processed.\n"
             for f in files_processed:
                 log_output += f"> - `{f}`\n"
             log_output += ">\n"
-            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports)
+            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of)
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
                 write_ctrf_report(result, args.ctrf_dir, f"{stem}-qa-report.json")
+                dqv_results.append(result)
                 if not result.passed:
                     any_violation = True
             qa_terminate(None, log_output)
-        # Parse failures always fail the run; violations only with -e.
-        if any_parse_failure or (args.exit_status and any_violation):
+        _write_dqv(args, dqv_results)
+        if args.exit_status and any_violation:
             sys.exit(1)
         return
 
@@ -2526,11 +2766,12 @@ def main():
     if config_log:
         log_output += config_log
 
-    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports)
+    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of)
     log_output += qa_log
 
     if result is not None:
         write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
+        _write_dqv(args, [result])
 
     qa_terminate(args.output, log_output)
 

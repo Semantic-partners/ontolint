@@ -1,0 +1,9 @@
+@prefix : <https://example.org/ontology/a#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Clean dataset: only its roll-up measurement appears.
+
+: a owl:Ontology ; rdfs:label "A" ; rdfs:comment "Passes every check." .
+:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "A thing." ; rdfs:subClassOf :Base .
+:Base a owl:Class ; rdfs:label "Base" ; rdfs:comment "The base." .

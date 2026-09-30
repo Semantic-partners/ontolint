@@ -131,6 +131,27 @@ def test_property_shape_without_label_fails(make_graph):
     assert not check.passed
     assert check.count == 1
 
+def test_anonymous_typed_property_shape_without_label_counted_once(make_graph):
+    # A blank-node shape that is both typed sh:PropertyShape and referenced via sh:property
+    # matches both branches of the query's UNION; it must still count as one violation.
+    g = make_graph("""
+    :DogShape a sh:NodeShape ; rdfs:label "Dog shape" ;
+        sh:property [ a sh:PropertyShape ; sh:path :name ] .
+    """)
+    check = run_qa(g).get("PropertyShape without label")
+    assert not check.passed
+    assert check.count == 1
+
+
+def test_anonymous_typed_property_shape_label_listed_once_in_verbose(make_graph):
+    g = make_graph("""
+    :DogShape a sh:NodeShape ; rdfs:label "Dog shape" ;
+        sh:property [ a sh:PropertyShape ; sh:path :name ; rdfs:label "Name shape" ] .
+    """)
+    logs = "".join(run_qa(g, verbose=True).logs)
+    assert logs.count("Name shape") == 1
+
+
 def test_property_shape_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFurShape a sh:PropertyShape ; rdfs:label "Has Fur Shape" .
