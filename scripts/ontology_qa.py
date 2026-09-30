@@ -2708,6 +2708,7 @@ def main():
             if args.exit_status: sys.exit(1)
             return
         any_violation = False
+        any_parse_failure = False
         dqv_results = []
         for fp in individual_files:
             log_output = "# Ontology Quality Assurance\n\n"
@@ -2718,7 +2719,7 @@ def main():
             if files_failed:
                 log_output += _parse_failure_log(files_failed)
                 print(f"ERROR - Failed to parse: {fp}", file=sys.stderr)
-                any_violation = True
+                any_parse_failure = True
                 qa_terminate(None, log_output)
                 continue
             log_output += f"\n> {file_counter} file processed.\n"
@@ -2735,7 +2736,7 @@ def main():
                     any_violation = True
             qa_terminate(None, log_output)
         _write_dqv(args, dqv_results)
-        if args.exit_status and any_violation:
+        if any_parse_failure or (args.exit_status and any_violation):
             sys.exit(1)
         return
 
