@@ -34,7 +34,7 @@ ontolint:vocabularies a dcat:Catalog ;
         ontolint:vocabulary-org,
         ontolint:vocabulary-dcat3,
         ontolint:vocabulary-vcard,
-        ontolint:vocabulary-schema,
+        ontolint:vocabulary-schema-http,
         ontolint:vocabulary-schema-https .
 
 ontolint:vocabulary-rdf a dcat:Dataset ;
@@ -255,16 +255,16 @@ ontolint:vocabulary-vcard-turtle a dcat:Distribution ;
     dcat:downloadURL <vcard.ttl> ;
     dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
 
-ontolint:vocabulary-schema a dcat:Dataset ;
+ontolint:vocabulary-schema-http a dcat:Dataset ;
     dcterms:title "schema.org (http)" ;
     vann:preferredNamespaceUri "http://schema.org/" ;
     vann:preferredNamespacePrefix "schema" ;
     dcterms:source <https://schema.org/docs/developers.html> ;
     dcterms:license <https://creativecommons.org/licenses/by-sa/3.0/> ;
     skos:changeNote "Removed a comment carried over from another project." ;
-    dcat:distribution ontolint:vocabulary-schema-turtle .
+    dcat:distribution ontolint:vocabulary-schema-http-turtle .
 
-ontolint:vocabulary-schema-turtle a dcat:Distribution ;
+ontolint:vocabulary-schema-http-turtle a dcat:Distribution ;
     dcat:downloadURL <schema.ttl> ;
     dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
 
