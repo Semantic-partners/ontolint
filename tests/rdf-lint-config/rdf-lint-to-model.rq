@@ -139,7 +139,8 @@ WHERE {
     BIND (IRI(CONCAT(?base, "dimension-", ?dimensionSlug)) AS ?dimension)
     # As ontolint writes Python values into its hashes: booleans as True/False, unset as None.
     BIND (IF(BOUND(?enabled), "False", "None") AS ?enabledText)
-    BIND (CONCAT(?key, "|", STR(?value), "|config|", ?enabledText, "|", COALESCE(?localFile, "None")) AS ?sig)
+    BIND (CONCAT(?key, "|", STR(?value), "|config|", ?enabledText, "|", COALESCE(?localFile, "None"),
+                 "|", ?comment, "|", COALESCE(STR(?dataset), "None")) AS ?sig)
  }
 
   # The configuration IRI hashes every setting's signature, in sorted order.
@@ -233,7 +234,8 @@ WHERE {
     BIND (IRI(CONCAT(?base, "dimension-", ?dimensionSlug)) AS ?dimension)
     # As ontolint writes Python values into its hashes: booleans as True/False, unset as None.
     BIND (IF(BOUND(?enabled), "False", "None") AS ?enabledText)
-    BIND (CONCAT(?key, "|", STR(?value), "|config|", ?enabledText, "|", COALESCE(?localFile, "None")) AS ?sig)
+    BIND (CONCAT(?key, "|", STR(?value), "|config|", ?enabledText, "|", COALESCE(?localFile, "None"),
+                 "|", ?comment, "|", COALESCE(STR(?dataset), "None")) AS ?sig)
 
         } ORDER BY ?sig }
     }
@@ -243,5 +245,6 @@ WHERE {
         SUBSTR(SHA256(CONCAT(?configFile, "\u001F", ?signatures)), 1, 16))) AS ?configuration)
   BIND (IRI(CONCAT(?base, "setting-",
         SUBSTR(SHA256(CONCAT(STR(?configuration), "\u001F", ?key, "\u001F", STR(?value), "\u001F",
-                             "config", "\u001F", ?enabledText, "\u001F", COALESCE(?localFile, ""))), 1, 16))) AS ?setting)
+                             "config", "\u001F", ?enabledText, "\u001F", COALESCE(?localFile, ""), "\u001F",
+                             ?comment, "\u001F", COALESCE(STR(?dataset), ""))), 1, 16))) AS ?setting)
 }

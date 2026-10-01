@@ -8,20 +8,20 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#configuration-71a08c028d72115b> a olq:Configuration ;
+<https://example.org/qa#configuration-f97772132262c395> a olq:Configuration ;
     rdfs:label "Effective ontolint configuration" ;
     olq:configurationFile "rdf-lint.yml" ;
-    olq:setting <https://example.org/qa#setting-0619fc96db60d4a4>,
-        <https://example.org/qa#setting-2a2af2c1aea927b8>,
-        <https://example.org/qa#setting-2bccb8813ecd9628>,
-        <https://example.org/qa#setting-4467826693489787>,
-        <https://example.org/qa#setting-480c067fa6c34102>,
-        <https://example.org/qa#setting-5d55f15279fa72cb>,
-        <https://example.org/qa#setting-7172c82a06d82a48>,
-        <https://example.org/qa#setting-89e0a2976270428b>,
-        <https://example.org/qa#setting-ad9d9bd41954ab59>,
-        <https://example.org/qa#setting-decdc2c81fe12798>,
-        <https://example.org/qa#setting-f199e2fc3e311919> .
+    olq:setting <https://example.org/qa#setting-2b7205d1f424402b>,
+        <https://example.org/qa#setting-39827fdf81c9255c>,
+        <https://example.org/qa#setting-3d95a6c0a05897a2>,
+        <https://example.org/qa#setting-4c4ee3a1d7dfd74b>,
+        <https://example.org/qa#setting-5f5f9b81e78f3f36>,
+        <https://example.org/qa#setting-7b0d9b14a04cdcf1>,
+        <https://example.org/qa#setting-80dcba3331520135>,
+        <https://example.org/qa#setting-87ee6450f5729c87>,
+        <https://example.org/qa#setting-d8e9d49f7fb8a848>,
+        <https://example.org/qa#setting-e337ea3b743908bb>,
+        <https://example.org/qa#setting-ea63b059db0a25ba> .
 
 <https://example.org/qa#dimension-conformance> a dqv:Dimension ;
     rdfs:label "Conformance" ;
@@ -47,43 +47,21 @@
     dqv:inDimension <https://example.org/qa#dimension-structure> ;
     olq:severity sh:Warning .
 
-<https://example.org/qa#setting-0619fc96db60d4a4> a olq:Setting ;
-    rdfs:label "exclude.types: http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm" ;
-    rdfs:comment "Instances are skipped by the class checks" ;
-    olq:key "exclude.types" ;
-    olq:origin olq:ConfigFile ;
-    olq:value rdf:PropositionForm .
-
-<https://example.org/qa#setting-2a2af2c1aea927b8> a olq:Setting ;
-    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/license" ;
+<https://example.org/qa#setting-2b7205d1f424402b> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;
     rdfs:comment "Objects of this property are not checked as terms" ;
     olq:key "undefined-terms.skip-object-of" ;
     olq:origin olq:ConfigFile ;
-    olq:value dcterms:license .
+    olq:value rdfs:seeAlso .
 
-<https://example.org/qa#setting-2bccb8813ecd9628> a olq:Setting ;
-    rdfs:label "imports.ignore: https://example.org/legacy/ontology" ;
-    rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
-    olq:key "imports.ignore" ;
+<https://example.org/qa#setting-39827fdf81c9255c> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2003/06/sw-vocab-status/ns#*" ;
+    rdfs:comment "Objects of this property are not checked as terms" ;
+    olq:key "undefined-terms.skip-object-of" ;
     olq:origin olq:ConfigFile ;
-    olq:value <https://example.org/legacy/ontology> .
+    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#*> .
 
-<https://example.org/qa#setting-4467826693489787> a olq:Setting ;
-    rdfs:label "exclude.types: https://example.org/ns#Placeholder" ;
-    rdfs:comment "Instances are skipped by the class checks" ;
-    olq:key "exclude.types" ;
-    olq:origin olq:ConfigFile ;
-    olq:value <https://example.org/ns#Placeholder> .
-
-<https://example.org/qa#setting-480c067fa6c34102> a olq:Setting ;
-    rdfs:label "imports.local: https://example.org/partner/ontology" ;
-    rdfs:comment "Resolved from a local file instead of the network" ;
-    olq:key "imports.local" ;
-    olq:localFile "vocab/partner.ttl" ;
-    olq:origin olq:ConfigFile ;
-    olq:value <https://example.org/partner/ontology> .
-
-<https://example.org/qa#setting-5d55f15279fa72cb> a olq:Setting ;
+<https://example.org/qa#setting-3d95a6c0a05897a2> a olq:Setting ;
     rdfs:label "checks: Property without domain (disabled)" ;
     rdfs:comment "Listed under disable:" ;
     olq:enabled false ;
@@ -91,28 +69,7 @@
     olq:origin olq:ConfigFile ;
     olq:value <https://example.org/qa#metric-properties-missing-domain> .
 
-<https://example.org/qa#setting-7172c82a06d82a48> a olq:Setting ;
-    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2003/06/sw-vocab-status/ns#*" ;
-    rdfs:comment "Objects of this property are not checked as terms" ;
-    olq:key "undefined-terms.skip-object-of" ;
-    olq:origin olq:ConfigFile ;
-    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#*> .
-
-<https://example.org/qa#setting-89e0a2976270428b> a olq:Setting ;
-    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;
-    rdfs:comment "Objects of this property are not checked as terms" ;
-    olq:key "undefined-terms.skip-object-of" ;
-    olq:origin olq:ConfigFile ;
-    olq:value rdfs:seeAlso .
-
-<https://example.org/qa#setting-ad9d9bd41954ab59> a olq:Setting ;
-    rdfs:label "imports.ignore: http://example.org/vendor/ns#" ;
-    rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
-    olq:key "imports.ignore" ;
-    olq:origin olq:ConfigFile ;
-    olq:value <http://example.org/vendor/ns#> .
-
-<https://example.org/qa#setting-decdc2c81fe12798> a olq:Setting ;
+<https://example.org/qa#setting-4c4ee3a1d7dfd74b> a olq:Setting ;
     rdfs:label "imports.local: http://www.w3.org/2004/02/skos/core#" ;
     rdfs:comment "Resolved from a local file instead of the network; overrides the bundled vocabulary" ;
     prov:wasDerivedFrom <https://ontolint.org/vocabulary-skos> ;
@@ -121,11 +78,54 @@
     olq:origin olq:ConfigFile ;
     olq:value skos: .
 
-<https://example.org/qa#setting-f199e2fc3e311919> a olq:Setting ;
+<https://example.org/qa#setting-5f5f9b81e78f3f36> a olq:Setting ;
+    rdfs:label "exclude.types: https://example.org/ns#Placeholder" ;
+    rdfs:comment "Instances are skipped by the class checks" ;
+    olq:key "exclude.types" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/ns#Placeholder> .
+
+<https://example.org/qa#setting-7b0d9b14a04cdcf1> a olq:Setting ;
     rdfs:label "checks: Namespace hijacking (disabled)" ;
     rdfs:comment "Listed under disable:" ;
     olq:enabled false ;
     olq:key "checks" ;
     olq:origin olq:ConfigFile ;
     olq:value <https://example.org/qa#metric-namespace-hijacking> .
+
+<https://example.org/qa#setting-80dcba3331520135> a olq:Setting ;
+    rdfs:label "imports.ignore: http://example.org/vendor/ns#" ;
+    rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
+    olq:key "imports.ignore" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <http://example.org/vendor/ns#> .
+
+<https://example.org/qa#setting-87ee6450f5729c87> a olq:Setting ;
+    rdfs:label "exclude.types: http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm" ;
+    rdfs:comment "Instances are skipped by the class checks" ;
+    olq:key "exclude.types" ;
+    olq:origin olq:ConfigFile ;
+    olq:value rdf:PropositionForm .
+
+<https://example.org/qa#setting-d8e9d49f7fb8a848> a olq:Setting ;
+    rdfs:label "imports.ignore: https://example.org/legacy/ontology" ;
+    rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
+    olq:key "imports.ignore" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/legacy/ontology> .
+
+<https://example.org/qa#setting-e337ea3b743908bb> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/license" ;
+    rdfs:comment "Objects of this property are not checked as terms" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:ConfigFile ;
+    olq:value dcterms:license .
+
+<https://example.org/qa#setting-ea63b059db0a25ba> a olq:Setting ;
+    rdfs:label "imports.local: https://example.org/partner/ontology" ;
+    rdfs:comment "Resolved from a local file instead of the network" ;
+    olq:key "imports.local" ;
+    olq:localFile "vocab/partner.ttl" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/partner/ontology> .
 

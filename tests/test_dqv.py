@@ -6,6 +6,7 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 import pytest
 
 from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST
+from scripts import dqv
 from scripts.dqv import (
     build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
     DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
@@ -482,3 +483,16 @@ def test_check_disabled_in_a_config_file_comes_from_the_file(make_graph):
     setting = _check_setting(g, 'hijacking')
     assert g.value(setting, OLQ.origin) == OLQ.ConfigFile
     assert g.value(setting, RDFS.comment) == Literal("Listed under disable:")
+
+
+@pytest.mark.parametrize("change", [{'derived_from': "https://ontolint.org/vocabulary-skos-2"},
+                                    {'reason': "Another comment"}])
+def test_settings_differing_only_in_provenance_get_distinct_iris(change):
+    setting = dict(key='imports.local', value='http://www.w3.org/2004/02/skos/core#', origin='bundled',
+                   reason="Bundled with ontolint; resolved offline", local_file='skos.ttl',
+                   derived_from="https://ontolint.org/vocabulary-skos")
+    first, second = rdflib.Graph(), rdflib.Graph()
+    a = dqv._add_configuration(first, DEFAULT_BASE_URI, [dqv.ConfigSetting(**setting)])
+    b = dqv._add_configuration(second, DEFAULT_BASE_URI, [dqv.ConfigSetting(**{**setting, **change})])
+    assert a != b
+    assert set(first.objects(a, OLQ.setting)).isdisjoint(second.objects(b, OLQ.setting))

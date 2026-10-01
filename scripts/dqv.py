@@ -224,7 +224,10 @@ def _add_configuration(g, base, settings, config_file=None):
         if s.key == 'checks':
             slug, definition, dimension, severity = DQV_METRICS[s.value]
             _add_metric(g, base, slug, s.label or slug, definition, dimension, severity)
-    signature = sorted(f"{s.key}|{_setting_value(base, s)}|{s.origin}|{s.enabled}|{s.local_file}" for s in settings)
+    # Every field a setting emits is in both hashes, so settings that differ only in their
+    # comment or source (e.g. another bundled vocabulary release) never share an IRI.
+    signature = sorted(f"{s.key}|{_setting_value(base, s)}|{s.origin}|{s.enabled}|{s.local_file}"
+                       f"|{s.reason}|{s.derived_from}" for s in settings)
     configuration = _mint(base, 'configuration', config_file or '', *signature)
     g.add((configuration, rdflib.RDF.type, OLQ.Configuration))
     g.add((configuration, rdflib.RDFS.label, rdflib.Literal("Effective ontolint configuration")))
@@ -232,7 +235,8 @@ def _add_configuration(g, base, settings, config_file=None):
         g.add((configuration, OLQ.configurationFile, rdflib.Literal(config_file)))
     for s in settings:
         value = _setting_value(base, s)
-        node = _mint(base, 'setting', configuration, s.key, value, s.origin, s.enabled, s.local_file or '')
+        node = _mint(base, 'setting', configuration, s.key, value, s.origin, s.enabled, s.local_file or '',
+                     s.reason or '', s.derived_from or '')
         g.add((configuration, OLQ.setting, node))
         g.add((node, rdflib.RDF.type, OLQ.Setting))
         shown = s.label if s.key == 'checks' and s.label else value

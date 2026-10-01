@@ -21,57 +21,57 @@
     dqv:hasQualityMeasurement <https://example.org/qa#measurement-970a852d557f5acd>,
         <https://example.org/qa#measurement-f58b2f35815e513e> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime ;
-    olq:configuration <https://example.org/qa#configuration-8b2e74d0046c015d> .
+    olq:configuration <https://example.org/qa#configuration-4aafdf70fa5f5c0c> .
 
-<https://example.org/qa#configuration-8b2e74d0046c015d> a olq:Configuration ;
+<https://example.org/qa#configuration-4aafdf70fa5f5c0c> a olq:Configuration ;
     rdfs:label "Effective ontolint configuration" ;
     olq:configurationFile ".rdf-lint.yml" ;
-    olq:setting <https://example.org/qa#setting-0179534fbe9ba384>,
-        <https://example.org/qa#setting-0bfe5b3e1b011164>,
-        <https://example.org/qa#setting-130c059e81b5c699>,
-        <https://example.org/qa#setting-150fc92b6347b1ea>,
-        <https://example.org/qa#setting-169309d7716e7394>,
-        <https://example.org/qa#setting-1bcb78d8f24e4aff>,
-        <https://example.org/qa#setting-1cd2a8a866a017c0>,
-        <https://example.org/qa#setting-1e40e8575725c2d4>,
-        <https://example.org/qa#setting-22612b5c49d4d855>,
-        <https://example.org/qa#setting-2d6b7edb3064deea>,
-        <https://example.org/qa#setting-2e8fe41e84c7b914>,
-        <https://example.org/qa#setting-2ec2862aab62dbcc>,
-        <https://example.org/qa#setting-323513721238c82b>,
-        <https://example.org/qa#setting-453b48170e1b1eee>,
-        <https://example.org/qa#setting-45d7a6430687232b>,
-        <https://example.org/qa#setting-49b9716b1445f5e0>,
-        <https://example.org/qa#setting-4cf7842577f7478f>,
-        <https://example.org/qa#setting-4f93aa32fea407b4>,
-        <https://example.org/qa#setting-51faba389949d381>,
-        <https://example.org/qa#setting-59ed924353f94d7e>,
-        <https://example.org/qa#setting-5d8570c5bdb91b1b>,
-        <https://example.org/qa#setting-6247f638a79c8b71>,
-        <https://example.org/qa#setting-6a384a76eeb04623>,
-        <https://example.org/qa#setting-6c435eba354ad4a3>,
-        <https://example.org/qa#setting-7df6735f6bce19b3>,
-        <https://example.org/qa#setting-8d791abee4bac2af>,
-        <https://example.org/qa#setting-940b52ba53ea8a8f>,
-        <https://example.org/qa#setting-9dbed31fbcf52520>,
-        <https://example.org/qa#setting-9fcd92de456edfc0>,
-        <https://example.org/qa#setting-a38198945a8e396a>,
-        <https://example.org/qa#setting-a4ac624faf3dcee7>,
-        <https://example.org/qa#setting-a4ae641ad90ee9c1>,
-        <https://example.org/qa#setting-a7da8b8521135a32>,
-        <https://example.org/qa#setting-af7a759b254cc374>,
-        <https://example.org/qa#setting-ba3754b08415ab5d>,
-        <https://example.org/qa#setting-c8e553f8c793aa0d>,
-        <https://example.org/qa#setting-d167be8f8bd99bc2>,
-        <https://example.org/qa#setting-d34c91f3eae85a92>,
-        <https://example.org/qa#setting-d98c7d3207bf0cb6>,
-        <https://example.org/qa#setting-df08ed45e4c6292c>,
-        <https://example.org/qa#setting-e7ca04b26b6303f3>,
-        <https://example.org/qa#setting-e803816ea1fc74f2>,
-        <https://example.org/qa#setting-ea26133ccd9ab7e1>,
-        <https://example.org/qa#setting-f0c973ecb5ac22dd>,
-        <https://example.org/qa#setting-f79f1f9dcb62ea7d>,
-        <https://example.org/qa#setting-fa0a1136fb75b2f0> .
+    olq:setting <https://example.org/qa#setting-015d33bfcc177bb5>,
+        <https://example.org/qa#setting-0360ddbb5e86ca25>,
+        <https://example.org/qa#setting-0a8d779eb4a8b421>,
+        <https://example.org/qa#setting-0b20d2c0237fde37>,
+        <https://example.org/qa#setting-113817e6b676e62a>,
+        <https://example.org/qa#setting-17c0386a32704058>,
+        <https://example.org/qa#setting-1dca7c10d9f015bf>,
+        <https://example.org/qa#setting-1e2641c9f41ef64f>,
+        <https://example.org/qa#setting-1e8f417eecb2f8d7>,
+        <https://example.org/qa#setting-1f0a49c7c704f91e>,
+        <https://example.org/qa#setting-27a43ca195dab8e1>,
+        <https://example.org/qa#setting-2ce9e1926bf39665>,
+        <https://example.org/qa#setting-3ca0d0c02c2930c6>,
+        <https://example.org/qa#setting-41a90e8d041fa29d>,
+        <https://example.org/qa#setting-52a347c8b5912c9c>,
+        <https://example.org/qa#setting-552cc0f51d94d6c6>,
+        <https://example.org/qa#setting-56866677da0f1231>,
+        <https://example.org/qa#setting-570077bc056d81c4>,
+        <https://example.org/qa#setting-571f3cf6495500ad>,
+        <https://example.org/qa#setting-5b70cdeb893772f8>,
+        <https://example.org/qa#setting-6646db156168162e>,
+        <https://example.org/qa#setting-6747a0ae02b74386>,
+        <https://example.org/qa#setting-6dff998068334378>,
+        <https://example.org/qa#setting-7583507b67dc4f90>,
+        <https://example.org/qa#setting-86e957c8c432d324>,
+        <https://example.org/qa#setting-88ff02693b8449b6>,
+        <https://example.org/qa#setting-8bbffcf32044eced>,
+        <https://example.org/qa#setting-8ef423dca76ae759>,
+        <https://example.org/qa#setting-93e62d7838c589e1>,
+        <https://example.org/qa#setting-973d10c3910d51ad>,
+        <https://example.org/qa#setting-9d5f3e991dfb0594>,
+        <https://example.org/qa#setting-ac16fac5edd492ca>,
+        <https://example.org/qa#setting-b1a070cc82aa1c8b>,
+        <https://example.org/qa#setting-b25aff87641bf78b>,
+        <https://example.org/qa#setting-bc217413743e052d>,
+        <https://example.org/qa#setting-bd1c2ceeb35aa15c>,
+        <https://example.org/qa#setting-bebe77abb01a9e54>,
+        <https://example.org/qa#setting-bef2505486cc8d88>,
+        <https://example.org/qa#setting-cb486b306009c262>,
+        <https://example.org/qa#setting-ce98efe4cf9aefac>,
+        <https://example.org/qa#setting-cfe79199357c15e0>,
+        <https://example.org/qa#setting-de5efb486943e0da>,
+        <https://example.org/qa#setting-ea595f32136a3ecc>,
+        <https://example.org/qa#setting-eeac3512afaff42e>,
+        <https://example.org/qa#setting-f76148dd276fdba1>,
+        <https://example.org/qa#setting-fcbb440cbfe4508b> .
 
 <https://example.org/qa#measurement-970a852d557f5acd> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/configuration#> ;
@@ -254,24 +254,23 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#setting-0179534fbe9ba384> a olq:Setting ;
-    rdfs:label "imports.local: http://purl.org/dc/dcam/" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcam> ;
-    olq:key "imports.local" ;
-    olq:localFile "dcam.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value dcam: .
-
-<https://example.org/qa#setting-0bfe5b3e1b011164> a olq:Setting ;
-    rdfs:label "checks: NodeShapes with the same label (enabled)" ;
+<https://example.org/qa#setting-015d33bfcc177bb5> a olq:Setting ;
+    rdfs:label "checks: Class without label (enabled)" ;
     rdfs:comment "Enabled by default" ;
     olq:enabled true ;
     olq:key "checks" ;
     olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-node-shapes-same-label> .
+    olq:value <https://example.org/qa#metric-classes-missing-label> .
 
-<https://example.org/qa#setting-130c059e81b5c699> a olq:Setting ;
+<https://example.org/qa#setting-0360ddbb5e86ca25> a olq:Setting ;
+    rdfs:label "checks: Property without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-description> .
+
+<https://example.org/qa#setting-0a8d779eb4a8b421> a olq:Setting ;
     rdfs:label "checks: Untyped Properties (enabled)" ;
     rdfs:comment "Enabled by default" ;
     olq:enabled true ;
@@ -279,70 +278,22 @@
     olq:origin olq:OntolintDefault ;
     olq:value <https://example.org/qa#metric-untyped-properties> .
 
-<https://example.org/qa#setting-150fc92b6347b1ea> a olq:Setting ;
+<https://example.org/qa#setting-0b20d2c0237fde37> a olq:Setting ;
+    rdfs:label "checks: Properties with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-same-label> .
+
+<https://example.org/qa#setting-113817e6b676e62a> a olq:Setting ;
     rdfs:label "imports.ignore: http://example.org/vendor/ns#" ;
     rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
     olq:key "imports.ignore" ;
     olq:origin olq:ConfigFile ;
     olq:value <http://example.org/vendor/ns#> .
 
-<https://example.org/qa#setting-169309d7716e7394> a olq:Setting ;
-    rdfs:label "checks: Undefined terms (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-undefined-terms> .
-
-<https://example.org/qa#setting-1bcb78d8f24e4aff> a olq:Setting ;
-    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;
-    rdfs:comment "Objects of this property are not checked as terms" ;
-    olq:key "undefined-terms.skip-object-of" ;
-    olq:origin olq:ConfigFile ;
-    olq:value rdfs:seeAlso .
-
-<https://example.org/qa#setting-1cd2a8a866a017c0> a olq:Setting ;
-    rdfs:label "checks: Ontology without declaration (enabled)" ;
-    rdfs:comment "Enabled because the ontology-description check was selected and depends on it." ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintRule ;
-    olq:value <https://example.org/qa#metric-ontology-not-declared> .
-
-<https://example.org/qa#setting-1e40e8575725c2d4> a olq:Setting ;
-    rdfs:label "checks: Untyped Classes (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-untyped-classes> .
-
-<https://example.org/qa#setting-22612b5c49d4d855> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/2002/07/owl#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-owl> ;
-    olq:key "imports.local" ;
-    olq:localFile "owl.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value owl: .
-
-<https://example.org/qa#setting-2d6b7edb3064deea> a olq:Setting ;
-    rdfs:label "checks: PropertyShape without description (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-property-shapes-missing-description> .
-
-<https://example.org/qa#setting-2e8fe41e84c7b914> a olq:Setting ;
-    rdfs:label "checks: NodeShape without description (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-node-shapes-missing-description> .
-
-<https://example.org/qa#setting-2ec2862aab62dbcc> a olq:Setting ;
+<https://example.org/qa#setting-17c0386a32704058> a olq:Setting ;
     rdfs:label "imports.local: http://www.w3.org/2001/XMLSchema#" ;
     rdfs:comment "Bundled with ontolint; resolved offline" ;
     prov:wasDerivedFrom <https://ontolint.org/vocabulary-xsd> ;
@@ -351,24 +302,15 @@
     olq:origin olq:BundledVocabulary ;
     olq:value xsd: .
 
-<https://example.org/qa#setting-323513721238c82b> a olq:Setting ;
-    rdfs:label "checks: Namespace hijacking (disabled)" ;
-    rdfs:comment "Listed under disable:" ;
-    olq:enabled false ;
+<https://example.org/qa#setting-1dca7c10d9f015bf> a olq:Setting ;
+    rdfs:label "checks: Property without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
     olq:key "checks" ;
-    olq:origin olq:ConfigFile ;
-    olq:value <https://example.org/qa#metric-namespace-hijacking> .
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-label> .
 
-<https://example.org/qa#setting-453b48170e1b1eee> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/1999/02/22-rdf-syntax-ns#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-rdf> ;
-    olq:key "imports.local" ;
-    olq:localFile "rdf.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value rdf: .
-
-<https://example.org/qa#setting-45d7a6430687232b> a olq:Setting ;
+<https://example.org/qa#setting-1e2641c9f41ef64f> a olq:Setting ;
     rdfs:label "imports.local: http://www.w3.org/2006/vcard/ns#" ;
     rdfs:comment "Bundled with ontolint; resolved offline" ;
     prov:wasDerivedFrom <https://ontolint.org/vocabulary-vcard> ;
@@ -377,243 +319,25 @@
     olq:origin olq:BundledVocabulary ;
     olq:value <http://www.w3.org/2006/vcard/ns#> .
 
-<https://example.org/qa#setting-49b9716b1445f5e0> a olq:Setting ;
-    rdfs:label "checks: Subclass Cycles (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-subclass-cycles> .
-
-<https://example.org/qa#setting-4cf7842577f7478f> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/2004/02/skos/core#" ;
-    rdfs:comment "Resolved from a local file instead of the network; overrides the bundled vocabulary" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-skos> ;
-    olq:key "imports.local" ;
-    olq:localFile "vocab/skos.ttl" ;
-    olq:origin olq:ConfigFile ;
-    olq:value skos: .
-
-<https://example.org/qa#setting-4f93aa32fea407b4> a olq:Setting ;
-    rdfs:label "checks: PropertyShape without label (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-property-shapes-missing-label> .
-
-<https://example.org/qa#setting-51faba389949d381> a olq:Setting ;
-    rdfs:label "checks: PropertyShapes with the same label (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-property-shapes-same-label> .
-
-<https://example.org/qa#setting-59ed924353f94d7e> a olq:Setting ;
-    rdfs:label "imports.local: http://xmlns.com/foaf/0.1/" ;
+<https://example.org/qa#setting-1e8f417eecb2f8d7> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/1999/02/22-rdf-syntax-ns#" ;
     rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-foaf> ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-rdf> ;
     olq:key "imports.local" ;
-    olq:localFile "foaf.ttl" ;
+    olq:localFile "rdf.ttl" ;
     olq:origin olq:BundledVocabulary ;
-    olq:value foaf: .
+    olq:value rdf: .
 
-<https://example.org/qa#setting-5d8570c5bdb91b1b> a olq:Setting ;
-    rdfs:label "imports.local: http://purl.org/vocab/vann/" ;
+<https://example.org/qa#setting-1f0a49c7c704f91e> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/dcam/" ;
     rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vann> ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcam> ;
     olq:key "imports.local" ;
-    olq:localFile "vann.ttl" ;
+    olq:localFile "dcam.ttl" ;
     olq:origin olq:BundledVocabulary ;
-    olq:value vann: .
+    olq:value dcam: .
 
-<https://example.org/qa#setting-6247f638a79c8b71> a olq:Setting ;
-    rdfs:label "imports.local: http://purl.org/dc/dcmitype/" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dctype> ;
-    olq:key "imports.local" ;
-    olq:localFile "dctype.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value dcmitype: .
-
-<https://example.org/qa#setting-6a384a76eeb04623> a olq:Setting ;
-    rdfs:label "imports.local: http://schema.org/" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-schema-http> ;
-    olq:key "imports.local" ;
-    olq:localFile "schema.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value <http://schema.org/> .
-
-<https://example.org/qa#setting-6c435eba354ad4a3> a olq:Setting ;
-    rdfs:label "checks: Class without description (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-classes-missing-description> .
-
-<https://example.org/qa#setting-7df6735f6bce19b3> a olq:Setting ;
-    rdfs:label "checks: Isolated classes (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-isolated-classes> .
-
-<https://example.org/qa#setting-8d791abee4bac2af> a olq:Setting ;
-    rdfs:label "checks: Properties with the same label (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-properties-same-label> .
-
-<https://example.org/qa#setting-940b52ba53ea8a8f> a olq:Setting ;
-    rdfs:label "checks: Property without description (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-properties-missing-description> .
-
-<https://example.org/qa#setting-9dbed31fbcf52520> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/ns/shacl#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-shacl> ;
-    olq:key "imports.local" ;
-    olq:localFile "shacl.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value sh: .
-
-<https://example.org/qa#setting-9fcd92de456edfc0> a olq:Setting ;
-    rdfs:label "checks: Non-unique identifiers (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-non-unique-identifiers> .
-
-<https://example.org/qa#setting-a38198945a8e396a> a olq:Setting ;
-    rdfs:label "checks: Property without label (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-properties-missing-label> .
-
-<https://example.org/qa#setting-a4ac624faf3dcee7> a olq:Setting ;
-    rdfs:label "checks: Unresolvable imports (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-unresolvable-imports> .
-
-<https://example.org/qa#setting-a4ae641ad90ee9c1> a olq:Setting ;
-    rdfs:label "checks: Property without range (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-properties-missing-range> .
-
-<https://example.org/qa#setting-a7da8b8521135a32> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/ns/prov#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-prov> ;
-    olq:key "imports.local" ;
-    olq:localFile "prov.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value prov: .
-
-<https://example.org/qa#setting-af7a759b254cc374> a olq:Setting ;
-    rdfs:label "imports.local: http://purl.org/dc/terms/" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcterms> ;
-    olq:key "imports.local" ;
-    olq:localFile "dcterms.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value dcterms: .
-
-<https://example.org/qa#setting-ba3754b08415ab5d> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/ns/dcat#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcat3> ;
-    olq:key "imports.local" ;
-    olq:localFile "dcat3.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value dcat: .
-
-<https://example.org/qa#setting-c8e553f8c793aa0d> a olq:Setting ;
-    rdfs:label "exclude.types: http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm" ;
-    rdfs:comment "Instances are skipped by the class checks" ;
-    olq:key "exclude.types" ;
-    olq:origin olq:ConfigFile ;
-    olq:value rdf:PropositionForm .
-
-<https://example.org/qa#setting-d167be8f8bd99bc2> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/2000/01/rdf-schema#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-rdfs> ;
-    olq:key "imports.local" ;
-    olq:localFile "rdfs.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value rdfs: .
-
-<https://example.org/qa#setting-d34c91f3eae85a92> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/ns/org#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-org> ;
-    olq:key "imports.local" ;
-    olq:localFile "org.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value org: .
-
-<https://example.org/qa#setting-d98c7d3207bf0cb6> a olq:Setting ;
-    rdfs:label "checks: Property without domain (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-properties-missing-domain> .
-
-<https://example.org/qa#setting-df08ed45e4c6292c> a olq:Setting ;
-    rdfs:label "imports.local: http://www.w3.org/2003/06/sw-vocab-status/ns#" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vs> ;
-    olq:key "imports.local" ;
-    olq:localFile "vs.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
-
-<https://example.org/qa#setting-e7ca04b26b6303f3> a olq:Setting ;
-    rdfs:label "checks: Ontology without description (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-ontology-missing-description> .
-
-<https://example.org/qa#setting-e803816ea1fc74f2> a olq:Setting ;
-    rdfs:label "checks: NodeShape without label (enabled)" ;
-    rdfs:comment "Enabled by default" ;
-    olq:enabled true ;
-    olq:key "checks" ;
-    olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-node-shapes-missing-label> .
-
-<https://example.org/qa#setting-ea26133ccd9ab7e1> a olq:Setting ;
-    rdfs:label "imports.local: https://schema.org/" ;
-    rdfs:comment "Bundled with ontolint; resolved offline" ;
-    prov:wasDerivedFrom <https://ontolint.org/vocabulary-schema-https> ;
-    olq:key "imports.local" ;
-    olq:localFile "schema-https.ttl" ;
-    olq:origin olq:BundledVocabulary ;
-    olq:value schema: .
-
-<https://example.org/qa#setting-f0c973ecb5ac22dd> a olq:Setting ;
+<https://example.org/qa#setting-27a43ca195dab8e1> a olq:Setting ;
     rdfs:label "imports.local: http://purl.org/dc/elements/1.1/" ;
     rdfs:comment "Bundled with ontolint; resolved offline" ;
     prov:wasDerivedFrom <https://ontolint.org/vocabulary-dc> ;
@@ -622,7 +346,66 @@
     olq:origin olq:BundledVocabulary ;
     olq:value dc: .
 
-<https://example.org/qa#setting-f79f1f9dcb62ea7d> a olq:Setting ;
+<https://example.org/qa#setting-2ce9e1926bf39665> a olq:Setting ;
+    rdfs:label "imports.local: http://schema.org/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-schema-http> ;
+    olq:key "imports.local" ;
+    olq:localFile "schema.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value <http://schema.org/> .
+
+<https://example.org/qa#setting-3ca0d0c02c2930c6> a olq:Setting ;
+    rdfs:label "checks: PropertyShape without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-property-shapes-missing-label> .
+
+<https://example.org/qa#setting-41a90e8d041fa29d> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2003/06/sw-vocab-status/ns#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vs> ;
+    olq:key "imports.local" ;
+    olq:localFile "vs.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+
+<https://example.org/qa#setting-52a347c8b5912c9c> a olq:Setting ;
+    rdfs:label "checks: Unresolvable imports (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-unresolvable-imports> .
+
+<https://example.org/qa#setting-552cc0f51d94d6c6> a olq:Setting ;
+    rdfs:label "checks: NodeShapes with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-node-shapes-same-label> .
+
+<https://example.org/qa#setting-56866677da0f1231> a olq:Setting ;
+    rdfs:label "checks: PropertyShapes with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-property-shapes-same-label> .
+
+<https://example.org/qa#setting-570077bc056d81c4> a olq:Setting ;
+    rdfs:label "imports.local: http://xmlns.com/foaf/0.1/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-foaf> ;
+    olq:key "imports.local" ;
+    olq:localFile "foaf.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value foaf: .
+
+<https://example.org/qa#setting-571f3cf6495500ad> a olq:Setting ;
     rdfs:label "checks: Classes with the same label (enabled)" ;
     rdfs:comment "Enabled by default" ;
     olq:enabled true ;
@@ -630,13 +413,230 @@
     olq:origin olq:OntolintDefault ;
     olq:value <https://example.org/qa#metric-classes-same-label> .
 
-<https://example.org/qa#setting-fa0a1136fb75b2f0> a olq:Setting ;
-    rdfs:label "checks: Class without label (enabled)" ;
+<https://example.org/qa#setting-5b70cdeb893772f8> a olq:Setting ;
+    rdfs:label "checks: Ontology without description (enabled)" ;
     rdfs:comment "Enabled by default" ;
     olq:enabled true ;
     olq:key "checks" ;
     olq:origin olq:OntolintDefault ;
-    olq:value <https://example.org/qa#metric-classes-missing-label> .
+    olq:value <https://example.org/qa#metric-ontology-missing-description> .
+
+<https://example.org/qa#setting-6646db156168162e> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/dcat#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcat3> ;
+    olq:key "imports.local" ;
+    olq:localFile "dcat3.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcat: .
+
+<https://example.org/qa#setting-6747a0ae02b74386> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;
+    rdfs:comment "Objects of this property are not checked as terms" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:ConfigFile ;
+    olq:value rdfs:seeAlso .
+
+<https://example.org/qa#setting-6dff998068334378> a olq:Setting ;
+    rdfs:label "checks: Class without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-classes-missing-description> .
+
+<https://example.org/qa#setting-7583507b67dc4f90> a olq:Setting ;
+    rdfs:label "checks: Non-unique identifiers (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-non-unique-identifiers> .
+
+<https://example.org/qa#setting-86e957c8c432d324> a olq:Setting ;
+    rdfs:label "checks: NodeShape without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-node-shapes-missing-label> .
+
+<https://example.org/qa#setting-88ff02693b8449b6> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2004/02/skos/core#" ;
+    rdfs:comment "Resolved from a local file instead of the network; overrides the bundled vocabulary" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-skos> ;
+    olq:key "imports.local" ;
+    olq:localFile "vocab/skos.ttl" ;
+    olq:origin olq:ConfigFile ;
+    olq:value skos: .
+
+<https://example.org/qa#setting-8bbffcf32044eced> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/prov#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-prov> ;
+    olq:key "imports.local" ;
+    olq:localFile "prov.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value prov: .
+
+<https://example.org/qa#setting-8ef423dca76ae759> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/terms/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcterms> ;
+    olq:key "imports.local" ;
+    olq:localFile "dcterms.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcterms: .
+
+<https://example.org/qa#setting-93e62d7838c589e1> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/shacl#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-shacl> ;
+    olq:key "imports.local" ;
+    olq:localFile "shacl.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value sh: .
+
+<https://example.org/qa#setting-973d10c3910d51ad> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/dcmitype/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dctype> ;
+    olq:key "imports.local" ;
+    olq:localFile "dctype.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcmitype: .
+
+<https://example.org/qa#setting-9d5f3e991dfb0594> a olq:Setting ;
+    rdfs:label "checks: Undefined terms (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-undefined-terms> .
+
+<https://example.org/qa#setting-ac16fac5edd492ca> a olq:Setting ;
+    rdfs:label "checks: Namespace hijacking (disabled)" ;
+    rdfs:comment "Listed under disable:" ;
+    olq:enabled false ;
+    olq:key "checks" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/qa#metric-namespace-hijacking> .
+
+<https://example.org/qa#setting-b1a070cc82aa1c8b> a olq:Setting ;
+    rdfs:label "exclude.types: http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm" ;
+    rdfs:comment "Instances are skipped by the class checks" ;
+    olq:key "exclude.types" ;
+    olq:origin olq:ConfigFile ;
+    olq:value rdf:PropositionForm .
+
+<https://example.org/qa#setting-b25aff87641bf78b> a olq:Setting ;
+    rdfs:label "checks: Isolated classes (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-isolated-classes> .
+
+<https://example.org/qa#setting-bc217413743e052d> a olq:Setting ;
+    rdfs:label "checks: Property without domain (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-domain> .
+
+<https://example.org/qa#setting-bd1c2ceeb35aa15c> a olq:Setting ;
+    rdfs:label "checks: Ontology without declaration (enabled)" ;
+    rdfs:comment "Enabled because the ontology-description check was selected and depends on it." ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintRule ;
+    olq:value <https://example.org/qa#metric-ontology-not-declared> .
+
+<https://example.org/qa#setting-bebe77abb01a9e54> a olq:Setting ;
+    rdfs:label "checks: Property without range (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-range> .
+
+<https://example.org/qa#setting-bef2505486cc8d88> a olq:Setting ;
+    rdfs:label "checks: Untyped Classes (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-untyped-classes> .
+
+<https://example.org/qa#setting-cb486b306009c262> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2000/01/rdf-schema#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-rdfs> ;
+    olq:key "imports.local" ;
+    olq:localFile "rdfs.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value rdfs: .
+
+<https://example.org/qa#setting-ce98efe4cf9aefac> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/org#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-org> ;
+    olq:key "imports.local" ;
+    olq:localFile "org.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value org: .
+
+<https://example.org/qa#setting-cfe79199357c15e0> a olq:Setting ;
+    rdfs:label "checks: PropertyShape without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-property-shapes-missing-description> .
+
+<https://example.org/qa#setting-de5efb486943e0da> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/vocab/vann/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vann> ;
+    olq:key "imports.local" ;
+    olq:localFile "vann.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value vann: .
+
+<https://example.org/qa#setting-ea595f32136a3ecc> a olq:Setting ;
+    rdfs:label "imports.local: https://schema.org/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-schema-https> ;
+    olq:key "imports.local" ;
+    olq:localFile "schema-https.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value schema: .
+
+<https://example.org/qa#setting-eeac3512afaff42e> a olq:Setting ;
+    rdfs:label "checks: NodeShape without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-node-shapes-missing-description> .
+
+<https://example.org/qa#setting-f76148dd276fdba1> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2002/07/owl#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-owl> ;
+    olq:key "imports.local" ;
+    olq:localFile "owl.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value owl: .
+
+<https://example.org/qa#setting-fcbb440cbfe4508b> a olq:Setting ;
+    rdfs:label "checks: Subclass Cycles (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-subclass-cycles> .
 
 <https://example.org/qa#violation-1e7e746c5fb4f54f> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/configuration#Cat> ;
