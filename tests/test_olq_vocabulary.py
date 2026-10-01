@@ -45,7 +45,10 @@ def _sample_report(make_graph):
                     local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"},
                     checklist=checklist, lint_config=lint_config, rule_reasons=rule_reasons,
                     config_file=".rdf-lint.yml")
-    return build_dqv_graph([result])
+    # And a run configured by its caller, with no config file (olq:CallerArgument).
+    called = run_qa(g, uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)),
+                    ignore_imports=[MISSING_IMPORT])
+    return build_dqv_graph([result, called])
 
 
 def test_vocabulary_declares_ontology():

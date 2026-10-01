@@ -2553,11 +2553,13 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     .rdf-lint.yml key it corresponds to and where it came from: the config file, an
     ontolint default (e.g. a check enabled by default, the default skip-object-of list),
     a vocabulary bundled with ontolint (imports.local), or an ontolint rule (a check
-    enabled because another depends on it). local_imports is the project's own mapping,
-    before the bundled vocabularies are merged in.
+    enabled because another depends on it). Without a config_file, values passed straight
+    to run_qa() are recorded as coming from its caller. local_imports is the project's own
+    mapping, before the bundled vocabularies are merged in.
     """
     selection = lint_config or {}
     rule_reasons = rule_reasons or {}
+    given = 'config' if config_file else 'caller'
     settings = []
 
     for enabled, func, display_name, key in checklist:
@@ -2566,17 +2568,20 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
         if key in rule_reasons:
             origin, reason = 'rule', rule_reasons[key]
         elif isinstance(selection.get('enable'), list):
-            origin = 'config'
+            origin = given
             reason = ("Listed under enable:" if config_name in selection['enable']
                       else "Not listed under enable:, so not run")
         elif isinstance(selection.get('disable'), list) and config_name in selection['disable']:
-            origin, reason = 'config', "Listed under disable:"
+            origin, reason = given, "Listed under disable:"
+        elif not enabled:
+            # Every check is enabled by default, so one that isn't was switched off by the caller.
+            origin, reason = 'caller', "Disabled by the caller"
         else:
             origin, reason = 'default', "Enabled by default"
         settings.append(dqv.ConfigSetting('checks', key, origin, reason, enabled=bool(enabled), label=display_name))
 
     for iri in ignore_imports or []:
-        settings.append(dqv.ConfigSetting('imports.ignore', iri, 'config',
+        settings.append(dqv.ConfigSetting('imports.ignore', iri, given,
                                           "Trusted: never fetched or reported, and not resolved as an import"))
 
     config_dir = os.path.dirname(os.path.abspath(config_file)) if config_file else None
@@ -2591,7 +2596,7 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
         overrides = bundled_by_key.get(k)
         reason = ("Resolved from a local file instead of the network; overrides the bundled vocabulary"
                   if overrides else "Resolved from a local file instead of the network")
-        settings.append(dqv.ConfigSetting('imports.local', iri, 'config', reason, local_file=shown,
+        settings.append(dqv.ConfigSetting('imports.local', iri, given, reason, local_file=shown,
                                           derived_from=datasets.get(overrides) if overrides else None))
     for ns, path in bundled_vocabularies().items():
         if iri_key(ns) not in user_local:
@@ -2600,12 +2605,12 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
                                               local_file=os.path.basename(path), derived_from=datasets.get(ns)))
 
     for t in exclude_types or []:
-        settings.append(dqv.ConfigSetting('exclude.types', t, 'config',
+        settings.append(dqv.ConfigSetting('exclude.types', t, given,
                                           "Instances are skipped by the class checks"))
 
     if skip_object_of is not None:
         for p in skip_object_of:
-            settings.append(dqv.ConfigSetting('undefined-terms.skip-object-of', p, 'config',
+            settings.append(dqv.ConfigSetting('undefined-terms.skip-object-of', p, given,
                                               "Objects of this property are not checked as terms"))
     else:
         for p in DEFAULT_SKIP_OBJECT_OF:

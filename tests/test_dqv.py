@@ -444,3 +444,41 @@ def test_non_unique_identifier_comment_is_sorted(make_graph):
     comment = check.violations[0].comment
     declared = comment.removeprefix("declared as ").split(", ")
     assert declared == sorted(declared)
+
+
+# ── effective configuration ──────────────────────────────────────────────────
+
+def _settings(g, key):
+    return [s for s in g.subjects(RDF.type, OLQ.Setting) if g.value(s, OLQ.key) == Literal(key)]
+
+
+def _check_setting(g, check_key):
+    metric = _metric(DQV_METRICS[check_key][0])
+    [setting] = [s for s in _settings(g, 'checks') if g.value(s, OLQ.value) == metric]
+    return setting
+
+
+def test_caller_supplied_settings_are_not_attributed_to_a_config_file(make_graph):
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), ignore_imports=["http://example.org/vendor/ns#"])], timestamp=TS)
+    [ignored] = _settings(g, 'imports.ignore')
+    assert g.value(ignored, OLQ.origin) == OLQ.CallerArgument
+    assert not list(g.subjects(OLQ.origin, OLQ.ConfigFile))
+    assert not list(g.objects(None, OLQ.configurationFile))
+
+
+def test_check_disabled_by_the_caller_is_not_enabled_by_default(make_graph):
+    checklist = [[False if key == 'hijacking' else on, f, n, key] for on, f, n, key in CHECKLIST]
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist)], timestamp=TS)
+    setting = _check_setting(g, 'hijacking')
+    assert g.value(setting, OLQ.origin) == OLQ.CallerArgument
+    assert g.value(setting, OLQ.enabled) == Literal(False)
+    assert g.value(setting, RDFS.comment) == Literal("Disabled by the caller")
+
+
+def test_check_disabled_in_a_config_file_comes_from_the_file(make_graph):
+    checklist = [[False if key == 'hijacking' else on, f, n, key] for on, f, n, key in CHECKLIST]
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist,
+                             lint_config={'disable': ['check_hijacking']}, config_file='.rdf-lint.yml')], timestamp=TS)
+    setting = _check_setting(g, 'hijacking')
+    assert g.value(setting, OLQ.origin) == OLQ.ConfigFile
+    assert g.value(setting, RDFS.comment) == Literal("Listed under disable:")

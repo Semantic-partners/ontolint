@@ -115,7 +115,7 @@ What gets emitted:
 - **Effective configuration:** the report records the configuration that actually ran, not just your `.rdf-lint.yml`. ontolint adds to and adjusts the file: default checks, the default `undefined-terms.skip-object-of` list, the [bundled vocabularies](#bundled-vocabularies) in `imports.local`, and rules such as re-enabling owl-declaration when a check that depends on it is selected. Each is an `olq:Setting` with:
   - `olq:key`: the `.rdf-lint.yml` key, e.g. `checks`, `imports.ignore`, `imports.local`, `exclude.types` or `undefined-terms.skip-object-of`;
   - `olq:value`: the check's metric, or the namespace, type or property;
-  - `olq:origin`: `olq:ConfigFile`, `olq:OntolintDefault`, `olq:BundledVocabulary` or `olq:OntolintRule`;
+  - `olq:origin`: `olq:ConfigFile`, `olq:OntolintDefault`, `olq:BundledVocabulary`, `olq:OntolintRule`, or `olq:CallerArgument` for values passed straight to `run_qa()` with no config file;
   - `rdfs:comment`: the reason;
   - `olq:enabled` for checks, `olq:localFile` for local imports, and `prov:wasDerivedFrom` linking a bundled vocabulary to its entry in the [vocabulary catalog](vocabularies/catalog.ttl).
 

@@ -103,6 +103,11 @@ olq:OntolintRule a olq:SettingOrigin, owl:NamedIndividual ;
     rdfs:comment "ontolint changed the setting because another setting depends on it, e.g. enabling a check another selected check needs."@en ;
     rdfs:isDefinedBy olq: .
 
+olq:CallerArgument a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "caller argument"@en ;
+    rdfs:comment "The setting was passed directly to ontolint's run_qa() by the program calling it, with no configuration file."@en ;
+    rdfs:isDefinedBy olq: .
+
 olq:configuration a owl:ObjectProperty ;
     rdfs:label "configuration"@en ;
     rdfs:comment "Links a quality assessment to the configuration it was produced with."@en ;

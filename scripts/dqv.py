@@ -36,7 +36,8 @@ class ConfigSetting:
     key:    the .rdf-lint.yml path it corresponds to, e.g. 'checks', 'imports.local'.
     value:  the IRI or value; for 'checks', the CHECKLIST key of the check.
     origin: 'config' (the .rdf-lint.yml file), 'default' (an ontolint default),
-            'bundled' (a vocabulary bundled with ontolint) or 'rule' (added by an ontolint rule).
+            'bundled' (a vocabulary bundled with ontolint), 'rule' (added by an ontolint rule)
+            or 'caller' (passed straight to run_qa(), with no configuration file).
     """
     key: str
     value: object
@@ -200,6 +201,7 @@ SETTING_ORIGINS = {
     'default': OLQ.OntolintDefault,
     'bundled': OLQ.BundledVocabulary,
     'rule':    OLQ.OntolintRule,
+    'caller':  OLQ.CallerArgument,
 }
 
 
