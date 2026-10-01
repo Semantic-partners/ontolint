@@ -23,9 +23,10 @@ package-mode = false
 pytest = ">=8.3"
 pytest-cov = ">=5.0"
 ruff = ">=0.9"
-# mustrd: SPARQL Given-When-Then specs (tests/mustrd/). From git until a release with
-# pytest 8 / numpy 2 support (Python 3.14) is on PyPI.
-mustrd = { git = "https://github.com/Semantic-partners/mustrd.git", rev = "396a2702f2bcbde73612ff5975f239ba2f9eafbd", python = ">=3.13,<4.0" }
+# mustrd: SPARQL Given-When-Then specs (*.mustrd.ttl, listed in tests/mustrd_configuration.ttl).
+# From git until a release with pytest 8 / numpy 2 support (Python 3.14) is on PyPI. The
+# python range matches requires-python (mustrd needs an upper bound).
+mustrd = { git = "https://github.com/Semantic-partners/mustrd.git", rev = "396a2702f2bcbde73612ff5975f239ba2f9eafbd", python = ">=3.11,<4.0" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
