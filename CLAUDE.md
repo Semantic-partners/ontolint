@@ -39,6 +39,9 @@ poetry run scripts/generate_custom_report.py --ctrf-dir ctrf --template-path tem
 # Run all tests
 poetry run pytest
 
+# Run only the mustrd SPARQL specs
+poetry run pytest tests/mustrd_configuration.ttl
+
 # Run a single test file
 poetry run pytest tests/test_labels.py
 
@@ -71,6 +74,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_olq_vocabulary.py` | `ontology/olq.ttl` defines exactly the `olq:` terms the DQV report emits, each labelled and described, and passes ontolint |
 | `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
+| `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
@@ -112,7 +116,7 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 - the metric and dimension catalogue (`DQV_METRICS`, `DQV_DIMENSIONS`);
 - `build_dqv_graph()` / `write_dqv_report()`, IRI minting under the base URI, and blank-node skolemization (`canonical_bnode_labels()`).
 
-`ontology_qa.py` imports it as `dqv` (`from scripts import dqv`, falling back to `import dqv` when run as a script, since `scripts/` is then on `sys.path`). The CLI flags and `_write_dqv()` stay in `ontology_qa.py`. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
+`ontology_qa.py` imports it as `dqv` (`from scripts import dqv`, falling back to `import dqv` when run as a script, since `scripts/` is then on `sys.path`). The CLI flags and `_write_dqv()` stay in `ontology_qa.py`. The report also records the effective configuration: `describe_configuration()` in `ontology_qa.py` builds `dqv.ConfigSetting` records (key, value, origin, reason) from the checklist, the parsed `.rdf-lint.yml` and the ontolint defaults and bundled vocabularies. `run_qa()` stores them on `QAResult.settings`, and `dqv._add_configuration()` writes them as an `olq:Configuration`. `lint_selection(..., rule_reasons)` records why a rule changed a check. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
 
 ### Bundled vocabularies
 

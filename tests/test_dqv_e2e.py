@@ -9,6 +9,10 @@ Each directory under tests/dqv/ is a case:
         args.txt        optional extra CLI arguments, e.g. --per-file
         expected.ttl    the DQV report ontolint must produce
 
+The effective configuration (olq:Configuration and its olq:Settings) is left out of every
+case's report except CONFIG_CASE: an ontology with one failure and a .rdf-lint.yml that
+exercises each kind of setting. The other reports show only the results.
+
 The test runs ontolint's CLI (main()) from inside the case directory, so input paths and
 config resolution match a real run, and compares the report with expected.ttl as RDF graphs.
 The report timestamp is pinned with SOURCE_DATE_EPOCH, so minted IRIs are reproducible.
@@ -31,6 +35,8 @@ CASES_DIR = Path(__file__).parent / 'dqv'
 CASES = sorted(p.name for p in CASES_DIR.iterdir() if p.is_dir())
 BASE_URI = 'https://example.org/qa#'
 EPOCH = '1790000000'  # 2026-09-21T14:13:20Z
+CONFIG_CASE = 'configuration'
+OLQ = rdflib.Namespace('https://ontolint.org/ns#')
 
 
 def test_cases_exist():
@@ -59,6 +65,24 @@ def _run_case(case_dir, out_dir):
     return out_dir / 'actual.ttl'
 
 
+def _without_configuration(g):
+    """The report minus its effective configuration (see CONFIG_CASE)."""
+    nodes = set(g.subjects(rdflib.RDF.type, OLQ.Configuration)) | set(g.subjects(rdflib.RDF.type, OLQ.Setting))
+    for node in nodes:
+        g.remove((node, None, None))
+        g.remove((None, None, node))
+    return g
+
+
+def _report(case, path):
+    g = rdflib.Graph().parse(path, format='turtle')
+    return g if case == CONFIG_CASE else _without_configuration(g)
+
+
+def test_configuration_case_exists():
+    assert CONFIG_CASE in CASES
+
+
 def _ntriples(g):
     return sorted(line for line in g.serialize(format='nt').splitlines() if line.strip())
 
@@ -69,13 +93,13 @@ def test_dqv_report_matches_expected(case, tmp_path):
     expected_path = case_dir / 'expected.ttl'
     actual_path = _run_case(case_dir, tmp_path)
 
+    actual = _report(case, actual_path)
     if os.environ.get('UPDATE_GOLDEN'):
-        expected_path.write_text(actual_path.read_text())
+        expected_path.write_text(actual.serialize(format='turtle'), encoding='utf-8')
         pytest.skip(f"updated {expected_path.relative_to(CASES_DIR.parent.parent)}")
 
     assert expected_path.exists(), (
         f"missing {expected_path}; run UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py")
-    actual = rdflib.Graph().parse(actual_path, format='turtle')
     expected = rdflib.Graph().parse(expected_path, format='turtle')
     missing = sorted(set(_ntriples(expected)) - set(_ntriples(actual)))
     unexpected = sorted(set(_ntriples(actual)) - set(_ntriples(expected)))

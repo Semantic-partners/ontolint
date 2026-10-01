@@ -1,0 +1,11 @@
+# mustrd test configuration: SPARQL Given-When-Then specs (*.mustrd.ttl) under tests/,
+# run by `poetry run pytest` (the plugin is enabled in pyproject.toml's addopts) against
+# the embedded RDFLib engine.
+@prefix : <https://mustrd.org/mustrdTest/> .
+@prefix triplestore: <https://mustrd.org/triplestore/> .
+
+:ontolint a :MustrdTest ;
+    :hasSpecPath "." ;
+    :hasDataPath "." ;
+    :hasPytestPath "mustrd" ;
+    :filterOnTripleStore triplestore:RdfLib .

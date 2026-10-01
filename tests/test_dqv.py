@@ -5,7 +5,8 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
 import pytest
 
-from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST
+from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST, DEFAULT_SKIP_OBJECT_OF, expand_curie
+from scripts import dqv
 from scripts.dqv import (
     build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
     DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
@@ -445,3 +446,83 @@ def test_non_unique_identifier_comment_is_sorted(make_graph):
     declared = comment.removeprefix("declared as ").split(", ")
     assert declared == sorted(declared)
 
+
+# ── effective configuration ──────────────────────────────────────────────────
+
+def _settings(g, key):
+    return [s for s in g.subjects(RDF.type, OLQ.Setting) if g.value(s, OLQ.key) == Literal(key)]
+
+
+def _check_setting(g, check_key):
+    metric = _metric(DQV_METRICS[check_key][0])
+    [setting] = [s for s in _settings(g, 'checks') if g.value(s, OLQ.value) == metric]
+    return setting
+
+
+def test_caller_supplied_settings_are_not_attributed_to_a_config_file(make_graph):
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), ignore_imports=["http://example.org/vendor/ns#"])], timestamp=TS)
+    [ignored] = _settings(g, 'imports.ignore')
+    assert g.value(ignored, OLQ.origin) == OLQ.CallerArgument
+    assert not list(g.subjects(OLQ.origin, OLQ.ConfigFile))
+    assert not list(g.objects(None, OLQ.configurationFile))
+
+
+def test_check_disabled_by_the_caller_is_not_enabled_by_default(make_graph):
+    checklist = [[False if key == 'hijacking' else on, f, n, key] for on, f, n, key in CHECKLIST]
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist)], timestamp=TS)
+    setting = _check_setting(g, 'hijacking')
+    assert g.value(setting, OLQ.origin) == OLQ.CallerArgument
+    assert g.value(setting, OLQ.enabled) == Literal(False)
+    assert g.value(setting, RDFS.comment) == Literal("Disabled by the caller")
+
+
+def test_check_disabled_in_a_config_file_comes_from_the_file(make_graph):
+    checklist = [[False if key == 'hijacking' else on, f, n, key] for on, f, n, key in CHECKLIST]
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist,
+                             lint_config={'disable': ['check_hijacking']}, config_file='.rdf-lint.yml')], timestamp=TS)
+    setting = _check_setting(g, 'hijacking')
+    assert g.value(setting, OLQ.origin) == OLQ.ConfigFile
+    assert g.value(setting, RDFS.comment) == Literal("Listed under disable:")
+
+
+@pytest.mark.parametrize("change", [{'derived_from': "https://ontolint.org/vocabulary-skos-2"},
+                                    {'reason': "Another comment"}])
+def test_settings_differing_only_in_provenance_get_distinct_iris(change):
+    setting = dict(key='imports.local', value='http://www.w3.org/2004/02/skos/core#', origin='bundled',
+                   reason="Bundled with ontolint; resolved offline", local_file='skos.ttl',
+                   derived_from="https://ontolint.org/vocabulary-skos")
+    first, second = rdflib.Graph(), rdflib.Graph()
+    a = dqv._add_configuration(first, DEFAULT_BASE_URI, [dqv.ConfigSetting(**setting)])
+    b = dqv._add_configuration(second, DEFAULT_BASE_URI, [dqv.ConfigSetting(**{**setting, **change})])
+    assert a != b
+    assert set(first.objects(a, OLQ.setting)).isdisjoint(second.objects(b, OLQ.setting))
+
+
+def _measurements(g):
+    return set(g.subjects(RDF.type, DQV.QualityMeasurement))
+
+
+def test_same_inputs_under_different_configurations_get_distinct_assessments(make_graph):
+    graph = make_graph(": a owl:Ontology . :A a owl:Class .")
+    plain = build_dqv_graph([_qa(graph, files_processed=['a.ttl'])], timestamp=TS)
+    configured = build_dqv_graph([_qa(graph, files_processed=['a.ttl'], exclude_types=[str(EX.Placeholder)])], timestamp=TS)
+    [a] = plain.subjects(RDF.type, DQV.QualityMetadata)
+    [b] = configured.subjects(RDF.type, DQV.QualityMetadata)
+    assert a != b
+    assert _measurements(plain).isdisjoint(_measurements(configured))
+
+
+def test_without_skip_object_of_the_defaults_are_recorded(make_graph):
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."))], timestamp=TS)
+    skips = _settings(g, 'undefined-terms.skip-object-of')
+    assert {g.value(s, OLQ.value) for s in skips} == {URIRef(expand_curie(p, allow_wildcard=True)) for p in DEFAULT_SKIP_OBJECT_OF}
+    assert {g.value(s, OLQ.origin) for s in skips} == {OLQ.OntolintDefault}
+    # No config file was read, so none is named.
+    assert not list(g.objects(None, OLQ.configurationFile))
+
+
+def test_empty_skip_object_of_records_no_skips(make_graph):
+    # An explicit empty list checks every object; unlike an absent key, it adds no defaults.
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), skip_object_of=[], config_file='.rdf-lint.yml')], timestamp=TS)
+    assert _settings(g, 'undefined-terms.skip-object-of') == []
+    assert list(g.objects(None, OLQ.configurationFile)) == [Literal('.rdf-lint.yml')]

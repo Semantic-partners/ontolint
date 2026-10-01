@@ -1,0 +1,15 @@
+# mustrd spec: the rdf-lint config lifted by direct JSON-LD mapping (expected-rdf-lint.ttl)
+# becomes the report's configuration model (expected-model.ttl) via rdf-lint-to-model.rq.
+# The vocabulary catalog is a given too: the query uses it to find imports.local entries
+# that override a bundled vocabulary.
+@prefix must: <https://mustrd.org/model/> .
+@prefix ontolint-test: <https://ontolint.org/test/> .
+
+ontolint-test:rdf_lint_config_to_model
+    a must:TestSpec ;
+    must:given [ a must:FileDataset ; must:file "expected-rdf-lint.ttl" ] ,
+               [ a must:FileDataset ; must:file "../../vocabularies/catalog.ttl" ] ;
+    must:when  [ a must:FileSparqlSource ;
+                 must:file "rdf-lint-to-model.rq" ;
+                 must:queryType must:ConstructSparql ] ;
+    must:then  [ a must:FileDataset ; must:file "expected-model.ttl" ] .
