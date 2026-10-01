@@ -551,14 +551,20 @@ owl:withRestrictions a rdf:Property ;
      rdfs:range rdf:List .
      
 
-# Added for ontolint: OWL 2 datatypes defined in the OWL 2 Structural Specification
-# (section 4.1) but absent from the namespace document above.
-owl:real a rdfs:Datatype ;
-     rdfs:label "real" ;
-     rdfs:comment "The datatype of all real numbers (OWL 2)." ;
-     rdfs:isDefinedBy <http://www.w3.org/2002/07/owl#> .
+# ---------------------------------------------------------------------------
+# Added for ontolint: owl:real and owl:rational, OWL 2 datatypes defined in the
+# OWL 2 Structural Specification (section 4.1) but absent from the document above.
+# ---------------------------------------------------------------------------
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 owl:rational a rdfs:Datatype ;
-     rdfs:label "rational" ;
-     rdfs:comment "The datatype of all rational numbers (OWL 2)." ;
-     rdfs:isDefinedBy <http://www.w3.org/2002/07/owl#> .
+    rdfs:label "rational" ;
+    rdfs:comment "The datatype of all rational numbers (OWL 2)." ;
+    rdfs:isDefinedBy owl: .
+
+owl:real a rdfs:Datatype ;
+    rdfs:label "real" ;
+    rdfs:comment "The datatype of all real numbers (OWL 2)." ;
+    rdfs:isDefinedBy owl: .
+

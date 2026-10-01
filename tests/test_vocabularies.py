@@ -1,7 +1,10 @@
 """Bundled vocabularies (vocabularies/): integrity, coverage, and offline term validation."""
+import hashlib
 import inspect
 import os
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 import pytest
 import rdflib
@@ -117,18 +120,31 @@ def test_catalog_describes_every_dataset():
 def test_catalog_uses_only_defined_terms(make_graph):
     # The catalog is RDF too: its DCAT, Dublin Core, VANN and SKOS terms resolve from the
     # bundle. Trusted: the catalog's own https://ontolint.org/ IRIs (it declares no
-    # owl:Ontology to make that namespace local) and IANA media types (not published as RDF).
+    # owl:Ontology to make that namespace local), IANA media types (not published as RDF)
+    # and SPDX (checksum terms, not bundled).
     g = rdflib.Graph().parse(CATALOG)
     check = run_qa(g, uri_parser=_NoNetwork(),
                    ignore_imports=["https://ontolint.org/",
-                                   "https://www.iana.org/assignments/media-types/text/"]).get(UNDEFINED)
+                                   "https://www.iana.org/assignments/media-types/text/",
+                                   "http://spdx.org/rdf/terms#"]).get(UNDEFINED)
     assert check.passed, check.elements
+
+
+def test_distribution_checksums_match_files():
+    # Pins each bundled file to the exact bytes recorded in the catalog (provenance).
+    g = rdflib.Graph().parse(CATALOG)
+    SPDX = rdflib.Namespace("http://spdx.org/rdf/terms#")
+    for dist in g.subjects(rdflib.RDF.type, rdflib.DCAT.Distribution):
+        path = Path(url2pathname(urlparse(str(g.value(dist, rdflib.DCAT.downloadURL))).path))
+        recorded = str(g.value(g.value(dist, SPDX.checksum), SPDX.checksumValue))
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == recorded, (
+            f"{path.name} changed: update its checksum, source and change note in catalog.ttl")
 
 
 # rdflib's built-in term lists, for the vocabularies it has them for. Every term rdflib
 # knows must be in our file, or a valid term would be reported as undefined.
 RDFLIB_LISTS = {
-    'rdf.ttl': N.RDF, 'rdfs.ttl': N.RDFS, 'owl.ttl': N.OWL, 'xsd.ttl': N.XSD, 'shacl.ttl': N.SH,
+    'rdf.ttl': N.RDF, 'rdfs.ttl': N.RDFS, 'owl.ttl': N.OWL, 'shacl.ttl': N.SH,
     'skos.ttl': N.SKOS, 'dcterms.ttl': N.DCTERMS, 'dc.ttl': N.DC, 'dcam.ttl': N.DCAM,
     'dctype.ttl': N.DCMITYPE, 'foaf.ttl': N.FOAF, 'vann.ttl': N.VANN, 'prov.ttl': N.PROV,
     'org.ttl': N.ORG, 'dcat3.ttl': N.DCAT,
@@ -171,6 +187,7 @@ def test_valid_core_and_rdf_1_2_terms_pass_offline(make_graph):
     check, fetch = _undefined(make_graph, """
     :Foo a owl:Class ; skos:scopeNote "x" ; rdfs:label "Foo" .
     :p a owl:DatatypeProperty ; rdfs:range xsd:dateTimeStamp .
+    :Short a rdfs:Datatype ; owl:withRestrictions ( [ xsd:assertions "true" ] ) .
     :q a owl:DatatypeProperty ; rdfs:range owl:real .
     :standIn a rdf:PropositionForm ; rdf:reifies :Foo .
     :list rdf:_3 :Foo .

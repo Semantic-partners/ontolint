@@ -82,7 +82,7 @@ xsd:minExclusive a rdf:Property ; rdfs:label "minExclusive" ; rdfs:isDefinedBy <
 xsd:totalDigits a rdf:Property ; rdfs:label "totalDigits" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
 xsd:fractionDigits a rdf:Property ; rdfs:label "fractionDigits" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
 xsd:explicitTimezone a rdf:Property ; rdfs:label "explicitTimezone" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
-xsd:Assertions a rdf:Property ; rdfs:label "Assertions" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:assertions a rdf:Property ; rdfs:label "assertions" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
 
 # Fundamental facets
 xsd:ordered a rdf:Property ; rdfs:label "ordered" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .

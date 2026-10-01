@@ -1,21 +1,30 @@
 # Catalogue of the vocabularies bundled with ontolint, as a DCAT catalog.
 #
-# Each dcat:Dataset is one vocabulary: its namespace (vann:preferredNamespaceUri), where it
-# came from (dcterms:source), its licence and version, any local edits (skos:changeNote),
-# and a dcat:Distribution whose dcat:downloadURL is the bundled file, relative to this one.
-# ontolint reads this catalog to add every namespace to imports.local, so these
-# namespaces and owl:imports of these ontologies resolve offline. Entries are matched with
-# or without a trailing '#' or '/', and a project's own imports.local entry wins.
+# This catalog is the starting point for discovery: ontolint reads it to find which
+# vocabularies are bundled, their namespaces and where each file is.
+#
+# Each dcat:Dataset is one vocabulary: its namespace (vann:preferredNamespaceUri) and
+# prefix, the exact URL it was retrieved from (dcterms:source), its licence and version,
+# how the bundled file relates to that source (skos:changeNote), and a dcat:Distribution
+# whose dcat:downloadURL is the bundled file (relative to this catalog) with its SHA-256
+# checksum. ontolint adds every namespace to imports.local, so these namespaces and
+# owl:imports of these ontologies resolve offline. Entries are matched with or without a
+# trailing '#' or '/', and a project's own imports.local entry wins.
 
 @prefix ontolint: <https://ontolint.org/> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix vann:    <http://purl.org/vocab/vann/> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix spdx:    <http://spdx.org/rdf/terms#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 
 ontolint:vocabularies a dcat:Catalog ;
+    rdfs:label "Vocabularies bundled with ontolint" ;
     dcterms:title "Vocabularies bundled with ontolint" ;
     dcterms:description "Standard RDF vocabularies shipped with ontolint so their terms can be validated offline." ;
+    dcterms:modified "2026-10-01"^^xsd:date ;
     dcat:dataset
         ontolint:vocabulary-rdf,
         ontolint:vocabulary-rdfs,
@@ -38,245 +47,411 @@ ontolint:vocabularies a dcat:Catalog ;
         ontolint:vocabulary-schema-https .
 
 ontolint:vocabulary-rdf a dcat:Dataset ;
+    rdfs:label "RDF" ;
     dcterms:title "RDF" ;
     vann:preferredNamespaceUri "http://www.w3.org/1999/02/22-rdf-syntax-ns#" ;
     vann:preferredNamespacePrefix "rdf" ;
     dcterms:source <http://www.w3.org/1999/02/22-rdf-syntax-ns> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
-    dcat:version "RDF 1.1 Concepts (2019-12-16) + RDF 1.2 terms" ;
-    skos:changeNote "Extended with the RDF 1.2 terms the published namespace document does not yet include: rdf:dirLangString and rdf:reifies (RDF 1.2 Concepts), rdf:PropositionForm and rdf:propositionFormSubject/Predicate/Object (RDF 1.2 Interoperability), and the rdf:version-* IRIs. Header updated to say so." ;
+    dcat:version "RDF 1.1 namespace document (2019-12-16), plus RDF 1.2 additions" ;
+    skos:changeNote "The source (retrieved 2026-10-01) verbatim, followed by an 'Added for ontolint' block with the RDF 1.2 terms it does not yet contain: rdf:dirLangString and rdf:reifies (RDF 1.2 Concepts), rdf:PropositionForm and rdf:propositionFormSubject/Predicate/Object (RDF 1.2 Interoperability), and the rdf:version-* IRIs." ;
     dcat:distribution ontolint:vocabulary-rdf-turtle .
 
 ontolint:vocabulary-rdf-turtle a dcat:Distribution ;
+    rdfs:label "RDF (Turtle)" ;
     dcat:downloadURL <rdf.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-rdf-turtle-sha256 .
+
+ontolint:vocabulary-rdf-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "RDF (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "95815fa75e730305b3b188aaba4c5aec2e210927327160dec9f31dea10bdc09e" .
 
 ontolint:vocabulary-rdfs a dcat:Dataset ;
+    rdfs:label "RDF Schema" ;
     dcterms:title "RDF Schema" ;
     vann:preferredNamespaceUri "http://www.w3.org/2000/01/rdf-schema#" ;
     vann:preferredNamespacePrefix "rdfs" ;
     dcterms:source <http://www.w3.org/2000/01/rdf-schema> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    skos:changeNote "The source (retrieved 2026-10-01) verbatim, followed by an 'Added for ontolint' block with rdfs:Proposition, the RDF 1.2 term it does not yet contain." ;
     dcat:distribution ontolint:vocabulary-rdfs-turtle .
 
 ontolint:vocabulary-rdfs-turtle a dcat:Distribution ;
+    rdfs:label "RDF Schema (Turtle)" ;
     dcat:downloadURL <rdfs.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-rdfs-turtle-sha256 .
+
+ontolint:vocabulary-rdfs-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "RDF Schema (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "dda54c29f8fd3d6d6c11b5d35202373d703b1d6672568e002c448325a0da6b0d" .
 
 ontolint:vocabulary-owl a dcat:Dataset ;
+    rdfs:label "OWL" ;
     dcterms:title "OWL" ;
     vann:preferredNamespaceUri "http://www.w3.org/2002/07/owl#" ;
     vann:preferredNamespacePrefix "owl" ;
     dcterms:source <http://www.w3.org/2002/07/owl> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
     dcat:version "2009-11-15" ;
-    skos:changeNote "Added owl:real and owl:rational, the OWL 2 datatypes from the OWL 2 Structural Specification section 4.1 that the namespace document omits." ;
+    skos:changeNote "The source (retrieved 2026-10-01) verbatim, followed by an 'Added for ontolint' block with owl:real and owl:rational, the OWL 2 datatypes (OWL 2 Structural Specification section 4.1) it omits." ;
     dcat:distribution ontolint:vocabulary-owl-turtle .
 
 ontolint:vocabulary-owl-turtle a dcat:Distribution ;
+    rdfs:label "OWL (Turtle)" ;
     dcat:downloadURL <owl.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-owl-turtle-sha256 .
+
+ontolint:vocabulary-owl-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "OWL (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "8040c3af687e9055a177c5abdc1905d804d66a9b2e980fe1d7f31d9664cf96ed" .
 
 ontolint:vocabulary-xsd a dcat:Dataset ;
+    rdfs:label "XML Schema Definition (XSD) 1.1" ;
     dcterms:title "XML Schema Definition (XSD) 1.1" ;
     vann:preferredNamespaceUri "http://www.w3.org/2001/XMLSchema#" ;
     vann:preferredNamespacePrefix "xsd" ;
     dcterms:source <https://www.w3.org/TR/xmlschema11-2/> ;
     dcterms:license <https://opensource.org/licenses/MIT>, <https://www.apache.org/licenses/LICENSE-2.0> ;
     dcat:version "XSD 1.1" ;
-    skos:changeNote "Written for ontolint from XML Schema 1.1 Part 2: Datatypes, as W3C publishes no RDF for XSD. Lists every built-in datatype, the constraining and fundamental facets, and the date/time property names." ;
+    skos:changeNote "Written for ontolint from XML Schema 1.1 Part 2: Datatypes, as W3C publishes no RDF for XSD: every built-in datatype, the constraining and fundamental facets, and the date/time property names." ;
     dcat:distribution ontolint:vocabulary-xsd-turtle .
 
 ontolint:vocabulary-xsd-turtle a dcat:Distribution ;
+    rdfs:label "XML Schema Definition (XSD) 1.1 (Turtle)" ;
     dcat:downloadURL <xsd.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-xsd-turtle-sha256 .
+
+ontolint:vocabulary-xsd-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "XML Schema Definition (XSD) 1.1 (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "300f34bbe9efe9e4e7fa0a55a0be69fffb96094ae8315fcd63cfc470720963c8" .
 
 ontolint:vocabulary-shacl a dcat:Dataset ;
+    rdfs:label "SHACL" ;
     dcterms:title "SHACL" ;
     vann:preferredNamespaceUri "http://www.w3.org/ns/shacl#" ;
     vann:preferredNamespacePrefix "sh" ;
     dcterms:source <https://www.w3.org/ns/shacl.ttl> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
     dcat:version "2017-07-20 (SHACL 1.0)" ;
-    skos:changeNote "No local edits. SHACL 1.2 terms are not included yet; map the namespace to a newer file via imports.local to use them." ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01. SHACL 1.2 terms are not included; map the namespace to a newer file via imports.local to use them." ;
     dcat:distribution ontolint:vocabulary-shacl-turtle .
 
 ontolint:vocabulary-shacl-turtle a dcat:Distribution ;
+    rdfs:label "SHACL (Turtle)" ;
     dcat:downloadURL <shacl.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-shacl-turtle-sha256 .
+
+ontolint:vocabulary-shacl-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "SHACL (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "0e5d8aea0eab98a072d4a02faaee1ee914ec99eab2ca473429726faed4a13f69" .
 
 ontolint:vocabulary-skos a dcat:Dataset ;
+    rdfs:label "SKOS" ;
     dcterms:title "SKOS" ;
     vann:preferredNamespaceUri "http://www.w3.org/2004/02/skos/core#" ;
     vann:preferredNamespacePrefix "skos" ;
-    dcterms:source <http://www.w3.org/2004/02/skos/core> ;
+    dcterms:source <http://www.w3.org/2004/02/skos/core.rdf> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
-    dcat:version "SKOS Reference (2009)" ;
+    skos:changeNote "Graph-identical to the source (RDF/XML, retrieved 2026-10-01), as Turtle." ;
     dcat:distribution ontolint:vocabulary-skos-turtle .
 
 ontolint:vocabulary-skos-turtle a dcat:Distribution ;
+    rdfs:label "SKOS (Turtle)" ;
     dcat:downloadURL <skos.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-skos-turtle-sha256 .
+
+ontolint:vocabulary-skos-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "SKOS (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "98741e5d84c72b8abea68b549ff60d29f29f4bd6495c113c49884fdd3ece29b3" .
 
 ontolint:vocabulary-dcterms a dcat:Dataset ;
+    rdfs:label "DCMI Metadata Terms" ;
     dcterms:title "DCMI Metadata Terms" ;
     vann:preferredNamespaceUri "http://purl.org/dc/terms/" ;
     vann:preferredNamespacePrefix "dcterms" ;
-    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-dcterms-turtle .
 
 ontolint:vocabulary-dcterms-turtle a dcat:Distribution ;
+    rdfs:label "DCMI Metadata Terms (Turtle)" ;
     dcat:downloadURL <dcterms.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dcterms-turtle-sha256 .
+
+ontolint:vocabulary-dcterms-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "DCMI Metadata Terms (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "13df401072dd7015bf9d75162f3e41c8138075304b7b9cc1aa1e9c16db976797" .
 
 ontolint:vocabulary-dc a dcat:Dataset ;
+    rdfs:label "Dublin Core Elements 1.1" ;
     dcterms:title "Dublin Core Elements 1.1" ;
     vann:preferredNamespaceUri "http://purl.org/dc/elements/1.1/" ;
     vann:preferredNamespacePrefix "dc" ;
-    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_elements.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    dcat:version "1.1" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-dc-turtle .
 
 ontolint:vocabulary-dc-turtle a dcat:Distribution ;
+    rdfs:label "Dublin Core Elements 1.1 (Turtle)" ;
     dcat:downloadURL <dc.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dc-turtle-sha256 .
+
+ontolint:vocabulary-dc-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "Dublin Core Elements 1.1 (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "ffb46b7a21e40344b93bc4ad2e6808b24dd53e261995ec3a926df6bcd87bbfa5" .
 
 ontolint:vocabulary-dcam a dcat:Dataset ;
+    rdfs:label "DCMI Abstract Model" ;
     dcterms:title "DCMI Abstract Model" ;
     vann:preferredNamespaceUri "http://purl.org/dc/dcam/" ;
     vann:preferredNamespacePrefix "dcam" ;
-    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_abstract_model.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-dcam-turtle .
 
 ontolint:vocabulary-dcam-turtle a dcat:Distribution ;
+    rdfs:label "DCMI Abstract Model (Turtle)" ;
     dcat:downloadURL <dcam.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dcam-turtle-sha256 .
+
+ontolint:vocabulary-dcam-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "DCMI Abstract Model (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "58abce836b2d0022bf4c4c921a8c34c6e2f4b4ab015c4649fcafd9572ed4db47" .
 
 ontolint:vocabulary-dctype a dcat:Dataset ;
+    rdfs:label "DCMI Type Vocabulary" ;
     dcterms:title "DCMI Type Vocabulary" ;
     vann:preferredNamespaceUri "http://purl.org/dc/dcmitype/" ;
     vann:preferredNamespacePrefix "dctype" ;
-    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_type.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-dctype-turtle .
 
 ontolint:vocabulary-dctype-turtle a dcat:Distribution ;
+    rdfs:label "DCMI Type Vocabulary (Turtle)" ;
     dcat:downloadURL <dctype.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dctype-turtle-sha256 .
+
+ontolint:vocabulary-dctype-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "DCMI Type Vocabulary (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "f987b11d556e556fef95d7e9410c1c561fc1b7ac05ccd457128dc8962641b01e" .
 
 ontolint:vocabulary-foaf a dcat:Dataset ;
+    rdfs:label "FOAF" ;
     dcterms:title "FOAF" ;
     vann:preferredNamespaceUri "http://xmlns.com/foaf/0.1/" ;
     vann:preferredNamespacePrefix "foaf" ;
-    dcterms:source <http://xmlns.com/foaf/spec/> ;
+    dcterms:source <http://xmlns.com/foaf/spec/index.rdf> ;
     dcterms:license <http://creativecommons.org/licenses/by/1.0/> ;
-    dcat:version "0.1" ;
+    skos:changeNote "Graph-identical to the source (RDF/XML, retrieved 2026-10-01), as Turtle." ;
     dcat:distribution ontolint:vocabulary-foaf-turtle .
 
 ontolint:vocabulary-foaf-turtle a dcat:Distribution ;
+    rdfs:label "FOAF (Turtle)" ;
     dcat:downloadURL <foaf.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-foaf-turtle-sha256 .
+
+ontolint:vocabulary-foaf-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "FOAF (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "35978eee52468767f44b1670bfcc377e3dbc68c0ab2f39cc40ff868276584d51" .
 
 ontolint:vocabulary-vann a dcat:Dataset ;
+    rdfs:label "VANN" ;
     dcterms:title "VANN" ;
     vann:preferredNamespaceUri "http://purl.org/vocab/vann/" ;
     vann:preferredNamespacePrefix "vann" ;
-    dcterms:source <https://vocab.org/vann/> ;
+    dcterms:source <https://vocab.org/vann/vann-vocab-20100607.rdf> ;
     dcterms:license <http://creativecommons.org/licenses/by/1.0/> ;
+    dcat:version "2010-06-07" ;
+    skos:changeNote "Converted to Turtle from the source (RDF/XML, retrieved 2026-10-01), resolving relative IRIs against the source URL. No other changes." ;
     dcat:distribution ontolint:vocabulary-vann-turtle .
 
 ontolint:vocabulary-vann-turtle a dcat:Distribution ;
+    rdfs:label "VANN (Turtle)" ;
     dcat:downloadURL <vann.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-vann-turtle-sha256 .
+
+ontolint:vocabulary-vann-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "VANN (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "c36e5616d33da419bb8129ebd0be93a5c07ec21fb389bc61826eb5974fcb97d6" .
 
 ontolint:vocabulary-vs a dcat:Dataset ;
+    rdfs:label "Vocabulary Status" ;
     dcterms:title "Vocabulary Status" ;
     vann:preferredNamespaceUri "http://www.w3.org/2003/06/sw-vocab-status/ns#" ;
     vann:preferredNamespacePrefix "vs" ;
     dcterms:source <http://www.w3.org/2003/06/sw-vocab-status/ns> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    skos:changeNote "Graph-identical to the source (RDF/XML, retrieved 2026-10-01), as Turtle." ;
     dcat:distribution ontolint:vocabulary-vs-turtle .
 
 ontolint:vocabulary-vs-turtle a dcat:Distribution ;
+    rdfs:label "Vocabulary Status (Turtle)" ;
     dcat:downloadURL <vs.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-vs-turtle-sha256 .
+
+ontolint:vocabulary-vs-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "Vocabulary Status (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "8d6771ca9302ecc2fe6466e41b0c2c30311f4b7122a735840fd90254f2030350" .
 
 ontolint:vocabulary-prov a dcat:Dataset ;
+    rdfs:label "PROV-O" ;
     dcterms:title "PROV-O" ;
     vann:preferredNamespaceUri "http://www.w3.org/ns/prov#" ;
     vann:preferredNamespacePrefix "prov" ;
-    dcterms:source <https://www.w3.org/ns/prov> ;
+    dcterms:source <http://www.w3.org/ns/prov.ttl> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
     dcat:version "Recommendation 2013-04-30" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-prov-turtle .
 
 ontolint:vocabulary-prov-turtle a dcat:Distribution ;
+    rdfs:label "PROV-O (Turtle)" ;
     dcat:downloadURL <prov.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-prov-turtle-sha256 .
+
+ontolint:vocabulary-prov-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "PROV-O (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "d7ea634dbcd31347eba38157197f69d314077ef7f88fd4f90e4f24a78bfe1097" .
 
 ontolint:vocabulary-org a dcat:Dataset ;
+    rdfs:label "Organization Ontology" ;
     dcterms:title "Organization Ontology" ;
     vann:preferredNamespaceUri "http://www.w3.org/ns/org#" ;
     vann:preferredNamespacePrefix "org" ;
-    dcterms:source <https://www.w3.org/ns/org> ;
+    dcterms:source <http://www.w3.org/ns/org.ttl> ;
     dcterms:license <http://www.opendatacommons.org/licenses/pddl/1.0/> ;
     dcat:version "0.8" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-org-turtle .
 
 ontolint:vocabulary-org-turtle a dcat:Distribution ;
+    rdfs:label "Organization Ontology (Turtle)" ;
     dcat:downloadURL <org.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-org-turtle-sha256 .
+
+ontolint:vocabulary-org-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "Organization Ontology (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "3e01f89a17475a88f8b1606ca0fae04800d34dbbf93adc6db12dc30929848729" .
 
 ontolint:vocabulary-dcat3 a dcat:Dataset ;
+    rdfs:label "DCAT" ;
     dcterms:title "DCAT" ;
     vann:preferredNamespaceUri "http://www.w3.org/ns/dcat#" ;
     vann:preferredNamespacePrefix "dcat" ;
-    dcterms:source <https://www.w3.org/ns/dcat> ;
+    dcterms:source <https://www.w3.org/ns/dcat3.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     dcat:version "3" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-dcat3-turtle .
 
 ontolint:vocabulary-dcat3-turtle a dcat:Distribution ;
+    rdfs:label "DCAT (Turtle)" ;
     dcat:downloadURL <dcat3.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dcat3-turtle-sha256 .
+
+ontolint:vocabulary-dcat3-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "DCAT (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "d1624d3bbf364f6fc1d43b9a188bbb9e67639b1a7d46a5cb7ea3f5d47d02b62f" .
 
 ontolint:vocabulary-vcard a dcat:Dataset ;
+    rdfs:label "vCard" ;
     dcterms:title "vCard" ;
     vann:preferredNamespaceUri "http://www.w3.org/2006/vcard/ns#" ;
     vann:preferredNamespacePrefix "vcard" ;
-    dcterms:source <https://www.w3.org/2006/vcard/ns> ;
+    dcterms:source <http://www.w3.org/2006/vcard/ns.ttl> ;
     dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "Final" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01. As published by W3C, this includes six terms from the Solid vCard address-book extension (vcard:AddressBook, vcard:WebID, vcard:groupIndex, vcard:inAddressBook, vcard:includesGroup, vcard:nameEmailIndex), marked 'not part of vCard as defined by the IETF'." ;
     dcat:distribution ontolint:vocabulary-vcard-turtle .
 
 ontolint:vocabulary-vcard-turtle a dcat:Distribution ;
+    rdfs:label "vCard (Turtle)" ;
     dcat:downloadURL <vcard.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-vcard-turtle-sha256 .
+
+ontolint:vocabulary-vcard-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "vCard (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "2442baf3d07d660910a0e24dd96b1efe1ec22cb26d12cdfd415195da91b43a0c" .
 
 ontolint:vocabulary-schema-http a dcat:Dataset ;
+    rdfs:label "schema.org (http)" ;
     dcterms:title "schema.org (http)" ;
     vann:preferredNamespaceUri "http://schema.org/" ;
     vann:preferredNamespacePrefix "schema" ;
-    dcterms:source <https://schema.org/docs/developers.html> ;
+    dcterms:source <https://schema.org/version/latest/schemaorg-current-http.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by-sa/3.0/> ;
-    skos:changeNote "Removed a comment carried over from another project." ;
+    dcat:version "30.1" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-schema-http-turtle .
 
 ontolint:vocabulary-schema-http-turtle a dcat:Distribution ;
+    rdfs:label "schema.org (http) (Turtle)" ;
     dcat:downloadURL <schema.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-schema-http-turtle-sha256 .
+
+ontolint:vocabulary-schema-http-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "schema.org (http) (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "62f11b228082fd5cad332734ae9566c9c93dfe2491aa8048c2954851687390db" .
 
 ontolint:vocabulary-schema-https a dcat:Dataset ;
+    rdfs:label "schema.org (https)" ;
     dcterms:title "schema.org (https)" ;
     vann:preferredNamespaceUri "https://schema.org/" ;
     vann:preferredNamespacePrefix "schema" ;
-    dcterms:source <https://schema.org/docs/developers.html> ;
+    dcterms:source <https://schema.org/version/latest/schemaorg-current-https.ttl> ;
     dcterms:license <https://creativecommons.org/licenses/by-sa/3.0/> ;
-    skos:changeNote "Derived from schema.ttl by rewriting http://schema.org/ to https://schema.org/, as schema.org publishes both forms." ;
+    dcat:version "30.1" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-01." ;
     dcat:distribution ontolint:vocabulary-schema-https-turtle .
 
 ontolint:vocabulary-schema-https-turtle a dcat:Distribution ;
+    rdfs:label "schema.org (https) (Turtle)" ;
     dcat:downloadURL <schema-https.ttl> ;
-    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-schema-https-turtle-sha256 .
+
+ontolint:vocabulary-schema-https-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "schema.org (https) (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "7f15ca89398c4f235f478a4b3b8d1f975d63c5a860b77c8a8fce01f791b7ae2f" .

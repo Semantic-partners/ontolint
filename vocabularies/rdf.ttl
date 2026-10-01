@@ -1,19 +1,12 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
-
-# Bundled with ontolint. Based on the W3C RDF namespace document (RDF 1.1 Concepts,
-# 2019-12-16), extended with the RDF 1.2 terms that document doesn't yet contain:
-# rdf:dirLangString and rdf:reifies (RDF 1.2 Concepts), rdf:PropositionForm and
-# rdf:propositionFormSubject/Predicate/Object (RDF 1.2 Interoperability), and the
-# rdf:version-* IRIs. See vocabularies/README.md.
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
 
 <http://www.w3.org/1999/02/22-rdf-syntax-ns#> a owl:Ontology ;
-	dcterms:title "The RDF Concepts Vocabulary (RDF)" ;
-	dcterms:date "2019-12-16" ;
-	dcterms:modified "2026-10-01" ;
-	dcterms:description "The RDF Schema for the RDF vocabulary terms in the RDF Namespace, defined in RDF 1.1 Concepts, extended with the RDF 1.2 terms from RDF 1.2 Concepts and RDF 1.2 Interoperability (rdf:dirLangString, rdf:reifies, rdf:PropositionForm and its components, rdf:version-*)." .
+	dc:title "The RDF Concepts Vocabulary (RDF)" ;
+	dc:date "2019-12-16" ;
+	dc:description "This is the RDF Schema for the RDF vocabulary terms in the RDF Namespace, defined in RDF 1.1 Concepts." .
 
 rdf:HTML a rdfs:Datatype ;
 	rdfs:subClassOf rdfs:Literal ;
@@ -29,32 +22,18 @@ rdf:langString a rdfs:Datatype ;
 	rdfs:label "langString" ;
 	rdfs:comment "The datatype of language-tagged string values" .
 
-rdf:dirLangString a rdfs:Datatype ;
-	rdfs:subClassOf rdfs:Literal ;
-	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-	rdfs:label "dirLangString" ;
-	rdfs:comment "The datatype of directional language-tagged string values, which includes a language tag and a base direction (either 'ltr' or 'rtl')" .
-
 rdf:PlainLiteral a rdfs:Datatype ;
-	owl:deprecated true ;
 	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
 	rdfs:subClassOf rdfs:Literal ;
 	rdfs:seeAlso <http://www.w3.org/TR/rdf-plain-literal/> ;
 	rdfs:label "PlainLiteral" ;
-	rdfs:comment "The class of plain (i.e., untyped) literal values, as used in RIF and OWL 2.  Will not be removed until no longer needed there." .
+	rdfs:comment "The class of plain (i.e. untyped) literal values, as used in RIF and OWL 2" .
 
 rdf:type a rdf:Property ;
 	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
 	rdfs:label "type" ;
 	rdfs:comment "The subject is an instance of a class." ;
 	rdfs:range rdfs:Class ;
-	rdfs:domain rdfs:Resource .
-
-rdf:reifies a rdf:Property ;
-	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-	rdfs:label "reifies" ;
-	rdfs:comment "The abstract proposition of a more concrete circumstance." ;
-	rdfs:range rdfs:Proposition ;
 	rdfs:domain rdfs:Resource .
 
 rdf:Property a rdfs:Class ;
@@ -151,7 +130,7 @@ rdf:JSON a rdfs:Datatype ;
 	rdfs:comment "The datatype of RDF literals storing JSON content." ;
 	rdfs:subClassOf rdfs:Literal ;
 	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-        rdfs:seeAlso <https://www.w3.org/TR/rdf-concepts/#section-json> .
+	rdfs:seeAlso <https://www.w3.org/TR/json-ld11/#the-rdf-json-datatype> .
 
 rdf:CompoundLiteral a rdfs:Class ;
 	rdfs:label "CompoundLiteral" ;
@@ -174,62 +153,75 @@ rdf:direction a rdf:Property ;
 	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
 	rdfs:seeAlso <https://www.w3.org/TR/json-ld11/#the-rdf-compoundliteral-class-and-the-rdf-language-and-rdf-direction-properties> .
 
+# ---------------------------------------------------------------------------
+# Added for ontolint: RDF 1.2 terms not yet in the published namespace document
+# above: rdf:dirLangString and rdf:reifies (RDF 1.2 Concepts), rdf:PropositionForm
+# and its components (RDF 1.2 Interoperability), and the rdf:version-* IRIs.
+# ---------------------------------------------------------------------------
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
 rdf:PropositionForm a rdfs:Class ;
-	rdfs:label "PropositionForm" ;
-	rdfs:comment "The class of abstract, atomic proposition forms. Reserved for basic encoding of propositions." ;
-	rdfs:subClassOf rdfs:Resource ;
-	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-	rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
+    rdfs:label "PropositionForm" ;
+    rdfs:comment "The class of abstract, atomic proposition forms. Reserved for basic encoding of propositions." ;
+    rdfs:isDefinedBy rdf: ;
+    rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> ;
+    rdfs:subClassOf rdfs:Resource .
 
-rdf:propositionFormSubject a rdf:Property ;
-	rdfs:label "propositionFormSubject" ;
-	rdfs:comment "The subject component of a proposition form. Reserved for basic encoding of propositions." ;
-	rdfs:domain rdf:PropositionForm ;
-	rdfs:range rdfs:Resource ;
-	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-	rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
-
-rdf:propositionFormPredicate a rdf:Property ;
-	rdfs:label "propositionFormPredicate" ;
-	rdfs:comment "The predicate component of a proposition form. Reserved for basic encoding of propositions." ;
-	rdfs:domain rdf:PropositionForm ;
-	rdfs:range rdf:Property ;
-	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-	rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
+rdf:dirLangString a rdfs:Datatype ;
+    rdfs:label "dirLangString" ;
+    rdfs:comment "The datatype of directional language-tagged string values, which includes a language tag and a base direction (either 'ltr' or 'rtl')" ;
+    rdfs:isDefinedBy rdf: ;
+    rdfs:subClassOf rdfs:Literal .
 
 rdf:propositionFormObject a rdf:Property ;
-	rdfs:label "propositionFormObject" ;
-	rdfs:comment "The object component of a proposition form. Reserved for basic encoding of propositions." ;
-	rdfs:domain rdf:PropositionForm ;
-	rdfs:range rdfs:Resource ;
-	rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-	rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
+    rdfs:label "propositionFormObject" ;
+    rdfs:comment "The object component of a proposition form. Reserved for basic encoding of propositions." ;
+    rdfs:domain rdf:PropositionForm ;
+    rdfs:isDefinedBy rdf: ;
+    rdfs:range rdfs:Resource ;
+    rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
 
-## Controlled vocabulary for versions.
-## URIs for versions of RDF and SPARQL
-## The rdfs:label corresponds to the constant defined in RDF Concepts.
-## It can apply to RDF and SPARQL.
+rdf:propositionFormPredicate a rdf:Property ;
+    rdfs:label "propositionFormPredicate" ;
+    rdfs:comment "The predicate component of a proposition form. Reserved for basic encoding of propositions." ;
+    rdfs:domain rdf:PropositionForm ;
+    rdfs:isDefinedBy rdf: ;
+    rdfs:range rdf:Property ;
+    rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
 
-rdf:version-1.2 a rdfs:Resource ;
-    rdfs:label "1.2" ;
-    rdfs:comment "Version 1.2." ;
-    rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-    .
+rdf:propositionFormSubject a rdf:Property ;
+    rdfs:label "propositionFormSubject" ;
+    rdfs:comment "The subject component of a proposition form. Reserved for basic encoding of propositions." ;
+    rdfs:domain rdf:PropositionForm ;
+    rdfs:isDefinedBy rdf: ;
+    rdfs:range rdfs:Resource ;
+    rdfs:seeAlso <https://www.w3.org/TR/rdf12-interop/> .
 
-rdf:version-1.2-basic a rdfs:Resource ;
-    rdfs:label "1.2-basic" ;
-    rdfs:comment "Version 1.2-basic" ;
-    rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-    .
-
-rdf:version-1.1 a rdfs:Resource ;
-    rdfs:label "1.1" ;
-    rdfs:comment "Version 1.1" ;
-    rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-    .
+rdf:reifies a rdf:Property ;
+    rdfs:label "reifies" ;
+    rdfs:comment "The abstract proposition of a more concrete circumstance." ;
+    rdfs:domain rdfs:Resource ;
+    rdfs:isDefinedBy rdf: ;
+    rdfs:range rdfs:Proposition .
 
 rdf:version-1.0 a rdfs:Resource ;
     rdfs:label "1.0" ;
     rdfs:comment "Version 1.0" ;
-    rdfs:isDefinedBy <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
-    .
+    rdfs:isDefinedBy rdf: .
+
+rdf:version-1.1 a rdfs:Resource ;
+    rdfs:label "1.1" ;
+    rdfs:comment "Version 1.1" ;
+    rdfs:isDefinedBy rdf: .
+
+rdf:version-1.2 a rdfs:Resource ;
+    rdfs:label "1.2" ;
+    rdfs:comment "Version 1.2." ;
+    rdfs:isDefinedBy rdf: .
+
+rdf:version-1.2-basic a rdfs:Resource ;
+    rdfs:label "1.2-basic" ;
+    rdfs:comment "Version 1.2-basic" ;
+    rdfs:isDefinedBy rdf: .
+

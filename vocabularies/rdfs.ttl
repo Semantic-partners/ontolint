@@ -1,21 +1,15 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
 
 <http://www.w3.org/2000/01/rdf-schema#> a owl:Ontology ;
-	dcterms:title "The RDF Schema vocabulary (RDFS)" .
+	dc:title "The RDF Schema vocabulary (RDFS)" .
 
 rdfs:Resource a rdfs:Class ;
 	rdfs:isDefinedBy <http://www.w3.org/2000/01/rdf-schema#> ;
 	rdfs:label "Resource" ;
 	rdfs:comment "The class resource, everything." .
-
-rdfs:Proposition a rdfs:Class ;
-	rdfs:isDefinedBy <http://www.w3.org/2000/01/rdf-schema#> ;
-	rdfs:label "Proposition" ;
-	rdfs:comment "The class of propositions, simple logical expressions describing a relationship between two entities." ;
-	rdfs:subClassOf rdfs:Resource .
 
 rdfs:Class a rdfs:Class ;
 	rdfs:isDefinedBy <http://www.w3.org/2000/01/rdf-schema#> ;
@@ -110,3 +104,18 @@ rdfs:Datatype a rdfs:Class ;
 	rdfs:label "Datatype" ;
 	rdfs:comment "The class of RDF datatypes." ;
 	rdfs:subClassOf rdfs:Class .
+
+<http://www.w3.org/2000/01/rdf-schema#> rdfs:seeAlso <http://www.w3.org/2000/01/rdf-schema-more> .
+
+# ---------------------------------------------------------------------------
+# Added for ontolint: rdfs:Proposition, the RDF 1.2 term not yet in the published
+# namespace document above (RDF 1.2 Concepts / Semantics).
+# ---------------------------------------------------------------------------
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+rdfs:Proposition a rdfs:Class ;
+    rdfs:label "Proposition" ;
+    rdfs:comment "The class of propositions, simple logical expressions describing a relationship between two entities." ;
+    rdfs:isDefinedBy rdfs: ;
+    rdfs:subClassOf rdfs:Resource .
+
