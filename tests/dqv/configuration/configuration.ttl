@@ -8,7 +8,7 @@
 
 : a owl:Ontology ;
     rdfs:label "Configuration" ;
-    rdfs:comment "An ontology that passes every ontolint check." ;
+    rdfs:comment "An ontology that passes every ontolint check except one: the class Cat has no description." ;
     rdfs:seeAlso <https://example.org/docs/configuration> .
 
 :Animal a owl:Class ; rdfs:label "Animal" ; rdfs:comment "A living creature." .

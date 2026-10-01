@@ -14,7 +14,8 @@
 # A small extension to the W3C Data Quality Vocabulary (DQV) and SHACL, covering only
 # what they don't: ontolint's DQV report uses DQV for metrics, dimensions and
 # measurements, and SHACL sh:ValidationResult nodes for individual violations. The
-# terms below link the two and carry ontolint's pass/fail and severity.
+# terms below link the two and carry ontolint's pass/fail and severity, and describe
+# the effective configuration a run used: each setting, its origin and why.
 #
 # This file defines vocabulary only. Instance data (metrics, dimensions, measurements,
 # violations, assessments) is minted under the report's --base-uri, never under olq:.
@@ -22,10 +23,10 @@
 olq: a owl:Ontology ;
     rdfs:label "Ontolint quality vocabulary"@en ;
     dcterms:title "Ontolint quality vocabulary"@en ;
-    rdfs:comment "Terms used by ontolint's DQV quality report that are not covered by the W3C Data Quality Vocabulary (DQV) or SHACL: whether a measurement conforms, its severity, the SHACL validation results behind it, and other resources involved in a violation."@en ;
+    rdfs:comment "Terms used by ontolint's DQV quality report that are not covered by the W3C Data Quality Vocabulary (DQV) or SHACL: whether a measurement conforms, its severity, the SHACL validation results behind it, other resources involved in a violation, and the effective configuration of the run (its settings, where each came from and why)."@en ;
     dcterms:creator "Semantic Partners" ;
     dcterms:license <https://opensource.org/licenses/MIT>, <https://www.apache.org/licenses/LICENSE-2.0> ;
-    dcterms:modified "2026-09-29"^^xsd:date ;
+    dcterms:modified "2026-10-01"^^xsd:date ;
     owl:versionInfo "0.1.0" ;
     vann:preferredNamespacePrefix "olq" ;
     vann:preferredNamespaceUri "https://ontolint.org/ns#" ;
