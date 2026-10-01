@@ -5,7 +5,7 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
 import pytest
 
-from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST
+from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST, deepcopy_list, lint_selection
 from scripts.dqv import (
     build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
     DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
@@ -444,4 +444,77 @@ def test_non_unique_identifier_comment_is_sorted(make_graph):
     comment = check.violations[0].comment
     declared = comment.removeprefix("declared as ").split(", ")
     assert declared == sorted(declared)
+
+
+# ── effective configuration ───────────────────────────────────────────────────
+
+def _configuration(dqv):
+    assessment = dqv.value(predicate=RDF.type, object=DQV.QualityMetadata, any=False)
+    configs = list(dqv.objects(assessment, OLQ.configuration))
+    assert len(configs) == 1
+    return configs[0]
+
+
+def _settings(dqv, config, key):
+    return [s for s in dqv.objects(config, OLQ.setting) if str(dqv.value(s, OLQ.key)) == key]
+
+
+def test_configuration_without_config_file_shows_defaults_and_bundled(make_graph):
+    dqv = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."))], timestamp=TS)
+    config = _configuration(dqv)
+    assert dqv.value(config, OLQ.configurationFile) is None
+    checks = _settings(dqv, config, "checks")
+    assert len(checks) == len(CHECKLIST)
+    assert {dqv.value(s, OLQ.origin) for s in checks} == {OLQ.OntolintDefault}
+    assert all(dqv.value(s, OLQ.enabled) == Literal(True) for s in checks)
+    bundled = _settings(dqv, config, "imports.local")
+    assert bundled and {dqv.value(s, OLQ.origin) for s in bundled} == {OLQ.BundledVocabulary}
+    skos = next(s for s in bundled if dqv.value(s, OLQ.value) == URIRef("http://www.w3.org/2004/02/skos/core#"))
+    assert dqv.value(skos, PROV.wasDerivedFrom) == URIRef("https://ontolint.org/vocabulary-skos")
+    assert dqv.value(skos, OLQ.localFile) == Literal("skos.ttl")
+    assert {dqv.value(s, OLQ.origin) for s in _settings(dqv, config, "undefined-terms.skip-object-of")} == {OLQ.OntolintDefault}
+
+
+def test_configuration_records_origin_and_reason_of_each_setting(make_graph, tmp_path):
+    override = tmp_path / "skos-custom.ttl"
+    override.write_text("@prefix skos: <http://www.w3.org/2004/02/skos/core#> . skos:x a skos:Concept .")
+    config_file = str(tmp_path / ".rdf-lint.yml")
+    lint_config = {"disable": ["check_owl_declaration", "check_hijacking"]}
+    rule_reasons = {}
+    checklist, _ = lint_selection(lint_config, deepcopy_list(CHECKLIST), rule_reasons)
+    result = _qa(make_graph(": a owl:Ontology ."), checklist=checklist, lint_config=lint_config,
+                 rule_reasons=rule_reasons, config_file=config_file,
+                 ignore_imports=["http://example.org/vendor/ns#"],
+                 local_imports={"http://www.w3.org/2004/02/skos/core": str(override)},
+                 skip_object_of=["http://www.w3.org/2000/01/rdf-schema#seeAlso"])
+    dqv = build_dqv_graph([result], timestamp=TS)
+    config = _configuration(dqv)
+    assert dqv.value(config, OLQ.configurationFile) == Literal(config_file)
+
+    def check(slug):
+        return next(s for s in _settings(dqv, config, "checks") if dqv.value(s, OLQ.value) == _metric(slug))
+    hijacking = check("namespace-hijacking")
+    assert (dqv.value(hijacking, OLQ.origin), dqv.value(hijacking, OLQ.enabled)) == (OLQ.ConfigFile, Literal(False))
+    declaration = check("ontology-not-declared")  # disabled in config, re-enabled by a rule
+    assert (dqv.value(declaration, OLQ.origin), dqv.value(declaration, OLQ.enabled)) == (OLQ.OntolintRule, Literal(True))
+    assert "depends on it" in str(dqv.value(declaration, RDFS.comment))
+    assert dqv.value(check("classes-missing-label"), OLQ.origin) == OLQ.OntolintDefault
+
+    [ignored] = _settings(dqv, config, "imports.ignore")
+    assert dqv.value(ignored, OLQ.origin) == OLQ.ConfigFile
+    local = _settings(dqv, config, "imports.local")
+    skos = [s for s in local if "skos/core" in str(dqv.value(s, OLQ.value))]
+    assert len(skos) == 1  # the project's entry replaces the bundled one
+    assert dqv.value(skos[0], OLQ.origin) == OLQ.ConfigFile
+    assert dqv.value(skos[0], OLQ.localFile) == Literal("skos-custom.ttl")  # relative to the config file
+    assert dqv.value(skos[0], PROV.wasDerivedFrom) == URIRef("https://ontolint.org/vocabulary-skos")
+    assert "overrides the bundled vocabulary" in str(dqv.value(skos[0], RDFS.comment))
+    skip = _settings(dqv, config, "undefined-terms.skip-object-of")
+    assert [(dqv.value(s, OLQ.value), dqv.value(s, OLQ.origin)) for s in skip] == [(RDFS.seeAlso, OLQ.ConfigFile)]
+
+
+def test_per_file_runs_with_same_configuration_share_one_node(make_graph):
+    g = make_graph(": a owl:Ontology .")
+    dqv = build_dqv_graph([_qa(g, files_processed=["a.ttl"]), _qa(g, files_processed=["b.ttl"])], timestamp=TS)
+    assert len(list(dqv.subjects(RDF.type, OLQ.Configuration))) == 1
 

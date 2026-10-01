@@ -29,6 +29,26 @@ class Violation:
 
 
 @dataclass
+class ConfigSetting:
+    """
+    One setting of the configuration a QA run actually used, with where it came from.
+
+    key:    the .rdf-lint.yml path it corresponds to, e.g. 'checks', 'imports.local'.
+    value:  the IRI or value; for 'checks', the CHECKLIST key of the check.
+    origin: 'config' (the .rdf-lint.yml file), 'default' (an ontolint default),
+            'bundled' (a vocabulary bundled with ontolint) or 'rule' (added by an ontolint rule).
+    """
+    key: str
+    value: object
+    origin: str
+    reason: str | None = None
+    enabled: bool | None = None       # for 'checks'
+    local_file: str | None = None     # for 'imports.local'
+    derived_from: str | None = None   # e.g. the catalog dataset of a bundled vocabulary
+    label: str | None = None          # for 'checks', the check's display name
+
+
+@dataclass
 class Dataset:
     """A dataset QA was computed on: an owl:Ontology IRI, or a file IRI as fallback."""
     iri: str
@@ -174,6 +194,62 @@ def _report_timestamp():
     return datetime.now(timezone.utc)
 
 
+# ConfigSetting.origin -> olq:SettingOrigin individual (defined in ontology/olq.ttl)
+SETTING_ORIGINS = {
+    'config':  OLQ.ConfigFile,
+    'default': OLQ.OntolintDefault,
+    'bundled': OLQ.BundledVocabulary,
+    'rule':    OLQ.OntolintRule,
+}
+
+
+def _setting_value(base, setting):
+    if setting.key == 'checks':
+        return metric_iri(base, DQV_METRICS[setting.value][0])
+    value = str(setting.value)
+    return rdflib.URIRef(value) if _ABSOLUTE_IRI.match(value) else rdflib.Literal(value)
+
+
+def _add_configuration(g, base, settings, config_file=None):
+    """
+    The configuration a run actually used, as an olq:Configuration of olq:Settings. Each
+    setting records the .rdf-lint.yml key it corresponds to, its value, its origin (the
+    config file, an ontolint default, a bundled vocabulary or an ontolint rule) and why.
+    Identical configurations get the same IRI.
+    """
+    # Describe every check's metric, including disabled checks that never ran.
+    for s in settings:
+        if s.key == 'checks':
+            slug, definition, dimension, severity = DQV_METRICS[s.value]
+            _add_metric(g, base, slug, s.label or slug, definition, dimension, severity)
+    signature = sorted(f"{s.key}|{_setting_value(base, s)}|{s.origin}|{s.enabled}|{s.local_file}" for s in settings)
+    configuration = _mint(base, 'configuration', config_file or '', *signature)
+    g.add((configuration, rdflib.RDF.type, OLQ.Configuration))
+    g.add((configuration, rdflib.RDFS.label, rdflib.Literal("Effective ontolint configuration")))
+    if config_file:
+        g.add((configuration, OLQ.configurationFile, rdflib.Literal(config_file)))
+    for s in settings:
+        value = _setting_value(base, s)
+        node = _mint(base, 'setting', configuration, s.key, value, s.origin, s.enabled, s.local_file or '')
+        g.add((configuration, OLQ.setting, node))
+        g.add((node, rdflib.RDF.type, OLQ.Setting))
+        shown = s.label if s.key == 'checks' and s.label else value
+        label = f"{s.key}: {shown}" + ("" if s.enabled is None else (" (enabled)" if s.enabled else " (disabled)"))
+        g.add((node, rdflib.RDFS.label, rdflib.Literal(label)))
+        g.add((node, OLQ.key, rdflib.Literal(s.key)))
+        g.add((node, OLQ.value, value))
+        g.add((node, OLQ.origin, SETTING_ORIGINS[s.origin]))
+        if s.enabled is not None:
+            g.add((node, OLQ.enabled, rdflib.Literal(s.enabled)))
+        if s.local_file:
+            g.add((node, OLQ.localFile, rdflib.Literal(s.local_file)))
+        if s.derived_from:
+            g.add((node, PROV.wasDerivedFrom, rdflib.URIRef(s.derived_from)))
+        if s.reason:
+            g.add((node, rdflib.RDFS.comment, rdflib.Literal(s.reason)))
+    return configuration
+
+
 def build_dqv_graph(results, base_uri=None, timestamp=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
@@ -205,6 +281,10 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     assessment = _mint(base, 'assessment', stamp, *run_files)
     g.add((assessment, rdflib.RDF.type, DQV.QualityMetadata))
     g.add((assessment, PROV.generatedAtTime, rdflib.Literal(stamp, datatype=rdflib.XSD.dateTime)))
+    for result in results:
+        if result.settings:
+            configuration = _add_configuration(g, base, result.settings, result.config_file)
+            g.add((assessment, OLQ.configuration, configuration))
 
     slug, label, definition, dimension = DQV_ROLLUP_METRIC
     rollup = _add_metric(g, base, slug, label, definition, dimension)

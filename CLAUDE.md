@@ -112,7 +112,7 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 - the metric and dimension catalogue (`DQV_METRICS`, `DQV_DIMENSIONS`);
 - `build_dqv_graph()` / `write_dqv_report()`, IRI minting under the base URI, and blank-node skolemization (`canonical_bnode_labels()`).
 
-`ontology_qa.py` imports it as `dqv` (`from scripts import dqv`, falling back to `import dqv` when run as a script, since `scripts/` is then on `sys.path`). The CLI flags and `_write_dqv()` stay in `ontology_qa.py`. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
+`ontology_qa.py` imports it as `dqv` (`from scripts import dqv`, falling back to `import dqv` when run as a script, since `scripts/` is then on `sys.path`). The CLI flags and `_write_dqv()` stay in `ontology_qa.py`. The report also records the effective configuration: `describe_configuration()` in `ontology_qa.py` builds `dqv.ConfigSetting` records (key, value, origin, reason) from the checklist, the parsed `.rdf-lint.yml` and the ontolint defaults and bundled vocabularies. `run_qa()` stores them on `QAResult.settings`, and `dqv._add_configuration()` writes them as an `olq:Configuration`. `lint_selection(..., rule_reasons)` records why a rule changed a check. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
 
 ### Bundled vocabularies
 

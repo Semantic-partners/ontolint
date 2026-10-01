@@ -71,6 +71,8 @@ class QAResult:
     logs: list = field(default_factory=list)
     datasets: list = field(default_factory=list)
     bnode_keys: dict = field(default_factory=dict)  # BNode -> canonical label, for skolemizing
+    settings: list = field(default_factory=list)    # dqv.ConfigSetting: the configuration that ran
+    config_file: str | None = None
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -160,6 +162,14 @@ def bundled_vocabularies():
                              "and a dcat:distribution with a dcat:downloadURL")
         vocabularies[str(namespace)] = str(Path(url2pathname(urlparse(str(url)).path)).resolve())
     return vocabularies
+
+
+@lru_cache(maxsize=1)
+def bundled_datasets():
+    """{namespace: catalog dcat:Dataset IRI} for every vocabulary in VOCAB_CATALOG."""
+    catalog = rdflib.Graph().parse(VOCAB_CATALOG, format='turtle')
+    return {str(catalog.value(d, rdflib.VANN.preferredNamespaceUri)): str(d)
+            for d in catalog.subjects(rdflib.RDF.type, rdflib.DCAT.Dataset)}
 
 
 def merge_local_imports(local_imports=None):
@@ -2419,7 +2429,7 @@ def parse_lint_config(config):
 
     return transformed_selection, ignore_imports, local_imports, exclude_types, skip_object_of
 
-def lint_selection(selection, checklist):
+def lint_selection(selection, checklist, rule_reasons=None):
         """
         Disable the tests that are not included in the 'enable' list or that are included in the 'disable' list.
         The 'enable' and 'disable' keys are mutually exclusive. If both are specified in the configuration file,
@@ -2468,11 +2478,15 @@ def lint_selection(selection, checklist):
         if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
             checklist[index_owl_declaration][0] = True
             log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
+            if rule_reasons is not None:
+                rule_reasons['ontologyNotDeclared'] = "Enabled because the ontology-description check was selected and depends on it."
         
         # 2. Enable owl-declaration if only owl-imports is enabled.
         if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
             checklist[index_owl_declaration][0] = True
             log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
+            if rule_reasons is not None:
+                rule_reasons['ontologyNotDeclared'] = "Enabled because the owl-imports check was selected and depends on it."
         return checklist, log
 
 CHECKLIST = [
@@ -2523,13 +2537,92 @@ TYPE_EXCLUDABLE_CHECKS = (
     check_untyped_class,
 )
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None) -> QAResult:
+def _config_check_name(func, key):
+    """The name a check has in .rdf-lint.yml enable/disable lists (e.g. 'class-missing-label')."""
+    if key == 'missingDomain':
+        return 'property-missing-domain'
+    if key == 'missingRange':
+        return 'property-missing-range'
+    return func.__name__.removeprefix('check_').replace('_', '-')
+
+
+def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignore_imports=None,
+                           local_imports=None, exclude_types=None, skip_object_of=None, config_file=None):
+    """
+    The configuration a run actually uses, as dqv.ConfigSetting records. Each records the
+    .rdf-lint.yml key it corresponds to and where it came from: the config file, an
+    ontolint default (e.g. a check enabled by default, the default skip-object-of list),
+    a vocabulary bundled with ontolint (imports.local), or an ontolint rule (a check
+    enabled because another depends on it). local_imports is the project's own mapping,
+    before the bundled vocabularies are merged in.
+    """
+    selection = lint_config or {}
+    rule_reasons = rule_reasons or {}
+    settings = []
+
+    for enabled, func, display_name, key in checklist:
+        # enable:/disable: lists hold names as check_<name>, see parse_lint_config.
+        config_name = f"check_{_config_check_name(func, key).replace('-', '_')}"
+        if key in rule_reasons:
+            origin, reason = 'rule', rule_reasons[key]
+        elif isinstance(selection.get('enable'), list):
+            origin = 'config'
+            reason = ("Listed under enable:" if config_name in selection['enable']
+                      else "Not listed under enable:, so not run")
+        elif isinstance(selection.get('disable'), list) and config_name in selection['disable']:
+            origin, reason = 'config', "Listed under disable:"
+        else:
+            origin, reason = 'default', "Enabled by default"
+        settings.append(dqv.ConfigSetting('checks', key, origin, reason, enabled=bool(enabled), label=display_name))
+
+    for iri in ignore_imports or []:
+        settings.append(dqv.ConfigSetting('imports.ignore', iri, 'config',
+                                          "Trusted: never fetched or reported, and not resolved as an import"))
+
+    config_dir = os.path.dirname(os.path.abspath(config_file)) if config_file else None
+    user_local = {iri_key(k): (k, v) for k, v in (local_imports or {}).items()}
+    datasets = bundled_datasets()
+    bundled_by_key = {iri_key(ns): ns for ns in bundled_vocabularies()}
+    for k, (iri, path) in user_local.items():
+        shown = os.path.relpath(path, config_dir) if config_dir else path
+        overrides = bundled_by_key.get(k)
+        reason = ("Resolved from a local file instead of the network; overrides the bundled vocabulary"
+                  if overrides else "Resolved from a local file instead of the network")
+        settings.append(dqv.ConfigSetting('imports.local', iri, 'config', reason, local_file=shown,
+                                          derived_from=datasets.get(overrides) if overrides else None))
+    for ns, path in bundled_vocabularies().items():
+        if iri_key(ns) not in user_local:
+            settings.append(dqv.ConfigSetting('imports.local', ns, 'bundled',
+                                              "Bundled with ontolint; resolved offline",
+                                              local_file=os.path.basename(path), derived_from=datasets.get(ns)))
+
+    for t in exclude_types or []:
+        settings.append(dqv.ConfigSetting('exclude.types', t, 'config',
+                                          "Instances are skipped by the class checks"))
+
+    if skip_object_of is not None:
+        for p in skip_object_of:
+            settings.append(dqv.ConfigSetting('undefined-terms.skip-object-of', p, 'config',
+                                              "Objects of this property are not checked as terms"))
+    else:
+        for p in DEFAULT_SKIP_OBJECT_OF:
+            settings.append(dqv.ConfigSetting('undefined-terms.skip-object-of', expand_curie(p, allow_wildcard=True),
+                                              'default', "ontolint default; undefined-terms.skip-object-of is not set"))
+    return settings
+
+
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None, lint_config: dict | None = None, rule_reasons: dict | None = None, config_file: str | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Returns structured pass/fail results — no file I/O, no arg parsing.
+
+    lint_config, rule_reasons and config_file describe where the configuration came from
+    (see describe_configuration); they don't change what runs.
     """
     if checklist is None:
         checklist = deepcopy_list(CHECKLIST)
+    settings = describe_configuration(checklist, lint_config, rule_reasons, ignore_imports,
+                                      local_imports, exclude_types, skip_object_of, config_file)
     # Bundled vocabularies resolve offline unless the project maps the namespace itself.
     local_imports = merge_local_imports(local_imports)
 
@@ -2594,6 +2687,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         logs=logs,
         datasets=dqv.datasets_for(graph, qa_metrics),
         bnode_keys=dqv.canonical_bnode_labels(graph, dqv.violation_bnodes(checks)),
+        settings=settings,
+        config_file=config_file,
     )
 
 def write_lint_config(checklist):
@@ -2666,7 +2761,13 @@ def write_lint_config(checklist):
 #     - dcterms:license
         """)
 
-def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None, skip_object_of=None):
+def _display_path(path):
+    """A path as shown in reports: relative to the working directory when inside it."""
+    relative = os.path.relpath(os.path.abspath(path))
+    return path if relative.startswith('..') else relative
+
+
+def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None, skip_object_of=None, provenance=None):
     """
     Run inference (if requested), then profiling or full QA on an already-loaded graph.
     Returns (log_str, QAResult|None) — None in profile-only mode.
@@ -2694,7 +2795,7 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
         log += print_profiling_table(qa_metrics)
         return log, None
 
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types, skip_object_of=skip_object_of)
+    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types, skip_object_of=skip_object_of, **(provenance or {}))
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
     log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
@@ -2759,12 +2860,17 @@ def main():
     exclude_types = []
     skip_object_of = None
     config_log = ""
+    # Where the configuration came from, recorded in the DQV report (describe_configuration).
+    provenance = {}
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
         lint_config, ignore_imports, local_imports, exclude_types, skip_object_of = parse_lint_config(config_path)
-        checklist, config_log = lint_selection(lint_config, checklist)
+        rule_reasons = {}
+        checklist, config_log = lint_selection(lint_config, checklist, rule_reasons)
+        provenance = {'lint_config': lint_config, 'rule_reasons': rule_reasons,
+                      'config_file': _display_path(config_path)}
         if exclude_types:
             config_log += "> Class checks skip resources typed as: " + ", ".join(f"`{t}`" for t in exclude_types) + "\n"
 
@@ -2794,7 +2900,7 @@ def main():
             for f in files_processed:
                 log_output += f"> - `{f}`\n"
             log_output += ">\n"
-            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of)
+            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of, provenance)
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
@@ -2835,7 +2941,7 @@ def main():
     if config_log:
         log_output += config_log
 
-    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of)
+    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of, provenance)
     log_output += qa_log
 
     if result is not None:

@@ -1,9 +1,20 @@
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcam: <http://purl.org/dc/dcam/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcmitype: <http://purl.org/dc/dcmitype/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix olq: <https://ontolint.org/ns#> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <https://example.org/qa#assessment-1ee0426c81e8718b> a dqv:QualityMetadata ;
@@ -11,7 +22,103 @@
         <https://example.org/qa#measurement-49222cb471c57bee>,
         <https://example.org/qa#measurement-a5eecc56630dc1c0>,
         <https://example.org/qa#measurement-b294fb257c8aa8fe> ;
-    prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
+    prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime ;
+    olq:configuration <https://example.org/qa#configuration-b16de03beb3acae1> .
+
+<https://example.org/qa#configuration-b16de03beb3acae1> a olq:Configuration ;
+    rdfs:label "Effective ontolint configuration" ;
+    olq:configurationFile ".rdf-lint.yml" ;
+    olq:setting <https://example.org/qa#setting-013840f41f12101c>,
+        <https://example.org/qa#setting-0d7d6a3bacbccbe5>,
+        <https://example.org/qa#setting-0db7b30a24302741>,
+        <https://example.org/qa#setting-0e4d17a9b9d62989>,
+        <https://example.org/qa#setting-0e647aa32b212024>,
+        <https://example.org/qa#setting-0f12e1fe46779be8>,
+        <https://example.org/qa#setting-1d9b9274e76e99ef>,
+        <https://example.org/qa#setting-24d081e2a047b064>,
+        <https://example.org/qa#setting-25f1e77977f925bf>,
+        <https://example.org/qa#setting-2b2d2061546e4ce1>,
+        <https://example.org/qa#setting-338dff9b4a894ead>,
+        <https://example.org/qa#setting-373ade5c17f77188>,
+        <https://example.org/qa#setting-3a1e24acbcbbe3ce>,
+        <https://example.org/qa#setting-3d7cd7974378beb8>,
+        <https://example.org/qa#setting-3d86fa6c18c62ba8>,
+        <https://example.org/qa#setting-44a0be5f945a05e1>,
+        <https://example.org/qa#setting-44dc436991ade0bb>,
+        <https://example.org/qa#setting-466b307121a7fa18>,
+        <https://example.org/qa#setting-56ba6b38129aa411>,
+        <https://example.org/qa#setting-576b415d204917cc>,
+        <https://example.org/qa#setting-5ef0a8517c777ce9>,
+        <https://example.org/qa#setting-606038c5a829dcc3>,
+        <https://example.org/qa#setting-612a80e96fbb43d0>,
+        <https://example.org/qa#setting-61ae81ffbe55b5a8>,
+        <https://example.org/qa#setting-6319c915f0d438b9>,
+        <https://example.org/qa#setting-64a3d17e780bb19d>,
+        <https://example.org/qa#setting-78b34eabc776e9af>,
+        <https://example.org/qa#setting-88c4ee2069d20e71>,
+        <https://example.org/qa#setting-8cf0eaa906f6f105>,
+        <https://example.org/qa#setting-8e830e6039c331ac>,
+        <https://example.org/qa#setting-92fc981473d52ab0>,
+        <https://example.org/qa#setting-969a14e739de17fe>,
+        <https://example.org/qa#setting-99c3ddb6df48a117>,
+        <https://example.org/qa#setting-acffffdd1492bb60>,
+        <https://example.org/qa#setting-b5054f7364f1bd02>,
+        <https://example.org/qa#setting-b7259ec19f27be93>,
+        <https://example.org/qa#setting-bc8c2c87ba2223f1>,
+        <https://example.org/qa#setting-be9e79830d973ce6>,
+        <https://example.org/qa#setting-c12203966b7a0b50>,
+        <https://example.org/qa#setting-c30b209ad1c144ea>,
+        <https://example.org/qa#setting-c506bcc791f59303>,
+        <https://example.org/qa#setting-c526ed5de7984516>,
+        <https://example.org/qa#setting-c83db6899495c21a>,
+        <https://example.org/qa#setting-ca8421fb5bf6b1e1>,
+        <https://example.org/qa#setting-d23aeb8883689603>,
+        <https://example.org/qa#setting-d321300db51985c0>,
+        <https://example.org/qa#setting-d51e69c32cd476c7>,
+        <https://example.org/qa#setting-e436366d216e8da3>,
+        <https://example.org/qa#setting-e77a66f09c42488f>,
+        <https://example.org/qa#setting-e876042b19b3a944>,
+        <https://example.org/qa#setting-eb1a15f97ea5cc33>,
+        <https://example.org/qa#setting-ef60e714969ae2a0>,
+        <https://example.org/qa#setting-ef8e9ac18574dc6d>,
+        <https://example.org/qa#setting-f1637d6e59ae2357>,
+        <https://example.org/qa#setting-f807b818c3a9d406>,
+        <https://example.org/qa#setting-f93ad829de4376d8>,
+        <https://example.org/qa#setting-f9eb730e5bcb1bf8>,
+        <https://example.org/qa#setting-fb7a0d6c83ecc52c> .
+
+<https://example.org/qa#measurement-12f958f827174870> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/activities#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-unresolvable-imports> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-ad21af15beffcfa5> .
+
+<https://example.org/qa#measurement-49222cb471c57bee> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/activities#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-ce3d6efdd674b78f> .
+
+<https://example.org/qa#measurement-a5eecc56630dc1c0> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/activities#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 3 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-b294fb257c8aa8fe> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/activities#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-same-label> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-4a1784706780b4a2>,
+        <https://example.org/qa#violation-77c7327871f485c1>,
+        <https://example.org/qa#violation-c7cd9413e01aba0d>,
+        <https://example.org/qa#violation-fc15344c2058bd12> .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -75,6 +182,12 @@
     skos:prefLabel "Non-unique identifiers" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
+
+<https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
+    rdfs:label "Ontolint conformance" ;
+    skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
+    skos:prefLabel "Ontolint conformance" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> .
 
 <https://example.org/qa#metric-ontology-missing-description> a dqv:Metric ;
     rdfs:label "Ontology without description" ;
@@ -160,65 +273,475 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#measurement-12f958f827174870> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/activities#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-unresolvable-imports> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-ad21af15beffcfa5> .
+<https://example.org/qa#setting-013840f41f12101c> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2003/06/sw-vocab-status/ns#*" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#*> .
 
-<https://example.org/qa#measurement-49222cb471c57bee> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/activities#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-ce3d6efdd674b78f> .
+<https://example.org/qa#setting-0d7d6a3bacbccbe5> a olq:Setting ;
+    rdfs:label "checks: Property without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-description> .
 
-<https://example.org/qa#measurement-a5eecc56630dc1c0> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/activities#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 3 ;
-    olq:conforms false .
+<https://example.org/qa#setting-0db7b30a24302741> a olq:Setting ;
+    rdfs:label "checks: Ontology without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-ontology-missing-description> .
 
-<https://example.org/qa#measurement-b294fb257c8aa8fe> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/activities#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-properties-same-label> ;
-    dqv:value 2 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-4a1784706780b4a2>,
-        <https://example.org/qa#violation-77c7327871f485c1>,
-        <https://example.org/qa#violation-c7cd9413e01aba0d>,
-        <https://example.org/qa#violation-fc15344c2058bd12> .
+<https://example.org/qa#setting-0e4d17a9b9d62989> a olq:Setting ;
+    rdfs:label "checks: NodeShape without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-node-shapes-missing-description> .
 
-<https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
-    rdfs:label "Ontolint conformance" ;
-    skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
-    skos:prefLabel "Ontolint conformance" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> .
+<https://example.org/qa#setting-0e647aa32b212024> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/terms/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcterms> ;
+    olq:key "imports.local" ;
+    olq:localFile "dcterms.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcterms: .
 
-<https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
-    rdfs:label "Properties with the same label" ;
-    skos:definition "Two or more properties share a label in the same language." ;
-    skos:prefLabel "Properties with the same label" ;
-    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
-    olq:severity sh:Violation .
+<https://example.org/qa#setting-0f12e1fe46779be8> a olq:Setting ;
+    rdfs:label "checks: Class without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-classes-missing-description> .
 
-<https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
-    rdfs:label "Undefined terms" ;
-    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
-    skos:prefLabel "Undefined terms" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:severity sh:Violation .
+<https://example.org/qa#setting-1d9b9274e76e99ef> a olq:Setting ;
+    rdfs:label "checks: Untyped Classes (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-untyped-classes> .
 
-<https://example.org/qa#metric-unresolvable-imports> a dqv:Metric ;
-    rdfs:label "Unresolvable imports" ;
-    skos:definition "An owl:imports target could not be resolved or contains no triples." ;
-    skos:prefLabel "Unresolvable imports" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:severity sh:Violation .
+<https://example.org/qa#setting-24d081e2a047b064> a olq:Setting ;
+    rdfs:label "checks: Classes with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-classes-same-label> .
+
+<https://example.org/qa#setting-25f1e77977f925bf> a olq:Setting ;
+    rdfs:label "checks: Untyped Properties (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-untyped-properties> .
+
+<https://example.org/qa#setting-2b2d2061546e4ce1> a olq:Setting ;
+    rdfs:label "imports.local: https://example.org/ontology/" ;
+    rdfs:comment "Resolved from a local file instead of the network" ;
+    olq:key "imports.local" ;
+    olq:localFile "does-not-exist.ttl" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/ontology/> .
+
+<https://example.org/qa#setting-338dff9b4a894ead> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://xmlns.com/foaf/0.1/page" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value foaf:page .
+
+<https://example.org/qa#setting-373ade5c17f77188> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/dcat#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcat3> ;
+    olq:key "imports.local" ;
+    olq:localFile "dcat3.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcat: .
+
+<https://example.org/qa#setting-3a1e24acbcbbe3ce> a olq:Setting ;
+    rdfs:label "imports.local: http://schema.org/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-schema-http> ;
+    olq:key "imports.local" ;
+    olq:localFile "schema.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value <http://schema.org/> .
+
+<https://example.org/qa#setting-3d7cd7974378beb8> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/license" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value dcterms:license .
+
+<https://example.org/qa#setting-3d86fa6c18c62ba8> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://xmlns.com/foaf/0.1/homepage" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value foaf:homepage .
+
+<https://example.org/qa#setting-44a0be5f945a05e1> a olq:Setting ;
+    rdfs:label "checks: NodeShapes with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-node-shapes-same-label> .
+
+<https://example.org/qa#setting-44dc436991ade0bb> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/org#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-org> ;
+    olq:key "imports.local" ;
+    olq:localFile "org.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value org: .
+
+<https://example.org/qa#setting-466b307121a7fa18> a olq:Setting ;
+    rdfs:label "checks: Unresolvable imports (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-unresolvable-imports> .
+
+<https://example.org/qa#setting-56ba6b38129aa411> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/relation" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value dcterms:relation .
+
+<https://example.org/qa#setting-576b415d204917cc> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#isDefinedBy" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value rdfs:isDefinedBy .
+
+<https://example.org/qa#setting-5ef0a8517c777ce9> a olq:Setting ;
+    rdfs:label "checks: Undefined terms (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-undefined-terms> .
+
+<https://example.org/qa#setting-606038c5a829dcc3> a olq:Setting ;
+    rdfs:label "checks: Isolated classes (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-isolated-classes> .
+
+<https://example.org/qa#setting-612a80e96fbb43d0> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/dcmitype/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dctype> ;
+    olq:key "imports.local" ;
+    olq:localFile "dctype.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcmitype: .
+
+<https://example.org/qa#setting-61ae81ffbe55b5a8> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2004/02/skos/core#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-skos> ;
+    olq:key "imports.local" ;
+    olq:localFile "skos.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value skos: .
+
+<https://example.org/qa#setting-6319c915f0d438b9> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2003/06/sw-vocab-status/ns#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vs> ;
+    olq:key "imports.local" ;
+    olq:localFile "vs.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+
+<https://example.org/qa#setting-64a3d17e780bb19d> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/vocab/vann/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vann> ;
+    olq:key "imports.local" ;
+    olq:localFile "vann.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value vann: .
+
+<https://example.org/qa#setting-78b34eabc776e9af> a olq:Setting ;
+    rdfs:label "checks: Property without range (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-range> .
+
+<https://example.org/qa#setting-88c4ee2069d20e71> a olq:Setting ;
+    rdfs:label "checks: Property without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-label> .
+
+<https://example.org/qa#setting-8cf0eaa906f6f105> a olq:Setting ;
+    rdfs:label "checks: PropertyShape without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-property-shapes-missing-label> .
+
+<https://example.org/qa#setting-8e830e6039c331ac> a olq:Setting ;
+    rdfs:label "checks: Properties with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-same-label> .
+
+<https://example.org/qa#setting-92fc981473d52ab0> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2006/vcard/ns#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-vcard> ;
+    olq:key "imports.local" ;
+    olq:localFile "vcard.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value <http://www.w3.org/2006/vcard/ns#> .
+
+<https://example.org/qa#setting-969a14e739de17fe> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/dcam/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dcam> ;
+    olq:key "imports.local" ;
+    olq:localFile "dcam.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dcam: .
+
+<https://example.org/qa#setting-99c3ddb6df48a117> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/conformsTo" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value dcterms:conformsTo .
+
+<https://example.org/qa#setting-acffffdd1492bb60> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://schema.org/url" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <http://schema.org/url> .
+
+<https://example.org/qa#setting-b5054f7364f1bd02> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/source" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value dcterms:source .
+
+<https://example.org/qa#setting-b7259ec19f27be93> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value rdfs:seeAlso .
+
+<https://example.org/qa#setting-bc8c2c87ba2223f1> a olq:Setting ;
+    rdfs:label "checks: Namespace hijacking (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-namespace-hijacking> .
+
+<https://example.org/qa#setting-be9e79830d973ce6> a olq:Setting ;
+    rdfs:label "checks: Non-unique identifiers (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-non-unique-identifiers> .
+
+<https://example.org/qa#setting-c12203966b7a0b50> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2002/07/owl#versionIRI" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value owl:versionIRI .
+
+<https://example.org/qa#setting-c30b209ad1c144ea> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/shacl#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-shacl> ;
+    olq:key "imports.local" ;
+    olq:localFile "shacl.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value sh: .
+
+<https://example.org/qa#setting-c506bcc791f59303> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2002/07/owl#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-owl> ;
+    olq:key "imports.local" ;
+    olq:localFile "owl.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value owl: .
+
+<https://example.org/qa#setting-c526ed5de7984516> a olq:Setting ;
+    rdfs:label "checks: PropertyShape without description (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-property-shapes-missing-description> .
+
+<https://example.org/qa#setting-c83db6899495c21a> a olq:Setting ;
+    rdfs:label "imports.local: https://example.org/ontology/some-missing-import" ;
+    rdfs:comment "Resolved from a local file instead of the network" ;
+    olq:key "imports.local" ;
+    olq:localFile "does-not-exist.ttl" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/ontology/some-missing-import> .
+
+<https://example.org/qa#setting-ca8421fb5bf6b1e1> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2001/XMLSchema#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-xsd> ;
+    olq:key "imports.local" ;
+    olq:localFile "xsd.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value xsd: .
+
+<https://example.org/qa#setting-d23aeb8883689603> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: https://schema.org/url" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value schema:url .
+
+<https://example.org/qa#setting-d321300db51985c0> a olq:Setting ;
+    rdfs:label "checks: PropertyShapes with the same label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-property-shapes-same-label> .
+
+<https://example.org/qa#setting-d51e69c32cd476c7> a olq:Setting ;
+    rdfs:label "checks: Subclass Cycles (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-subclass-cycles> .
+
+<https://example.org/qa#setting-e436366d216e8da3> a olq:Setting ;
+    rdfs:label "checks: NodeShape without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-node-shapes-missing-label> .
+
+<https://example.org/qa#setting-e77a66f09c42488f> a olq:Setting ;
+    rdfs:label "imports.local: http://purl.org/dc/elements/1.1/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-dc> ;
+    olq:key "imports.local" ;
+    olq:localFile "dc.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value dc: .
+
+<https://example.org/qa#setting-e876042b19b3a944> a olq:Setting ;
+    rdfs:label "imports.local: http://xmlns.com/foaf/0.1/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-foaf> ;
+    olq:key "imports.local" ;
+    olq:localFile "foaf.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value foaf: .
+
+<https://example.org/qa#setting-eb1a15f97ea5cc33> a olq:Setting ;
+    rdfs:label "checks: Class without label (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-classes-missing-label> .
+
+<https://example.org/qa#setting-ef60e714969ae2a0> a olq:Setting ;
+    rdfs:label "checks: Ontology without declaration (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-ontology-not-declared> .
+
+<https://example.org/qa#setting-ef8e9ac18574dc6d> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2000/01/rdf-schema#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-rdfs> ;
+    olq:key "imports.local" ;
+    olq:localFile "rdfs.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value rdfs: .
+
+<https://example.org/qa#setting-f1637d6e59ae2357> a olq:Setting ;
+    rdfs:label "imports.local: https://schema.org/" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-schema-https> ;
+    olq:key "imports.local" ;
+    olq:localFile "schema-https.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value schema: .
+
+<https://example.org/qa#setting-f807b818c3a9d406> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/1999/02/22-rdf-syntax-ns#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-rdf> ;
+    olq:key "imports.local" ;
+    olq:localFile "rdf.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value rdf: .
+
+<https://example.org/qa#setting-f93ad829de4376d8> a olq:Setting ;
+    rdfs:label "checks: Property without domain (enabled)" ;
+    rdfs:comment "Enabled by default" ;
+    olq:enabled true ;
+    olq:key "checks" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value <https://example.org/qa#metric-properties-missing-domain> .
+
+<https://example.org/qa#setting-f9eb730e5bcb1bf8> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/ns/prov#" ;
+    rdfs:comment "Bundled with ontolint; resolved offline" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-prov> ;
+    olq:key "imports.local" ;
+    olq:localFile "prov.ttl" ;
+    olq:origin olq:BundledVocabulary ;
+    olq:value prov: .
+
+<https://example.org/qa#setting-fb7a0d6c83ecc52c> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/references" ;
+    rdfs:comment "ontolint default; undefined-terms.skip-object-of is not set" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value dcterms:references .
 
 <https://example.org/qa#violation-4a1784706780b4a2> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/activities#delegatedTo> ;
@@ -269,6 +792,27 @@
     rdfs:label "Metadata" ;
     skos:definition "The ontology declares itself and describes its purpose." ;
     skos:prefLabel "Metadata" .
+
+<https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
+    rdfs:label "Properties with the same label" ;
+    skos:definition "Two or more properties share a label in the same language." ;
+    skos:prefLabel "Properties with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
+    rdfs:label "Undefined terms" ;
+    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
+    skos:prefLabel "Undefined terms" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-unresolvable-imports> a dqv:Metric ;
+    rdfs:label "Unresolvable imports" ;
+    skos:definition "An owl:imports target could not be resolved or contains no triples." ;
+    skos:prefLabel "Unresolvable imports" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
 
 <https://example.org/qa#dimension-structure> a dqv:Dimension ;
     rdfs:label "Structure" ;

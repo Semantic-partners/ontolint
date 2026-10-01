@@ -5,7 +5,7 @@ import rdflib
 from rdflib import OWL, RDF, RDFS
 
 from scripts.dqv import OLQ, build_dqv_graph
-from scripts.ontology_qa import parse_lint_config, run_qa
+from scripts.ontology_qa import CHECKLIST, deepcopy_list, lint_selection, parse_lint_config, run_qa
 
 REPO = os.path.join(os.path.dirname(__file__), '..')
 VOCAB = os.path.join(REPO, 'ontology', 'olq.ttl')
@@ -35,8 +35,16 @@ def _sample_report(make_graph):
     :a a owl:ObjectProperty ; rdfs:label "x" .
     :b a owl:ObjectProperty ; rdfs:label "x" .
     """)
+    # A config that disables owl-declaration, which the owl-description check depends on, so
+    # the rule re-enables it: the configuration then has settings of every origin (config
+    # file, default, bundled, rule) while every other check still runs.
+    rule_reasons = {}
+    lint_config = {"disable": ["check_owl_declaration"]}
+    checklist, _ = lint_selection(lint_config, deepcopy_list(CHECKLIST), rule_reasons)
     result = run_qa(g, uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)),
-                    local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})
+                    local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"},
+                    checklist=checklist, lint_config=lint_config, rule_reasons=rule_reasons,
+                    config_file=".rdf-lint.yml")
     return build_dqv_graph([result])
 
 
@@ -52,7 +60,11 @@ def test_every_term_used_in_report_is_defined(make_graph):
 
 
 def test_every_defined_term_is_used_in_report(make_graph):
-    unused = _defined_terms(_vocab()) - _olq_terms(_sample_report(make_graph))
+    vocab = _vocab()
+    # Classes only used to type other olq: terms (e.g. olq:SettingOrigin for olq:ConfigFile)
+    # never appear in a report themselves.
+    type_only = {o for s in _defined_terms(vocab) for o in vocab.objects(s, RDF.type) if o in _defined_terms(vocab)}
+    unused = _defined_terms(vocab) - _olq_terms(_sample_report(make_graph)) - type_only
     assert not unused, f"defined in olq.ttl but never emitted: {unused}"
 
 
