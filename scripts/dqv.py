@@ -62,7 +62,7 @@ DQV_METRICS = {
     'ontologyNotDeclared':        ('ontology-not-declared',            "A processed file has no owl:Ontology declaration.",                                   'metadata',      SH.Violation),
     'ontologyDescription':        ('ontology-missing-description',     "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description.", 'metadata',      SH.Violation),
     'unresolvedImports':          ('unresolvable-imports',             "An owl:imports target could not be resolved or contains no triples.",                  'conformance',   SH.Violation),
-    'undefinedTerms':             ('undefined-terms',                  "A term is used but defined neither locally nor in its fetched remote ontology.",       'conformance',   SH.Violation),
+    'undefinedTerms':             ('undefined-terms',                  "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched).",       'conformance',   SH.Violation),
     'missingClassLabel':          ('classes-missing-label',            "A class has no label annotation.",                                                     'documentation', SH.Violation),
     'missingPropertyLabel':       ('properties-missing-label',         "A property has no label annotation.",                                                  'documentation', SH.Violation),
     'missingNSLabel':             ('node-shapes-missing-label',        "A SHACL NodeShape has no label annotation.",                                           'documentation', SH.Violation),
