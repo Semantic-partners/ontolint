@@ -1,6 +1,7 @@
 import os
 import pytest
-from scripts.ontology_qa import parse_lint_config, lint_selection, run_qa, CHECKLIST, deepcopy_list
+from scripts.ontology_qa import (parse_lint_config, lint_selection, run_qa, CHECKLIST, deepcopy_list,
+                                 describe_configuration, _display_path)
 
 
 # ── parse_lint_config ─────────────────────────────────────────────────────────
@@ -307,3 +308,41 @@ def test_main_disable_via_config_marks_check_as_passed_in_ctrf(tmp_path):
     run_main(ttl, '-c', str(cfg), '--ctrf-dir', str(tmp_path))
     data = json.loads(list(tmp_path.glob('*.json'))[0].read_text())
     assert not any(t['name'] == 'Namespace hijacking' for t in data['results']['tests'])
+
+
+# ── config paths as shown in reports ─────────────────────────────────────────
+
+def test_display_path_relative_inside_working_directory(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert _display_path(str(tmp_path / 'cfg' / '.rdf-lint.yml')) == os.path.join('cfg', '.rdf-lint.yml')
+
+
+def test_display_path_keeps_paths_outside_working_directory(tmp_path, monkeypatch):
+    (tmp_path / 'work').mkdir()
+    monkeypatch.chdir(tmp_path / 'work')
+    outside = str(tmp_path / 'other' / '.rdf-lint.yml')
+    assert _display_path(outside) == outside
+
+
+def test_display_path_dot_dot_named_directory_is_inside(tmp_path, monkeypatch):
+    # '..config' starts with '..' but is a directory in the working tree, not its parent.
+    monkeypatch.chdir(tmp_path)
+    assert _display_path(str(tmp_path / '..config' / 'x.yml')) == os.path.join('..config', 'x.yml')
+
+
+def _relpath_across_drives(path, start=None):
+    raise ValueError("path is on mount 'D:', start on mount 'C:'")
+
+
+def test_display_path_on_another_drive_falls_back_to_the_path(monkeypatch):
+    # On Windows os.path.relpath raises ValueError across drives; that must not abort the run.
+    monkeypatch.setattr(os.path, 'relpath', _relpath_across_drives)
+    assert _display_path('D:/project/.rdf-lint.yml') == 'D:/project/.rdf-lint.yml'
+
+
+def test_local_import_on_another_drive_is_shown_as_given(monkeypatch):
+    monkeypatch.setattr(os.path, 'relpath', _relpath_across_drives)
+    settings = describe_configuration(deepcopy_list(CHECKLIST), local_imports={'https://example.org/ns#': 'D:/vocab/ns.ttl'},
+                                      config_file='C:/project/.rdf-lint.yml')
+    [local] = [s for s in settings if s.key == 'imports.local' and s.origin == 'config']
+    assert local.local_file == 'D:/vocab/ns.ttl'

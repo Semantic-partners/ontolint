@@ -2584,7 +2584,10 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     datasets = bundled_datasets()
     bundled_by_key = {iri_key(ns): ns for ns in bundled_vocabularies()}
     for k, (iri, path) in user_local.items():
-        shown = os.path.relpath(path, config_dir) if config_dir else path
+        try:
+            shown = os.path.relpath(path, config_dir) if config_dir else path
+        except ValueError:  # Windows: the file is on another drive than the config file
+            shown = path
         overrides = bundled_by_key.get(k)
         reason = ("Resolved from a local file instead of the network; overrides the bundled vocabulary"
                   if overrides else "Resolved from a local file instead of the network")
@@ -2761,10 +2764,19 @@ def write_lint_config(checklist):
 #     - dcterms:license
         """)
 
+def _relative_path(path, start=None):
+    """path relative to start (default: the working directory), or None when it is outside it."""
+    try:
+        relative = os.path.relpath(os.path.abspath(path), start)
+    except ValueError:  # Windows: path and start are on different drives
+        return None
+    # By component, so an in-tree directory named e.g. '..config' still counts as inside.
+    return None if relative == os.pardir or relative.startswith(os.pardir + os.sep) else relative
+
+
 def _display_path(path):
     """A path as shown in reports: relative to the working directory when inside it."""
-    relative = os.path.relpath(os.path.abspath(path))
-    return path if relative.startswith('..') else relative
+    return _relative_path(path) or path
 
 
 def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None, skip_object_of=None, provenance=None):
