@@ -13,10 +13,10 @@ WHERE {
     }
     UNION
     {
-      ?ns ?predicate ?label .
-      ?predicate a owl:AnnotationProperty ;
+      ?ns ?labelProperty ?label .
+      ?labelProperty a owl:AnnotationProperty ;
       rdfs:subPropertyOf* rdfs:label .
     }
 }
-GROUP BY ?label
+GROUP BY ?label ?labelProperty
 HAVING (COUNT(DISTINCT ?ns) > 1)
