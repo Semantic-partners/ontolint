@@ -59,7 +59,7 @@ DQV_DIMENSIONS = {
 
 # CHECKLIST key -> (metric slug, definition, dimension slug, default severity as a sh:Severity)
 DQV_METRICS = {
-    'ontologyNotDeclared':        ('ontology-not-declared',            "A processed file has no owl:Ontology declaration.",                                   'metadata',      SH.Violation),
+    'ontologyNotDeclared':        ('ontology-not-declared',            "A processed file has no owl:Ontology declaration.",                                     'metadata',      SH.Violation),
     'ontologyDescription':        ('ontology-missing-description',     "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description.", 'metadata',      SH.Violation),
     'unresolvedImports':          ('unresolvable-imports',             "An owl:imports target could not be resolved or contains no triples.",                  'conformance',   SH.Violation),
     'undefinedTerms':             ('undefined-terms',                  "A term is used but defined neither locally nor in its fetched remote ontology.",       'conformance',   SH.Violation),
@@ -71,14 +71,14 @@ DQV_METRICS = {
     'missingPropertyDescription': ('properties-missing-description',   "A property has no description annotation.",                                            'documentation', SH.Warning),
     'missingNSDescription':       ('node-shapes-missing-description',  "A SHACL NodeShape has no description annotation.",                                     'documentation', SH.Warning),
     'missingPSDescription':       ('property-shapes-missing-description', "A SHACL PropertyShape has no description annotation.",                              'documentation', SH.Warning),
-    'nonUniqueClassLabels':       ('classes-same-label',               "Two or more classes share a label in the same language.",                              'uniqueness',    SH.Violation),
-    'nonUniquePropertyLabels':    ('properties-same-label',            "Two or more properties share a label in the same language.",                           'uniqueness',    SH.Violation),
-    'nonUniqueNSLabels':          ('node-shapes-same-label',           "Two or more SHACL NodeShapes share a label in the same language.",                     'uniqueness',    SH.Violation),
-    'nonUniquePSLabels':          ('property-shapes-same-label',       "Two or more SHACL PropertyShapes share a label in the same language.",                 'uniqueness',    SH.Violation),
+    'nonUniqueClassLabels':       ('classes-same-label',               "Two or more classes share a label in the same language and with the same predicate.",              'uniqueness',    SH.Violation),
+    'nonUniquePropertyLabels':    ('properties-same-label',            "Two or more properties share a label in the same language and with the same predicate.",           'uniqueness',    SH.Violation),
+    'nonUniqueNSLabels':          ('node-shapes-same-label',           "Two or more SHACL NodeShapes share a label in the same language and with the same predicate.",     'uniqueness',    SH.Violation),
+    'nonUniquePSLabels':          ('property-shapes-same-label',       "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate.", 'uniqueness',    SH.Violation),
     'isolatedClasses':            ('isolated-classes',                 "A class is declared but not connected to the rest of the ontology.",                   'structure',     SH.Warning),
     'missingDomain':              ('properties-missing-domain',        "A property has no rdfs:domain.",                                                       'structure',     SH.Warning),
     'missingRange':               ('properties-missing-range',         "A property has no rdfs:range.",                                                        'structure',     SH.Warning),
-    'nonUniqueIdentifiers':       ('non-unique-identifiers',           "The same IRI is declared as more than one kind of class or property.",                'uniqueness',    SH.Violation),
+    'nonUniqueIdentifiers':       ('non-unique-identifiers',           "The same IRI is declared as more than one kind of class or property.",                 'uniqueness',    SH.Violation),
     'subclassCycles':             ('subclass-cycles',                  "A class is involved in an rdfs:subClassOf cycle.",                                     'structure',     SH.Violation),
     'untypedClasses':             ('untyped-classes',                  "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class.", 'conformance', SH.Violation),
     'untypedProperties':          ('untyped-properties',               "A term in the ontology namespace is used as a property but not declared as one.",      'conformance',   SH.Violation),

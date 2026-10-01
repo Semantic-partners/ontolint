@@ -167,7 +167,7 @@ And QA metrics:
 | Properties missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
 | NodeShapes missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
 | PropertyShapes missing description annotation | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
-| Classes with the same label                   | Two or more entities have an identical label annotation in the same language tag |
+| Classes with the same label                   | Two or more entities have an identical label annotation in the same language tag and with the same predicate |
 | Properties with the same label                | Same as above.                                               |
 | NodeShapes with the same label                | Same as above.                                               |
 | PropertyShapes with the same label            | Same as above.                                               |
