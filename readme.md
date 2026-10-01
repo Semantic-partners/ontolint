@@ -158,7 +158,7 @@ And QA metrics:
 | Missing ontology declaration                  | No `owl:Ontology` tag declared                               |
 | Missing ontology description                  | `rdfs:comment`, `dcterms:abstract` or `dcterms:description` predicates not present |
 | Unresolvable imports                          | Verify that all `owl:imports` URLs resolve and contain triples |
-| Undefined terms                               | Find terms used in the ontology that are not defined locally (as a subject in the graph file) nor in any successfully-fetched remote ontology |
+| Undefined terms                               | Find terms used in the ontology that are not defined locally (as a subject in the graph file) nor in their vocabulary. Core vocabularies are checked offline against [bundled copies](#bundled-vocabularies); others are fetched. |
 | Classes missing label annotation              | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
 | Properties missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
 | NodeShapes missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
@@ -362,6 +362,34 @@ undefined-terms:
 ```
 
 Entries use the same prefixes as `exclude.types`, plus `foaf:`, `schema:` and `vs:`. You don't need `imports.ignore` entries for `rdfs:seeAlso`, licence or source links; keep `imports.ignore` for importable namespaces you choose not to resolve.
+
+### Bundled vocabularies
+
+ontolint ships copies of the standard vocabularies in [`vocabularies/`](vocabularies/): RDF (with the RDF 1.2 terms), RDFS, OWL, XSD, SHACL, SKOS, Dublin Core (`dcterms`, `dc`, `dcam`, `dctype`), FOAF, VANN, Vocabulary Status, PROV, ORG, DCAT 3, vCard and schema.org (both `http://` and `https://`). They are used automatically, with no config:
+
+- **Typos are caught, offline.** The undefined-terms check validates terms in these namespaces against the bundled files instead of trusting them. `skos:scopNote`, `dcterms:licence` and `xsd:strin` are reported. `skos:scopeNote`, `rdf:reifies`, `rdf:PropositionForm` and `xsd:dateTimeStamp` are not. Nothing is fetched for these namespaces, and `rdf:_1`, `rdf:_2`, … are always accepted.
+- **`owl:imports` of these ontologies resolves locally,** e.g. `owl:imports <http://www.w3.org/2004/02/skos/core>`.
+
+The run log shows which namespaces were resolved from the bundle (`bundled: skos.ttl`) and which were fetched. Sources, versions, licences and local edits are listed in [`vocabularies/README.md`](vocabularies/README.md).
+
+**Behaviour change:** earlier versions trusted these namespaces without checking them, so a misspelt core term passed silently. It is now reported. To trust a namespace again, list it under `imports.ignore`.
+
+The `imports` section of `.rdf-lint.yml` controls how namespaces and imports resolve:
+
+```yaml
+imports:
+  # Trusted: never fetched, and its terms are never reported (undefined-terms);
+  # owl:imports of it are not resolved (owl-imports).
+  ignore:
+    - http://example.org/vendor/ns#
+  # Resolve a namespace / import from a local file instead of the network. An entry here
+  # takes precedence over the bundled copy, e.g. to use a newer SHACL vocabulary.
+  local:
+    http://www.w3.org/ns/shacl#: vocab/shacl-1.2.ttl
+    https://example.org/partner/ontology: vocab/partner.ttl
+```
+
+Entries match **with or without a trailing `#` or `/`**, so `http://www.w3.org/2004/02/skos/core` and `http://www.w3.org/2004/02/skos/core#` are the same entry. One entry covers both the namespace (used by undefined-terms) and the ontology IRI (used by owl-imports). Relative `local` paths are resolved from the config file's directory.
 
 ### Pinning to a version
 

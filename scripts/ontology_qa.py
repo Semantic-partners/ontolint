@@ -15,6 +15,11 @@ import argparse
 import sys
 import os
 import json
+import re
+from functools import lru_cache
+from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 from datetime import datetime
 from dataclasses import dataclass, field
 import yaml
@@ -116,17 +121,72 @@ def get_namespace(uri):
             return base + '/'
     return uri  # fallback
 
-TRUSTED_NAMESPACES = frozenset({
-    "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "http://www.w3.org/2000/01/rdf-schema#",
-    "http://www.w3.org/2002/07/owl#",
-    "http://www.w3.org/2001/XMLSchema#",
-    "http://www.w3.org/ns/shacl#",
-    "http://www.w3.org/2004/02/skos/core#",
-    "http://purl.org/dc/terms/",
-    "http://purl.org/dc/elements/1.1/",
-    "http://xmlns.com/foaf/0.1/",
-})
+# ── Bundled vocabularies ─────────────────────────────────────────────────────
+# Standard vocabularies shipped with ontolint (vocabularies/, see its README.md). Each is
+# added to imports.local, so their namespaces and owl:imports resolve offline and their
+# terms are validated by the undefined-terms check.
+#
+# The DCAT catalog is the single starting point for discovery: which vocabularies are
+# bundled, their namespaces, and where each file is (its dcat:downloadURL, resolved
+# relative to the catalog). Found relative to this module so the CLI and the composite
+# action work from any working directory.
+VOCAB_CATALOG = Path(__file__).resolve().parent.parent / 'vocabularies' / 'catalog.ttl'
+
+
+def iri_key(iri):
+    """
+    The form imports.ignore / imports.local entries are matched by: the IRI without one
+    trailing '#' or '/'. So an ontology IRI (…/skos/core) and its namespace (…/skos/core#)
+    match the same entry, whichever form was configured.
+    """
+    iri = str(iri)
+    return iri[:-1] if iri.endswith(('#', '/')) else iri
+
+
+@lru_cache(maxsize=1)
+def bundled_vocabularies():
+    """
+    {namespace: absolute file path} for every vocabulary in the VOCAB_CATALOG DCAT catalog:
+    each dcat:Dataset gives its namespace (vann:preferredNamespaceUri) and a
+    dcat:Distribution whose dcat:downloadURL is the file, relative to the catalog.
+    """
+    catalog = rdflib.Graph().parse(VOCAB_CATALOG, format='turtle')
+    vocabularies = {}
+    for dataset in sorted(catalog.subjects(rdflib.RDF.type, rdflib.DCAT.Dataset)):
+        namespace = catalog.value(dataset, rdflib.VANN.preferredNamespaceUri)
+        url = catalog.value(catalog.value(dataset, rdflib.DCAT.distribution), rdflib.DCAT.downloadURL)
+        if namespace is None or url is None:
+            raise ValueError(f"{dataset} in {VOCAB_CATALOG} needs vann:preferredNamespaceUri "
+                             "and a dcat:distribution with a dcat:downloadURL")
+        vocabularies[str(namespace)] = str(Path(url2pathname(urlparse(str(url)).path)).resolve())
+    return vocabularies
+
+
+def merge_local_imports(local_imports=None):
+    """Bundled vocabularies plus the project's imports.local, keyed by iri_key(); the project wins."""
+    merged = {iri_key(ns): path for ns, path in bundled_vocabularies().items()}
+    merged.update({iri_key(k): v for k, v in (local_imports or {}).items()})
+    return merged
+
+
+def _is_bundled(path):
+    """Whether a file is one of the catalogued vocabularies (by the catalog, not by directory)."""
+    return str(Path(path).resolve()) in bundled_vocabularies().values()
+
+
+@lru_cache(maxsize=None)
+def _parse_bundled(path):
+    """Parse a bundled vocabulary once per process (treated as read-only)."""
+    return rdflib.Graph().parse(path)
+
+
+def _parse_local(path):
+    return _parse_bundled(path) if _is_bundled(path) else rdflib.Graph().parse(path)
+
+
+# rdf:_1, rdf:_2, ... (container membership properties) are defined by RDF but can't be listed.
+_CONTAINER_MEMBERSHIP = re.compile(re.escape(str(rdflib.RDF)) + r'_[1-9][0-9]*')
+
 
 def prefixes(g):
     # Create a dictionary for the declared prefixes
@@ -416,7 +476,7 @@ def print_profiling_metrics(metrics, elements, verbose):
     if total > 0:
         log += f"\nRemote namespace resolution: {total} checked\n"
         for ns, path in sorted(fa.get('local', {}).items()):
-            log += f"  - {chr(9989)} `{ns}` — local file: `{path}`\n"
+            log += f"  - {chr(9989)} `{ns}` — {_describe_local(path)}\n"
         for ns, count in sorted(fa.get('fetched', {}).items()):
             log += f"  - {chr(9989)} `{ns}` — fetched ({count} subject(s))\n"
         for ns in fa.get('failed', []):
@@ -1907,12 +1967,12 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
 
-    ignored = set(ignore_imports or [])
-    local_map = local_imports or {}
+    ignored = {iri_key(i) for i in (ignore_imports or [])}
+    local_map = {iri_key(k): v for k, v in (local_imports or {}).items()}
     import_urls = [
         (str(row.ontology), str(row.imp))
         for row in results
-        if str(row.imp) not in ignored
+        if iri_key(row.imp) not in ignored
     ]
     import_urls.sort()
 
@@ -1930,9 +1990,8 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     for ontology, import_url in import_urls:
         if import_url not in resolved:
             try:
-                tmp = rdflib.Graph()
-                source = local_map.get(import_url, import_url)
-                tmp.parse(source)
+                local = local_map.get(iri_key(import_url))
+                tmp = _parse_local(local) if local else rdflib.Graph().parse(import_url)
                 resolved[import_url] = len(tmp) > 0
             except Exception:
                 resolved[import_url] = False
@@ -1940,11 +1999,11 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
             failed_imports.append(import_url)
             failed_pairs.append((ontology, import_url))
 
-    local_subs = [(url, local_map[url]) for _, url in import_urls if url in local_map]
+    local_subs = sorted({(url, local_map[iri_key(url)]) for _, url in import_urls if iri_key(url) in local_map})
     if local_subs:
         log += f"> NOTE - {len(local_subs)} import(s) resolved from local file(s):\n"
         for url, path in local_subs:
-            log += f">   `{url}` → `{path}`\n"
+            log += f">   `{url}` → {_describe_local(path)}\n"
 
     if not failed_imports:
         log += f"PASS - All {len(import_urls)} import(s) resolved and contain triples.\n"
@@ -1982,12 +2041,17 @@ def _reference_predicate_matcher(predicates):
     return lambda p: str(p) in exact or (bool(namespaces) and str(p).startswith(namespaces))
 
 
+def _describe_local(path):
+    return f"bundled: `{Path(path).name}`" if _is_bundled(path) else f"local file: `{path}`"
+
+
 def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
                            uri_parser=lambda uri: rdflib.Graph().parse(uri),
                            local_imports=None, ignore_imports=None, skip_object_of=None):
     """
     QA test finding terms used in the ontology that are not defined locally (as a subject
-    in the graph file) nor in any successfully-fetched remote ontology for their namespace.
+    in the graph file) nor in their namespace's vocabulary: a bundled or imports.local file, or
+    the namespace fetched from the web.
 
     Note that the URI parser defaults to the standard rdflib parse function unless specified.
     In a non networked env (see this repo's tests), you can override the URI parser to fetch 
@@ -2045,30 +2109,31 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
         log += sep()
         return metrics, violations, log, c, status
 
-    # Collect every HTTP namespace used that falls outside the local namespace(s)
-    # and is not a well-known standard vocabulary (trusted to always define their terms).
-    ignored = set(ignore_imports or [])
+    # Collect every HTTP namespace used that falls outside the local namespace(s) and isn't
+    # ignored (trusted) by configuration. Bundled vocabularies resolve from imports.local.
+    ignored = {iri_key(i) for i in (ignore_imports or [])}
+    def is_ignored(uri, ns):
+        return iri_key(uri) in ignored or iri_key(ns) in ignored
     remote_namespaces = set()
     for uri in used_terms:
         ns = get_namespace(uri)
         if (ns.startswith(('http://', 'https://'))
                 and ns not in local_namespaces
-                and ns not in TRUSTED_NAMESPACES
-                and uri not in ignored
-                and ns not in ignored):
+                and not is_ignored(uri, ns)):
             remote_namespaces.add(ns)
 
-    # Fetch each remote namespace and collect the subjects it defines
-    local_map = local_imports or {}
+    # Fetch each remote namespace (or read its local/bundled file) and collect its subjects
+    local_map = {iri_key(k): v for k, v in (local_imports or {}).items()}
     remote_subjects = set()
     remote_subjects_by_ns = {}
     fetch_failures = set()
     applied_subs = []
     for ns_uri in remote_namespaces:
         try:
-            if ns_uri in local_map:
-                remote_g = rdflib.Graph().parse(local_map[ns_uri])
-                applied_subs.append((ns_uri, local_map[ns_uri]))
+            local = local_map.get(iri_key(ns_uri))
+            if local:
+                remote_g = _parse_local(local)
+                applied_subs.append((ns_uri, local))
             else:
                 remote_g = uri_parser(ns_uri)
             subjects = {str(s) for s, _, _ in remote_g if isinstance(s, rdflib.URIRef)}
@@ -2086,14 +2151,12 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     undefined_terms = []
     fetch_failure_terms = []
     for uri in sorted(used_terms):
-        if uri in known_terms:
+        if uri in known_terms or _CONTAINER_MEMBERSHIP.fullmatch(uri):
             continue
         ns = get_namespace(uri)
         if not ns.startswith(('http://', 'https://')):
             continue
-        if ns in TRUSTED_NAMESPACES:
-            continue
-        elif uri in ignored or ns in ignored:
+        if is_ignored(uri, ns):
             continue
         elif ns in local_namespaces:
             undefined_terms.append(uri)
@@ -2128,14 +2191,14 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
             dqv.Violation(uri, comment=f"namespace {get_namespace(uri)} could not be fetched")
             for uri in fetch_failure_terms
         ]
-        log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in any fetched remote ontology:\n - "
+        log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):\n - "
         log += string.replace(",<br> ", "\n - ") + "\n"
     if remote_namespaces:
         applied_subs_map = {ns: path for ns, path in applied_subs}
         log += f"\n> **Remote namespace activity** — {len(remote_namespaces)} checked:\n"
         for ns in sorted(remote_namespaces):
             if ns in applied_subs_map:
-                log += f">   - {chr(9989)} `{ns}` — local file: `{applied_subs_map[ns]}`\n"
+                log += f">   - {chr(9989)} `{ns}` — {_describe_local(applied_subs_map[ns])}\n"
             elif ns in fetch_failures:
                 log += f">   - {chr(10060)} `{ns}` — fetch failed\n"
             else:
@@ -2467,6 +2530,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     """
     if checklist is None:
         checklist = deepcopy_list(CHECKLIST)
+    # Bundled vocabularies resolve offline unless the project maps the namespace itself.
+    local_imports = merge_local_imports(local_imports)
 
     qa_metrics = {
         'filesProcessed': files_processed or [],
@@ -2571,15 +2636,18 @@ def write_lint_config(checklist):
 #   - hijacking
 #   - isolated-classes
 #   - property-missing-domain\n
-# Import settings: ignore or substitute remote imports with local files.
-# Keys under 'local' match owl:imports URLs (for the resolvability check) or
-# namespace URIs like 'https://schema.org/' (for the undefined-terms check).
-# Relative paths are resolved relative to this config file.
+# Import settings: trust (ignore) namespaces or resolve them from local files.
+# Core vocabularies (RDF, RDFS, OWL, XSD, SHACL, SKOS, Dublin Core, FOAF, schema.org, ...)
+# are bundled with ontolint and resolve offline without any entry here.
+# 'ignore': never fetched or reported by undefined-terms, not resolved by owl-imports.
+# 'local': namespace or owl:imports IRI -> file; overrides the bundled copy.
+# Entries match with or without a trailing '#' or '/'. Relative paths are resolved
+# relative to this config file.
 # imports:
 #   ignore:
-#     - http://www.w3.org/ns/shacl
+#     - http://example.org/vendor/ns#
 #   local:
-#     https://schema.org/: local/schema.ttl\n
+#     http://www.w3.org/ns/shacl#: local/shacl-1.2.ttl\n
 # Skip resources of the listed types in the class checks (class-missing-label,
 # class-missing-comment, class-same-label, isolated-classes, untyped-class).
 # Accepts full IRIs or rdf:/rdfs:/owl:/xsd:/skos:/sh:/dcterms:/foaf:/schema:/vs: compact IRIs.
