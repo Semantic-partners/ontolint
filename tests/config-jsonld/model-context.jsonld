@@ -1,0 +1,42 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "@vocab": "https://ontolint.org/ns#",
+
+    "qa":      "https://example.org/qa#",
+    "olq":     "https://ontolint.org/ns#",
+    "dqv":     "http://www.w3.org/ns/dqv#",
+    "prov":    "http://www.w3.org/ns/prov#",
+    "sh":      "http://www.w3.org/ns/shacl#",
+    "rdf":     "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs":    "http://www.w3.org/2000/01/rdf-schema#",
+    "skos":    "http://www.w3.org/2004/02/skos/core#",
+    "xsd":     "http://www.w3.org/2001/XMLSchema#",
+    "dcterms": "http://purl.org/dc/terms/",
+
+    "id":   "@id",
+    "type": "@type",
+
+    "label":   "rdfs:label",
+    "comment": "rdfs:comment",
+
+    "configuration-file": "olq:configurationFile",
+    "settings": { "@id": "olq:setting", "@container": "@set" },
+    "key":        "olq:key",
+    "value":      { "@id": "olq:value", "@type": "@id" },
+    "origin":     { "@id": "olq:origin", "@type": "@vocab" },
+    "enabled":    "olq:enabled",
+    "local-file": "olq:localFile",
+    "derived-from": { "@id": "prov:wasDerivedFrom", "@type": "@id" },
+
+    "metrics": "@included",
+    "Metric":    "dqv:Metric",
+    "Dimension": "dqv:Dimension",
+    "pref-label": "skos:prefLabel",
+    "definition": "skos:definition",
+    "dimension":  { "@id": "dqv:inDimension" },
+    "severity":   { "@id": "olq:severity", "@type": "@vocab",
+                    "@context": { "@vocab": "http://www.w3.org/ns/shacl#" } }
+  }
+}

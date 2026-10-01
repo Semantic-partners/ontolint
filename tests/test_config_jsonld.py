@@ -7,6 +7,8 @@ changing the YAML format? All files are in tests/config-jsonld/:
     expected-jsonld.ttl   the RDF the context produces (direct mapping)
     expected-model.ttl    the same settings in the report's model (olq:Configuration /
                           olq:Setting), config-file settings only, for side-by-side review
+    model-rdf-lint.yml    expected-model.ttl written back as YAML: what an input file would
+    model-context.jsonld  have to contain for plain JSON-LD to produce the model directly
 
 Both TTL files are generated, so after changing the YAML or the context, regenerate and
 review the diff:   UPDATE_GOLDEN=1 poetry run pytest tests/test_config_jsonld.py
@@ -88,3 +90,18 @@ def test_direct_jsonld_mapping_matches_expected():
 
 def test_report_model_matches_expected(monkeypatch):
     _check(_model_graph(monkeypatch), DIR / 'expected-model.ttl')
+
+
+def test_model_yaml_with_model_context_reproduces_expected_model():
+    # Plain JSON-LD, no ontolint code: the loader adds only the context.
+    config = yaml.safe_load((DIR / 'model-rdf-lint.yml').read_text(encoding='utf-8'))
+    context = json.loads((DIR / 'model-context.jsonld').read_text(encoding='utf-8'))['@context']
+    g = rdflib.Graph().parse(data=json.dumps({'@context': context, **config}), format='json-ld')
+    expected = rdflib.Graph().parse(DIR / 'expected-model.ttl', format='turtle')
+    missing = sorted(set(expected) - set(g), key=str)
+    unexpected = sorted(set(g) - set(expected), key=str)
+    assert not missing and not unexpected, (
+        "model-rdf-lint.yml + model-context.jsonld != expected-model.ttl\n"
+        + "".join(f"- {' '.join(t.n3() for t in triple)}\n" for triple in missing)
+        + "".join(f"+ {' '.join(t.n3() for t in triple)}\n" for triple in unexpected))
+
