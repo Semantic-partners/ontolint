@@ -1,0 +1,36 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+
+    "olq":     "https://ontolint.org/ns#",
+    "check":   "https://ontolint.org/check/",
+    "rdf":     "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs":    "http://www.w3.org/2000/01/rdf-schema#",
+    "owl":     "http://www.w3.org/2002/07/owl#",
+    "xsd":     "http://www.w3.org/2001/XMLSchema#",
+    "skos":    "http://www.w3.org/2004/02/skos/core#",
+    "sh":      "http://www.w3.org/ns/shacl#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "foaf":    "http://xmlns.com/foaf/0.1/",
+    "schema":  "https://schema.org/",
+    "vs":      "http://www.w3.org/2003/06/sw-vocab-status/ns#",
+
+    "enable":  { "@id": "olq:enable",  "@type": "@vocab", "@container": "@set",
+                 "@context": { "@vocab": "https://ontolint.org/check/" } },
+    "disable": { "@id": "olq:disable", "@type": "@vocab", "@container": "@set",
+                 "@context": { "@vocab": "https://ontolint.org/check/" } },
+
+    "imports":         "@nest",
+    "exclude":         "@nest",
+    "undefined-terms": "@nest",
+
+    "ignore": { "@id": "olq:importIgnore", "@type": "@id", "@container": "@set", "@nest": "imports" },
+    "local":  { "@id": "olq:importLocal",  "@type": "@id", "@container": "@index",
+                "@index": "olq:providesNamespace", "@nest": "imports" },
+    "olq:providesNamespace": { "@type": "@id" },
+
+    "types":          { "@id": "olq:excludeType",  "@type": "@id", "@container": "@set", "@nest": "exclude" },
+    "skip-object-of": { "@id": "olq:skipObjectOf", "@type": "@id", "@container": "@set", "@nest": "undefined-terms" }
+  }
+}
