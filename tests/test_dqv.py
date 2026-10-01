@@ -496,3 +496,17 @@ def test_settings_differing_only_in_provenance_get_distinct_iris(change):
     b = dqv._add_configuration(second, DEFAULT_BASE_URI, [dqv.ConfigSetting(**{**setting, **change})])
     assert a != b
     assert set(first.objects(a, OLQ.setting)).isdisjoint(second.objects(b, OLQ.setting))
+
+
+def _measurements(g):
+    return set(g.subjects(RDF.type, DQV.QualityMeasurement))
+
+
+def test_same_inputs_under_different_configurations_get_distinct_assessments(make_graph):
+    graph = make_graph(": a owl:Ontology . :A a owl:Class .")
+    plain = build_dqv_graph([_qa(graph, files_processed=['a.ttl'])], timestamp=TS)
+    configured = build_dqv_graph([_qa(graph, files_processed=['a.ttl'], exclude_types=[str(EX.Placeholder)])], timestamp=TS)
+    [a] = plain.subjects(RDF.type, DQV.QualityMetadata)
+    [b] = configured.subjects(RDF.type, DQV.QualityMetadata)
+    assert a != b
+    assert _measurements(plain).isdisjoint(_measurements(configured))

@@ -17,9 +17,9 @@
 @prefix vann: <http://purl.org/vocab/vann/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-5ca68ecee7349073> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-970a852d557f5acd>,
-        <https://example.org/qa#measurement-f58b2f35815e513e> ;
+<https://example.org/qa#assessment-b713219343191d57> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-56a44610bba8131a>,
+        <https://example.org/qa#measurement-8c70ab6f605f697e> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime ;
     olq:configuration <https://example.org/qa#configuration-4aafdf70fa5f5c0c> .
 
@@ -73,19 +73,19 @@
         <https://example.org/qa#setting-f76148dd276fdba1>,
         <https://example.org/qa#setting-fcbb440cbfe4508b> .
 
-<https://example.org/qa#measurement-970a852d557f5acd> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-56a44610bba8131a> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/configuration#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 1 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-8c70ab6f605f697e> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/configuration#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-1e7e746c5fb4f54f> .
-
-<https://example.org/qa#measurement-f58b2f35815e513e> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/configuration#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 1 ;
-    olq:conforms false .
+    olq:violation <https://example.org/qa#violation-7e0432b94c71713b> .
 
 <https://example.org/qa#metric-classes-missing-label> a dqv:Metric ;
     rdfs:label "Class without label" ;
@@ -638,7 +638,7 @@
     olq:origin olq:OntolintDefault ;
     olq:value <https://example.org/qa#metric-subclass-cycles> .
 
-<https://example.org/qa#violation-1e7e746c5fb4f54f> a sh:ValidationResult ;
+<https://example.org/qa#violation-7e0432b94c71713b> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/configuration#Cat> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .

@@ -283,14 +283,15 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
                        ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]:
         g.bind(prefix, ns)
 
+    # Configurations first: the assessment's identity includes them, so the same files
+    # assessed under different configurations never share assessment or measurement IRIs.
+    configurations = [_add_configuration(g, base, r.settings, r.config_file) for r in results if r.settings]
     run_files = sorted(f for r in results for f in r.profiling.get('filesProcessed', []))
-    assessment = _mint(base, 'assessment', stamp, *run_files)
+    assessment = _mint(base, 'assessment', stamp, *run_files, *sorted(set(configurations)))
     g.add((assessment, rdflib.RDF.type, DQV.QualityMetadata))
     g.add((assessment, PROV.generatedAtTime, rdflib.Literal(stamp, datatype=rdflib.XSD.dateTime)))
-    for result in results:
-        if result.settings:
-            configuration = _add_configuration(g, base, result.settings, result.config_file)
-            g.add((assessment, OLQ.configuration, configuration))
+    for configuration in configurations:
+        g.add((assessment, OLQ.configuration, configuration))
 
     slug, label, definition, dimension = DQV_ROLLUP_METRIC
     rollup = _add_metric(g, base, slug, label, definition, dimension)
