@@ -11,6 +11,11 @@ changing the YAML format? All files are in tests/rdf-lint-config/:
                             expected-model.ttl (run with vocabularies/catalog.ttl), tested
                             by the mustrd spec rdf-lint-to-model.mustrd.ttl rather than here
 
+The lifted graph is an input format, not part of the published model: it is an
+olc:RdfLintFile in the internal olc: (https://ontolint.org/config#) and check:
+(https://ontolint.org/config/check#) namespaces, which ontology/olq.ttl does not define.
+Only the CONSTRUCT's output, the olq:Configuration, appears in a DQV report.
+
 Both TTL files are generated, so after changing the YAML or the context, regenerate and
 review the diff:   UPDATE_GOLDEN=1 poetry run pytest tests/test_rdf_lint_config.py
 """
@@ -38,9 +43,9 @@ def _jsonld_graph():
     """Lift the YAML with the context: the loader only adds the node's identity and type."""
     config = yaml.safe_load(CONFIG.read_text(encoding='utf-8'))
     context = json.loads(CONTEXT.read_text(encoding='utf-8'))['@context']
-    doc = {'@context': context, '@id': '', '@type': 'olq:Configuration', **config}
+    doc = {'@context': context, '@id': '', '@type': 'olc:RdfLintFile', **config}
     g = rdflib.Graph().parse(data=json.dumps(doc), format='json-ld', base=CONFIG_IRI)
-    for prefix in ('olq', 'check', 'rdf', 'rdfs', 'skos', 'dcterms', 'vs'):
+    for prefix in ('olc', 'check', 'rdf', 'rdfs', 'skos', 'dcterms', 'vs'):
         g.bind(prefix, context[prefix])
     return g
 
@@ -86,6 +91,8 @@ def test_sample_config_still_loads_with_the_existing_parser():
 def test_direct_jsonld_mapping_matches_expected():
     g = _jsonld_graph()
     assert not any(isinstance(t, rdflib.BNode) for triple in g for t in triple)
+    # Internal input format: nothing in it may claim to be part of the published olq: model.
+    assert not any(str(t).startswith(str(dqv.OLQ)) for triple in g for t in triple)
     _check(g, DIR / 'expected-rdf-lint.ttl')
 
 

@@ -3,8 +3,8 @@
     "@version": 1.1,
     "@protected": true,
 
-    "olq":     "https://ontolint.org/ns#",
-    "check":   "https://ontolint.org/check/",
+    "olc":     "https://ontolint.org/config#",
+    "check":   "https://ontolint.org/config/check#",
     "rdf":     "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "rdfs":    "http://www.w3.org/2000/01/rdf-schema#",
     "owl":     "http://www.w3.org/2002/07/owl#",
@@ -16,21 +16,21 @@
     "schema":  "https://schema.org/",
     "vs":      "http://www.w3.org/2003/06/sw-vocab-status/ns#",
 
-    "enable":  { "@id": "olq:enable",  "@type": "@vocab", "@container": "@set",
-                 "@context": { "@vocab": "https://ontolint.org/check/" } },
-    "disable": { "@id": "olq:disable", "@type": "@vocab", "@container": "@set",
-                 "@context": { "@vocab": "https://ontolint.org/check/" } },
+    "enable":  { "@id": "olc:enable",  "@type": "@vocab", "@container": "@set",
+                 "@context": { "@vocab": "https://ontolint.org/config/check#" } },
+    "disable": { "@id": "olc:disable", "@type": "@vocab", "@container": "@set",
+                 "@context": { "@vocab": "https://ontolint.org/config/check#" } },
 
     "imports":         "@nest",
     "exclude":         "@nest",
     "undefined-terms": "@nest",
 
-    "ignore": { "@id": "olq:importIgnore", "@type": "@id", "@container": "@set", "@nest": "imports" },
-    "local":  { "@id": "olq:importLocal",  "@type": "@id", "@container": "@index",
-                "@index": "olq:providesNamespace", "@nest": "imports" },
-    "olq:providesNamespace": { "@type": "@id" },
+    "ignore": { "@id": "olc:importIgnore", "@type": "@id", "@container": "@set", "@nest": "imports" },
+    "local":  { "@id": "olc:importLocal",  "@type": "@id", "@container": "@index",
+                "@index": "olc:providesNamespace", "@nest": "imports" },
+    "olc:providesNamespace": { "@type": "@id" },
 
-    "types":          { "@id": "olq:excludeType",  "@type": "@id", "@container": "@set", "@nest": "exclude" },
-    "skip-object-of": { "@id": "olq:skipObjectOf", "@type": "@id", "@container": "@set", "@nest": "undefined-terms" }
+    "types":          { "@id": "olc:excludeType",  "@type": "@id", "@container": "@set", "@nest": "exclude" },
+    "skip-object-of": { "@id": "olc:skipObjectOf", "@type": "@id", "@container": "@set", "@nest": "undefined-terms" }
   }
 }
