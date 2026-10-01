@@ -2,7 +2,13 @@
 
 Standard RDF vocabularies shipped with ontolint so that their terms can be checked **offline**.
 
-Each file is listed in [`manifest.yml`](manifest.yml) under its namespace, and ontolint adds every entry to `imports.local` automatically. As a result:
+[`catalog.ttl`](catalog.ttl) is a [DCAT](https://www.w3.org/TR/vocab-dcat-3/) catalog of these files. Each vocabulary is a `dcat:Dataset` that records:
+
+- its namespace (`vann:preferredNamespaceUri`) and prefix;
+- its source (`dcterms:source`), licence (`dcterms:license`), version (`dcat:version`) and local edits (`skos:changeNote`);
+- a `dcat:Distribution` whose `dcat:downloadURL` is the bundled file.
+
+ontolint reads the catalog and adds every namespace to `imports.local` automatically. As a result:
 
 - **undefined-terms** checks terms in these namespaces against these files. A typo such as `skos:scopNote` or `xsd:strin` is reported, and no network fetch is made.
 - **owl:imports** of these ontologies (e.g. `<http://www.w3.org/2004/02/skos/core>`) resolves from these files.
@@ -10,6 +16,8 @@ Each file is listed in [`manifest.yml`](manifest.yml) under its namespace, and o
 A project can override any of them with its own `imports.local` entry, or trust a namespace without checking it via `imports.ignore`. See the main [README](../readme.md#bundled-vocabularies).
 
 ## Contents
+
+The same information as the catalog, for reading:
 
 | File | Namespace | Source and version | Licence | Local edits |
 |---|---|---|---|---|
@@ -37,6 +45,6 @@ Licences are taken from each file's own metadata where it states one. Otherwise 
 
 ## Updating or adding a vocabulary
 
-1. Put the `.ttl` file in this directory and add it to [`manifest.yml`](manifest.yml) with its namespace.
-2. Add a row above with the source, version, licence and any local edits.
-3. Run `poetry run pytest tests/test_vocabularies.py`. The tests check that every manifest entry exists, parses and defines terms in its namespace, and that this README documents it. Where rdflib has a term list for the vocabulary, they also check the file contains every term on it.
+1. Put the `.ttl` file in this directory and add a `dcat:Dataset` for it to [`catalog.ttl`](catalog.ttl). Give it `dcterms:title`, `vann:preferredNamespaceUri`, `vann:preferredNamespacePrefix`, `dcterms:source`, `dcterms:license`, `dcat:version` if known, and `skos:changeNote` for any local edits. Add a `dcat:Distribution` with `dcat:downloadURL <file.ttl>`, and list the dataset under the catalog's `dcat:dataset`.
+2. Add a row to the table above.
+3. Run `poetry run pytest tests/test_vocabularies.py`. The tests check that every catalog entry exists, parses and defines terms in its namespace, that each dataset has its title, source, licence and prefix, that the catalog only uses defined terms, and that this README documents each file. Where rdflib has a term list for the vocabulary, they also check the file contains every term on it.

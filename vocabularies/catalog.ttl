@@ -1,0 +1,282 @@
+# Catalogue of the vocabularies bundled with ontolint, as a DCAT catalog.
+#
+# Each dcat:Dataset is one vocabulary: its namespace (vann:preferredNamespaceUri), where it
+# came from (dcterms:source), its licence and version, any local edits (skos:changeNote),
+# and a dcat:Distribution whose dcat:downloadURL is the bundled file, relative to this one.
+# ontolint reads this catalog to add every namespace to imports.local, so these
+# namespaces and owl:imports of these ontologies resolve offline. Entries are matched with
+# or without a trailing '#' or '/', and a project's own imports.local entry wins.
+
+@prefix ontolint: <https://ontolint.org/> .
+@prefix dcat:    <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix vann:    <http://purl.org/vocab/vann/> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+
+ontolint:vocabularies a dcat:Catalog ;
+    dcterms:title "Vocabularies bundled with ontolint" ;
+    dcterms:description "Standard RDF vocabularies shipped with ontolint so their terms can be validated offline." ;
+    dcat:dataset
+        ontolint:vocabulary-rdf,
+        ontolint:vocabulary-rdfs,
+        ontolint:vocabulary-owl,
+        ontolint:vocabulary-xsd,
+        ontolint:vocabulary-shacl,
+        ontolint:vocabulary-skos,
+        ontolint:vocabulary-dcterms,
+        ontolint:vocabulary-dc,
+        ontolint:vocabulary-dcam,
+        ontolint:vocabulary-dctype,
+        ontolint:vocabulary-foaf,
+        ontolint:vocabulary-vann,
+        ontolint:vocabulary-vs,
+        ontolint:vocabulary-prov,
+        ontolint:vocabulary-org,
+        ontolint:vocabulary-dcat3,
+        ontolint:vocabulary-vcard,
+        ontolint:vocabulary-schema,
+        ontolint:vocabulary-schema-https .
+
+ontolint:vocabulary-rdf a dcat:Dataset ;
+    dcterms:title "RDF" ;
+    vann:preferredNamespaceUri "http://www.w3.org/1999/02/22-rdf-syntax-ns#" ;
+    vann:preferredNamespacePrefix "rdf" ;
+    dcterms:source <http://www.w3.org/1999/02/22-rdf-syntax-ns> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "RDF 1.1 Concepts (2019-12-16) + RDF 1.2 terms" ;
+    skos:changeNote "Extended with the RDF 1.2 terms the published namespace document does not yet include: rdf:dirLangString and rdf:reifies (RDF 1.2 Concepts), rdf:PropositionForm and rdf:propositionFormSubject/Predicate/Object (RDF 1.2 Interoperability), and the rdf:version-* IRIs. Header updated to say so." ;
+    dcat:distribution ontolint:vocabulary-rdf-turtle .
+
+ontolint:vocabulary-rdf-turtle a dcat:Distribution ;
+    dcat:downloadURL <rdf.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-rdfs a dcat:Dataset ;
+    dcterms:title "RDF Schema" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2000/01/rdf-schema#" ;
+    vann:preferredNamespacePrefix "rdfs" ;
+    dcterms:source <http://www.w3.org/2000/01/rdf-schema> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:distribution ontolint:vocabulary-rdfs-turtle .
+
+ontolint:vocabulary-rdfs-turtle a dcat:Distribution ;
+    dcat:downloadURL <rdfs.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-owl a dcat:Dataset ;
+    dcterms:title "OWL" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2002/07/owl#" ;
+    vann:preferredNamespacePrefix "owl" ;
+    dcterms:source <http://www.w3.org/2002/07/owl> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "2009-11-15" ;
+    skos:changeNote "Added owl:real and owl:rational, the OWL 2 datatypes from the OWL 2 Structural Specification section 4.1 that the namespace document omits." ;
+    dcat:distribution ontolint:vocabulary-owl-turtle .
+
+ontolint:vocabulary-owl-turtle a dcat:Distribution ;
+    dcat:downloadURL <owl.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-xsd a dcat:Dataset ;
+    dcterms:title "XML Schema Definition (XSD) 1.1" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2001/XMLSchema#" ;
+    vann:preferredNamespacePrefix "xsd" ;
+    dcterms:source <https://www.w3.org/TR/xmlschema11-2/> ;
+    dcterms:license <https://opensource.org/licenses/MIT>, <https://www.apache.org/licenses/LICENSE-2.0> ;
+    dcat:version "XSD 1.1" ;
+    skos:changeNote "Written for ontolint from XML Schema 1.1 Part 2: Datatypes, as W3C publishes no RDF for XSD. Lists every built-in datatype, the constraining and fundamental facets, and the date/time property names." ;
+    dcat:distribution ontolint:vocabulary-xsd-turtle .
+
+ontolint:vocabulary-xsd-turtle a dcat:Distribution ;
+    dcat:downloadURL <xsd.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-shacl a dcat:Dataset ;
+    dcterms:title "SHACL" ;
+    vann:preferredNamespaceUri "http://www.w3.org/ns/shacl#" ;
+    vann:preferredNamespacePrefix "sh" ;
+    dcterms:source <https://www.w3.org/ns/shacl.ttl> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "2017-07-20 (SHACL 1.0)" ;
+    skos:changeNote "No local edits. SHACL 1.2 terms are not included yet; map the namespace to a newer file via imports.local to use them." ;
+    dcat:distribution ontolint:vocabulary-shacl-turtle .
+
+ontolint:vocabulary-shacl-turtle a dcat:Distribution ;
+    dcat:downloadURL <shacl.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-skos a dcat:Dataset ;
+    dcterms:title "SKOS" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2004/02/skos/core#" ;
+    vann:preferredNamespacePrefix "skos" ;
+    dcterms:source <http://www.w3.org/2004/02/skos/core> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "SKOS Reference (2009)" ;
+    dcat:distribution ontolint:vocabulary-skos-turtle .
+
+ontolint:vocabulary-skos-turtle a dcat:Distribution ;
+    dcat:downloadURL <skos.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-dcterms a dcat:Dataset ;
+    dcterms:title "DCMI Metadata Terms" ;
+    vann:preferredNamespaceUri "http://purl.org/dc/terms/" ;
+    vann:preferredNamespacePrefix "dcterms" ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcat:distribution ontolint:vocabulary-dcterms-turtle .
+
+ontolint:vocabulary-dcterms-turtle a dcat:Distribution ;
+    dcat:downloadURL <dcterms.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-dc a dcat:Dataset ;
+    dcterms:title "Dublin Core Elements 1.1" ;
+    vann:preferredNamespaceUri "http://purl.org/dc/elements/1.1/" ;
+    vann:preferredNamespacePrefix "dc" ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcat:version "1.1" ;
+    dcat:distribution ontolint:vocabulary-dc-turtle .
+
+ontolint:vocabulary-dc-turtle a dcat:Distribution ;
+    dcat:downloadURL <dc.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-dcam a dcat:Dataset ;
+    dcterms:title "DCMI Abstract Model" ;
+    vann:preferredNamespaceUri "http://purl.org/dc/dcam/" ;
+    vann:preferredNamespacePrefix "dcam" ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcat:distribution ontolint:vocabulary-dcam-turtle .
+
+ontolint:vocabulary-dcam-turtle a dcat:Distribution ;
+    dcat:downloadURL <dcam.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-dctype a dcat:Dataset ;
+    dcterms:title "DCMI Type Vocabulary" ;
+    vann:preferredNamespaceUri "http://purl.org/dc/dcmitype/" ;
+    vann:preferredNamespacePrefix "dctype" ;
+    dcterms:source <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcat:distribution ontolint:vocabulary-dctype-turtle .
+
+ontolint:vocabulary-dctype-turtle a dcat:Distribution ;
+    dcat:downloadURL <dctype.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-foaf a dcat:Dataset ;
+    dcterms:title "FOAF" ;
+    vann:preferredNamespaceUri "http://xmlns.com/foaf/0.1/" ;
+    vann:preferredNamespacePrefix "foaf" ;
+    dcterms:source <http://xmlns.com/foaf/spec/> ;
+    dcterms:license <http://creativecommons.org/licenses/by/1.0/> ;
+    dcat:version "0.1" ;
+    dcat:distribution ontolint:vocabulary-foaf-turtle .
+
+ontolint:vocabulary-foaf-turtle a dcat:Distribution ;
+    dcat:downloadURL <foaf.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-vann a dcat:Dataset ;
+    dcterms:title "VANN" ;
+    vann:preferredNamespaceUri "http://purl.org/vocab/vann/" ;
+    vann:preferredNamespacePrefix "vann" ;
+    dcterms:source <https://vocab.org/vann/> ;
+    dcterms:license <http://creativecommons.org/licenses/by/1.0/> ;
+    dcat:distribution ontolint:vocabulary-vann-turtle .
+
+ontolint:vocabulary-vann-turtle a dcat:Distribution ;
+    dcat:downloadURL <vann.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-vs a dcat:Dataset ;
+    dcterms:title "Vocabulary Status" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2003/06/sw-vocab-status/ns#" ;
+    vann:preferredNamespacePrefix "vs" ;
+    dcterms:source <http://www.w3.org/2003/06/sw-vocab-status/ns> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:distribution ontolint:vocabulary-vs-turtle .
+
+ontolint:vocabulary-vs-turtle a dcat:Distribution ;
+    dcat:downloadURL <vs.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-prov a dcat:Dataset ;
+    dcterms:title "PROV-O" ;
+    vann:preferredNamespaceUri "http://www.w3.org/ns/prov#" ;
+    vann:preferredNamespacePrefix "prov" ;
+    dcterms:source <https://www.w3.org/ns/prov> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "Recommendation 2013-04-30" ;
+    dcat:distribution ontolint:vocabulary-prov-turtle .
+
+ontolint:vocabulary-prov-turtle a dcat:Distribution ;
+    dcat:downloadURL <prov.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-org a dcat:Dataset ;
+    dcterms:title "Organization Ontology" ;
+    vann:preferredNamespaceUri "http://www.w3.org/ns/org#" ;
+    vann:preferredNamespacePrefix "org" ;
+    dcterms:source <https://www.w3.org/ns/org> ;
+    dcterms:license <http://www.opendatacommons.org/licenses/pddl/1.0/> ;
+    dcat:version "0.8" ;
+    dcat:distribution ontolint:vocabulary-org-turtle .
+
+ontolint:vocabulary-org-turtle a dcat:Distribution ;
+    dcat:downloadURL <org.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-dcat3 a dcat:Dataset ;
+    dcterms:title "DCAT" ;
+    vann:preferredNamespaceUri "http://www.w3.org/ns/dcat#" ;
+    vann:preferredNamespacePrefix "dcat" ;
+    dcterms:source <https://www.w3.org/ns/dcat> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcat:version "3" ;
+    dcat:distribution ontolint:vocabulary-dcat3-turtle .
+
+ontolint:vocabulary-dcat3-turtle a dcat:Distribution ;
+    dcat:downloadURL <dcat3.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-vcard a dcat:Dataset ;
+    dcterms:title "vCard" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2006/vcard/ns#" ;
+    vann:preferredNamespacePrefix "vcard" ;
+    dcterms:source <https://www.w3.org/2006/vcard/ns> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:distribution ontolint:vocabulary-vcard-turtle .
+
+ontolint:vocabulary-vcard-turtle a dcat:Distribution ;
+    dcat:downloadURL <vcard.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-schema a dcat:Dataset ;
+    dcterms:title "schema.org (http)" ;
+    vann:preferredNamespaceUri "http://schema.org/" ;
+    vann:preferredNamespacePrefix "schema" ;
+    dcterms:source <https://schema.org/docs/developers.html> ;
+    dcterms:license <https://creativecommons.org/licenses/by-sa/3.0/> ;
+    skos:changeNote "Removed a comment carried over from another project." ;
+    dcat:distribution ontolint:vocabulary-schema-turtle .
+
+ontolint:vocabulary-schema-turtle a dcat:Distribution ;
+    dcat:downloadURL <schema.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .
+
+ontolint:vocabulary-schema-https a dcat:Dataset ;
+    dcterms:title "schema.org (https)" ;
+    vann:preferredNamespaceUri "https://schema.org/" ;
+    vann:preferredNamespacePrefix "schema" ;
+    dcterms:source <https://schema.org/docs/developers.html> ;
+    dcterms:license <https://creativecommons.org/licenses/by-sa/3.0/> ;
+    skos:changeNote "Derived from schema.ttl by rewriting http://schema.org/ to https://schema.org/, as schema.org publishes both forms." ;
+    dcat:distribution ontolint:vocabulary-schema-https-turtle .
+
+ontolint:vocabulary-schema-https-turtle a dcat:Distribution ;
+    dcat:downloadURL <schema-https.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> .

@@ -18,6 +18,8 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 from datetime import datetime
 from dataclasses import dataclass, field
 import yaml
@@ -122,9 +124,13 @@ def get_namespace(uri):
 # ── Bundled vocabularies ─────────────────────────────────────────────────────
 # Standard vocabularies shipped with ontolint (vocabularies/, see its README.md). Each is
 # added to imports.local, so their namespaces and owl:imports resolve offline and their
-# terms are validated by the undefined-terms check. Found relative to this module so the
-# CLI and the composite action work from any working directory.
-VOCAB_DIR = Path(__file__).resolve().parent.parent / 'vocabularies'
+# terms are validated by the undefined-terms check.
+#
+# The DCAT catalog is the single starting point for discovery: which vocabularies are
+# bundled, their namespaces, and where each file is (its dcat:downloadURL, resolved
+# relative to the catalog). Found relative to this module so the CLI and the composite
+# action work from any working directory.
+VOCAB_CATALOG = Path(__file__).resolve().parent.parent / 'vocabularies' / 'catalog.ttl'
 
 
 def iri_key(iri):
@@ -139,10 +145,21 @@ def iri_key(iri):
 
 @lru_cache(maxsize=1)
 def bundled_vocabularies():
-    """{namespace: absolute file path} for every vocabulary in vocabularies/manifest.yml."""
-    with open(VOCAB_DIR / 'manifest.yml', encoding='utf-8') as f:
-        entries = yaml.safe_load(f) or []
-    return {e['namespace']: str(VOCAB_DIR / e['file']) for e in entries}
+    """
+    {namespace: absolute file path} for every vocabulary in the VOCAB_CATALOG DCAT catalog:
+    each dcat:Dataset gives its namespace (vann:preferredNamespaceUri) and a
+    dcat:Distribution whose dcat:downloadURL is the file, relative to the catalog.
+    """
+    catalog = rdflib.Graph().parse(VOCAB_CATALOG, format='turtle')
+    vocabularies = {}
+    for dataset in sorted(catalog.subjects(rdflib.RDF.type, rdflib.DCAT.Dataset)):
+        namespace = catalog.value(dataset, rdflib.VANN.preferredNamespaceUri)
+        url = catalog.value(catalog.value(dataset, rdflib.DCAT.distribution), rdflib.DCAT.downloadURL)
+        if namespace is None or url is None:
+            raise ValueError(f"{dataset} in {VOCAB_CATALOG} needs vann:preferredNamespaceUri "
+                             "and a dcat:distribution with a dcat:downloadURL")
+        vocabularies[str(namespace)] = str(Path(url2pathname(urlparse(str(url)).path)).resolve())
+    return vocabularies
 
 
 def merge_local_imports(local_imports=None):
@@ -153,7 +170,8 @@ def merge_local_imports(local_imports=None):
 
 
 def _is_bundled(path):
-    return Path(path).resolve().parent == VOCAB_DIR
+    """Whether a file is one of the catalogued vocabularies (by the catalog, not by directory)."""
+    return str(Path(path).resolve()) in bundled_vocabularies().values()
 
 
 @lru_cache(maxsize=None)

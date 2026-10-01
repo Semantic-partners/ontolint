@@ -5,13 +5,14 @@ from pathlib import Path
 
 import pytest
 import rdflib
-import yaml
 from rdflib import namespace as N
 
 import scripts.ontology_qa as qa
-from scripts.ontology_qa import VOCAB_DIR, bundled_vocabularies, iri_key, run_qa
+from scripts.ontology_qa import VOCAB_CATALOG, bundled_vocabularies, iri_key, run_qa
 
-MANIFEST = yaml.safe_load(open(VOCAB_DIR / 'manifest.yml', encoding='utf-8'))
+CATALOG = VOCAB_CATALOG
+VOCAB_DIR = VOCAB_CATALOG.parent  # repo layout: the catalogued files live next to it
+VOCABULARIES = sorted(bundled_vocabularies().items(), key=lambda item: item[1])
 UNDEFINED = "Undefined terms"
 IMPORTS = "Unresolvable imports"
 
@@ -35,22 +36,93 @@ def _undefined(make_graph, ttl, **kwargs):
 
 # ── the bundle itself ─────────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("entry", MANIFEST, ids=lambda e: e['file'])
-def test_manifest_entry_parses_and_defines_terms_in_its_namespace(entry):
-    path = VOCAB_DIR / entry['file']
-    assert path.exists(), path
+@pytest.mark.parametrize("ns, path", VOCABULARIES, ids=[Path(p).name for _, p in VOCABULARIES])
+def test_catalog_entry_parses_and_defines_terms_in_its_namespace(ns, path):
+    assert Path(path).parent == VOCAB_DIR, path
+    assert os.path.exists(path), path
     g = rdflib.Graph().parse(path)
-    ns = entry['namespace']
     terms = {s for s in g.subjects() if isinstance(s, rdflib.URIRef) and str(s).startswith(ns) and str(s) != ns}
-    assert terms, f"{entry['file']} defines no terms in {ns}"
+    assert terms, f"{Path(path).name} defines no terms in {ns}"
 
 
-def test_every_vocabulary_file_is_in_the_manifest_and_readme():
-    files = {p.name for p in VOCAB_DIR.glob('*.ttl')}
-    assert files == {e['file'] for e in MANIFEST}
+def test_every_vocabulary_file_is_in_the_catalog_and_readme():
+    files = {p.name for p in VOCAB_DIR.glob('*.ttl')} - {CATALOG.name}
+    assert files == {Path(p).name for _, p in VOCABULARIES}
     readme = (VOCAB_DIR / 'README.md').read_text(encoding='utf-8')
     for f in files:
         assert f"`{f}`" in readme, f"{f} is not documented in vocabularies/README.md"
+
+
+def test_discovery_starts_from_the_catalog(make_graph, tmp_path, monkeypatch):
+    # Which vocabularies exist and where their files are comes only from the catalog: a
+    # catalog elsewhere, whose distribution points at a file in another directory, is honoured.
+    vocab = tmp_path / "files" / "example.ttl"
+    vocab.parent.mkdir()
+    vocab.write_text("""
+    @prefix ex: <http://example.org/vocab#> .
+    ex:known a <http://www.w3.org/2000/01/rdf-schema#Class> .
+    """)
+    catalog = tmp_path / "catalogs" / "catalog.ttl"
+    catalog.parent.mkdir()
+    catalog.write_text("""
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix vann: <http://purl.org/vocab/vann/> .
+    <https://ontolint.org/test-catalog> a dcat:Catalog ; dcat:dataset <https://ontolint.org/test-example> .
+    <https://ontolint.org/test-example> a dcat:Dataset ;
+        vann:preferredNamespaceUri "http://example.org/vocab#" ;
+        dcat:distribution [ a dcat:Distribution ; dcat:downloadURL <../files/example.ttl> ] .
+    """)
+    monkeypatch.setattr(qa, "VOCAB_CATALOG", catalog)
+    bundled_vocabularies.cache_clear()
+    try:
+        assert bundled_vocabularies() == {"http://example.org/vocab#": str(vocab.resolve())}
+        assert qa._is_bundled(vocab)
+        check, fetch = _undefined(make_graph, """
+        :Foo a owl:Class ; rdfs:subClassOf <http://example.org/vocab#known>, <http://example.org/vocab#unknown> .
+        """)
+        reported = {str(v.resource) for v in check.violations}
+        assert "http://example.org/vocab#unknown" in reported
+        assert "http://example.org/vocab#known" not in reported
+        assert "http://example.org/vocab#" not in fetch.fetched
+    finally:
+        bundled_vocabularies.cache_clear()
+
+
+def test_catalog_entry_without_namespace_is_rejected(tmp_path, monkeypatch):
+    catalog = tmp_path / "catalog.ttl"
+    catalog.write_text("""
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    <https://ontolint.org/test-broken> a dcat:Dataset .
+    """)
+    monkeypatch.setattr(qa, "VOCAB_CATALOG", catalog)
+    bundled_vocabularies.cache_clear()
+    try:
+        with pytest.raises(ValueError):
+            bundled_vocabularies()
+    finally:
+        bundled_vocabularies.cache_clear()
+
+
+def test_catalog_describes_every_dataset():
+    g = rdflib.Graph().parse(CATALOG)
+    catalog = next(g.subjects(rdflib.RDF.type, rdflib.DCAT.Catalog))
+    datasets = set(g.subjects(rdflib.RDF.type, rdflib.DCAT.Dataset))
+    assert set(g.objects(catalog, rdflib.DCAT.dataset)) == datasets
+    for ds in datasets:
+        for p in (rdflib.DCTERMS.title, rdflib.DCTERMS.source, rdflib.DCTERMS.license,
+                  rdflib.VANN.preferredNamespacePrefix):
+            assert g.value(ds, p) is not None, f"{ds} has no {p}"
+
+
+def test_catalog_uses_only_defined_terms(make_graph):
+    # The catalog is RDF too: its DCAT, Dublin Core, VANN and SKOS terms resolve from the
+    # bundle. Trusted: the catalog's own https://ontolint.org/ IRIs (it declares no
+    # owl:Ontology to make that namespace local) and IANA media types (not published as RDF).
+    g = rdflib.Graph().parse(CATALOG)
+    check = run_qa(g, uri_parser=_NoNetwork(),
+                   ignore_imports=["https://ontolint.org/",
+                                   "https://www.iana.org/assignments/media-types/text/"]).get(UNDEFINED)
+    assert check.passed, check.elements
 
 
 # rdflib's built-in term lists, for the vocabularies it has them for. Every term rdflib
