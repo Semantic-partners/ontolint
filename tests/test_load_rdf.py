@@ -72,7 +72,7 @@ def test_load_single_turtle_file(tmp_path):
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
     """)
-    file_counter, files_processed, graph, log_results, files_failed = load_rdf([str(file)])
+    file_counter, files_processed, graph, log_results, _ = load_rdf([str(file)])
     assert file_counter == 1
     assert len(files_processed) == 1
     assert str(file) in files_processed[0]
@@ -91,7 +91,7 @@ def test_load_single_rdfxml_file(tmp_path):
         </rdf:Description>
     </rdf:RDF>
     """)
-    file_counter, files_processed, graph, log_results, files_failed = load_rdf([str(file)])
+    file_counter, files_processed, graph, log_results, _ = load_rdf([str(file)])
     assert file_counter == 1
     assert len(files_processed) == 1
     assert len(graph) > 0
@@ -121,7 +121,7 @@ def test_load_file_with_syntax_error(tmp_path):
 
 def test_empty_input_returns_empty_graph():
     """Test that empty input returns an empty graph"""
-    file_counter, files_processed, graph, _, files_failed = load_rdf([])
+    file_counter, files_processed, graph, _, _ = load_rdf([])
     assert file_counter == 0
     assert len(files_processed) == 0
     assert len(graph) == 0
@@ -140,7 +140,7 @@ def test_load_multiple_files(tmp_path):
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
     """)
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(file1), str(file2)])
+    file_counter, files_processed, graph, _, _ = load_rdf([str(file1), str(file2)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -199,7 +199,7 @@ def test_load_from_directory(tmp_path):
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
     """)
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(tmp_path)])
+    file_counter, files_processed, graph, _, _ = load_rdf([str(tmp_path)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -218,7 +218,7 @@ def test_load_from_nested_directory(tmp_path):
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
     """)
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(tmp_path)])
+    file_counter, files_processed, graph, _, _ = load_rdf([str(tmp_path)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -227,7 +227,7 @@ def test_load_empty_directory(tmp_path):
     """Test loading from an empty directory"""
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(empty_dir)])
+    file_counter, files_processed, graph, _, _ = load_rdf([str(empty_dir)])
     assert file_counter == 0
     assert len(files_processed) == 0
     assert len(graph) == 0
@@ -241,7 +241,7 @@ def test_load_directory_ignores_non_files(tmp_path):
     """)
     txt_file = tmp_path / "readme.txt"
     txt_file.write_text("This is not an RDF file")
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(tmp_path)])
+    file_counter, files_processed, _, _, files_failed = load_rdf([str(tmp_path)])
     # Only the TTL file is attempted; readme.txt is skipped, not failed
     assert file_counter == 1
     assert len(files_processed) == 1
@@ -276,7 +276,7 @@ def test_load_directory_reports_unparseable_rdf_file(tmp_path):
     """)
     bad = tmp_path / "bad.ttl"
     bad.write_text("not valid turtle @@@ !!!")
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(tmp_path)])
+    file_counter, _, _, _, files_failed = load_rdf([str(tmp_path)])
     assert file_counter == 1
     assert files_failed == [str(bad)]
 
@@ -296,12 +296,12 @@ def test_load_mixed_files_and_directories(tmp_path):
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
     """)
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(outer_file), str(subdir)])
+    file_counter, files_processed, graph, _, _ = load_rdf([str(outer_file), str(subdir)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
     # Repeat, but navigating the directory.
-    file_counter, files_processed, graph, _, files_failed = load_rdf([str(tmp_path)])
+    file_counter, files_processed, graph, _, _ = load_rdf([str(tmp_path)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
