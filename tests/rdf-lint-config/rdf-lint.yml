@@ -1,6 +1,6 @@
 # Sample .rdf-lint.yml using every feature, for comparing two RDF designs:
-#   expected-jsonld.ttl  this file lifted directly with context.jsonld (JSON-LD 1.1)
-#   expected-model.ttl   the same settings in the report's olq:Configuration model
+#   expected-rdf-lint.ttl  this file lifted directly with context.jsonld (JSON-LD 1.1)
+#   expected-model.ttl     the same settings in the report's olq:Configuration model
 #
 # `enable:` is mutually exclusive with `disable:` (only one is honoured); the context maps
 # it the same way as `disable:`.

@@ -1,4 +1,4 @@
-# Converts the directly JSON-LD-lifted config (expected-jsonld.ttl) into the report's
+# Converts the directly JSON-LD-lifted config (expected-rdf-lint.ttl) into the report's
 # configuration model (expected-model.ttl): one olq:Setting per config-file setting.
 #
 # Run it over the lifted config together with vocabularies/catalog.ttl (used to find

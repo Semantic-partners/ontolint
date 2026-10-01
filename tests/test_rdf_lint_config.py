@@ -1,20 +1,18 @@
 """
 Design comparison: can .rdf-lint.yml become RDF by direct JSON-LD mapping, without
-changing the YAML format? All files are in tests/config-jsonld/:
+changing the YAML format? All files are in tests/rdf-lint-config/:
 
-    rdf-lint.yml          sample config using every feature
-    context.jsonld        JSON-LD 1.1 context applied to the YAML as-is
-    expected-jsonld.ttl   the RDF the context produces (direct mapping)
-    expected-model.ttl    the same settings in the report's model (olq:Configuration /
-                          olq:Setting), config-file settings only, for side-by-side review
-    model-rdf-lint.yml    expected-model.ttl written back as YAML: what an input file would
-    model-context.jsonld  have to contain for plain JSON-LD to produce the model directly
-    jsonld-to-model.rq    SPARQL CONSTRUCT turning expected-jsonld.ttl into expected-model.ttl
-                          (run with vocabularies/catalog.ttl), tested by the mustrd spec
-                          jsonld-to-model.mustrd.ttl rather than here
+    rdf-lint.yml            sample config using every feature
+    context.jsonld          JSON-LD 1.1 context applied to the YAML as-is
+    expected-rdf-lint.ttl   the RDF the context produces (direct mapping)
+    expected-model.ttl      the same settings in the report's model (olq:Configuration /
+                            olq:Setting), config-file settings only, for side-by-side review
+    rdf-lint-to-model.rq    SPARQL CONSTRUCT turning expected-rdf-lint.ttl into
+                            expected-model.ttl (run with vocabularies/catalog.ttl), tested
+                            by the mustrd spec rdf-lint-to-model.mustrd.ttl rather than here
 
 Both TTL files are generated, so after changing the YAML or the context, regenerate and
-review the diff:   UPDATE_GOLDEN=1 poetry run pytest tests/test_config_jsonld.py
+review the diff:   UPDATE_GOLDEN=1 poetry run pytest tests/test_rdf_lint_config.py
 """
 import json
 import os
@@ -28,7 +26,7 @@ from scripts import dqv
 from scripts.ontology_qa import (CHECKLIST, deepcopy_list, describe_configuration,
                                  lint_selection, parse_lint_config)
 
-DIR = Path(__file__).parent / 'config-jsonld'
+DIR = Path(__file__).parent / 'rdf-lint-config'
 CONFIG = DIR / 'rdf-lint.yml'
 CONTEXT = DIR / 'context.jsonld'
 # Fixed IRIs so the output doesn't depend on where the repo is checked out.
@@ -75,7 +73,7 @@ def _check(g, expected_path):
         f"{expected_path.name} differs:\n"
         + "".join(f"- {' '.join(t.n3() for t in triple)}\n" for triple in missing)
         + "".join(f"+ {' '.join(t.n3() for t in triple)}\n" for triple in unexpected)
-        + "If intended: UPDATE_GOLDEN=1 poetry run pytest tests/test_config_jsonld.py")
+        + "If intended: UPDATE_GOLDEN=1 poetry run pytest tests/test_rdf_lint_config.py")
 
 
 def test_sample_config_still_loads_with_the_existing_parser():
@@ -88,22 +86,9 @@ def test_sample_config_still_loads_with_the_existing_parser():
 def test_direct_jsonld_mapping_matches_expected():
     g = _jsonld_graph()
     assert not any(isinstance(t, rdflib.BNode) for triple in g for t in triple)
-    _check(g, DIR / 'expected-jsonld.ttl')
+    _check(g, DIR / 'expected-rdf-lint.ttl')
 
 
 def test_report_model_matches_expected(monkeypatch):
     _check(_model_graph(monkeypatch), DIR / 'expected-model.ttl')
 
-
-def test_model_yaml_with_model_context_reproduces_expected_model():
-    # Plain JSON-LD, no ontolint code: the loader adds only the context.
-    config = yaml.safe_load((DIR / 'model-rdf-lint.yml').read_text(encoding='utf-8'))
-    context = json.loads((DIR / 'model-context.jsonld').read_text(encoding='utf-8'))['@context']
-    g = rdflib.Graph().parse(data=json.dumps({'@context': context, **config}), format='json-ld')
-    expected = rdflib.Graph().parse(DIR / 'expected-model.ttl', format='turtle')
-    missing = sorted(set(expected) - set(g), key=str)
-    unexpected = sorted(set(g) - set(expected), key=str)
-    assert not missing and not unexpected, (
-        "model-rdf-lint.yml + model-context.jsonld != expected-model.ttl\n"
-        + "".join(f"- {' '.join(t.n3() for t in triple)}\n" for triple in missing)
-        + "".join(f"+ {' '.join(t.n3() for t in triple)}\n" for triple in unexpected))
