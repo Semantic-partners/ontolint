@@ -5,7 +5,7 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
 import pytest
 
-from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST
+from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST, DEFAULT_SKIP_OBJECT_OF, expand_curie
 from scripts import dqv
 from scripts.dqv import (
     build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
@@ -510,3 +510,19 @@ def test_same_inputs_under_different_configurations_get_distinct_assessments(mak
     [b] = configured.subjects(RDF.type, DQV.QualityMetadata)
     assert a != b
     assert _measurements(plain).isdisjoint(_measurements(configured))
+
+
+def test_without_skip_object_of_the_defaults_are_recorded(make_graph):
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."))], timestamp=TS)
+    skips = _settings(g, 'undefined-terms.skip-object-of')
+    assert {g.value(s, OLQ.value) for s in skips} == {URIRef(expand_curie(p, allow_wildcard=True)) for p in DEFAULT_SKIP_OBJECT_OF}
+    assert {g.value(s, OLQ.origin) for s in skips} == {OLQ.OntolintDefault}
+    # No config file was read, so none is named.
+    assert not list(g.objects(None, OLQ.configurationFile))
+
+
+def test_empty_skip_object_of_records_no_skips(make_graph):
+    # An explicit empty list checks every object; unlike an absent key, it adds no defaults.
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), skip_object_of=[], config_file='.rdf-lint.yml')], timestamp=TS)
+    assert _settings(g, 'undefined-terms.skip-object-of') == []
+    assert list(g.objects(None, OLQ.configurationFile)) == [Literal('.rdf-lint.yml')]

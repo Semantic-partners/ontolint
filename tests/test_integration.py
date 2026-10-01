@@ -229,6 +229,11 @@ def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
     rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric-ontolint-conformance')))
     assert len(rollups) == 2
     assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
+    # Both files ran under the same configuration, so they share one configuration node.
+    configurations = set(g.subjects(rdflib.RDF.type, OLQ.Configuration))
+    assert len(configurations) == 1
+    [assessment] = g.subjects(rdflib.RDF.type, DQV.QualityMetadata)
+    assert set(g.objects(assessment, OLQ.configuration)) == configurations
 
 
 def test_dqv_filename_with_directory_is_rejected(tmp_path):
