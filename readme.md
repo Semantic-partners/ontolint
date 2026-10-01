@@ -272,6 +272,8 @@ To check each file on its own instead — one CTRF file and one report section p
 
 In this mode each file is a separate graph, so references between files are not resolved.
 
+When a directory is given, only files with a recognised RDF extension (`.ttl`, `.rdf`, `.owl`, `.xml`, `.nt`, `.n3`, `.jsonld`, `.trig`, …) are loaded; anything else (READMEs, configs) is skipped. Any file that is loaded but fails to parse — or an explicitly listed file that doesn't exist — fails the run with exit code 1, regardless of `fail-on-violations`. QA is not run against a partially loaded graph.
+
 ### Inputs
 
 All inputs are strings (composite action convention). Pass booleans as `'true'` / `'false'`.
