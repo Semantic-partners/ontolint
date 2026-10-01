@@ -28,7 +28,7 @@
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
     rdfs:label "Classes with the same label" ;
-    skos:definition "Two or more classes share a label in the same language." ;
+    skos:definition "Two or more classes share a label in the same language and with the same predicate." ;
     skos:prefLabel "Classes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -63,7 +63,7 @@
 
 <https://example.org/qa#metric-node-shapes-same-label> a dqv:Metric ;
     rdfs:label "NodeShapes with the same label" ;
-    skos:definition "Two or more SHACL NodeShapes share a label in the same language." ;
+    skos:definition "Two or more SHACL NodeShapes share a label in the same language and with the same predicate." ;
     skos:prefLabel "NodeShapes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -119,7 +119,7 @@
 
 <https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
     rdfs:label "Properties with the same label" ;
-    skos:definition "Two or more properties share a label in the same language." ;
+    skos:definition "Two or more properties share a label in the same language and with the same predicate." ;
     skos:prefLabel "Properties with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -204,7 +204,7 @@
 
 <https://example.org/qa#metric-property-shapes-same-label> a dqv:Metric ;
     rdfs:label "PropertyShapes with the same label" ;
-    skos:definition "Two or more SHACL PropertyShapes share a label in the same language." ;
+    skos:definition "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate." ;
     skos:prefLabel "PropertyShapes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
