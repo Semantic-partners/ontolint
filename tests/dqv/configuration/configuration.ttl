@@ -1,0 +1,22 @@
+@prefix : <https://example.org/ontology/configuration#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# An ontology with exactly one failure (:Cat has no description), so the report shows a
+# failing measurement next to the effective configuration: .rdf-lint.yml settings along
+# with ontolint's defaults, bundled vocabularies and rules.
+
+: a owl:Ontology ;
+    rdfs:label "Configuration" ;
+    rdfs:comment "An ontology that passes every ontolint check." ;
+    rdfs:seeAlso <https://example.org/docs/configuration> .
+
+:Animal a owl:Class ; rdfs:label "Animal" ; rdfs:comment "A living creature." .
+:Dog a owl:Class ; rdfs:label "Dog" ; rdfs:comment "A domesticated canine." ; rdfs:subClassOf :Animal .
+:Cat a owl:Class ; rdfs:label "Cat" ; rdfs:subClassOf :Animal .    # the one failure: no description
+
+:hasOwner a owl:ObjectProperty ;
+    rdfs:label "has owner" ;
+    rdfs:comment "The animal's owner." ;
+    rdfs:domain :Animal ;
+    rdfs:range :Animal .

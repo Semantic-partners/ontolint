@@ -91,6 +91,7 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
 | shapes | [shapes.ttl](tests/dqv/shapes/shapes.ttl) | [expected.ttl](tests/dqv/shapes/expected.ttl) | Anonymous SHACL property shapes, named by skolem IRIs. |
 | per-file | [a.ttl](tests/dqv/per-file/a.ttl), [b.ttl](tests/dqv/per-file/b.ttl) | [expected.ttl](tests/dqv/per-file/expected.ttl) | `--per-file`: one report, with each ontology's results computed on that ontology. |
 | merged | [one.ttl](tests/dqv/merged/one.ttl), [two.ttl](tests/dqv/merged/two.ttl) | [expected.ttl](tests/dqv/merged/expected.ttl) | A merged run over two ontologies, computed on one aggregate `dcat:Dataset`. |
+| configuration | [configuration.ttl](tests/dqv/configuration/configuration.ttl) + [.rdf-lint.yml](tests/dqv/configuration/.rdf-lint.yml) | [expected.ttl](tests/dqv/configuration/expected.ttl) | The **effective configuration**: settings from the config file, ontolint defaults, bundled vocabularies and a rule, next to one failing measurement. The other examples leave the configuration out for readability. |
 
 What gets emitted:
 
