@@ -1,0 +1,244 @@
+# Converts the directly JSON-LD-lifted config (expected-jsonld.ttl) into the report's
+# configuration model (expected-model.ttl): one olq:Setting per config-file setting.
+#
+# Run it over the lifted config together with vocabularies/catalog.ttl (used to find
+# imports.local entries that override a bundled vocabulary). ?base is the report's
+# --base-uri (set in the VALUES at the top of the settings block). Setting and configuration IRIs reproduce ontolint's hashes (dqv._mint:
+# the first 16 hex digits of SHA-256 over the parts joined with U+001F).
+#
+# The check table (VALUES) is generated from ontolint's CHECKLIST and DQV_METRICS.
+
+PREFIX olq:   <https://ontolint.org/ns#>
+PREFIX check: <https://ontolint.org/check/>
+PREFIX dqv:   <http://www.w3.org/ns/dqv#>
+PREFIX prov:  <http://www.w3.org/ns/prov#>
+PREFIX sh:    <http://www.w3.org/ns/shacl#>
+PREFIX skos:  <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dcat:  <http://www.w3.org/ns/dcat#>
+PREFIX vann:  <http://purl.org/vocab/vann/>
+
+CONSTRUCT {
+  ?configuration a olq:Configuration ;
+      rdfs:label "Effective ontolint configuration" ;
+      olq:configurationFile ?configFile ;
+      olq:setting ?setting .
+
+  ?setting a olq:Setting ;
+      rdfs:label ?label ;
+      rdfs:comment ?comment ;
+      olq:key ?key ;
+      olq:value ?value ;
+      olq:origin olq:ConfigFile ;
+      olq:enabled ?enabled ;
+      olq:localFile ?localFile ;
+      prov:wasDerivedFrom ?dataset .
+
+  # The metric (and its dimension) of every check a setting refers to.
+  ?metric a dqv:Metric ;
+      rdfs:label ?checkLabel ;
+      skos:prefLabel ?checkLabel ;
+      skos:definition ?metricDefinition ;
+      dqv:inDimension ?dimension ;
+      olq:severity ?severity .
+  ?dimension a dqv:Dimension ;
+      rdfs:label ?dimensionLabel ;
+      skos:prefLabel ?dimensionLabel ;
+      skos:definition ?dimensionDefinition .
+}
+WHERE {
+  ?cfg a olq:Configuration .
+  BIND (REPLACE(STR(?cfg), "^.*/", "") AS ?configFile)
+
+  # One row per setting.
+  { 
+    # The report's --base-uri. Bound here, before the UNION, because SPARQL evaluates each
+    # branch on its own: IRIs that need it are built after the UNION.
+    VALUES ?base { "https://example.org/qa#" }
+    {
+      # checks: each check listed under disable:, except where a rule re-enables it
+      # (owl-declaration, which owl-description and owl-imports depend on).
+      ?cfg olq:disable ?check .
+      FILTER (?check != check:owl-declaration
+              || (EXISTS { ?cfg olq:disable check:owl-description } && EXISTS { ?cfg olq:disable check:owl-imports }))
+      VALUES ( ?check ?metricSlug ?checkLabel ?metricDefinition ?dimensionSlug ?dimensionLabel ?dimensionDefinition ?severity ) {
+      ( check:owl-declaration "ontology-not-declared" "Ontology without declaration" "A processed file has no owl:Ontology declaration." "metadata" "Metadata" "The ontology declares itself and describes its purpose." sh:Violation )
+      ( check:owl-description "ontology-missing-description" "Ontology without description" "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." "metadata" "Metadata" "The ontology declares itself and describes its purpose." sh:Violation )
+      ( check:owl-imports "unresolvable-imports" "Unresolvable imports" "An owl:imports target could not be resolved or contains no triples." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:undefined-terms "undefined-terms" "Undefined terms" "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:class-missing-label "classes-missing-label" "Class without label" "A class has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:property-missing-label "properties-missing-label" "Property without label" "A property has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:node-shape-missing-label "node-shapes-missing-label" "NodeShape without label" "A SHACL NodeShape has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:property-shape-missing-label "property-shapes-missing-label" "PropertyShape without label" "A SHACL PropertyShape has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:class-missing-comment "classes-missing-description" "Class without description" "A class has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:property-missing-comment "properties-missing-description" "Property without description" "A property has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:node-shape-missing-comment "node-shapes-missing-description" "NodeShape without description" "A SHACL NodeShape has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:property-shape-missing-comment "property-shapes-missing-description" "PropertyShape without description" "A SHACL PropertyShape has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:class-same-label "classes-same-label" "Classes with the same label" "Two or more classes share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:property-same-label "properties-same-label" "Properties with the same label" "Two or more properties share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:node-shape-same-label "node-shapes-same-label" "NodeShapes with the same label" "Two or more SHACL NodeShapes share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:property-shape-same-label "property-shapes-same-label" "PropertyShapes with the same label" "Two or more SHACL PropertyShapes share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:isolated-classes "isolated-classes" "Isolated classes" "A class is declared but not connected to the rest of the ontology." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Warning )
+      ( check:property-missing-domain "properties-missing-domain" "Property without domain" "A property has no rdfs:domain." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Warning )
+      ( check:property-missing-range "properties-missing-range" "Property without range" "A property has no rdfs:range." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Warning )
+      ( check:unique-identifiers "non-unique-identifiers" "Non-unique identifiers" "The same IRI is declared as more than one kind of class or property." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:subclass-cycles "subclass-cycles" "Subclass Cycles" "A class is involved in an rdfs:subClassOf cycle." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Violation )
+      ( check:untyped-class "untyped-classes" "Untyped Classes" "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:untyped-property "untyped-properties" "Untyped Properties" "A term in the ontology namespace is used as a property but not declared as one." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:hijacking "namespace-hijacking" "Namespace hijacking" "A resource is defined using an external vocabulary's namespace." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      }
+      BIND ("checks" AS ?key)
+      BIND (false AS ?enabled)
+      BIND (CONCAT("checks: ", ?checkLabel, " (disabled)") AS ?label)
+      BIND ("Listed under disable:" AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:importIgnore ?rawValue .
+      BIND ("imports.ignore" AS ?key)
+      BIND (CONCAT("imports.ignore: ", STR(?rawValue)) AS ?label)
+      BIND ("Trusted: never fetched or reported, and not resolved as an import" AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:importLocal ?file .
+      ?file olq:providesNamespace ?rawValue .
+      # Overrides a bundled vocabulary? Match namespaces with or without a trailing # or /.
+      OPTIONAL {
+        ?dataset a dcat:Dataset ; vann:preferredNamespaceUri ?bundledNamespace .
+        FILTER (REPLACE(STR(?bundledNamespace), "[#/]$", "") = REPLACE(STR(?rawValue), "[#/]$", ""))
+      }
+      BIND ("imports.local" AS ?key)
+      # The file relative to the config file's directory.
+      BIND (STRAFTER(STR(?file), REPLACE(STR(?cfg), "[^/]*$", "")) AS ?localFile)
+      BIND (CONCAT("imports.local: ", STR(?rawValue)) AS ?label)
+      BIND (IF(BOUND(?dataset),
+               "Resolved from a local file instead of the network; overrides the bundled vocabulary",
+               "Resolved from a local file instead of the network") AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:excludeType ?rawValue .
+      BIND ("exclude.types" AS ?key)
+      BIND (CONCAT("exclude.types: ", STR(?rawValue)) AS ?label)
+      BIND ("Instances are skipped by the class checks" AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:skipObjectOf ?rawValue .
+      BIND ("undefined-terms.skip-object-of" AS ?key)
+      BIND (CONCAT("undefined-terms.skip-object-of: ", STR(?rawValue)) AS ?label)
+      BIND ("Objects of this property are not checked as terms" AS ?comment)
+    }
+    # A check's value is its metric; every other setting's value is the configured IRI.
+    BIND (IRI(CONCAT(?base, "metric-", ?metricSlug)) AS ?metric)
+    BIND (COALESCE(?metric, ?rawValue) AS ?value)
+    BIND (IRI(CONCAT(?base, "dimension-", ?dimensionSlug)) AS ?dimension)
+    # As ontolint writes Python values into its hashes: booleans as True/False, unset as None.
+    BIND (IF(BOUND(?enabled), "False", "None") AS ?enabledText)
+    BIND (CONCAT(?key, "|", STR(?value), "|config|", ?enabledText, "|", COALESCE(?localFile, "None")) AS ?sig)
+ }
+
+  # The configuration IRI hashes every setting's signature, in sorted order.
+  {
+    SELECT ?cfg ?base (GROUP_CONCAT(?sig; separator="\u001F") AS ?signatures)
+    WHERE {
+      { SELECT ?cfg ?base ?sig WHERE {
+          ?cfg a olq:Configuration .
+          
+    # The report's --base-uri. Bound here, before the UNION, because SPARQL evaluates each
+    # branch on its own: IRIs that need it are built after the UNION.
+    VALUES ?base { "https://example.org/qa#" }
+    {
+      # checks: each check listed under disable:, except where a rule re-enables it
+      # (owl-declaration, which owl-description and owl-imports depend on).
+      ?cfg olq:disable ?check .
+      FILTER (?check != check:owl-declaration
+              || (EXISTS { ?cfg olq:disable check:owl-description } && EXISTS { ?cfg olq:disable check:owl-imports }))
+      VALUES ( ?check ?metricSlug ?checkLabel ?metricDefinition ?dimensionSlug ?dimensionLabel ?dimensionDefinition ?severity ) {
+      ( check:owl-declaration "ontology-not-declared" "Ontology without declaration" "A processed file has no owl:Ontology declaration." "metadata" "Metadata" "The ontology declares itself and describes its purpose." sh:Violation )
+      ( check:owl-description "ontology-missing-description" "Ontology without description" "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." "metadata" "Metadata" "The ontology declares itself and describes its purpose." sh:Violation )
+      ( check:owl-imports "unresolvable-imports" "Unresolvable imports" "An owl:imports target could not be resolved or contains no triples." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:undefined-terms "undefined-terms" "Undefined terms" "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:class-missing-label "classes-missing-label" "Class without label" "A class has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:property-missing-label "properties-missing-label" "Property without label" "A property has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:node-shape-missing-label "node-shapes-missing-label" "NodeShape without label" "A SHACL NodeShape has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:property-shape-missing-label "property-shapes-missing-label" "PropertyShape without label" "A SHACL PropertyShape has no label annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Violation )
+      ( check:class-missing-comment "classes-missing-description" "Class without description" "A class has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:property-missing-comment "properties-missing-description" "Property without description" "A property has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:node-shape-missing-comment "node-shapes-missing-description" "NodeShape without description" "A SHACL NodeShape has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:property-shape-missing-comment "property-shapes-missing-description" "PropertyShape without description" "A SHACL PropertyShape has no description annotation." "documentation" "Documentation" "Terms carry human-readable labels and descriptions." sh:Warning )
+      ( check:class-same-label "classes-same-label" "Classes with the same label" "Two or more classes share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:property-same-label "properties-same-label" "Properties with the same label" "Two or more properties share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:node-shape-same-label "node-shapes-same-label" "NodeShapes with the same label" "Two or more SHACL NodeShapes share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:property-shape-same-label "property-shapes-same-label" "PropertyShapes with the same label" "Two or more SHACL PropertyShapes share a label in the same language." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:isolated-classes "isolated-classes" "Isolated classes" "A class is declared but not connected to the rest of the ontology." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Warning )
+      ( check:property-missing-domain "properties-missing-domain" "Property without domain" "A property has no rdfs:domain." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Warning )
+      ( check:property-missing-range "properties-missing-range" "Property without range" "A property has no rdfs:range." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Warning )
+      ( check:unique-identifiers "non-unique-identifiers" "Non-unique identifiers" "The same IRI is declared as more than one kind of class or property." "uniqueness" "Uniqueness" "Labels and identifiers unambiguously denote a single term." sh:Violation )
+      ( check:subclass-cycles "subclass-cycles" "Subclass Cycles" "A class is involved in an rdfs:subClassOf cycle." "structure" "Structure" "Terms are connected into a well-formed hierarchy with domains and ranges." sh:Violation )
+      ( check:untyped-class "untyped-classes" "Untyped Classes" "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:untyped-property "untyped-properties" "Untyped Properties" "A term in the ontology namespace is used as a property but not declared as one." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      ( check:hijacking "namespace-hijacking" "Namespace hijacking" "A resource is defined using an external vocabulary's namespace." "conformance" "Conformance" "Terms are declared, resolvable and minted in the ontology's own namespace." sh:Violation )
+      }
+      BIND ("checks" AS ?key)
+      BIND (false AS ?enabled)
+      BIND (CONCAT("checks: ", ?checkLabel, " (disabled)") AS ?label)
+      BIND ("Listed under disable:" AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:importIgnore ?rawValue .
+      BIND ("imports.ignore" AS ?key)
+      BIND (CONCAT("imports.ignore: ", STR(?rawValue)) AS ?label)
+      BIND ("Trusted: never fetched or reported, and not resolved as an import" AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:importLocal ?file .
+      ?file olq:providesNamespace ?rawValue .
+      # Overrides a bundled vocabulary? Match namespaces with or without a trailing # or /.
+      OPTIONAL {
+        ?dataset a dcat:Dataset ; vann:preferredNamespaceUri ?bundledNamespace .
+        FILTER (REPLACE(STR(?bundledNamespace), "[#/]$", "") = REPLACE(STR(?rawValue), "[#/]$", ""))
+      }
+      BIND ("imports.local" AS ?key)
+      # The file relative to the config file's directory.
+      BIND (STRAFTER(STR(?file), REPLACE(STR(?cfg), "[^/]*$", "")) AS ?localFile)
+      BIND (CONCAT("imports.local: ", STR(?rawValue)) AS ?label)
+      BIND (IF(BOUND(?dataset),
+               "Resolved from a local file instead of the network; overrides the bundled vocabulary",
+               "Resolved from a local file instead of the network") AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:excludeType ?rawValue .
+      BIND ("exclude.types" AS ?key)
+      BIND (CONCAT("exclude.types: ", STR(?rawValue)) AS ?label)
+      BIND ("Instances are skipped by the class checks" AS ?comment)
+    }
+    UNION
+    {
+      ?cfg olq:skipObjectOf ?rawValue .
+      BIND ("undefined-terms.skip-object-of" AS ?key)
+      BIND (CONCAT("undefined-terms.skip-object-of: ", STR(?rawValue)) AS ?label)
+      BIND ("Objects of this property are not checked as terms" AS ?comment)
+    }
+    # A check's value is its metric; every other setting's value is the configured IRI.
+    BIND (IRI(CONCAT(?base, "metric-", ?metricSlug)) AS ?metric)
+    BIND (COALESCE(?metric, ?rawValue) AS ?value)
+    BIND (IRI(CONCAT(?base, "dimension-", ?dimensionSlug)) AS ?dimension)
+    # As ontolint writes Python values into its hashes: booleans as True/False, unset as None.
+    BIND (IF(BOUND(?enabled), "False", "None") AS ?enabledText)
+    BIND (CONCAT(?key, "|", STR(?value), "|config|", ?enabledText, "|", COALESCE(?localFile, "None")) AS ?sig)
+
+        } ORDER BY ?sig }
+    }
+    GROUP BY ?cfg ?base
+  }
+  BIND (IRI(CONCAT(?base, "configuration-",
+        SUBSTR(SHA256(CONCAT(?configFile, "\u001F", ?signatures)), 1, 16))) AS ?configuration)
+  BIND (IRI(CONCAT(?base, "setting-",
+        SUBSTR(SHA256(CONCAT(STR(?configuration), "\u001F", ?key, "\u001F", STR(?value), "\u001F",
+                             "config", "\u001F", ?enabledText, "\u001F", COALESCE(?localFile, ""))), 1, 16))) AS ?setting)
+}

@@ -9,6 +9,8 @@ changing the YAML format? All files are in tests/config-jsonld/:
                           olq:Setting), config-file settings only, for side-by-side review
     model-rdf-lint.yml    expected-model.ttl written back as YAML: what an input file would
     model-context.jsonld  have to contain for plain JSON-LD to produce the model directly
+    jsonld-to-model.rq    SPARQL CONSTRUCT turning expected-jsonld.ttl into expected-model.ttl
+                          (run with vocabularies/catalog.ttl)
 
 Both TTL files are generated, so after changing the YAML or the context, regenerate and
 review the diff:   UPDATE_GOLDEN=1 poetry run pytest tests/test_config_jsonld.py
@@ -29,7 +31,7 @@ DIR = Path(__file__).parent / 'config-jsonld'
 CONFIG = DIR / 'rdf-lint.yml'
 CONTEXT = DIR / 'context.jsonld'
 # Fixed IRIs so the output doesn't depend on where the repo is checked out.
-CONFIG_IRI = 'https://example.org/project/.rdf-lint.yml'
+CONFIG_IRI = 'https://example.org/project/rdf-lint.yml'
 REPORT_BASE = 'https://example.org/qa#'
 
 
@@ -102,6 +104,20 @@ def test_model_yaml_with_model_context_reproduces_expected_model():
     unexpected = sorted(set(g) - set(expected), key=str)
     assert not missing and not unexpected, (
         "model-rdf-lint.yml + model-context.jsonld != expected-model.ttl\n"
+        + "".join(f"- {' '.join(t.n3() for t in triple)}\n" for triple in missing)
+        + "".join(f"+ {' '.join(t.n3() for t in triple)}\n" for triple in unexpected))
+
+
+def test_construct_converts_direct_mapping_to_model():
+    # rdf-lint.yml --context.jsonld--> expected-jsonld.ttl --jsonld-to-model.rq--> expected-model.ttl
+    g = rdflib.Graph().parse(DIR / 'expected-jsonld.ttl', format='turtle')
+    g.parse(Path(__file__).parent.parent / 'vocabularies' / 'catalog.ttl', format='turtle')
+    constructed = g.query((DIR / 'jsonld-to-model.rq').read_text(encoding='utf-8')).graph
+    expected = rdflib.Graph().parse(DIR / 'expected-model.ttl', format='turtle')
+    missing = sorted(set(expected) - set(constructed), key=str)
+    unexpected = sorted(set(constructed) - set(expected), key=str)
+    assert not missing and not unexpected, (
+        "jsonld-to-model.rq output != expected-model.ttl\n"
         + "".join(f"- {' '.join(t.n3() for t in triple)}\n" for triple in missing)
         + "".join(f"+ {' '.join(t.n3() for t in triple)}\n" for triple in unexpected))
 
