@@ -28,7 +28,7 @@
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
     rdfs:label "Classes with the same label" ;
-    skos:definition "Two or more classes share a label in the same language." ;
+    skos:definition "Two or more classes share a label in the same language and with the same predicate." ;
     skos:prefLabel "Classes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -63,7 +63,7 @@
 
 <https://example.org/qa#metric-node-shapes-same-label> a dqv:Metric ;
     rdfs:label "NodeShapes with the same label" ;
-    skos:definition "Two or more SHACL NodeShapes share a label in the same language." ;
+    skos:definition "Two or more SHACL NodeShapes share a label in the same language and with the same predicate." ;
     skos:prefLabel "NodeShapes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -119,7 +119,7 @@
 
 <https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
     rdfs:label "Properties with the same label" ;
-    skos:definition "Two or more properties share a label in the same language." ;
+    skos:definition "Two or more properties share a label in the same language and with the same predicate." ;
     skos:prefLabel "Properties with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -172,8 +172,8 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-100535aa9bf5a392>,
-        <https://example.org/qa#violation-14c4871ee9198fa6> .
+    olq:violation <https://example.org/qa#violation-24a1a11b8690efe8>,
+        <https://example.org/qa#violation-bc3dd7fa46342480> .
 
 <https://example.org/qa#measurement-85ed715c2d25f46c> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/shapes#> ;
@@ -204,31 +204,31 @@
 
 <https://example.org/qa#metric-property-shapes-same-label> a dqv:Metric ;
     rdfs:label "PropertyShapes with the same label" ;
-    skos:definition "Two or more SHACL PropertyShapes share a label in the same language." ;
+    skos:definition "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate." ;
     skos:prefLabel "PropertyShapes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-100535aa9bf5a392> a sh:ValidationResult ;
+<https://example.org/qa#violation-24a1a11b8690efe8> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-aad4f1b940c43b73> ;
-    sh:resultMessage "shares label 'required' with a blank node" ;
+    sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     sh:value "required" ;
     olq:relatedResource <https://example.org/qa#bnode-6a3391e82524aaca> .
 
-<https://example.org/qa#violation-14c4871ee9198fa6> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/qa#bnode-6a3391e82524aaca> ;
-    sh:resultMessage "shares label 'required' with a blank node" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    sh:value "required" ;
-    olq:relatedResource <https://example.org/qa#bnode-aad4f1b940c43b73> .
-
 <https://example.org/qa#violation-a518c195d0bb7ec9> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-6fa67bf7171db4b9> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-bc3dd7fa46342480> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/qa#bnode-6a3391e82524aaca> ;
+    sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    sh:value "required" ;
+    olq:relatedResource <https://example.org/qa#bnode-aad4f1b940c43b73> .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;
