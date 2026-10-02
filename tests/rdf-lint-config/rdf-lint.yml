@@ -1,0 +1,31 @@
+# Sample .rdf-lint.yml using every feature, for comparing two RDF designs:
+#   expected-rdf-lint.ttl  this file lifted directly with context.jsonld (JSON-LD 1.1)
+#   expected-model.ttl     the same settings in the report's olq:Configuration model
+#
+# `enable:` is mutually exclusive with `disable:` (only one is honoured); the context maps
+# it the same way as `disable:`.
+disable:
+  - owl-declaration
+  - hijacking
+  - property-missing-domain
+
+imports:
+  # Trusted: never fetched or reported, and not resolved as an import.
+  ignore:
+    - http://example.org/vendor/ns#
+    - https://example.org/legacy/ontology
+  # Resolve a namespace or import from a file instead of the network (relative to this file).
+  local:
+    http://www.w3.org/2004/02/skos/core#: vocab/skos-2026.ttl
+    https://example.org/partner/ontology: vocab/partner.ttl
+
+exclude:
+  types:
+    - rdf:PropositionForm
+    - https://example.org/ns#Placeholder
+
+undefined-terms:
+  skip-object-of:
+    - rdfs:seeAlso
+    - dcterms:license
+    - vs:*

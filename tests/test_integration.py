@@ -70,7 +70,9 @@ def test_ctrf_report_structure(tmp_path):
 
 def test_nonexistent_file_prints_error(capsys):
     with patch('sys.argv', ['ontology_qa.py', 'nonexistent.ttl']):
-        main()
+        with pytest.raises(SystemExit) as exc:
+            main()
+    assert exc.value.code == 1
     out = capsys.readouterr().out
     assert "ERROR" in out or "Failed" in out
 
@@ -227,6 +229,11 @@ def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
     rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric-ontolint-conformance')))
     assert len(rollups) == 2
     assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
+    # Both files ran under the same configuration, so they share one configuration node.
+    configurations = set(g.subjects(rdflib.RDF.type, OLQ.Configuration))
+    assert len(configurations) == 1
+    [assessment] = g.subjects(rdflib.RDF.type, DQV.QualityMetadata)
+    assert set(g.objects(assessment, OLQ.configuration)) == configurations
 
 
 def test_dqv_filename_with_directory_is_rejected(tmp_path):
@@ -270,3 +277,38 @@ def test_skip_object_of_config_applied_via_main(tmp_path):
     run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(tmp_path / 'override'))
     assert _undefined_terms_status(tmp_path / 'override') == 'failed'
 
+
+
+# ── parse failures ────────────────────────────────────────────────────────────
+
+def test_parse_failure_exits_nonzero_without_exit_status_flag(tmp_path):
+    bad = tmp_path / 'bad.ttl'
+    bad.write_text('not valid turtle @@@ !!!')
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    ctrf_dir = tmp_path / 'ctrf'
+    with pytest.raises(SystemExit) as exc:
+        run_main(pass_ttl, str(bad), '--ctrf-dir', str(ctrf_dir))
+    assert exc.value.code == 1
+    # QA is not run against a partially loaded graph
+    assert not list(ctrf_dir.glob('*.json'))
+
+
+def test_parse_failure_reported_in_output(tmp_path, capsys):
+    bad = tmp_path / 'bad.ttl'
+    bad.write_text('not valid turtle @@@ !!!')
+    with pytest.raises(SystemExit):
+        run_main(str(bad), '--ctrf-dir', str(tmp_path))
+    captured = capsys.readouterr()
+    assert 'could not be parsed' in captured.out
+    assert str(bad) in captured.err
+
+
+def test_per_file_parse_failure_exits_nonzero_but_reports_other_files(tmp_path):
+    bad = tmp_path / 'bad.ttl'
+    bad.write_text('not valid turtle @@@ !!!')
+    pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
+    ctrf_dir = tmp_path / 'ctrf'
+    with pytest.raises(SystemExit) as exc:
+        run_main(pass_ttl, str(bad), '--per-file', '--ctrf-dir', str(ctrf_dir))
+    assert exc.value.code == 1
+    assert [p.name for p in ctrf_dir.glob('*.json')] == ['example_pass-qa-report.json']

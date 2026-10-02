@@ -1,0 +1,5 @@
+# Project-level Poetry settings (apply to everyone, not just your global config).
+[virtualenvs]
+# Keep the environment in .venv, where .vscode/settings.json and .vscode/tasks.json expect it
+# (CI does the same with virtualenvs-in-project: true).
+in-project = true

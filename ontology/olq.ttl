@@ -14,7 +14,8 @@
 # A small extension to the W3C Data Quality Vocabulary (DQV) and SHACL, covering only
 # what they don't: ontolint's DQV report uses DQV for metrics, dimensions and
 # measurements, and SHACL sh:ValidationResult nodes for individual violations. The
-# terms below link the two and carry ontolint's pass/fail and severity.
+# terms below link the two and carry ontolint's pass/fail and severity, and describe
+# the effective configuration a run used: each setting, its origin and why.
 #
 # This file defines vocabulary only. Instance data (metrics, dimensions, measurements,
 # violations, assessments) is minted under the report's --base-uri, never under olq:.
@@ -22,10 +23,10 @@
 olq: a owl:Ontology ;
     rdfs:label "Ontolint quality vocabulary"@en ;
     dcterms:title "Ontolint quality vocabulary"@en ;
-    rdfs:comment "Terms used by ontolint's DQV quality report that are not covered by the W3C Data Quality Vocabulary (DQV) or SHACL: whether a measurement conforms, its severity, the SHACL validation results behind it, and other resources involved in a violation."@en ;
+    rdfs:comment "Terms used by ontolint's DQV quality report that are not covered by the W3C Data Quality Vocabulary (DQV) or SHACL: whether a measurement conforms, its severity, the SHACL validation results behind it, other resources involved in a violation, and the effective configuration of the run (its settings, where each came from and why)."@en ;
     dcterms:creator "Semantic Partners" ;
     dcterms:license <https://opensource.org/licenses/MIT>, <https://www.apache.org/licenses/LICENSE-2.0> ;
-    dcterms:modified "2026-09-29"^^xsd:date ;
+    dcterms:modified "2026-10-01"^^xsd:date ;
     owl:versionInfo "0.1.0" ;
     vann:preferredNamespacePrefix "olq" ;
     vann:preferredNamespaceUri "https://ontolint.org/ns#" ;
@@ -63,3 +64,103 @@ olq:relatedResource a owl:ObjectProperty ;
     rdfs:range rdfs:Resource ;
     rdfs:isDefinedBy olq: ;
     rdfs:seeAlso sh:focusNode .
+
+# ── Effective configuration ─────────────────────────────────────────────────
+# The configuration a QA run actually used: the project's .rdf-lint.yml plus everything
+# ontolint added (defaults, bundled vocabularies, rules), each setting with its origin.
+
+olq:Configuration a owl:Class ;
+    rdfs:label "configuration"@en ;
+    rdfs:comment "The configuration a QA run actually used: the project's .rdf-lint.yml settings together with the defaults, bundled vocabularies and rule-based changes ontolint applied."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:Setting a owl:Class ;
+    rdfs:label "setting"@en ;
+    rdfs:comment "One setting of a configuration: the .rdf-lint.yml key it corresponds to (olq:key), its value, where it came from (olq:origin) and, in rdfs:comment, why."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:SettingOrigin a owl:Class ;
+    rdfs:label "setting origin"@en ;
+    rdfs:comment "Where a setting came from."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:ConfigFile a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "configuration file"@en ;
+    rdfs:comment "The setting comes from the project's .rdf-lint.yml."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:OntolintDefault a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "ontolint default"@en ;
+    rdfs:comment "The setting is an ontolint default, applied because the configuration file doesn't set it."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:BundledVocabulary a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "bundled vocabulary"@en ;
+    rdfs:comment "The setting maps a namespace to a vocabulary file bundled with ontolint, so it resolves offline."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:OntolintRule a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "ontolint rule"@en ;
+    rdfs:comment "ontolint changed the setting because another setting depends on it, e.g. enabling a check another selected check needs."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:CallerArgument a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "caller argument"@en ;
+    rdfs:comment "The setting was passed directly to ontolint's run_qa() by the program calling it, with no configuration file."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:configuration a owl:ObjectProperty ;
+    rdfs:label "configuration"@en ;
+    rdfs:comment "Links a quality assessment to the configuration it was produced with."@en ;
+    rdfs:domain dqv:QualityMetadata ;
+    rdfs:range olq:Configuration ;
+    rdfs:isDefinedBy olq: .
+
+olq:configurationFile a owl:DatatypeProperty ;
+    rdfs:label "configuration file"@en ;
+    rdfs:comment "The path of the .rdf-lint.yml file the configuration was read from, relative to the working directory when inside it."@en ;
+    rdfs:domain olq:Configuration ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy olq: .
+
+olq:setting a owl:ObjectProperty ;
+    rdfs:label "setting"@en ;
+    rdfs:comment "Links a configuration to one of its settings."@en ;
+    rdfs:domain olq:Configuration ;
+    rdfs:range olq:Setting ;
+    rdfs:isDefinedBy olq: .
+
+olq:key a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:label "key"@en ;
+    rdfs:comment "The .rdf-lint.yml key a setting corresponds to, e.g. 'checks', 'imports.ignore', 'imports.local', 'exclude.types' or 'undefined-terms.skip-object-of'."@en ;
+    rdfs:domain olq:Setting ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy olq: .
+
+olq:value a rdf:Property, owl:FunctionalProperty ;
+    rdfs:label "value"@en ;
+    rdfs:comment "The value of a setting: for 'checks', the check's dqv:Metric; otherwise the namespace, type or property IRI it configures."@en ;
+    rdfs:domain olq:Setting ;
+    rdfs:range rdfs:Resource ;
+    rdfs:isDefinedBy olq: .
+
+olq:origin a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "origin"@en ;
+    rdfs:comment "Where a setting came from."@en ;
+    rdfs:domain olq:Setting ;
+    rdfs:range olq:SettingOrigin ;
+    rdfs:isDefinedBy olq: .
+
+olq:enabled a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:label "enabled"@en ;
+    rdfs:comment "For a 'checks' setting, whether the check ran."@en ;
+    rdfs:domain olq:Setting ;
+    rdfs:range xsd:boolean ;
+    rdfs:isDefinedBy olq: .
+
+olq:localFile a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:label "local file"@en ;
+    rdfs:comment "For an 'imports.local' setting, the file the namespace or import resolves from: a bundled vocabulary's file name, or the project's path relative to its configuration file."@en ;
+    rdfs:domain olq:Setting ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy olq: .

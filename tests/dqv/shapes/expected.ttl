@@ -6,10 +6,10 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-5be693c168c5c1f9> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-13abaa948a549e08>,
-        <https://example.org/qa#measurement-5791db696f97d0c1>,
-        <https://example.org/qa#measurement-93b9681d40a52592> ;
+<https://example.org/qa#assessment-e7c2659c92af7b0b> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-3541ecf42055bf15>,
+        <https://example.org/qa#measurement-85ed715c2d25f46c>,
+        <https://example.org/qa#measurement-ce12715cffbccd3c> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
@@ -140,7 +140,7 @@
 
 <https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
     rdfs:label "Undefined terms" ;
-    skos:definition "A term is used but defined neither locally nor in its fetched remote ontology." ;
+    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
     skos:prefLabel "Undefined terms" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
@@ -166,28 +166,28 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#measurement-13abaa948a549e08> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/shapes#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 2 ;
-    olq:conforms false .
-
-<https://example.org/qa#measurement-5791db696f97d0c1> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/shapes#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-property-shapes-missing-label> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-a477aaeb529b79c8> .
-
-<https://example.org/qa#measurement-93b9681d40a52592> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-3541ecf42055bf15> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/shapes#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-property-shapes-same-label> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-7bc634fb67aedf9d>,
-        <https://example.org/qa#violation-e81d999d52a2453c> .
+    olq:violation <https://example.org/qa#violation-100535aa9bf5a392>,
+        <https://example.org/qa#violation-14c4871ee9198fa6> .
+
+<https://example.org/qa#measurement-85ed715c2d25f46c> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/shapes#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-property-shapes-missing-label> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-a518c195d0bb7ec9> .
+
+<https://example.org/qa#measurement-ce12715cffbccd3c> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/shapes#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 2 ;
+    olq:conforms false .
 
 <https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
     rdfs:label "Ontolint conformance" ;
@@ -209,7 +209,7 @@
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-7bc634fb67aedf9d> a sh:ValidationResult ;
+<https://example.org/qa#violation-100535aa9bf5a392> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-aad4f1b940c43b73> ;
     sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
     sh:resultSeverity sh:Violation ;
@@ -229,6 +229,11 @@
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     sh:value "required" ;
     olq:relatedResource <https://example.org/qa#bnode-aad4f1b940c43b73> .
+
+<https://example.org/qa#violation-a518c195d0bb7ec9> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/qa#bnode-6fa67bf7171db4b9> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;

@@ -8,10 +8,10 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-33bd4bce6070450c> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-4d227f33dc49ff1f>,
-        <https://example.org/qa#measurement-da09e58f4b95e1fe>,
-        <https://example.org/qa#measurement-fd5bd0123395c89c> ;
+<https://example.org/qa#assessment-429836640ee8c461> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-49ae9ae8d72f013e>,
+        <https://example.org/qa#measurement-53d2c2296deb1b26>,
+        <https://example.org/qa#measurement-55bdf1d4f4fe6b27> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -142,7 +142,7 @@
 
 <https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
     rdfs:label "Undefined terms" ;
-    skos:definition "A term is used but defined neither locally nor in its fetched remote ontology." ;
+    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
     skos:prefLabel "Undefined terms" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
@@ -172,27 +172,27 @@
 
 <https://example.org/ontology/two#> rdfs:label "Two" .
 
-<https://example.org/qa#measurement-4d227f33dc49ff1f> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-49ae9ae8d72f013e> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
     dqv:value 2 ;
     olq:conforms false .
 
-<https://example.org/qa#measurement-da09e58f4b95e1fe> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-53d2c2296deb1b26> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-f93655672195e5db> .
+    olq:violation <https://example.org/qa#violation-7b553bc86035987c> .
 
-<https://example.org/qa#measurement-fd5bd0123395c89c> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-55bdf1d4f4fe6b27> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-97b3420f3aab3170> .
+    olq:violation <https://example.org/qa#violation-27587824ed2ab8b5> .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -214,12 +214,12 @@
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> .
 
-<https://example.org/qa#violation-97b3420f3aab3170> a sh:ValidationResult ;
+<https://example.org/qa#violation-27587824ed2ab8b5> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/one#Cat> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-f93655672195e5db> a sh:ValidationResult ;
+<https://example.org/qa#violation-7b553bc86035987c> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/one#Cat> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .

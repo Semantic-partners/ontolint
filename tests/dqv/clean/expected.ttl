@@ -6,8 +6,8 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-51b02b725856034e> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-7b4534a43a76c73b> ;
+<https://example.org/qa#assessment-628179b868192d4b> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-e5ba7238ca6fae36> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
@@ -152,7 +152,7 @@
 
 <https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
     rdfs:label "Undefined terms" ;
-    skos:definition "A term is used but defined neither locally nor in its fetched remote ontology." ;
+    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
     skos:prefLabel "Undefined terms" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
@@ -180,7 +180,7 @@
 
 <https://example.org/ontology/clean#> rdfs:label "Clean" .
 
-<https://example.org/qa#measurement-7b4534a43a76c73b> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-e5ba7238ca6fae36> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/clean#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
     dqv:value 0 ;

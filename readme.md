@@ -91,24 +91,44 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
 | shapes     | [shapes.ttl](tests/dqv/shapes/shapes.ttl)                               | [expected.ttl](tests/dqv/shapes/expected.ttl)     | Anonymous SHACL property shapes, named by skolem IRIs.                                                             |
 | per-file   | [a.ttl](tests/dqv/per-file/a.ttl), [b.ttl](tests/dqv/per-file/b.ttl)     | [expected.ttl](tests/dqv/per-file/expected.ttl)   | `--per-file`: one report, with each ontology's results computed on that ontology.                                |
 | merged     | [one.ttl](tests/dqv/merged/one.ttl), [two.ttl](tests/dqv/merged/two.ttl) | [expected.ttl](tests/dqv/merged/expected.ttl)     | A merged run over two ontologies, computed on one aggregate`dcat:Dataset`.                                       |
+| configuration | [configuration.ttl](tests/dqv/configuration/configuration.ttl) + [.rdf-lint.yml](tests/dqv/configuration/.rdf-lint.yml) | [expected.ttl](tests/dqv/configuration/expected.ttl) | The **effective configuration**: settings from the config file, ontolint defaults, bundled vocabularies and a rule, next to one failing measurement. The other examples leave the configuration out for readability. |
 
 What gets emitted:
 
-| Node                              | IRI                          | Notes                                                                                                                                                                                                                                                                                   |
-| --------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dqv:Dimension`                 | `<base>dimension-<slug>`   | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`.                                                                                                                                                                                                        |
-| `dqv:Metric`                    | `<base>metric-<slug>`      | One per executed check, stable across runs, with`skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`sh:Violation` or `sh:Warning`).                                                                                       |
-| `dqv:QualityMeasurement`        | `<base>measurement-<hash>` | One per (dataset, failed check), with`dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement.                                                                                |
-| Roll-up`dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for`<base>metric-ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear.                                                                                          |
-| `sh:ValidationResult`           | `<base>violation-<hash>`   | `sh:focusNode` (the offending IRI), `sh:resultSeverity`, `sh:sourceConstraintComponent sh:SPARQLConstraintComponent` and, where applicable, `sh:value`, `sh:resultMessage` and `olq:relatedResource` (other resources involved, e.g. the other side of a same-label clash). |
-| `dqv:QualityMetadata`           | `<base>assessment-<hash>`  | One per run, with`prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement.                                                                                                                                                                                  |
+| Node | IRI | Notes |
+|---|---|---|
+| `dqv:Dimension` | `<base>dimension-<slug>` | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`. |
+| `dqv:Metric` | `<base>metric-<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`sh:Violation` or `sh:Warning`). |
+| `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per (dataset, failed check), with `dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement. |
+| Roll-up `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for `<base>metric-ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear. |
+| `sh:ValidationResult` | `<base>violation-<hash>` | `sh:focusNode` (the offending IRI), `sh:resultSeverity`, `sh:sourceConstraintComponent sh:SPARQLConstraintComponent` and, where applicable, `sh:value`, `sh:resultMessage` and `olq:relatedResource` (other resources involved, e.g. the other side of a same-label clash). |
+| `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement, and `olq:configuration` linking the configuration that ran. |
+| `olq:Configuration` | `<base>configuration-<hash>` | The configuration the run actually used (see below). Identical configurations get the same IRI. |
+| `olq:Setting` | `<base>setting-<hash>` | One setting of that configuration. |
 
-- `olq:` is `https://ontolint.org/ns#`, defined in [`ontology/olq.ttl`](ontology/olq.ttl). It defines only the four terms that DQV and SHACL don't cover: `olq:conforms` and `olq:violation` on measurements (`sh:conforms` and `sh:result` have the domain `sh:ValidationReport`), `olq:severity` on metrics and measurements (`sh:severity` and `sh:resultSeverity` have the domains `sh:Shape` and `sh:AbstractResult`; its values are `sh:Severity` IRIs), and `olq:relatedResource` (SHACL has no equivalent).
+- `olq:` is `https://ontolint.org/ns#`, defined in [`ontology/olq.ttl`](ontology/olq.ttl). It covers what DQV and SHACL don't. For results, that's `olq:conforms` and `olq:violation` on measurements (`sh:conforms` and `sh:result` have the domain `sh:ValidationReport`), `olq:severity` on metrics and measurements (`sh:severity` and `sh:resultSeverity` have the domains `sh:Shape` and `sh:AbstractResult`; its values are `sh:Severity` IRIs), and `olq:relatedResource` (SHACL has no equivalent). It also describes the effective configuration (`olq:Configuration`, `olq:Setting` and friends).
 - **SHACL results:** violation nodes use the SHACL result vocabulary, so consumers can read them like a SHACL validation report. They omit `sh:sourceShape` (the checks are SPARQL queries, not shapes yet), so they are SHACL-shaped rather than strictly conforming results. The metric linked from the measurement identifies the check. Where a check can't name the offending resource (e.g. "some processed files have no `owl:Ontology`" in a merged run), the result has a message but no `sh:focusNode`.
 - **Datasets:** `dqv:computedOn` is the `owl:Ontology` IRI declared in the checked graph, labelled from its `rdfs:label`, `dcterms:title` or `skos:prefLabel`. If there is no `owl:Ontology`, it falls back to the input file's `file:` IRI. Without `--per-file`, all inputs are one merged graph and a violation can't be traced to the ontology it came from. So when a merged run contains more than one ontology, its measurements are computed on a single aggregate `dcat:Dataset` (`<base>dataset-<hash>`, labelled `Merged: …`) that `dcterms:hasPart` each ontology, rather than being asserted on each of them. Use `--per-file` for per-ontology attribution; all files still go into one DQV report.
 - **Blank nodes in the data:** results about blank nodes, such as anonymous SHACL property shapes, name them by a skolem IRI `<base>bnode-<hash>`. The hash is of the node's canonical label in the checked graph (rdflib's RGDA1 canonicalisation). Every blank node gets its own IRI, even structurally identical ones, and the IRI is the same for any parse of the same graph. Because the label depends on the whole graph, editing unrelated parts of the ontology can change it. Messages refer to such nodes as "a blank node". See the [shapes example](tests/dqv/shapes/expected.ttl).
 - **IRIs:** no blank nodes are emitted. All instance IRIs are minted under `--base-uri` (default `urn:ontolint:`); if the base doesn't end in `/`, `#` or `:`, a `/` is added. Metrics and dimensions use their slug (`<base>metric-<slug>`, `<base>dimension-<slug>`), so the same check has the same IRI across runs with the same base. Measurements, violations and the assessment use a SHA-256 hash of the run timestamp, input files, dataset, metric and violation, so they're unique per run and reproducible for a given run. The `olq:` namespace holds only vocabulary terms (properties and classes), never instance data.
 - No DQV report is written in `--profile-only` mode or when no file could be loaded.
+- **Effective configuration:** the report records the configuration that actually ran, not just your `.rdf-lint.yml`. ontolint adds to and adjusts the file: default checks, the default `undefined-terms.skip-object-of` list, the [bundled vocabularies](#bundled-vocabularies) in `imports.local`, and rules such as re-enabling owl-declaration when a check that depends on it is selected. Each is an `olq:Setting` with:
+  - `olq:key`: the `.rdf-lint.yml` key, e.g. `checks`, `imports.ignore`, `imports.local`, `exclude.types` or `undefined-terms.skip-object-of`;
+  - `olq:value`: the check's metric, or the namespace, type or property;
+  - `olq:origin`: `olq:ConfigFile`, `olq:OntolintDefault`, `olq:BundledVocabulary`, `olq:OntolintRule`, or `olq:CallerArgument` for values passed straight to `run_qa()` with no config file;
+  - `rdfs:comment`: the reason;
+  - `olq:enabled` for checks, `olq:localFile` for local imports, and `prov:wasDerivedFrom` linking a bundled vocabulary to its entry in the [vocabulary catalog](vocabularies/catalog.ttl).
+
+  The configuration file's path is `olq:configurationFile`. For example:
+  ```turtle
+  <…#setting-…> a olq:Setting ;
+      rdfs:label "checks: Ontology without declaration (enabled)" ;
+      olq:key "checks" ;
+      olq:value <…#metric-ontology-not-declared> ;
+      olq:enabled true ;
+      olq:origin olq:OntolintRule ;
+      rdfs:comment "Enabled because the ontology-description check was selected and depends on it." .
+  ```
 - **Reproducible output:** set `SOURCE_DATE_EPOCH` (seconds since the Unix epoch) to pin the report timestamp. With the same inputs and base URI, the report, including every minted IRI, is then byte-for-byte reproducible.
 
 ## Dev setup & Running Ontolint locally
@@ -274,6 +294,8 @@ To check each file on its own instead — one CTRF file and one report section p
 
 In this mode each file is a separate graph, so references between files are not resolved.
 
+When a directory is given, only files with a recognised RDF extension (`.ttl`, `.rdf`, `.owl`, `.xml`, `.nt`, `.n3`, `.jsonld`, `.trig`, …) are loaded; anything else (READMEs, configs) is skipped. Any file that is loaded but fails to parse — or an explicitly listed file that doesn't exist — fails the run with exit code 1, regardless of `fail-on-violations`. QA is not run against a partially loaded graph.
+
 ### Inputs
 
 All inputs are strings (composite action convention). Pass booleans as `'true'` / `'false'`.
@@ -362,6 +384,34 @@ undefined-terms:
 ```
 
 Entries use the same prefixes as `exclude.types`, plus `foaf:`, `schema:` and `vs:`. You don't need `imports.ignore` entries for `rdfs:seeAlso`, licence or source links; keep `imports.ignore` for importable namespaces you choose not to resolve.
+
+### Bundled vocabularies
+
+ontolint ships copies of the standard vocabularies in [`vocabularies/`](vocabularies/): RDF (with the RDF 1.2 terms), RDFS, OWL, XSD, SHACL, SKOS, Dublin Core (`dcterms`, `dc`, `dcam`, `dctype`), FOAF, VANN, Vocabulary Status, PROV, ORG, DCAT 3, vCard and schema.org (both `http://` and `https://`). They are used automatically, with no config:
+
+- **Typos are caught, offline.** The undefined-terms check validates terms in these namespaces against the bundled files instead of trusting them. `skos:scopNote`, `dcterms:licence` and `xsd:strin` are reported. `skos:scopeNote`, `rdf:reifies`, `rdf:PropositionForm` and `xsd:dateTimeStamp` are not. Nothing is fetched for these namespaces, and `rdf:_1`, `rdf:_2`, … are always accepted.
+- **`owl:imports` of these ontologies resolves locally,** e.g. `owl:imports <http://www.w3.org/2004/02/skos/core>`.
+
+The run log shows which namespaces were resolved from the bundle (`bundled: skos.ttl`) and which were fetched. Sources, versions, licences and local edits are listed in [`vocabularies/README.md`](vocabularies/README.md).
+
+**Behaviour change:** earlier versions trusted these namespaces without checking them, so a misspelt core term passed silently. It is now reported. To trust a namespace again, list it under `imports.ignore`.
+
+The `imports` section of `.rdf-lint.yml` controls how namespaces and imports resolve:
+
+```yaml
+imports:
+  # Trusted: never fetched, and its terms are never reported (undefined-terms);
+  # owl:imports of it are not resolved (owl-imports).
+  ignore:
+    - http://example.org/vendor/ns#
+  # Resolve a namespace / import from a local file instead of the network. An entry here
+  # takes precedence over the bundled copy, e.g. to use a newer SHACL vocabulary.
+  local:
+    http://www.w3.org/ns/shacl#: vocab/shacl-1.2.ttl
+    https://example.org/partner/ontology: vocab/partner.ttl
+```
+
+Entries match **with or without a trailing `#` or `/`**, so `http://www.w3.org/2004/02/skos/core` and `http://www.w3.org/2004/02/skos/core#` are the same entry. One entry covers both the namespace (used by undefined-terms) and the ontology IRI (used by owl-imports). Relative `local` paths are resolved from the config file's directory.
 
 ### Pinning to a version
 

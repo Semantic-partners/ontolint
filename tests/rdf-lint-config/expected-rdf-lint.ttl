@@ -1,0 +1,25 @@
+@prefix check: <https://ontolint.org/config/check#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix olc: <https://ontolint.org/config#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+<https://example.org/project/rdf-lint.yml> a olc:RdfLintFile ;
+    olc:disable check:hijacking,
+        check:owl-declaration,
+        check:property-missing-domain ;
+    olc:excludeType rdf:PropositionForm,
+        <https://example.org/ns#Placeholder> ;
+    olc:importIgnore <http://example.org/vendor/ns#>,
+        <https://example.org/legacy/ontology> ;
+    olc:importLocal <https://example.org/project/vocab/partner.ttl>,
+        <https://example.org/project/vocab/skos-2026.ttl> ;
+    olc:skipObjectOf dcterms:license,
+        rdfs:seeAlso,
+        <http://www.w3.org/2003/06/sw-vocab-status/ns#*> .
+
+<https://example.org/project/vocab/partner.ttl> olc:providesNamespace <https://example.org/partner/ontology> .
+
+<https://example.org/project/vocab/skos-2026.ttl> olc:providesNamespace skos: .
+

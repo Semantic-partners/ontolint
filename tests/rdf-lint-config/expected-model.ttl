@@ -1,0 +1,131 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix olq: <https://ontolint.org/ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/qa#configuration-f97772132262c395> a olq:Configuration ;
+    rdfs:label "Effective ontolint configuration" ;
+    olq:configurationFile "rdf-lint.yml" ;
+    olq:setting <https://example.org/qa#setting-2b7205d1f424402b>,
+        <https://example.org/qa#setting-39827fdf81c9255c>,
+        <https://example.org/qa#setting-3d95a6c0a05897a2>,
+        <https://example.org/qa#setting-4c4ee3a1d7dfd74b>,
+        <https://example.org/qa#setting-5f5f9b81e78f3f36>,
+        <https://example.org/qa#setting-7b0d9b14a04cdcf1>,
+        <https://example.org/qa#setting-80dcba3331520135>,
+        <https://example.org/qa#setting-87ee6450f5729c87>,
+        <https://example.org/qa#setting-d8e9d49f7fb8a848>,
+        <https://example.org/qa#setting-e337ea3b743908bb>,
+        <https://example.org/qa#setting-ea63b059db0a25ba> .
+
+<https://example.org/qa#dimension-conformance> a dqv:Dimension ;
+    rdfs:label "Conformance" ;
+    skos:definition "Terms are declared, resolvable and minted in the ontology's own namespace." ;
+    skos:prefLabel "Conformance" .
+
+<https://example.org/qa#dimension-structure> a dqv:Dimension ;
+    rdfs:label "Structure" ;
+    skos:definition "Terms are connected into a well-formed hierarchy with domains and ranges." ;
+    skos:prefLabel "Structure" .
+
+<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
+    rdfs:label "Namespace hijacking" ;
+    skos:definition "A resource is defined using an external vocabulary's namespace." ;
+    skos:prefLabel "Namespace hijacking" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-missing-domain> a dqv:Metric ;
+    rdfs:label "Property without domain" ;
+    skos:definition "A property has no rdfs:domain." ;
+    skos:prefLabel "Property without domain" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#setting-2b7205d1f424402b> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;
+    rdfs:comment "Objects of this property are not checked as terms" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:ConfigFile ;
+    olq:value rdfs:seeAlso .
+
+<https://example.org/qa#setting-39827fdf81c9255c> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2003/06/sw-vocab-status/ns#*" ;
+    rdfs:comment "Objects of this property are not checked as terms" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <http://www.w3.org/2003/06/sw-vocab-status/ns#*> .
+
+<https://example.org/qa#setting-3d95a6c0a05897a2> a olq:Setting ;
+    rdfs:label "checks: Property without domain (disabled)" ;
+    rdfs:comment "Listed under disable:" ;
+    olq:enabled false ;
+    olq:key "checks" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/qa#metric-properties-missing-domain> .
+
+<https://example.org/qa#setting-4c4ee3a1d7dfd74b> a olq:Setting ;
+    rdfs:label "imports.local: http://www.w3.org/2004/02/skos/core#" ;
+    rdfs:comment "Resolved from a local file instead of the network; overrides the bundled vocabulary" ;
+    prov:wasDerivedFrom <https://ontolint.org/vocabulary-skos> ;
+    olq:key "imports.local" ;
+    olq:localFile "vocab/skos-2026.ttl" ;
+    olq:origin olq:ConfigFile ;
+    olq:value skos: .
+
+<https://example.org/qa#setting-5f5f9b81e78f3f36> a olq:Setting ;
+    rdfs:label "exclude.types: https://example.org/ns#Placeholder" ;
+    rdfs:comment "Instances are skipped by the class checks" ;
+    olq:key "exclude.types" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/ns#Placeholder> .
+
+<https://example.org/qa#setting-7b0d9b14a04cdcf1> a olq:Setting ;
+    rdfs:label "checks: Namespace hijacking (disabled)" ;
+    rdfs:comment "Listed under disable:" ;
+    olq:enabled false ;
+    olq:key "checks" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/qa#metric-namespace-hijacking> .
+
+<https://example.org/qa#setting-80dcba3331520135> a olq:Setting ;
+    rdfs:label "imports.ignore: http://example.org/vendor/ns#" ;
+    rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
+    olq:key "imports.ignore" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <http://example.org/vendor/ns#> .
+
+<https://example.org/qa#setting-87ee6450f5729c87> a olq:Setting ;
+    rdfs:label "exclude.types: http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm" ;
+    rdfs:comment "Instances are skipped by the class checks" ;
+    olq:key "exclude.types" ;
+    olq:origin olq:ConfigFile ;
+    olq:value rdf:PropositionForm .
+
+<https://example.org/qa#setting-d8e9d49f7fb8a848> a olq:Setting ;
+    rdfs:label "imports.ignore: https://example.org/legacy/ontology" ;
+    rdfs:comment "Trusted: never fetched or reported, and not resolved as an import" ;
+    olq:key "imports.ignore" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/legacy/ontology> .
+
+<https://example.org/qa#setting-e337ea3b743908bb> a olq:Setting ;
+    rdfs:label "undefined-terms.skip-object-of: http://purl.org/dc/terms/license" ;
+    rdfs:comment "Objects of this property are not checked as terms" ;
+    olq:key "undefined-terms.skip-object-of" ;
+    olq:origin olq:ConfigFile ;
+    olq:value dcterms:license .
+
+<https://example.org/qa#setting-ea63b059db0a25ba> a olq:Setting ;
+    rdfs:label "imports.local: https://example.org/partner/ontology" ;
+    rdfs:comment "Resolved from a local file instead of the network" ;
+    olq:key "imports.local" ;
+    olq:localFile "vocab/partner.ttl" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/partner/ontology> .
+
