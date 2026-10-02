@@ -186,8 +186,8 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-ba1f4fe9236ce6d6>,
-        <https://example.org/qa#violation-dabd6b2a56abcff7> .
+    olq:violation <https://example.org/qa#violation-7bc634fb67aedf9d>,
+        <https://example.org/qa#violation-e81d999d52a2453c> .
 
 <https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
     rdfs:label "Ontolint conformance" ;
@@ -209,22 +209,22 @@
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-a477aaeb529b79c8> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/qa#bnode-6fa67bf7171db4b9> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-ba1f4fe9236ce6d6> a sh:ValidationResult ;
+<https://example.org/qa#violation-7bc634fb67aedf9d> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-aad4f1b940c43b73> ;
-    sh:resultMessage "shares label 'required' with a blank node" ;
+    sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     sh:value "required" ;
     olq:relatedResource <https://example.org/qa#bnode-6a3391e82524aaca> .
 
-<https://example.org/qa#violation-dabd6b2a56abcff7> a sh:ValidationResult ;
+<https://example.org/qa#violation-a477aaeb529b79c8> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/qa#bnode-6fa67bf7171db4b9> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-e81d999d52a2453c> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-6a3391e82524aaca> ;
-    sh:resultMessage "shares label 'required' with a blank node" ;
+    sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     sh:value "required" ;
