@@ -83,25 +83,25 @@ Pass `--dqv-dir` (and optionally `--dqv-filename`, default `ontolint-dqv.ttl`) t
 
 **See real reports:** [`tests/dqv/`](tests/dqv/) has end-to-end examples, each an input ontology next to the exact report ontolint produces for it (run with `--base-uri https://example.org/qa#`). The tests keep these files current.
 
-| Example | Input | DQV report | Shows |
-|---|---|---|---|
-| clean | [clean.ttl](tests/dqv/clean/clean.ttl) | [expected.ttl](tests/dqv/clean/expected.ttl) | A passing ontology: metric definitions and one conforming roll-up. |
-| activities | [activities.ttl](tests/dqv/activities/activities.ttl) | [expected.ttl](tests/dqv/activities/expected.ttl) | Same-label clashes (shared label, related property, message) and an unresolvable import, each under its own check. |
-| mixed | [mixed.ttl](tests/dqv/mixed/mixed.ttl) | [expected.ttl](tests/dqv/mixed/expected.ttl) | Ten failing checks across all dimensions, at `sh:Violation` and `sh:Warning`. |
-| shapes | [shapes.ttl](tests/dqv/shapes/shapes.ttl) | [expected.ttl](tests/dqv/shapes/expected.ttl) | Anonymous SHACL property shapes, named by skolem IRIs. |
-| per-file | [a.ttl](tests/dqv/per-file/a.ttl), [b.ttl](tests/dqv/per-file/b.ttl) | [expected.ttl](tests/dqv/per-file/expected.ttl) | `--per-file`: one report, with each ontology's results computed on that ontology. |
-| merged | [one.ttl](tests/dqv/merged/one.ttl), [two.ttl](tests/dqv/merged/two.ttl) | [expected.ttl](tests/dqv/merged/expected.ttl) | A merged run over two ontologies, computed on one aggregate `dcat:Dataset`. |
+| Example    | Input                                                                  | DQV report                                       | Shows                                                                                                              |
+| ---------- | ---------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| clean      | [clean.ttl](tests/dqv/clean/clean.ttl)                                  | [expected.ttl](tests/dqv/clean/expected.ttl)      | A passing ontology: metric definitions and one conforming roll-up.                                                 |
+| activities | [activities.ttl](tests/dqv/activities/activities.ttl)                   | [expected.ttl](tests/dqv/activities/expected.ttl) | Same-label clashes (shared label, related property, message) and an unresolvable import, each under its own check. |
+| mixed      | [mixed.ttl](tests/dqv/mixed/mixed.ttl)                                  | [expected.ttl](tests/dqv/mixed/expected.ttl)      | Ten failing checks across all dimensions, at`sh:Violation` and `sh:Warning`.                                   |
+| shapes     | [shapes.ttl](tests/dqv/shapes/shapes.ttl)                               | [expected.ttl](tests/dqv/shapes/expected.ttl)     | Anonymous SHACL property shapes, named by skolem IRIs.                                                             |
+| per-file   | [a.ttl](tests/dqv/per-file/a.ttl), [b.ttl](tests/dqv/per-file/b.ttl)     | [expected.ttl](tests/dqv/per-file/expected.ttl)   | `--per-file`: one report, with each ontology's results computed on that ontology.                                |
+| merged     | [one.ttl](tests/dqv/merged/one.ttl), [two.ttl](tests/dqv/merged/two.ttl) | [expected.ttl](tests/dqv/merged/expected.ttl)     | A merged run over two ontologies, computed on one aggregate`dcat:Dataset`.                                       |
 
 What gets emitted:
 
-| Node | IRI | Notes |
-|---|---|---|
-| `dqv:Dimension` | `<base>dimension-<slug>` | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`. |
-| `dqv:Metric` | `<base>metric-<slug>` | One per executed check, stable across runs, with `skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`sh:Violation` or `sh:Warning`). |
-| `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per (dataset, failed check), with `dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement. |
-| Roll-up `dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for `<base>metric-ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear. |
-| `sh:ValidationResult` | `<base>violation-<hash>` | `sh:focusNode` (the offending IRI), `sh:resultSeverity`, `sh:sourceConstraintComponent sh:SPARQLConstraintComponent` and, where applicable, `sh:value`, `sh:resultMessage` and `olq:relatedResource` (other resources involved, e.g. the other side of a same-label clash). |
-| `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement. |
+| Node                              | IRI                          | Notes                                                                                                                                                                                                                                                                                   |
+| --------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dqv:Dimension`                 | `<base>dimension-<slug>`   | `metadata`, `documentation`, `uniqueness`, `structure`, `conformance`.                                                                                                                                                                                                        |
+| `dqv:Metric`                    | `<base>metric-<slug>`      | One per executed check, stable across runs, with`skos:prefLabel`, `rdfs:label`, `skos:definition`, `dqv:inDimension` and a default `olq:severity` (`sh:Violation` or `sh:Warning`).                                                                                       |
+| `dqv:QualityMeasurement`        | `<base>measurement-<hash>` | One per (dataset, failed check), with`dqv:value` (the check's count), `olq:conforms false`, `olq:severity` and one `olq:violation` per offending resource. Checks that pass have no measurement.                                                                                |
+| Roll-up`dqv:QualityMeasurement` | `<base>measurement-<hash>` | One per dataset for`<base>metric-ontolint-conformance`: `dqv:value` is the number of failed checks and `olq:conforms` is true only if all checks passed, so clean datasets still appear.                                                                                          |
+| `sh:ValidationResult`           | `<base>violation-<hash>`   | `sh:focusNode` (the offending IRI), `sh:resultSeverity`, `sh:sourceConstraintComponent sh:SPARQLConstraintComponent` and, where applicable, `sh:value`, `sh:resultMessage` and `olq:relatedResource` (other resources involved, e.g. the other side of a same-label clash). |
+| `dqv:QualityMetadata`           | `<base>assessment-<hash>`  | One per run, with`prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement.                                                                                                                                                                                  |
 
 - `olq:` is `https://ontolint.org/ns#`, defined in [`ontology/olq.ttl`](ontology/olq.ttl). It defines only the four terms that DQV and SHACL don't cover: `olq:conforms` and `olq:violation` on measurements (`sh:conforms` and `sh:result` have the domain `sh:ValidationReport`), `olq:severity` on metrics and measurements (`sh:severity` and `sh:resultSeverity` have the domains `sh:Shape` and `sh:AbstractResult`; its values are `sh:Severity` IRIs), and `olq:relatedResource` (SHACL has no equivalent).
 - **SHACL results:** violation nodes use the SHACL result vocabulary, so consumers can read them like a SHACL validation report. They omit `sh:sourceShape` (the checks are SPARQL queries, not shapes yet), so they are SHACL-shaped rather than strictly conforming results. The metric linked from the measurement identifies the check. Where a check can't name the offending resource (e.g. "some processed files have no `owl:Ontology`" in a merged run), the result has a message but no `sh:focusNode`.
@@ -112,15 +112,16 @@ What gets emitted:
 - **Reproducible output:** set `SOURCE_DATE_EPOCH` (seconds since the Unix epoch) to pin the report timestamp. With the same inputs and base URI, the report, including every minted IRI, is then byte-for-byte reproducible.
 
 ## Dev setup & Running Ontolint locally
+
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.
 
 To test the script works, run the script using the example file:
-```poetry run scripts/ontology_qa.py tests/example_pass.ttl```
+``poetry run scripts/ontology_qa.py tests/example_pass.ttl``
 
 It should generate a JSON files in the `ctrf/` directory.
 
 To generate a markdown report, run the generate report script:
-```poetry run scripts/generate_custom_report.py```
+``poetry run scripts/generate_custom_report.py``
 
 This generates a markdown file from any JSON files in the `ctrf/` directory and saves it to the `out/` directory
 
@@ -134,65 +135,65 @@ A collection of SPARQL queries to assess the quality of ontologies and executed 
 
 `ontology_qa.py` Implements the following Profiling metrics:
 
-| Metric Name                                   | Metric Description                                           |
-| --------------------------------------------- | ------------------------------------------------------------ |
-| Number of triples                             | Axiom count                                                  |
-| Class count                                   | Count number of `owl:Class` and `rdfs:Class`                 |
-| Property count                                | Count number of `rdf:Property`,  `owl:ObjectProperty`, and `owl:DatatypeProperty` |
-| NodeShape count                               | Count number of `sh:NodeShape`                               |
-| PropertyShape count                           | Count number of `sh:PropertyShape`                           |
+| Metric Name                                   | Metric Description                                                                                                                                                      |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Number of triples                             | Axiom count                                                                                                                                                             |
+| Class count                                   | Count number of`owl:Class` and `rdfs:Class`                                                                                                                         |
+| Property count                                | Count number of`rdf:Property`,  `owl:ObjectProperty`, and `owl:DatatypeProperty`                                                                                  |
+| NodeShape count                               | Count number of`sh:NodeShape`                                                                                                                                         |
+| PropertyShape count                           | Count number of`sh:PropertyShape`                                                                                                                                     |
 | Local classes constrained in NodeShapes       | Number of elements defined as both a (`rdfs:Class` or `owl:Class`) and `sh:NodeShape`, or a class defined in `sh:NodeShape` as the object of `sh:targetClass` |
-| Local properties constrained in PropertyShape | Number of (`rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty`) defined in `sh:PropertyShapes` as the object of `sh:path` |
-| Number of deprecated classes                  | Elements marked as `owl:DeprecatedClass`                     |
-| Number of deprecated properties               | Elements marked as `owl:DeprecatedProperty`                  |
-| Vocabularies used                             | Number of vocabularies used via a `@prefix` declaration      |
-| Ontologies imported                           | Number of ontologies imported via `owl:imports`              |
-| Hierarchy depth                               | Number of levels from a root to a leaf class.                |
-| Average branching factor                      | Average number of subclasses per class.                      |
-| Cardinality restrictions                      | Number of `owl:Restriction` elements with `owl:cardinality`, `owl:minCardinality`, or `owl:maxCardinality` predicates. |
+| Local properties constrained in PropertyShape | Number of (`rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty`) defined in `sh:PropertyShapes` as the object of `sh:path`                         |
+| Number of deprecated classes                  | Elements marked as`owl:DeprecatedClass`                                                                                                                               |
+| Number of deprecated properties               | Elements marked as`owl:DeprecatedProperty`                                                                                                                            |
+| Vocabularies used                             | Number of vocabularies used via a`@prefix` declaration                                                                                                                |
+| Ontologies imported                           | Number of ontologies imported via`owl:imports`                                                                                                                        |
+| Hierarchy depth                               | Number of levels from a root to a leaf class.                                                                                                                           |
+| Average branching factor                      | Average number of subclasses per class.                                                                                                                                 |
+| Cardinality restrictions                      | Number of`owl:Restriction` elements with `owl:cardinality`, `owl:minCardinality`, or `owl:maxCardinality` predicates.                                           |
 
 And QA metrics:
 
-| Metric Name                                   | Metric Description                                           |
-| --------------------------------------------- | ------------------------------------------------------------ |
-| Missing ontology declaration                  | No `owl:Ontology` tag declared                               |
-| Missing ontology description                  | `rdfs:comment`, `dcterms:abstract` or `dcterms:description` predicates not present |
-| Unresolvable imports                          | Verify that all `owl:imports` URLs resolve and contain triples |
-| Undefined terms                               | Find terms used in the ontology that are not defined locally (as a subject in the graph file) nor in any successfully-fetched remote ontology |
-| Classes missing label annotation              | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
-| Properties missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
-| NodeShapes missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
-| PropertyShapes missing label annotation       | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present |
-| Classes missing description annotation        | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
-| Properties missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
-| NodeShapes missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
-| PropertyShapes missing description annotation | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present |
-| Classes with the same label                   | Two or more entities have an identical label annotation in the same language tag and with the same predicate |
-| Properties with the same label                | Same as above.                                               |
-| NodeShapes with the same label                | Same as above.                                               |
-| PropertyShapes with the same label            | Same as above.                                               |
-| Number of isolated classes                    | Classes declared but never used in any triple that connects them to the rest of the ontology. |
-| Property without domain                       | Property without rdfs:domain declaration.                    |
-| Property without range                        | Property without rdfs:range declaration.                     |
-| Non-unique identifiers                        | The same identifier is used to define multiple `owl:Class`, `rdfs:Class`, `rdf:Property`, `owl:ObjectProperty`, `owl:DatatypeProperty`, or `owl:AnnotationProperty`. The value refers to the total count. |
-| Subclass cycles                               | Classes involved in a `rdfs:subClassOf+` cycle.  The value refers to the total count. |
-| Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives `owl:Class` or `rdfs:Class`. The value refers to the actual number of untyped classes, as they do not appear in the total class count. |
-| Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives `rdf:Property`, `owl:ObjectProperty` or `owl:DatatypeProperty`. The value refers to the actual number of untyped properties, as they do not appear in the total class count. |
-| Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. The script reports the count of subjects sorted by namespace. The user should then verify that the subjects are defined in the external ontology and not minted *ex-novo*. |
+| Metric Name                                   | Metric Description                                                                                                                                                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Missing ontology declaration                  | No`owl:Ontology` tag declared                                                                                                                                                                                                                                                                  |
+| Missing ontology description                  | `rdfs:comment`, `dcterms:abstract` or `dcterms:description` predicates not present                                                                                                                                                                                                         |
+| Unresolvable imports                          | Verify that all`owl:imports` URLs resolve and contain triples                                                                                                                                                                                                                                  |
+| Undefined terms                               | Find terms used in the ontology that are not defined locally (as a subject in the graph file) nor in any successfully-fetched remote ontology                                                                                                                                                    |
+| Classes missing label annotation              | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present                                                                                                                                                                                           |
+| Properties missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present                                                                                                                                                                                           |
+| NodeShapes missing label annotation           | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present                                                                                                                                                                                           |
+| PropertyShapes missing label annotation       | `rdfs:label`,  `skos:prefLabel`, `skos:altLabel`, or `skos:hiddenLabel` predicates not present                                                                                                                                                                                           |
+| Classes missing description annotation        | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present                                                                                                                                                                                                         |
+| Properties missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present                                                                                                                                                                                                         |
+| NodeShapes missing description annotation     | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present                                                                                                                                                                                                         |
+| PropertyShapes missing description annotation | `rdfs:comment`, `dcterms:description`, or `skos:definition` predicates not present                                                                                                                                                                                                         |
+| Classes with the same label                   | Two or more entities have an identical label annotation in the same language tag and with the same predicate                                                                                                                                                                                     |
+| Properties with the same label                | Same as above.                                                                                                                                                                                                                                                                                   |
+| NodeShapes with the same label                | Same as above.                                                                                                                                                                                                                                                                                   |
+| PropertyShapes with the same label            | Same as above.                                                                                                                                                                                                                                                                                   |
+| Number of isolated classes                    | Classes declared but never used in any triple that connects them to the rest of the ontology.                                                                                                                                                                                                    |
+| Property without domain                       | Property without rdfs:domain declaration.                                                                                                                                                                                                                                                        |
+| Property without range                        | Property without rdfs:range declaration.                                                                                                                                                                                                                                                         |
+| Non-unique identifiers                        | The same identifier is used to define multiple`owl:Class`, `rdfs:Class`, `rdf:Property`, `owl:ObjectProperty`, `owl:DatatypeProperty`, or `owl:AnnotationProperty`. The value refers to the total count.                                                                             |
+| Subclass cycles                               | Classes involved in a`rdfs:subClassOf+` cycle.  The value refers to the total count.                                                                                                                                                                                                           |
+| Untyped class                                 | An ontology element is used as a class without having been explicitly declared as such using the primitives`owl:Class` or `rdfs:Class`. The value refers to the actual number of untyped classes, as they do not appear in the total class count.                                            |
+| Untyped property                              | An ontology element is used as a property without having been explicitly declared as such using the primitives`rdf:Property`, `owl:ObjectProperty` or `owl:DatatypeProperty`. The value refers to the actual number of untyped properties, as they do not appear in the total class count. |
+| Namespace hijacking                           | Creating a class in the current namespace using the prefix of an external vocabulary. The script reports the count of subjects sorted by namespace. The user should then verify that the subjects are defined in the external ontology and not minted*ex-novo*.                                |
 
-For example, the test ontology [`example_failure.ttl`](tests/example_failure.ttl) returns the following results:
+The Profiling and QA metrics are aggregated in two tables at the end of the markdown report. The QA metrics are normalised by the element count: for example a value of 0.5 for the metric *Class without label* means that half of all classes in the ontology have a label annotation. Note that a normalised value greater than 1 means that multiple violations are present for the same entity, for example, a class have multiple duplicated labels declared with different predicates. An example of such tables for the test ontology [`example_failure.ttl`](tests/example_failure.ttl) follows:
 
 ### Profiling Metrics
 
-| Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported | Hierarchy depth | Ave branching factor | Cardinality restrictions |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | 68 | 11 | 5 | 3 | 1 | 7 | 1 | 1 | 0 | 6 | 2 | 0 | 3.500 | 0 |
+| Name                   | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported | Hierarchy depth | Ave branching factor | Cardinality restrictions |
+| ---------------------- | ----------------- | ----------- | -------------- | --------------- | ------------------- | -------------------------- | --------------------------------- | ---------------------- | ------------------------- | ----------------- | ------------------- | --------------- | -------------------- | ------------------------ |
+| http://my.ont.example# | 68                | 11          | 5              | 3               | 1                   | 7                          | 1                                 | 1                      | 0                         | 6                 | 2                   | 0               | 3.500                | 0                        |
 
 ### Quality Assurance Metrics
 
-| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| http://my.ont.example# | 0 | 0 | 1 | 0.636 | 0.800 | 0.667 | 1 | 0.909 | 1 | 1 | 1 | 0.091 | 0 | 0 | 0 | 0.273 | 0 | 0.400 | 1 | 0 | 3 | 0 | 1 |
+| Name                   | Ontology not declared | Ontology without description | Unresolvable Imports | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
+| ---------------------- | --------------------- | ---------------------------- | -------------------- | ------------------- | ---------------------- | ------------------------ | --------------------------- | ------------------------- | ---------------------------- | ------------------------------ | --------------------------------- | ----------------------- | -------------------------- | --------------------------- | ------------------------------- | ---------------- | ----------------------- | ---------------------- | ---------------------- | --------------- | --------------- | ------------------ | ------------------- |
+| http://my.ont.example# | 0                     | 0                            | 1                    | 0.636               | 0.800                  | 0.667                    | 1                           | 0.909                     | 1                            | 1                              | 1                                 | 0.091                   | 0                          | 0                           | 0                               | 0.273            | 0                       | 0.400                  | 1                      | 0               | 3               | 0                  | 1                   |
 
 ### Batch Processing
 
@@ -218,6 +219,7 @@ do
  grep -A 1 -e "|--|--|" ${ont%.ttl}.out | grep -v -e "--" | tail -1 >> ont_tables.md
 done
 ```
+
 ## GitHub Actions
 
 Ontolint is published as a composite GitHub Action. No PAT or local setup is required — any repository in the Semantic Partners organisation can use it directly.
@@ -276,24 +278,24 @@ In this mode each file is a separate graph, so references between files are not 
 
 All inputs are strings (composite action convention). Pass booleans as `'true'` / `'false'`.
 
-| Input | Default | Description |
-|---|---|---|
-| `ontology-paths` | — | **Required.** One or more paths to ontology files or directories, relative to the repository root. |
-| `fail-on-violations` | `'true'` | Exit with code 1 if any violations are found, causing the step to fail. |
-| `verbose` | `'false'` | List every violating element under each failed check. |
-| `profile-only` | `'false'` | Run profiling metrics only; skip all QA checks. |
-| `per-file` | `'false'` | Run QA separately on each ontology file (directories expanded) rather than on one merged graph. Produces a CTRF file and report section per file (none when combined with `profile-only`; profiling is only printed to the step log). |
-| `config-path` | _(auto-detect)_ | Path to a lint configuration YAML file relative to the repository root. If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses it when present. |
-| `dqv` | `'false'` | Also write a [DQV](#dqv-report) Turtle report to `ctrf/<dqv-filename>`. It is included in the uploaded artifact and exposed as the `dqv-path` output. |
-| `dqv-filename` | `'ontolint-dqv.ttl'` | Filename of the DQV report. |
-| `base-uri` | _(`urn:ontolint:`)_ | Namespace under which all DQV instance IRIs are minted: metrics, dimensions, measurements, violations and the assessment. |
-| `artifact-name` | `'ontolint-ctrf'` | Name of the uploaded CTRF artifact. Override when invoking the action in multiple jobs of the same run. |
+| Input                  | Default                 | Description                                                                                                                                                                                                                            |
+| ---------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ontology-paths`     | —                      | **Required.** One or more paths to ontology files or directories, relative to the repository root.                                                                                                                               |
+| `fail-on-violations` | `'true'`              | Exit with code 1 if any violations are found, causing the step to fail.                                                                                                                                                                |
+| `verbose`            | `'false'`             | List every violating element under each failed check.                                                                                                                                                                                  |
+| `profile-only`       | `'false'`             | Run profiling metrics only; skip all QA checks.                                                                                                                                                                                        |
+| `per-file`           | `'false'`             | Run QA separately on each ontology file (directories expanded) rather than on one merged graph. Produces a CTRF file and report section per file (none when combined with`profile-only`; profiling is only printed to the step log). |
+| `config-path`        | _(auto-detect)_       | Path to a lint configuration YAML file relative to the repository root. If omitted, the action looks for`.rdf-lint.yml` at the repository root and uses it when present.                                                             |
+| `dqv`                | `'false'`             | Also write a[DQV](#dqv-report) Turtle report to `ctrf/<dqv-filename>`. It is included in the uploaded artifact and exposed as the `dqv-path` output.                                                                                |
+| `dqv-filename`       | `'ontolint-dqv.ttl'`  | Filename of the DQV report.                                                                                                                                                                                                            |
+| `base-uri`           | _(`urn:ontolint:`)_ | Namespace under which all DQV instance IRIs are minted: metrics, dimensions, measurements, violations and the assessment.                                                                                                              |
+| `artifact-name`      | `'ontolint-ctrf'`     | Name of the uploaded CTRF artifact. Override when invoking the action in multiple jobs of the same run.                                                                                                                                |
 
 ### Outputs
 
-| Output | Description |
-|---|---|
-| `dqv-path` | Absolute path of the DQV Turtle report, set only when `dqv: 'true'` and the report was written (not in `profile-only` mode, or if no RDF loaded). Use it to upload or publish the report in a later step: |
+| Output       | Description                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dqv-path` | Absolute path of the DQV Turtle report, set only when`dqv: 'true'` and the report was written (not in `profile-only` mode, or if no RDF loaded). Use it to upload or publish the report in a later step: |
 
 ```yaml
 - uses: Semantic-partners/ontolint@main
