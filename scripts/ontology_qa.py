@@ -1257,7 +1257,7 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         log += "| Label | Label Property | Properties |\n|--|--|--|\n"
         for row in results:
             log += f"| {row.label} | {row.labelProperty} | {row.properties} |\n"
-            string += f"\"{row.label}\": {row.properties};<br> "
+            string += f"\"{row.label}, {row.labelProperty}\": {row.properties};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.properties))
         string = string.removesuffix(";<br> ")
         violations[check] = string
