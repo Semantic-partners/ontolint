@@ -387,7 +387,7 @@ Entries use the same prefixes as `exclude.types`, plus `foaf:`, `schema:` and `v
 
 ### Bundled vocabularies
 
-ontolint ships copies of the standard vocabularies in [`vocabularies/`](vocabularies/): RDF (with the RDF 1.2 terms), RDFS, OWL, XSD, SHACL, SKOS, Dublin Core (`dcterms`, `dc`, `dcam`, `dctype`), FOAF, VANN, Vocabulary Status, PROV, ORG, DCAT 3, vCard and schema.org (both `http://` and `https://`). They are used automatically, with no config:
+ontolint ships copies of the standard vocabularies in [`vocabularies/`](vocabularies/): RDF (with the RDF 1.2 terms), RDFS, OWL, XSD, SHACL, SKOS, Dublin Core (`dcterms`, `dc`, `dcam`, `dctype`), FOAF, VANN, Vocabulary Status, PROV, ORG, DCAT 3, DQV, OWL-Time, ODRL, DASH, vCard and schema.org (both `http://` and `https://`). They are used automatically, with no config:
 
 - **Typos are caught, offline.** The undefined-terms check validates terms in these namespaces against the bundled files instead of trusting them. `skos:scopNote`, `dcterms:licence` and `xsd:strin` are reported. `skos:scopeNote`, `rdf:reifies`, `rdf:PropositionForm` and `xsd:dateTimeStamp` are not. Nothing is fetched for these namespaces, and `rdf:_1`, `rdf:_2`, … are always accepted.
 - **`owl:imports` of these ontologies resolves locally,** e.g. `owl:imports <http://www.w3.org/2004/02/skos/core>`.

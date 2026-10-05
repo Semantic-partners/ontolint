@@ -6,10 +6,10 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-e7c2659c92af7b0b> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-3541ecf42055bf15>,
-        <https://example.org/qa#measurement-85ed715c2d25f46c>,
-        <https://example.org/qa#measurement-ce12715cffbccd3c> ;
+<https://example.org/qa#assessment-76dbcbe9f1863d45> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-07e16f344762c85d>,
+        <https://example.org/qa#measurement-09f060438f90396f>,
+        <https://example.org/qa#measurement-cb51ab5d6f42a892> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
@@ -166,24 +166,24 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#measurement-3541ecf42055bf15> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-07e16f344762c85d> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/shapes#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-property-shapes-same-label> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-24a1a11b8690efe8>,
-        <https://example.org/qa#violation-bc3dd7fa46342480> .
+    olq:violation <https://example.org/qa#violation-1f5efce3c9398194>,
+        <https://example.org/qa#violation-841a93a572dcea03> .
 
-<https://example.org/qa#measurement-85ed715c2d25f46c> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-09f060438f90396f> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/shapes#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-property-shapes-missing-label> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-a518c195d0bb7ec9> .
+    olq:violation <https://example.org/qa#violation-97431dfb1796afb5> .
 
-<https://example.org/qa#measurement-ce12715cffbccd3c> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-cb51ab5d6f42a892> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/shapes#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
     dqv:value 2 ;
@@ -209,7 +209,15 @@
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-24a1a11b8690efe8> a sh:ValidationResult ;
+<https://example.org/qa#violation-1f5efce3c9398194> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/qa#bnode-6a3391e82524aaca> ;
+    sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    sh:value "required" ;
+    olq:relatedResource <https://example.org/qa#bnode-aad4f1b940c43b73> .
+
+<https://example.org/qa#violation-841a93a572dcea03> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-aad4f1b940c43b73> ;
     sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
     sh:resultSeverity sh:Violation ;
@@ -217,18 +225,10 @@
     sh:value "required" ;
     olq:relatedResource <https://example.org/qa#bnode-6a3391e82524aaca> .
 
-<https://example.org/qa#violation-a518c195d0bb7ec9> a sh:ValidationResult ;
+<https://example.org/qa#violation-97431dfb1796afb5> a sh:ValidationResult ;
     sh:focusNode <https://example.org/qa#bnode-6fa67bf7171db4b9> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-bc3dd7fa46342480> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/qa#bnode-6a3391e82524aaca> ;
-    sh:resultMessage "shares label 'required' with predicate http://www.w3.org/2000/01/rdf-schema#label and a blank node" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    sh:value "required" ;
-    olq:relatedResource <https://example.org/qa#bnode-aad4f1b940c43b73> .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;

@@ -40,12 +40,16 @@ The same information as the catalog, for reading:
 | `vcard.ttl` | `http://www.w3.org/2006/vcard/ns#` | <http://www.w3.org/2006/vcard/ns.ttl> | Final | W3C Software and Document License | Byte-identical to the source, retrieved 2026-10-01. As published by W3C, this includes six terms from the Solid vCard address-book extension (vcard:AddressBook, vcard:WebID, vcard:groupIndex, vcard:inAddressBook, vcard:includesGroup, vcard:nameEmailIndex), marked 'not part of vCard as defined by the IETF'. |
 | `schema.ttl` | `http://schema.org/` | <https://schema.org/version/latest/schemaorg-current-http.ttl> | 30.1 | CC BY-SA 3.0 | Byte-identical to the source, retrieved 2026-10-01. |
 | `schema-https.ttl` | `https://schema.org/` | <https://schema.org/version/latest/schemaorg-current-https.ttl> | 30.1 | CC BY-SA 3.0 | Byte-identical to the source, retrieved 2026-10-01. |
+| `dqv.ttl` | `http://www.w3.org/ns/dqv#` | <https://www.w3.org/ns/dqv.ttl> | W3C Working Group Note 2016-12-15 | W3C Software and Document License | Byte-identical to the source, retrieved 2026-10-05. |
+| `time.ttl` | `http://www.w3.org/2006/time#` | <https://www.w3.org/2006/time.ttl> | 2016 (W3C Recommendation 2017-10-19) | CC BY 4.0 | Byte-identical to the source, retrieved 2026-10-05. |
+| `odrl.ttl` | `http://www.w3.org/ns/odrl/2/` | <https://www.w3.org/ns/odrl/2/ODRL22.ttl> | 2.2 | W3C Software and Document License | Byte-identical to the source, retrieved 2026-10-05. |
+| `dash.ttl` | `http://datashapes.org/dash#` | <https://datashapes.org/dash.ttl> | not stated (pinned by retrieval date and checksum) | Apache-2.0 | Byte-identical to the source, retrieved 2026-10-05. |
 
-Licences are taken from each file's own metadata where it states one. Otherwise they come from the publisher's published terms: the [W3C Software and Document License](https://www.w3.org/copyright/software-license/), DCMI's [CC BY 4.0](https://www.dublincore.org/about/copyright/), FOAF and VANN's CC BY 1.0, and schema.org's [CC BY-SA 3.0](https://schema.org/docs/terms.html). All of these permit redistribution with attribution, which this table provides.
+Licences are taken from each file's own metadata where it states one. Otherwise they come from the publisher's published terms: the [W3C Software and Document License](https://www.w3.org/copyright/software-license/), DCMI's [CC BY 4.0](https://www.dublincore.org/about/copyright/), FOAF and VANN's CC BY 1.0, TopQuadrant's [Apache-2.0](https://github.com/TopQuadrant/shacl/blob/master/LICENSE) for DASH, and schema.org's [CC BY-SA 3.0](https://schema.org/docs/terms.html). All of these permit redistribution with attribution, which this table provides.
 
 ## Provenance
 
-Every file was retrieved on 2026-10-01 from the URL in its **Source** column. Its SHA-256 checksum is recorded in the catalog (`spdx:checksum` on its distribution), so the bundle can be checked byte for byte. Most files are byte-identical to their source. The exceptions are listed under **Relation to source**:
+Every file was retrieved on 2026-10-01 (DQV, OWL-Time, ODRL and DASH on 2026-10-05) from the URL in its **Source** column. Its SHA-256 checksum is recorded in the catalog (`spdx:checksum` on its distribution), so the bundle can be checked byte for byte. Most files are byte-identical to their source. The exceptions are listed under **Relation to source**:
 - SKOS, FOAF and vocab-status are graph-identical Turtle copies of RDF/XML sources.
 - VANN is converted from RDF/XML.
 - XSD is written for ontolint.
