@@ -47,8 +47,13 @@ jobs:
         run: poetry install
 
       - name: Run tests with coverage
+        env:
+          # Python 3.12 defaults to coverage's ctrace tracer, which doubles the run time;
+          # sys.monitoring is far cheaper (no branch coverage on 3.12, which we don't use).
+          COVERAGE_CORE: sysmon
         run: |
           poetry run pytest \
+            -n auto \
             --junitxml=test-results.xml \
             --cov=scripts \
             --cov-report=term-missing \

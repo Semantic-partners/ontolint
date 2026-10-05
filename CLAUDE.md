@@ -39,6 +39,9 @@ poetry run scripts/generate_custom_report.py --ctrf-dir ctrf --template-path tem
 # Run all tests
 poetry run pytest
 
+# Run all tests in parallel (as CI does)
+poetry run pytest -n auto
+
 # Run only the mustrd SPARQL specs
 poetry run pytest tests/mustrd_configuration.ttl
 
@@ -79,7 +82,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
 
-`tests/conftest.py` sets `QA_SPARQL_DIR` to an absolute path before any import, so tests work regardless of working directory.
+`tests/conftest.py` sets `QA_SPARQL_DIR` to an absolute path before any import, so tests work regardless of working directory. Its autouse `no_network` fixture blocks sockets, so tests never fetch from the network: an unmocked fetch fails at once, as offline. Use a fake `uri_parser` or `imports.local` to test resolution.
 
 ## Architecture
 

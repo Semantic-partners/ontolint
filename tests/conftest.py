@@ -7,8 +7,23 @@ os.environ.setdefault(
     os.path.join(os.path.dirname(__file__), '..', 'sparql')
 )
 
+import socket
+
 import rdflib
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    """Keep tests offline: a fetch fails at once, as on a machine with no network.
+
+    Without this, tests using the shared http://example.org# prefix fetch example.org
+    for the undefined-terms check, which made CI slow and network-dependent.
+    """
+    def blocked(*args, **kwargs):
+        raise OSError("network access is blocked in tests")
+    monkeypatch.setattr(socket, "getaddrinfo", blocked)
+    monkeypatch.setattr(socket.socket, "connect", blocked)
 
 PREFIXES = """
 @prefix : <http://example.org#> .

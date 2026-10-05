@@ -28,6 +28,7 @@ ruff = ">=0.9"
 # support (Python 3.14) that no longer pins coverage and flake8. Move to 0.8.0 once it is
 # out. The python range matches requires-python (mustrd needs an upper bound).
 mustrd = { version = "0.8.0rc5", python = ">=3.11,<4.0" }
+pytest-xdist = ">=3.6"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
