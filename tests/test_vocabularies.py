@@ -147,7 +147,7 @@ RDFLIB_LISTS = {
     'rdf.ttl': N.RDF, 'rdfs.ttl': N.RDFS, 'owl.ttl': N.OWL, 'shacl.ttl': N.SH,
     'skos.ttl': N.SKOS, 'dcterms.ttl': N.DCTERMS, 'dc.ttl': N.DC, 'dcam.ttl': N.DCAM,
     'dctype.ttl': N.DCMITYPE, 'foaf.ttl': N.FOAF, 'vann.ttl': N.VANN, 'prov.ttl': N.PROV,
-    'org.ttl': N.ORG, 'dcat3.ttl': N.DCAT,
+    'org.ttl': N.ORG, 'dcat3.ttl': N.DCAT, 'time.ttl': N.TIME, 'odrl.ttl': N.ODRL2,
 }
 
 
@@ -193,6 +193,21 @@ def test_valid_core_and_rdf_1_2_terms_pass_offline(make_graph):
     :list rdf:_3 :Foo .
     """)
     assert check.passed, check.elements
+    assert fetch.fetched == []
+
+
+@pytest.mark.parametrize("namespace, valid, typo", [
+    ("http://www.w3.org/ns/dqv#", "hasQualityMeasurement", "hasQualityMeasurment"),
+    ("http://www.w3.org/2006/time#", "hasBeginning", "hasBegining"),
+    ("http://www.w3.org/ns/odrl/2/", "hasPolicy", "hasPolicies"),
+    ("http://datashapes.org/dash#", "editor", "editr"),
+])
+def test_dqv_time_odrl_dash_terms_validated_offline(make_graph, namespace, valid, typo):
+    check, fetch = _undefined(make_graph, f"""
+    :Foo a owl:Class ; <{namespace}{valid}> :Bar ; <{namespace}{typo}> :Bar .
+    """)
+    assert namespace + typo in check.elements
+    assert namespace + valid not in check.elements
     assert fetch.fetched == []
 
 

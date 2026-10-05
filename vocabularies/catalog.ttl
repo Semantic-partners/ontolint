@@ -24,7 +24,7 @@ ontolint:vocabularies a dcat:Catalog ;
     rdfs:label "Vocabularies bundled with ontolint" ;
     dcterms:title "Vocabularies bundled with ontolint" ;
     dcterms:description "Standard RDF vocabularies shipped with ontolint so their terms can be validated offline." ;
-    dcterms:modified "2026-10-01"^^xsd:date ;
+    dcterms:modified "2026-10-05"^^xsd:date ;
     dcat:dataset
         ontolint:vocabulary-rdf,
         ontolint:vocabulary-rdfs,
@@ -44,7 +44,11 @@ ontolint:vocabularies a dcat:Catalog ;
         ontolint:vocabulary-dcat3,
         ontolint:vocabulary-vcard,
         ontolint:vocabulary-schema-http,
-        ontolint:vocabulary-schema-https .
+        ontolint:vocabulary-schema-https,
+        ontolint:vocabulary-dqv,
+        ontolint:vocabulary-time,
+        ontolint:vocabulary-odrl,
+        ontolint:vocabulary-dash .
 
 ontolint:vocabulary-rdf a dcat:Dataset ;
     rdfs:label "RDF" ;
@@ -455,3 +459,91 @@ ontolint:vocabulary-schema-https-turtle-sha256 a spdx:Checksum ;
     rdfs:label "schema.org (https) (Turtle) SHA-256 checksum" ;
     spdx:algorithm spdx:checksumAlgorithm_sha256 ;
     spdx:checksumValue "7f15ca89398c4f235f478a4b3b8d1f975d63c5a860b77c8a8fce01f791b7ae2f" .
+
+ontolint:vocabulary-dqv a dcat:Dataset ;
+    rdfs:label "Data Quality Vocabulary" ;
+    dcterms:title "Data Quality Vocabulary" ;
+    vann:preferredNamespaceUri "http://www.w3.org/ns/dqv#" ;
+    vann:preferredNamespacePrefix "dqv" ;
+    dcterms:source <https://www.w3.org/ns/dqv.ttl> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "W3C Working Group Note 2016-12-15" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-05." ;
+    dcat:distribution ontolint:vocabulary-dqv-turtle .
+
+ontolint:vocabulary-dqv-turtle a dcat:Distribution ;
+    rdfs:label "Data Quality Vocabulary (Turtle)" ;
+    dcat:downloadURL <dqv.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dqv-turtle-sha256 .
+
+ontolint:vocabulary-dqv-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "Data Quality Vocabulary (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "cc333223d13c663e027456ea43b15a63c1a25505bc752599953f380420573863" .
+
+ontolint:vocabulary-time a dcat:Dataset ;
+    rdfs:label "OWL-Time" ;
+    dcterms:title "OWL-Time" ;
+    vann:preferredNamespaceUri "http://www.w3.org/2006/time#" ;
+    vann:preferredNamespacePrefix "time" ;
+    dcterms:source <https://www.w3.org/2006/time.ttl> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcat:version "2016 (W3C Recommendation 2017-10-19)" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-05." ;
+    dcat:distribution ontolint:vocabulary-time-turtle .
+
+ontolint:vocabulary-time-turtle a dcat:Distribution ;
+    rdfs:label "OWL-Time (Turtle)" ;
+    dcat:downloadURL <time.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-time-turtle-sha256 .
+
+ontolint:vocabulary-time-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "OWL-Time (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "251bd6970b0d7a5efa97ff681afe81a297df85deab3d860fa4f8eeba72d8f16c" .
+
+ontolint:vocabulary-odrl a dcat:Dataset ;
+    rdfs:label "ODRL Vocabulary" ;
+    dcterms:title "ODRL Vocabulary" ;
+    vann:preferredNamespaceUri "http://www.w3.org/ns/odrl/2/" ;
+    vann:preferredNamespacePrefix "odrl" ;
+    dcterms:source <https://www.w3.org/ns/odrl/2/ODRL22.ttl> ;
+    dcterms:license <https://www.w3.org/copyright/software-license/> ;
+    dcat:version "2.2" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-05." ;
+    dcat:distribution ontolint:vocabulary-odrl-turtle .
+
+ontolint:vocabulary-odrl-turtle a dcat:Distribution ;
+    rdfs:label "ODRL Vocabulary (Turtle)" ;
+    dcat:downloadURL <odrl.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-odrl-turtle-sha256 .
+
+ontolint:vocabulary-odrl-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "ODRL Vocabulary (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "7895765e80d86d1d0349d945a28b8a2479f03169572345080a5b3e561ef31457" .
+
+ontolint:vocabulary-dash a dcat:Dataset ;
+    rdfs:label "DASH Data Shapes Vocabulary" ;
+    dcterms:title "DASH Data Shapes Vocabulary" ;
+    vann:preferredNamespaceUri "http://datashapes.org/dash#" ;
+    vann:preferredNamespacePrefix "dash" ;
+    dcterms:source <https://datashapes.org/dash.ttl> ;
+    dcterms:license <https://www.apache.org/licenses/LICENSE-2.0> ;
+    dcat:version "not stated (pinned by retrieval date and checksum)" ;
+    skos:changeNote "Byte-identical to the source, retrieved 2026-10-05." ;
+    dcat:distribution ontolint:vocabulary-dash-turtle .
+
+ontolint:vocabulary-dash-turtle a dcat:Distribution ;
+    rdfs:label "DASH Data Shapes Vocabulary (Turtle)" ;
+    dcat:downloadURL <dash.ttl> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/text/turtle> ;
+    spdx:checksum ontolint:vocabulary-dash-turtle-sha256 .
+
+ontolint:vocabulary-dash-turtle-sha256 a spdx:Checksum ;
+    rdfs:label "DASH Data Shapes Vocabulary (Turtle) SHA-256 checksum" ;
+    spdx:algorithm spdx:checksumAlgorithm_sha256 ;
+    spdx:checksumValue "01a32d725a0093910d17596102dc38a0ead231fa9d8ebed0bb433abfb705ebf4" .
