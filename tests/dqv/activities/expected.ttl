@@ -6,11 +6,11 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-7cc335df9442c624> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-0895de587edbb054>,
-        <https://example.org/qa#measurement-26df7e4e3f7c6290>,
-        <https://example.org/qa#measurement-8fc9282306f2aa45>,
-        <https://example.org/qa#measurement-987d9cbc39ae19ff> ;
+<https://example.org/qa#assessment-10e6e462a3b52892> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-6e043216076be575>,
+        <https://example.org/qa#measurement-8e79dcc3ccd346d1>,
+        <https://example.org/qa#measurement-9c8c6e6c3dd8eda3>,
+        <https://example.org/qa#measurement-be70fa010e17bc2a> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
@@ -160,38 +160,38 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#measurement-0895de587edbb054> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/activities#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-eb886de6e3172161> .
-
-<https://example.org/qa#measurement-26df7e4e3f7c6290> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/activities#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 3 ;
-    olq:conforms false .
-
-<https://example.org/qa#measurement-8fc9282306f2aa45> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-6e043216076be575> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/activities#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-properties-same-label> ;
     dqv:value 2 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-0d4285442e37364b>,
-        <https://example.org/qa#violation-815e25deec61ad3b>,
-        <https://example.org/qa#violation-a41778862e9bff4b>,
-        <https://example.org/qa#violation-ea9208f1307bcbaa> .
+    olq:violation <https://example.org/qa#violation-5795eff1ead64107>,
+        <https://example.org/qa#violation-7247e08be173c8aa>,
+        <https://example.org/qa#violation-adc313d5583d6c4c>,
+        <https://example.org/qa#violation-c6f1dcd5dc143397> .
 
-<https://example.org/qa#measurement-987d9cbc39ae19ff> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-8e79dcc3ccd346d1> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/activities#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-9c3fb29fb4ed409e> .
+
+<https://example.org/qa#measurement-9c8c6e6c3dd8eda3> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/activities#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-unresolvable-imports> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-c215de1a88c9d929> .
+    olq:violation <https://example.org/qa#violation-468b577fd4389dd5> .
+
+<https://example.org/qa#measurement-be70fa010e17bc2a> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/activities#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 3 ;
+    olq:conforms false .
 
 <https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
     rdfs:label "Ontolint conformance" ;
@@ -220,7 +220,14 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-0d4285442e37364b> a sh:ValidationResult ;
+<https://example.org/qa#violation-468b577fd4389dd5> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/some-missing-import> ;
+    sh:resultMessage "import could not be resolved or is empty" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    olq:relatedResource <https://example.org/ontology/activities#> .
+
+<https://example.org/qa#violation-5795eff1ead64107> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/activities#grantsTo> ;
     sh:resultMessage "shares label 'confers on' with https://example.org/ontology/activities#confersOn" ;
     sh:resultSeverity sh:Violation ;
@@ -228,7 +235,7 @@
     sh:value "confers on"@en ;
     olq:relatedResource <https://example.org/ontology/activities#confersOn> .
 
-<https://example.org/qa#violation-815e25deec61ad3b> a sh:ValidationResult ;
+<https://example.org/qa#violation-7247e08be173c8aa> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/activities#delegatedTo> ;
     sh:resultMessage "shares label 'assigned to' with https://example.org/ontology/activities#assignedTo" ;
     sh:resultSeverity sh:Violation ;
@@ -236,22 +243,13 @@
     sh:value "assigned to"@en ;
     olq:relatedResource <https://example.org/ontology/activities#assignedTo> .
 
-<https://example.org/qa#violation-a41778862e9bff4b> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/activities#assignedTo> ;
-    sh:resultMessage "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    sh:value "assigned to"@en ;
-    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> .
-
-<https://example.org/qa#violation-c215de1a88c9d929> a sh:ValidationResult ;
+<https://example.org/qa#violation-9c3fb29fb4ed409e> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/some-missing-import> ;
-    sh:resultMessage "import could not be resolved or is empty" ;
+    sh:resultMessage "namespace https://example.org/ontology/ could not be fetched" ;
     sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    olq:relatedResource <https://example.org/ontology/activities#> .
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-ea9208f1307bcbaa> a sh:ValidationResult ;
+<https://example.org/qa#violation-adc313d5583d6c4c> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/activities#confersOn> ;
     sh:resultMessage "shares label 'confers on' with https://example.org/ontology/activities#grantsTo" ;
     sh:resultSeverity sh:Violation ;
@@ -259,11 +257,13 @@
     sh:value "confers on"@en ;
     olq:relatedResource <https://example.org/ontology/activities#grantsTo> .
 
-<https://example.org/qa#violation-eb886de6e3172161> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/some-missing-import> ;
-    sh:resultMessage "namespace https://example.org/ontology/ could not be fetched" ;
+<https://example.org/qa#violation-c6f1dcd5dc143397> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/activities#assignedTo> ;
+    sh:resultMessage "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" ;
     sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    sh:value "assigned to"@en ;
+    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;
