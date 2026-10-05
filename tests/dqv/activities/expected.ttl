@@ -29,7 +29,7 @@
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
     rdfs:label "Classes with the same label" ;
-    skos:definition "Two or more classes share a label in the same language." ;
+    skos:definition "Two or more classes share a label in the same language and with the same predicate." ;
     skos:prefLabel "Classes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -64,7 +64,7 @@
 
 <https://example.org/qa#metric-node-shapes-same-label> a dqv:Metric ;
     rdfs:label "NodeShapes with the same label" ;
-    skos:definition "Two or more SHACL NodeShapes share a label in the same language." ;
+    skos:definition "Two or more SHACL NodeShapes share a label in the same language and with the same predicate." ;
     skos:prefLabel "NodeShapes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -134,7 +134,7 @@
 
 <https://example.org/qa#metric-property-shapes-same-label> a dqv:Metric ;
     rdfs:label "PropertyShapes with the same label" ;
-    skos:definition "Two or more SHACL PropertyShapes share a label in the same language." ;
+    skos:definition "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate." ;
     skos:prefLabel "PropertyShapes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -166,10 +166,10 @@
     dqv:value 2 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-5795eff1ead64107>,
-        <https://example.org/qa#violation-7247e08be173c8aa>,
-        <https://example.org/qa#violation-adc313d5583d6c4c>,
-        <https://example.org/qa#violation-c6f1dcd5dc143397> .
+    olq:violation <https://example.org/qa#violation-16916328f87efc06>,
+        <https://example.org/qa#violation-1a0bfc7c122b8e8c>,
+        <https://example.org/qa#violation-60428e4ec0d287cc>,
+        <https://example.org/qa#violation-906cfd9de05d7994> .
 
 <https://example.org/qa#measurement-8e79dcc3ccd346d1> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/activities#> ;
@@ -201,7 +201,7 @@
 
 <https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
     rdfs:label "Properties with the same label" ;
-    skos:definition "Two or more properties share a label in the same language." ;
+    skos:definition "Two or more properties share a label in the same language and with the same predicate." ;
     skos:prefLabel "Properties with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
     olq:severity sh:Violation .
@@ -220,6 +220,22 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
+<https://example.org/qa#violation-16916328f87efc06> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/activities#grantsTo> ;
+    sh:resultMessage "shares label 'confers on' with predicate http://www.w3.org/2000/01/rdf-schema#label and https://example.org/ontology/activities#confersOn" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    sh:value "confers on"@en ;
+    olq:relatedResource <https://example.org/ontology/activities#confersOn> .
+
+<https://example.org/qa#violation-1a0bfc7c122b8e8c> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/activities#confersOn> ;
+    sh:resultMessage "shares label 'confers on' with predicate http://www.w3.org/2000/01/rdf-schema#label and https://example.org/ontology/activities#grantsTo" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
+    sh:value "confers on"@en ;
+    olq:relatedResource <https://example.org/ontology/activities#grantsTo> .
+
 <https://example.org/qa#violation-468b577fd4389dd5> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/some-missing-import> ;
     sh:resultMessage "import could not be resolved or is empty" ;
@@ -227,17 +243,17 @@
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     olq:relatedResource <https://example.org/ontology/activities#> .
 
-<https://example.org/qa#violation-5795eff1ead64107> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/activities#grantsTo> ;
-    sh:resultMessage "shares label 'confers on' with https://example.org/ontology/activities#confersOn" ;
+<https://example.org/qa#violation-60428e4ec0d287cc> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/activities#assignedTo> ;
+    sh:resultMessage "shares label 'assigned to' with predicate http://www.w3.org/2000/01/rdf-schema#label and https://example.org/ontology/activities#delegatedTo" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    sh:value "confers on"@en ;
-    olq:relatedResource <https://example.org/ontology/activities#confersOn> .
+    sh:value "assigned to"@en ;
+    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> .
 
-<https://example.org/qa#violation-7247e08be173c8aa> a sh:ValidationResult ;
+<https://example.org/qa#violation-906cfd9de05d7994> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/activities#delegatedTo> ;
-    sh:resultMessage "shares label 'assigned to' with https://example.org/ontology/activities#assignedTo" ;
+    sh:resultMessage "shares label 'assigned to' with predicate http://www.w3.org/2000/01/rdf-schema#label and https://example.org/ontology/activities#assignedTo" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     sh:value "assigned to"@en ;
@@ -248,22 +264,6 @@
     sh:resultMessage "namespace https://example.org/ontology/ could not be fetched" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-adc313d5583d6c4c> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/activities#confersOn> ;
-    sh:resultMessage "shares label 'confers on' with https://example.org/ontology/activities#grantsTo" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    sh:value "confers on"@en ;
-    olq:relatedResource <https://example.org/ontology/activities#grantsTo> .
-
-<https://example.org/qa#violation-c6f1dcd5dc143397> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/activities#assignedTo> ;
-    sh:resultMessage "shares label 'assigned to' with https://example.org/ontology/activities#delegatedTo" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
-    sh:value "assigned to"@en ;
-    olq:relatedResource <https://example.org/ontology/activities#delegatedTo> .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;

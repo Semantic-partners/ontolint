@@ -431,9 +431,17 @@ def test_write_dqv_report_does_not_escape_directory(make_graph, tmp_path):
 def test_same_label_records_independent_of_group_concat_order():
     a = "http://example.org#a"
     b = "http://example.org#b"
-    first = _same_label_records(Literal("x"), f"{a}, {b}")
-    second = _same_label_records(Literal("x"), f"{b}, {a}")
+    first = _same_label_records(Literal("x"), RDFS.label, f"{a}, {b}")
+    second = _same_label_records(Literal("x"), RDFS.label, f"{b}, {a}")
     assert first == second
+
+
+def test_same_label_records_include_label_property():
+    a = "http://example.org#a"
+    b = "http://example.org#b"
+    records = _same_label_records(Literal("x"), RDFS.label, f"{a}, {b}")
+    assert records
+    assert all("predicate http://www.w3.org/2000/01/rdf-schema#label" in record.comment for record in records)
 
 
 def test_non_unique_identifier_comment_is_sorted(make_graph):

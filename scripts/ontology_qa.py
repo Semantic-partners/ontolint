@@ -1273,11 +1273,11 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
         status += 1
         string = ""
         records = []
-        log += "| Label | Classes |\n|--|--|\n"
+        log += "| Label | Label Property | Classes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.classes} |\n"
-            string += f"\"{row.label}\": {row.classes};<br> "
-            records.extend(_same_label_records(row.label, row.classes))
+            log += f"| {row.label} | {row.labelProperty} | {row.classes} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {row.classes};<br> "
+            records.extend(_same_label_records(row.label, row.labelProperty, row.classes))
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1325,11 +1325,11 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         status += 1
         string = ""
         records = []
-        log += "| Label | Properties |\n|--|--|\n"
+        log += "| Label | Label Property | Properties |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.properties} |\n"
-            string += f"\"{row.label}\": {row.properties};<br> "
-            records.extend(_same_label_records(row.label, row.properties))
+            log += f"| {row.label} | {row.labelProperty} | {row.properties} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {row.properties};<br> "
+            records.extend(_same_label_records(row.label, row.labelProperty, row.properties))
         string = string.removesuffix(";<br> ")
         violations[check] = string
         violations[records_key(check)] = records
@@ -1376,11 +1376,11 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         status += 1
         string = ""
         records = []
-        log += "| Label | NodeShapes |\n|--|--|\n"
+        log += "| Label | Label Property | NodeShapes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.nsList} |\n"
-            string += f"\"{row.label}\": {row.nsList};<br> "
-            records.extend(_same_label_records(row.label, row.nsList))
+            log += f"| {row.label} | {row.labelProperty} | {row.nsList} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {row.nsList};<br> "
+            records.extend(_same_label_records(row.label, row.labelProperty, row.nsList))
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1428,11 +1428,11 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         status += 1
         string = ""
         records = []
-        log += "| Label | PropertyShapes |\n|--|--|\n"
+        log += "| Label | Label Property | PropertyShapes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.psList} |\n"
-            string += f"\"{row.label}\": {row.psList};<br> "
-            records.extend(_same_label_records(row.label, row.psList))
+            log += f"| {row.label} | {row.labelProperty} | {row.psList} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {row.psList};<br> "
+            records.extend(_same_label_records(row.label, row.labelProperty, row.psList))
         
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1644,19 +1644,20 @@ def _term_from_string(value):
     return rdflib.URIRef(value) if ':' in value else rdflib.BNode(value)
 
 
-def _same_label_records(label, members):
+def _same_label_records(label, label_property, members):
     """One dqv.Violation per member of a same-label group, each related to the other members."""
     # GROUP_CONCAT flattens members to strings; blank nodes come back as their bare id.
     # GROUP_CONCAT has no defined order, so sort for reproducible records and hashes.
     iris = sorted((_term_from_string(m.strip()) for m in str(members).split(", ") if m.strip()),
                   key=lambda t: (isinstance(t, rdflib.BNode), str(t)))
+    property_name = str(label_property) if label_property is not None else "an annotation property"
     records = []
     for iri in iris:
         others = [o for o in iris if o != iri]
         # Blank-node ids are arbitrary per parse, so name them generically; the skolem IRI
         # is given by olq:relatedResource.
         names = ["a blank node" if isinstance(o, rdflib.BNode) else str(o) for o in others]
-        comment = f"shares label '{label}' with " + ", ".join(names)
+        comment = f"shares label '{label}' with predicate {property_name} and " + ", ".join(names)
         records.append(dqv.Violation(iri, comment=comment, related=others, value=label))
     return records
 
