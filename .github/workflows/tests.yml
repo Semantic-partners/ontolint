@@ -37,6 +37,13 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v5
 
+      # Match local development. On 3.14 coverage uses the cheap sys.monitoring tracer by
+      # default; the runner's system Python (3.12) used ctrace, which doubled the run time.
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
@@ -49,6 +56,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           poetry run pytest \
+            -n auto \
             --junitxml=test-results.xml \
             --cov=scripts \
             --cov-report=term-missing \
