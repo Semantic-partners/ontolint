@@ -533,6 +533,7 @@ ontolint:vocabulary-dash a dcat:Dataset ;
     vann:preferredNamespacePrefix "dash" ;
     dcterms:source <https://datashapes.org/dash.ttl> ;
     dcterms:license <https://www.apache.org/licenses/LICENSE-2.0> ;
+    dcat:version "not stated (pinned by retrieval date and checksum)" ;
     skos:changeNote "Byte-identical to the source, retrieved 2026-10-05." ;
     dcat:distribution ontolint:vocabulary-dash-turtle .
 
