@@ -78,6 +78,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
+| `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
@@ -124,6 +125,25 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 ### Bundled vocabularies
 
 `vocabularies/` holds Turtle copies of the core vocabularies (RDF incl. RDF 1.2 terms, RDFS, OWL, XSD, SHACL, SKOS, Dublin Core, FOAF, VANN, PROV, schema.org, …), catalogued in `vocabularies/catalog.ttl`, a DCAT catalog with one `dcat:Dataset` per vocabulary (namespace via `vann:preferredNamespaceUri`, file via `dcat:distribution`/`dcat:downloadURL`, plus source, licence, version and `skos:changeNote`). `run_qa()` merges them into `imports.local` via `merge_local_imports()`, with the project's own entries winning. So the undefined-terms check validates core-vocabulary terms offline, and owl-imports of them resolves locally. There is no list of trusted namespaces; projects trust a namespace with `imports.ignore`. `imports.ignore`/`imports.local` keys are matched through `iri_key()`, which strips a trailing `#`/`/`. `VOCAB_DIR` is module-relative, and bundled files are parsed once per process (`_parse_bundled`). Provenance, licences and local edits are in `vocabularies/README.md`; `tests/test_vocabularies.py` checks the bundle.
+
+### Programmatic API
+
+`ontolint/` is the public package: `lint(datasets, config) -> rdflib.Graph` takes graphs
+the caller already holds and returns the DQV report as a graph, with no files, config file
+or subprocess involved (issue #92). It is a thin layer over the existing seams — it copies
+each graph (the checks delete instance data from the graph they run on, and inference adds
+to it), maps `Config` onto `run_qa()` keyword arguments, and hands the results to
+`dqv.build_dqv_graph()`. The CLI is unchanged and does not go through it.
+
+Two things in `scripts/` exist for it:
+- **Graph-valued `imports.local`.** `_parse_local()`, `_is_bundled()` and `_describe_local()`
+  accept an `rdflib.Graph` as well as a path, so a caller can supply a dependency vocabulary
+  it already holds; `describe_configuration()` records such a setting with no `olq:localFile`.
+- **`source_iris`.** `run_qa(source_iris=…)` stores `'sourceIRIs'` in the profiling metrics:
+  one IRI per entry of `filesProcessed`, for sources that are not files. `datasets_for()` and
+  `check_owl_declaration()` use them (via `source_iris()`) instead of minting a `file:` IRI
+  for something that was never on disk. `dqv.dataset_iri()` decides what a caller's name
+  becomes: an absolute IRI is used as it stands, anything else is minted under the base.
 
 ### Report generation
 

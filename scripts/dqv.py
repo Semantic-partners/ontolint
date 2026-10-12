@@ -15,6 +15,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import rdflib
 
@@ -115,6 +116,22 @@ DQV_ROLLUP_METRIC = ('ontolint-conformance', "Ontolint conformance",
 def file_iri(path):
     """Absolute file: IRI for a local path."""
     return Path(path).resolve().as_uri()
+
+
+def dataset_iri(base, name):
+    """
+    The IRI a caller-named source is reported under, when it declares no owl:Ontology
+    of its own (see datasets_for).
+
+    A name that is already an absolute IRI — an ontology IRI, say — is used as it stands,
+    so the dataset is identified the same way wherever it is reported on. Any other name
+    is minted under the report's base as <base>dataset-<name>, percent-encoded: stable
+    across runs for the same name, but meaningful only within these reports.
+    """
+    name = str(name)
+    if _ABSOLUTE_IRI.match(name):
+        return rdflib.URIRef(name)
+    return rdflib.URIRef(f"{_normalise_base(base)}dataset-{quote(name, safe='')}")
 
 
 def metric_iri(base, slug):
@@ -416,12 +433,18 @@ def canonical_bnode_labels(graph, bnodes):
 def datasets_for(graph, qa_metrics):
     """
     The datasets a QA run was computed on: each declared owl:Ontology IRI (labelled from its
-    rdfs:label, dcterms:title or skos:prefLabel), or, if none is declared, each input file's
-    file: IRI.
+    rdfs:label, dcterms:title or skos:prefLabel), or, if none is declared, each source's own
+    IRI ('sourceIRIs', set by the programmatic API) or its input file's file: IRI.
     """
     ontologies = sorted({str(o) for o in qa_metrics.get('ontologyURI', [])})
     if not ontologies:
-        return [Dataset(file_iri(f), os.path.basename(f)) for f in qa_metrics.get('filesProcessed', [])]
+        sources = qa_metrics.get('filesProcessed', [])
+        # The programmatic API names its sources itself (see source_iris in run_qa); only
+        # a source that really is a file gets a file: IRI and is labelled by its basename.
+        iris = qa_metrics.get('sourceIRIs') or []
+        if iris:
+            return [Dataset(str(iri), name) for iri, name in zip(iris, sources)]
+        return [Dataset(file_iri(f), os.path.basename(f)) for f in sources]
     datasets = []
     for iri in ontologies:
         label = None

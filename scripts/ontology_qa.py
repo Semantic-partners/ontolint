@@ -89,6 +89,18 @@ def records_key(check):
     """Key under which a check stores its list of dqv.Violation records in its violations dict."""
     return (check, 'records')
 
+
+def source_iris(in_metrics):
+    """
+    One IRI per processed source, to name it in a violation.
+
+    'sourceIRIs' is set when the caller named its sources itself (the programmatic API,
+    whose graphs are not files); otherwise each entry of 'filesProcessed' is a path and
+    gets a file: IRI.
+    """
+    named = in_metrics.get('sourceIRIs') or []
+    return [str(iri) for iri in named] or [dqv.file_iri(f) for f in in_metrics.get('filesProcessed', [])]
+
 # Placeholder comment in a SPARQL query marking where the exclude-types filter is injected.
 EXCLUDE_TYPES_PLACEHOLDER = "# {{EXCLUDE_TYPES}}"
 
@@ -173,15 +185,22 @@ def bundled_datasets():
 
 
 def merge_local_imports(local_imports=None):
-    """Bundled vocabularies plus the project's imports.local, keyed by iri_key(); the project wins."""
+    """
+    Bundled vocabularies plus the project's imports.local, keyed by iri_key(); the project wins.
+
+    A value is a file path, or an already-loaded rdflib.Graph when the caller supplied one
+    through the programmatic API (see ontolint.Config.imports).
+    """
     merged = {iri_key(ns): path for ns, path in bundled_vocabularies().items()}
     merged.update({iri_key(k): v for k, v in (local_imports or {}).items()})
     return merged
 
 
-def _is_bundled(path):
+def _is_bundled(source):
     """Whether a file is one of the catalogued vocabularies (by the catalog, not by directory)."""
-    return str(Path(path).resolve()) in bundled_vocabularies().values()
+    if isinstance(source, rdflib.Graph):
+        return False
+    return str(Path(source).resolve()) in bundled_vocabularies().values()
 
 
 @lru_cache(maxsize=None)
@@ -190,8 +209,11 @@ def _parse_bundled(path):
     return rdflib.Graph().parse(path)
 
 
-def _parse_local(path):
-    return _parse_bundled(path) if _is_bundled(path) else rdflib.Graph().parse(path)
+def _parse_local(source):
+    """The graph for an imports.local entry: a caller-supplied graph, or a file to parse."""
+    if isinstance(source, rdflib.Graph):
+        return source
+    return _parse_bundled(source) if _is_bundled(source) else rdflib.Graph().parse(source)
 
 
 # rdf:_1, rdf:_2, ... (container membership properties) are defined by RDF but can't be listed.
@@ -741,8 +763,8 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
         log += "VIOLATION - No `owl:Ontology` declaration found.\n"
         violations[check] = "**All** processed files missing ontology declaration."
         violations[records_key(check)] = [
-            dqv.Violation(dqv.file_iri(f), comment="no owl:Ontology declaration")
-            for f in in_metrics['filesProcessed']
+            dqv.Violation(iri, comment="no owl:Ontology declaration")
+            for iri in source_iris(in_metrics)
         ] or [dqv.Violation(comment="no owl:Ontology declaration")]
     
     elif metrics[check] > 0 and metrics[check] < num_files:
@@ -2052,8 +2074,10 @@ def _reference_predicate_matcher(predicates):
     return lambda p: str(p) in exact or (bool(namespaces) and str(p).startswith(namespaces))
 
 
-def _describe_local(path):
-    return f"bundled: `{Path(path).name}`" if _is_bundled(path) else f"local file: `{path}`"
+def _describe_local(source):
+    if isinstance(source, rdflib.Graph):
+        return f"graph supplied by the caller ({len(source)} triples)"
+    return f"bundled: `{Path(source).name}`" if _is_bundled(source) else f"local file: `{source}`"
 
 
 def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
@@ -2538,7 +2562,7 @@ TYPE_EXCLUDABLE_CHECKS = (
     check_untyped_class,
 )
 
-def _config_check_name(func, key):
+def config_check_name(func, key):
     """The name a check has in .rdf-lint.yml enable/disable lists (e.g. 'class-missing-label')."""
     if key == 'missingDomain':
         return 'property-missing-domain'
@@ -2565,7 +2589,7 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
 
     for enabled, func, display_name, key in checklist:
         # enable:/disable: lists hold names as check_<name>, see parse_lint_config.
-        config_name = f"check_{_config_check_name(func, key).replace('-', '_')}"
+        config_name = f"check_{config_check_name(func, key).replace('-', '_')}"
         if key in rule_reasons:
             origin, reason = 'rule', rule_reasons[key]
         elif isinstance(selection.get('enable'), list):
@@ -2590,13 +2614,19 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     datasets = bundled_datasets()
     bundled_by_key = {iri_key(ns): ns for ns in bundled_vocabularies()}
     for k, (iri, path) in user_local.items():
-        try:
-            shown = os.path.relpath(path, config_dir) if config_dir else path
-        except ValueError:  # Windows: the file is on another drive than the config file
-            shown = path
         overrides = bundled_by_key.get(k)
-        reason = ("Resolved from a local file instead of the network; overrides the bundled vocabulary"
-                  if overrides else "Resolved from a local file instead of the network")
+        if isinstance(path, rdflib.Graph):
+            # Supplied through the programmatic API: there is no file to name.
+            shown = None
+            reason = ("Resolved from a graph supplied by the caller; overrides the bundled vocabulary"
+                      if overrides else "Resolved from a graph supplied by the caller")
+        else:
+            try:
+                shown = os.path.relpath(path, config_dir) if config_dir else path
+            except ValueError:  # Windows: the file is on another drive than the config file
+                shown = path
+            reason = ("Resolved from a local file instead of the network; overrides the bundled vocabulary"
+                      if overrides else "Resolved from a local file instead of the network")
         settings.append(dqv.ConfigSetting('imports.local', iri, given, reason, local_file=shown,
                                           derived_from=datasets.get(overrides) if overrides else None))
     for ns, path in bundled_vocabularies().items():
@@ -2620,13 +2650,17 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     return settings
 
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None, lint_config: dict | None = None, rule_reasons: dict | None = None, config_file: str | None = None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, source_iris: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None, lint_config: dict | None = None, rule_reasons: dict | None = None, config_file: str | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Returns structured pass/fail results — no file I/O, no arg parsing.
 
     lint_config, rule_reasons and config_file describe where the configuration came from
     (see describe_configuration); they don't change what runs.
+
+    files_processed names the sources the graph was built from. They are file paths unless
+    source_iris gives an IRI for each of them, as the programmatic API does for graphs that
+    were never on disk.
     """
     if checklist is None:
         checklist = deepcopy_list(CHECKLIST)
@@ -2639,6 +2673,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         'filesProcessed': files_processed or [],
         'triples': len(graph)
     }
+    if source_iris:
+        qa_metrics['sourceIRIs'] = [str(iri) for iri in source_iris]
     qa_violations = {}
 
     metrics, profiling_elements, exclusions = profiling(graph)

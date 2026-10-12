@@ -131,6 +131,82 @@ What gets emitted:
   ```
 - **Reproducible output:** set `SOURCE_DATE_EPOCH` (seconds since the Unix epoch) to pin the report timestamp. With the same inputs and base URI, the report, including every minted IRI, is then byte-for-byte reproducible.
 
+## Python API
+
+If your ontologies are already in memory — fetched from object storage, generated at
+runtime, or transformed before linting — you don't have to go through files and a
+subprocess. `lint()` takes graphs and returns the DQV report as a graph:
+
+```python
+import rdflib
+from ontolint import Config, lint
+
+report: rdflib.Graph = lint(
+    {
+        "https://example.org/activities": activities_graph,
+        "https://example.org/parties":    parties_graph,
+    },
+    config=Config(
+        per_file=True,
+        # dependency vocabularies as graphs, not paths: nothing is fetched or read from disk
+        imports={"https://schema.org/": schema_graph},
+        exclude_types=["rdf:PropositionForm"],
+        base_iri="https://example.org/reports/run-123-/",
+    ),
+)
+
+DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
+for measurement in report.subjects(rdflib.RDF.type, DQV.QualityMeasurement):
+    ...
+```
+
+No temporary directory, no `.rdf-lint.yml`, no subprocess, no output file to read back.
+The graphs you pass are never modified: each is copied before the checks run.
+
+**Name each dataset by its ontology IRI** where you have one. A name that is an absolute
+IRI identifies the dataset in the report as it stands, so runs on different machines and
+at different times line up in a shared graph. Any other name (`"activities"`) is a local
+label, minted under `base_iri` as `…dataset-activities`. A graph that declares its own
+`owl:Ontology` is reported under that IRI either way.
+
+`per_file=True` checks each dataset on its own, so every violation is attributed to the
+dataset it came from; the default merges them into one graph, as the CLI does when given
+several files without `--per-file`.
+
+### Config
+
+| Field | Default | `.rdf-lint.yml` equivalent |
+|---|---|---|
+| `per_file` | `False` | `--per-file` |
+| `imports` | `{}` | `imports.local` — but values may be an `rdflib.Graph` as well as a path |
+| `ignore_imports` | `()` | `imports.ignore` |
+| `exclude_types` | `()` | `exclude.types` (CURIEs allowed) |
+| `skip_object_of` | `None` | `undefined-terms.skip-object-of` (`None` keeps the defaults) |
+| `checks` | `None` (all) | the `enable:` list, named the same way |
+| `base_iri` | `urn:ontolint:` | `--base-uri` |
+| `inference` | `False` | `-i` / `--inference` |
+| `uri_parser` | fetch over the network | — pass a callable that raises to forbid network access |
+
+Naming a check that doesn't exist raises `ValueError` rather than silently running
+nothing. The dependencies between checks are the CLI's: asking for `owl-description`
+pulls in `owl-declaration`, which it needs, and `undefined-terms` needs it too in order
+to tell a local namespace from one it has to resolve.
+
+`lint_results()` is the same run without the DQV step: it returns the `QAResult` per
+dataset, so you can read `result.passed`, `result.failures` and each check's count
+directly — useful for an exit code or a log line.
+
+```python
+from ontolint import Config, lint_results
+
+for result in lint_results({"https://example.org/core": graph}, Config(per_file=True)):
+    for check in result.failures:
+        print(check.name, check.count)
+```
+
+The API is importable from the repository root (the CLI remains the supported way to run
+ontolint in CI — see the GitHub Action below).
+
 ## Dev setup & Running Ontolint locally
 
 Install poetry with the [instructions here](https://python-poetry.org/docs/#installation), or `brew install poetry` if you're on mac with homebrew.
