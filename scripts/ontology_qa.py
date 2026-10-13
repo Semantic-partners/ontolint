@@ -112,6 +112,13 @@ class Config:
                     References then resolve with no network access. The vocabularies
                     bundled with ontolint are merged in underneath, and an entry here
                     overrides a bundled one for the same namespace.
+
+                    A key is matched by iri_key(), which ignores one trailing '#' or '/',
+                    so a vocabulary's owl:Ontology IRI and its namespace are the same
+                    entry however either is written (`.../core`, `.../core#`, `.../core/`).
+                    Terms are then looked up across every supplied vocabulary, so one
+                    entry covers all the namespaces that graph defines. There is no need
+                    to work out a vocabulary's "real" namespace before keying it.
     ignore_imports: namespaces and import IRIs that are trusted: never fetched, never
                     reported, never resolved (`imports.ignore`).
     exclude_types:  type IRIs, or CURIEs in ontolint's config prefixes, whose instances the

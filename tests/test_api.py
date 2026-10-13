@@ -333,6 +333,47 @@ def test_imports_resolve_from_a_supplied_graph_without_touching_the_network():
     assert result.get("Undefined terms").passed
 
 
+@pytest.mark.parametrize("key", [
+    "http://vocab.example.org/core#",   # the namespace the terms live in
+    "http://vocab.example.org/core",    # the owl:Ontology IRI, as a hash vocabulary writes it
+    "http://vocab.example.org/core/",   # a trailing slash instead
+])
+def test_an_imports_key_matches_however_the_namespace_is_written(key):
+    # Documented in the readme so callers don't derive a vocabulary's "real" namespace.
+    vocabulary = rdflib.Graph().parse(data=f"""
+    @prefix owl: <{OWL}> .
+    <http://vocab.example.org/core> a owl:Ontology .
+    <http://vocab.example.org/core#Thing> a owl:Class .
+    """, format="turtle")
+    graph = _graph("""
+    : a owl:Ontology .
+    :Local a owl:Class ; rdfs:subClassOf <http://vocab.example.org/core#Thing> .
+    """)
+
+    [result] = _results({"core": graph}, Config(checks=UNDEFINED_TERMS, imports={key: vocabulary}))
+
+    assert result.get("Undefined terms").passed
+
+
+def test_one_imports_entry_covers_every_namespace_that_graph_defines():
+    # So a vocabulary spanning namespaces needs one entry, not one per namespace.
+    vocabulary = rdflib.Graph().parse(data=f"""
+    @prefix owl: <{OWL}> .
+    <http://a.example.org/v#Thing> a owl:Class .
+    <http://b.example.org/v#Other> a owl:Class .
+    """, format="turtle")
+    graph = _graph("""
+    : a owl:Ontology .
+    :Local a owl:Class ;
+        rdfs:subClassOf <http://a.example.org/v#Thing>, <http://b.example.org/v#Other> .
+    """)
+
+    [result] = _results({"core": graph},
+                        Config(checks=UNDEFINED_TERMS, imports={"http://a.example.org/v#": vocabulary}))
+
+    assert result.get("Undefined terms").passed
+
+
 def test_a_term_missing_from_the_supplied_graph_is_still_reported():
     external = rdflib.Graph().parse(
         data=f"@prefix owl: <{OWL}> .\n<{EXTERNAL}Thing> a owl:Class .\n", format="turtle")

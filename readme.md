@@ -194,6 +194,15 @@ and `.rdf-lint.yml`, and you build one directly.
 | `inference` | `bool` | `False` | `-i` / `--inference` |
 | `uri_parser` | `Callable[[str], Graph] \| None` | fetch over the network | — pass a callable that raises to forbid network access |
 
+#### Keying `imports`
+
+Use the vocabulary's `owl:Ontology` IRI if it has one, or any namespace it defines if it
+doesn't — the exact form doesn't matter. Keys are matched ignoring one trailing `#` or
+`/`, so `.../core`, `.../core#` and `.../core/` are the same entry; this is why a hash
+vocabulary whose ontology IRI omits the `#` (as OWL's own does) still resolves. Terms are
+looked up across every vocabulary you supply, so a single entry covers all the namespaces
+that graph defines. There's no need to derive a vocabulary's namespace before keying it.
+
 `IRI` is `str | rdflib.URIRef`: pass `URIRef`s where you have them, and the union still
 admits the CURIEs (`rdf:PropositionForm`) and `<namespace>*` wildcards that two of these
 fields accept, which are strings but not IRIs. Dataset names are typed the same way.
