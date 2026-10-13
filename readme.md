@@ -175,34 +175,54 @@ several files without `--per-file`.
 
 ### Config
 
-| Field | Default | `.rdf-lint.yml` equivalent |
-|---|---|---|
-| `per_file` | `False` | `--per-file` |
-| `imports` | `{}` | `imports.local` — but values may be an `rdflib.Graph` as well as a path |
-| `ignore_imports` | `()` | `imports.ignore` |
-| `exclude_types` | `()` | `exclude.types` (CURIEs allowed) |
-| `skip_object_of` | `None` | `undefined-terms.skip-object-of` (`None` keeps the defaults) |
-| `checks` | `None` (all) | the `enable:` list, named the same way |
-| `base_iri` | `urn:ontolint:` | `--base-uri` |
-| `inference` | `False` | `-i` / `--inference` |
-| `uri_parser` | fetch over the network | — pass a callable that raises to forbid network access |
+`Config` is the single description of a lint run — the CLI builds one from its arguments
+and `.rdf-lint.yml`, and you build one directly.
+
+| Field | Type | Default | `.rdf-lint.yml` / CLI equivalent |
+|---|---|---|---|
+| `per_file` | `bool` | `False` | `--per-file` |
+| `imports` | `Mapping[IRI, Graph \| str \| PathLike]` | `{}` | `imports.local` — values may be a graph as well as a path |
+| `ignore_imports` | `Sequence[IRI]` | `()` | `imports.ignore` |
+| `exclude_types` | `Sequence[IRI]` | `()` | `exclude.types` (a CURIE is a `str`, so the type is a union) |
+| `skip_object_of` | `Sequence[IRI] \| None` | `None` | `undefined-terms.skip-object-of` (`None` keeps the defaults) |
+| `checks` | `Sequence[str] \| None` | `None` (all) | the `enable:` list, named the same way |
+| `base_iri` | `IRI \| None` | `urn:ontolint:` | `--base-uri` |
+| `inference` | `bool` | `False` | `-i` / `--inference` |
+| `uri_parser` | `Callable[[str], Graph] \| None` | fetch over the network | — pass a callable that raises to forbid network access |
+
+`IRI` is `str | rdflib.URIRef`: pass `URIRef`s where you have them, and the union still
+admits the CURIEs (`rdf:PropositionForm`) and `<namespace>*` wildcards that two of these
+fields accept, which are strings but not IRIs. Dataset names are typed the same way.
 
 Naming a check that doesn't exist raises `ValueError` rather than silently running
 nothing. The dependencies between checks are the CLI's: asking for `owl-description`
 pulls in `owl-declaration`, which it needs, and `undefined-terms` needs it too in order
 to tell a local namespace from one it has to resolve.
 
-`lint_results()` is the same run without the DQV step: it returns the `QAResult` per
-dataset, so you can read `result.passed`, `result.failures` and each check's count
-directly — useful for an exit code or a log line.
+### Pass or fail
+
+The report carries an `ontolint-conformance` measurement per dataset: `olq:conforms` says
+whether every executed check passed, and `dqv:value` counts those that didn't. That is how
+you get an exit code out of it:
 
 ```python
-from ontolint import Config, lint_results
+DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
+OLQ = rdflib.Namespace("https://ontolint.org/ns#")
+rollup = rdflib.URIRef("urn:ontolint:metric-ontolint-conformance")   # or <base_iri>metric-…
 
-for result in lint_results({"https://example.org/core": graph}, Config(per_file=True)):
-    for check in result.failures:
-        print(check.name, check.count)
+failed = {
+    str(report.value(m, DQV.computedOn))
+    for m in report.subjects(DQV.isMeasurementOf, rollup)
+    if not report.value(m, OLQ.conforms).toPython()
+}
 ```
+
+### One run, two front ends
+
+`lint()` is not a parallel implementation of the CLI. Both build a `Config`, and both hand
+it to `ontology_qa.lint_graph()` — inference, check selection and every check happen in
+exactly one place. The CLI adds file loading, Markdown, CTRF and exit codes on top; the API
+adds graph copying and dataset naming. Neither has its own copy of what a lint run means.
 
 The API is importable from the repository root (the CLI remains the supported way to run
 ontolint in CI — see the GitHub Action below).

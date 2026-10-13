@@ -22,6 +22,8 @@ from urllib.parse import urlparse
 from urllib.request import url2pathname
 from datetime import datetime
 from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from typing import TypeAlias
 import yaml
 import networkx as nx
 
@@ -53,6 +55,14 @@ def load_sparql_queries(directory):
 sparql_queries = load_sparql_queries(sparql_dir)
 
 
+# An IRI, as an rdflib term or the string form of one. Some of these also accept a CURIE
+# in ontolint's config prefixes (e.g. `rdf:PropositionForm`) or a `<namespace>*` wildcard,
+# which are strings but not IRIs — hence the union rather than URIRef alone.
+IRI: TypeAlias = str | rdflib.URIRef
+# A vocabulary to resolve references against: a graph the caller already holds, or a file.
+VocabularySource: TypeAlias = rdflib.Graph | str | os.PathLike
+
+
 @dataclass
 class CheckResult:
     name: str
@@ -73,6 +83,7 @@ class QAResult:
     bnode_keys: dict = field(default_factory=dict)  # BNode -> canonical label, for skolemizing
     settings: list = field(default_factory=list)    # dqv.ConfigSetting: the configuration that ran
     config_file: str | None = None
+    inference_log: str = ''                         # empty unless Config.inference was set
 
     def get(self, name: str):
         return next((c for c in self.checks if c.name == name), None)
@@ -84,6 +95,53 @@ class QAResult:
     @property
     def failures(self):
         return [c for c in self.checks if not c.passed]
+
+@dataclass
+class Config:
+    """
+    How a lint run is configured: the one description of a run, whichever front end asked
+    for it. The CLI builds one from its arguments and `.rdf-lint.yml`; a caller of
+    `ontolint.lint()` builds one directly. Each field names the `.rdf-lint.yml` key or CLI
+    flag it corresponds to.
+
+    per_file:       check each dataset on its own, so every violation is attributed to the
+                    dataset it came from, rather than merging them into one graph
+                    (`--per-file`).
+    imports:        namespace or import IRI -> the vocabulary that defines it, as a graph
+                    the caller already holds or a path to a file (`imports.local`).
+                    References then resolve with no network access. The vocabularies
+                    bundled with ontolint are merged in underneath, and an entry here
+                    overrides a bundled one for the same namespace.
+    ignore_imports: namespaces and import IRIs that are trusted: never fetched, never
+                    reported, never resolved (`imports.ignore`).
+    exclude_types:  type IRIs, or CURIEs in ontolint's config prefixes, whose instances the
+                    class checks skip (`exclude.types`).
+    skip_object_of: predicate IRIs or `<namespace>*` wildcards whose objects the
+                    undefined-terms check treats as links to documents rather than terms
+                    (`undefined-terms.skip-object-of`). None keeps ontolint's defaults; an
+                    empty sequence skips nothing.
+    checks:         the checks to run, named as in `.rdf-lint.yml` (e.g.
+                    "class-missing-label"); None runs all of them. Naming one that doesn't
+                    exist is an error rather than a silent no-op. The CLI resolves its own
+                    selection from the config file and passes the checklist directly.
+    base_iri:       the namespace the DQV report mints its IRIs under (`--base-uri`). Give
+                    each run its own when reports are collected into one graph.
+    inference:      apply RDFS subclass inference before checking (`-i`/`--inference`).
+    uri_parser:     how a namespace outside `imports` is fetched by the undefined-terms
+                    check; the default parses the namespace IRI over the network. Pass a
+                    callable that raises to forbid network access entirely.
+    """
+
+    per_file: bool = False
+    imports: Mapping[IRI, VocabularySource] = field(default_factory=dict)
+    ignore_imports: Sequence[IRI] = ()
+    exclude_types: Sequence[IRI] = ()
+    skip_object_of: Sequence[IRI] | None = None
+    checks: Sequence[str] | None = None
+    base_iri: IRI | None = None
+    inference: bool = False
+    uri_parser: Callable[[str], rdflib.Graph] | None = None
+
 
 def records_key(check):
     """Key under which a check stores its list of dqv.Violation records in its violations dict."""
@@ -2736,6 +2794,83 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         config_file=config_file,
     )
 
+def select_checks(checks):
+    """
+    (checklist, lint_config, rule_reasons) for the checks named in Config.checks.
+
+    The names are the ones .rdf-lint.yml uses under `enable:`, so a selection made in code
+    behaves exactly as the same selection in the config file — including the rules that
+    pull in a check another one depends on. None selects every check.
+    """
+    checklist = deepcopy_list(CHECKLIST)
+    if checks is None:
+        return checklist, None, {}
+
+    valid = {config_check_name(func, key) for _, func, _, key in CHECKLIST}
+    requested, unknown = [], []
+    for name in checks:
+        canonical = str(name).removeprefix('check_').replace('_', '-')
+        (requested if canonical in valid else unknown).append(canonical)
+    if unknown:
+        raise ValueError(f"Unknown check(s): {', '.join(sorted(unknown))}. "
+                         f"Available: {', '.join(sorted(valid))}")
+
+    lint_config = {'enable': [f"check_{name.replace('-', '_')}" for name in requested]}
+    rule_reasons = {}
+    checklist, _ = lint_selection(lint_config, checklist, rule_reasons)
+    return checklist, lint_config, rule_reasons
+
+
+def config_kwargs(config):
+    """The run_qa() arguments a Config maps to, leaving the empty ones at their defaults."""
+    kwargs = {}
+    if config.imports:
+        kwargs['local_imports'] = dict(config.imports)
+    if config.ignore_imports:
+        kwargs['ignore_imports'] = [str(i) for i in config.ignore_imports]
+    if config.exclude_types:
+        kwargs['exclude_types'] = [expand_curie(str(t)) for t in config.exclude_types]
+    if config.skip_object_of is not None:
+        kwargs['skip_object_of'] = [expand_curie(str(p), allow_wildcard=True) for p in config.skip_object_of]
+    if config.uri_parser is not None:
+        kwargs['uri_parser'] = config.uri_parser
+    return kwargs
+
+
+def lint_graph(graph: rdflib.Graph, names, config: Config | None = None, checklist=None,
+               source_iris: list | None = None, verbose: bool = False,
+               provenance: dict | None = None) -> QAResult:
+    """
+    One lint run over one graph: inference if the configuration asks for it, then every
+    selected check. This is the single path both front ends take — the CLI for each file
+    (or for the merged graph) and ontolint.lint() for each dataset — so a run means the
+    same thing however it was asked for.
+
+    names identifies the sources the graph was built from: file paths for the CLI, the
+    caller's dataset names for the API, which then passes the IRI each one is reported
+    under in source_iris.
+
+    checklist overrides config.checks, for the CLI, which resolves its selection from the
+    config file. provenance records where the configuration came from (see
+    describe_configuration); it doesn't change what runs.
+
+    The graph is checked in place: the checks remove instance data from it and inference
+    adds to it, so hand over a copy if the caller still needs theirs intact.
+    """
+    config = config or Config()
+    inference_log = ''
+    if config.inference:
+        graph, inference_log = infer_subclass_relations(graph)
+    if checklist is None:
+        checklist, lint_config, rule_reasons = select_checks(config.checks)
+        provenance = provenance or {'lint_config': lint_config, 'rule_reasons': rule_reasons}
+
+    result = run_qa(graph, verbose=verbose, files_processed=list(names), source_iris=source_iris,
+                    checklist=checklist, **config_kwargs(config), **(provenance or {}))
+    result.inference_log = inference_log
+    return result
+
+
 def write_lint_config(checklist):
     """
     Generate a default .rdf-lint.yml config file
@@ -2821,27 +2956,25 @@ def _display_path(path):
     return _relative_path(path) or path
 
 
-def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports=None, exclude_types=None, skip_object_of=None, provenance=None):
+def _process_loaded_graph(g, files_processed, args, config, checklist, provenance=None):
     """
     Run inference (if requested), then profiling or full QA on an already-loaded graph.
     Returns (log_str, QAResult|None) — None in profile-only mode.
     """
     log = ""
-    inference_log = ""
-    if args.inference:
-        g, inference_log = infer_subclass_relations(g)
-        if not args.profile_only:
-            log += inference_log
 
     if args.profile_only:
+        # Profile-only runs no checks, so it never reaches lint_graph.
+        inference_log = ""
+        if config.inference:
+            g, inference_log = infer_subclass_relations(g)
         qa_metrics = {'filesProcessed': files_processed, 'triples': len(g)}
         qa_elements = {}
         metrics, elements, _ = profiling(g)
         qa_metrics.update(metrics)
         qa_elements.update(elements)
         log += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
-        if args.inference:
-            log += inference_log
+        log += inference_log
         metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
         qa_metrics.update(metrics)
         qa_elements.update(violations)
@@ -2849,7 +2982,9 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
         log += print_profiling_table(qa_metrics)
         return log, None
 
-    result = run_qa(g, verbose=args.verbose, files_processed=files_processed, checklist=checklist, ignore_imports=ignore_imports, local_imports=local_imports, exclude_types=exclude_types, skip_object_of=skip_object_of, **(provenance or {}))
+    result = lint_graph(g, files_processed, config, checklist=checklist,
+                        verbose=args.verbose, provenance=provenance)
+    log += result.inference_log
     qa_metrics = result.profiling
     qa_tests = {key: enabled for enabled, _, _, key in checklist}
     log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
@@ -2861,14 +2996,14 @@ def _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, l
     return log, result
 
 
-def _write_dqv(args, results):
+def _write_dqv(args, config, results):
     """Write the DQV report if --dqv-dir or --dqv-filename was given."""
     if not (args.dqv_dir or args.dqv_filename):
         return
     if not results:
         sys.stderr.write("Ontolint: no QA results, DQV report not written.\n")
         return
-    _, log = dqv.write_dqv_report(results, args.dqv_dir or '.', args.dqv_filename, args.base_uri)
+    _, log = dqv.write_dqv_report(results, args.dqv_dir or '.', args.dqv_filename, config.base_iri)
     sys.stderr.write(log.lstrip())
 
 def main():
@@ -2914,6 +3049,8 @@ def main():
     exclude_types = []
     skip_object_of = None
     config_log = ""
+    # Everything that describes the run itself goes into a Config, which is what
+    # lint_graph() takes — the same object a caller of ontolint.lint() builds by hand.
     # Where the configuration came from, recorded in the DQV report (describe_configuration).
     provenance = {}
     config_path = os.path.join(os.getcwd(), '.rdf-lint.yml')
@@ -2927,6 +3064,10 @@ def main():
                       'config_file': _display_path(config_path)}
         if exclude_types:
             config_log += "> Class checks skip resources typed as: " + ", ".join(f"`{t}`" for t in exclude_types) + "\n"
+
+    config = Config(per_file=args.per_file, inference=args.inference, imports=local_imports,
+                    ignore_imports=ignore_imports, exclude_types=exclude_types,
+                    skip_object_of=skip_object_of, base_iri=args.base_uri)
 
     # Per-file mode: process each input file independently.
     if args.per_file:
@@ -2954,7 +3095,7 @@ def main():
             for f in files_processed:
                 log_output += f"> - `{f}`\n"
             log_output += ">\n"
-            qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of, provenance)
+            qa_log, result = _process_loaded_graph(g, files_processed, args, config, checklist, provenance)
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
@@ -2963,7 +3104,7 @@ def main():
                 if not result.passed:
                     any_violation = True
             qa_terminate(None, log_output)
-        _write_dqv(args, dqv_results)
+        _write_dqv(args, config, dqv_results)
         if any_parse_failure or (args.exit_status and any_violation):
             sys.exit(1)
         return
@@ -2995,12 +3136,12 @@ def main():
     if config_log:
         log_output += config_log
 
-    qa_log, result = _process_loaded_graph(g, files_processed, args, checklist, ignore_imports, local_imports, exclude_types, skip_object_of, provenance)
+    qa_log, result = _process_loaded_graph(g, files_processed, args, config, checklist, provenance)
     log_output += qa_log
 
     if result is not None:
         write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
-        _write_dqv(args, [result])
+        _write_dqv(args, config, [result])
 
     qa_terminate(args.output, log_output)
 

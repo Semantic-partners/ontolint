@@ -128,14 +128,26 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 
 ### Programmatic API
 
-`ontolint/` is the public package: `lint(datasets, config) -> rdflib.Graph` takes graphs
-the caller already holds and returns the DQV report as a graph, with no files, config file
-or subprocess involved (issue #92). It is a thin layer over the existing seams — it copies
-each graph (the checks delete instance data from the graph they run on, and inference adds
-to it), maps `Config` onto `run_qa()` keyword arguments, and hands the results to
-`dqv.build_dqv_graph()`. The CLI is unchanged and does not go through it.
+`ontolint/` is the public package, and exposes exactly two names: `Config` and
+`lint(datasets, config) -> rdflib.Graph`, which takes graphs the caller already holds and
+returns the DQV report as a graph (issue #92). Keep that surface small — anything richer
+belongs on the engine side, where the CLI can use it too.
 
-Two things in `scripts/` exist for it:
+**One run, two front ends.** `Config` is the single description of a lint run, and
+`ontology_qa.lint_graph(graph, names, config, …)` is the single entry point that performs
+one: inference, then every selected check. `main()` calls it for each file (or for the
+merged graph) and `ontolint.lint()` calls it for each dataset, so neither front end has its
+own idea of what a run is. The pieces around it are what differ — the CLI adds file
+loading, Markdown, CTRF and exit codes; `lint()` adds graph copying, dataset naming and
+`dqv.build_dqv_graph()`. `select_checks()` resolves `Config.checks` the way the config
+file's `enable:` list is resolved; the CLI passes its own checklist instead.
+
+`lint()` returns only the graph, so a consumer reads pass/fail from the per-dataset
+`ontolint-conformance` measurement (`olq:conforms`, and `dqv:value` for the number of
+failed checks). `tests/test_api.py` asserts on that query, so the readme's snippet can't
+rot.
+
+Two things in `scripts/` exist for the API:
 - **Graph-valued `imports.local`.** `_parse_local()`, `_is_bundled()` and `_describe_local()`
   accept an `rdflib.Graph` as well as a path, so a caller can supply a dependency vocabulary
   it already holds; `describe_configuration()` records such a setting with no `olq:localFile`.

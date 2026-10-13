@@ -3,8 +3,8 @@
 import rdflib
 import pytest
 
-from ontolint import Config, lint, lint_results
-from scripts.ontology_qa import CHECKLIST, deepcopy_list, run_qa
+from ontolint import Config, lint
+from scripts.ontology_qa import CHECKLIST, deepcopy_list, lint_graph, run_qa
 from scripts.dqv import DQV, OLQ, DEFAULT_BASE_URI, dataset_iri
 
 OWL = "http://www.w3.org/2002/07/owl#"
@@ -26,6 +26,24 @@ def _ttl(body, prefix="http://example.org/core#"):
 
 def _graph(body, prefix="http://example.org/core#"):
     return rdflib.Graph().parse(data=_ttl(body, prefix), format="turtle")
+
+
+def _results(datasets, config=None):
+    """The same run lint() performs, one dataset at a time, keeping the QAResults.
+
+    `lint()` hands back only the DQV graph, so a test that is about what a check decided
+    goes through `lint_graph` — the entry point `lint()` and the CLI both call.
+    """
+    return [lint_graph(graph, [name], config) for name, graph in datasets.items()]
+
+
+def _conforms(report, base=DEFAULT_BASE_URI):
+    """{dataset: whether every executed check passed}, as a consumer would read it."""
+    rollup = rdflib.URIRef(f"{base}metric-ontolint-conformance")
+    return {
+        str(report.value(m, DQV.computedOn)): report.value(m, OLQ.conforms).toPython()
+        for m in report.subjects(DQV.isMeasurementOf, rollup)
+    }
 
 
 def _computed_on(report):
@@ -51,12 +69,22 @@ def test_lint_returns_a_dqv_graph_of_the_violations():
     assert _focus_nodes(report, "classes-missing-label") == {"http://example.org/core#Thing"}
 
 
-def test_lint_results_gives_the_checks_directly():
-    [result] = lint_results({"core": _graph(":Thing a owl:Class .")}, Config(checks=["class-missing-label"]))
+def test_conformance_is_readable_from_the_returned_graph():
+    failing = lint({"bad": _graph(":Thing a owl:Class .")}, Config(checks=["class-missing-label"]))
+    clean = lint({"good": _graph(':Thing a owl:Class ; rdfs:label "Thing" .')},
+                 Config(checks=["class-missing-label"]))
 
-    assert not result.passed
-    assert [c.name for c in result.failures] == ["Class without label"]
-    assert result.get("Class without label").count == 1
+    assert _conforms(failing) == {f"{DEFAULT_BASE_URI}dataset-bad": False}
+    assert _conforms(clean) == {f"{DEFAULT_BASE_URI}dataset-good": True}
+
+
+def test_the_failed_check_count_is_on_the_conformance_measurement():
+    report = lint({"bad": _graph(":Thing a owl:Class .")},
+                  Config(checks=["class-missing-label", "class-missing-comment"]))
+
+    rollup = rdflib.URIRef(f"{DEFAULT_BASE_URI}metric-ontolint-conformance")
+    [measurement] = list(report.subjects(DQV.isMeasurementOf, rollup))
+    assert report.value(measurement, DQV.value).toPython() == 2
 
 
 def test_a_clean_dataset_passes():
@@ -64,13 +92,13 @@ def test_a_clean_dataset_passes():
     : a owl:Ontology ; rdfs:label "Core" ; rdfs:comment "A core ontology" .
     :Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "Anything at all" .
     """)
-    [result] = lint_results({"core": graph}, Config(checks=["class-missing-label", "class-missing-comment"]))
+    [result] = _results({"core": graph}, Config(checks=["class-missing-label", "class-missing-comment"]))
 
     assert result.passed
 
 
 def test_every_check_runs_by_default():
-    [result] = lint_results({"core": _graph(":Thing a owl:Class .")})
+    [result] = _results({"core": _graph(":Thing a owl:Class .")})
 
     assert len(result.checks) == len(CHECKLIST)
 
@@ -104,9 +132,9 @@ def test_inference_does_not_modify_the_callers_graph():
 
 
 def test_inference_adds_the_entailed_triples():
-    plain = lint_results({"core": _graph(INSTANCE_OF_A_SUBCLASS)},
+    plain = _results({"core": _graph(INSTANCE_OF_A_SUBCLASS)},
                          Config(checks=["class-missing-label"]))[0]
-    inferred = lint_results({"core": _graph(INSTANCE_OF_A_SUBCLASS)},
+    inferred = _results({"core": _graph(INSTANCE_OF_A_SUBCLASS)},
                             Config(inference=True, checks=["class-missing-label"]))[0]
 
     assert inferred.profiling["triples"] > plain.profiling["triples"]
@@ -210,16 +238,6 @@ def test_per_file_attributes_each_violation_to_its_own_dataset():
     }
 
 
-def test_per_file_gives_one_result_per_dataset():
-    results = lint_results(
-        {"activities": _graph(":Activity a owl:Class .", "http://example.org/act#"),
-         "parties": _graph(":Party a owl:Class .", "http://example.org/party#")},
-        Config(per_file=True, checks=["class-missing-label"]),
-    )
-
-    assert len(results) == 2
-
-
 def test_merged_is_the_default_and_reports_one_aggregate_dataset():
     report = lint(
         {"activities": _graph(":Activity a owl:Class .", "http://example.org/act#"),
@@ -238,16 +256,19 @@ def test_merged_is_the_default_and_reports_one_aggregate_dataset():
 
 
 def test_merged_sees_terms_defined_in_another_dataset():
-    # :Activity is only connected to the hierarchy through the other dataset.
-    results = lint_results(
-        {"activities": _graph(":Activity rdfs:subClassOf <http://example.org/party#Party> . :Activity a owl:Class .",
-                              "http://example.org/act#"),
-         "parties": _graph(":Party a owl:Class .", "http://example.org/party#")},
-        Config(checks=["isolated-classes"]),
-    )
+    # :Party is only connected to anything by the subClassOf in the other dataset, so
+    # checking the two separately reports it as isolated and merging them does not.
+    datasets = {
+        "activities": _graph(":Activity rdfs:subClassOf <http://example.org/party#Party> . :Activity a owl:Class .",
+                             "http://example.org/act#"),
+        "parties": _graph(":Party a owl:Class .", "http://example.org/party#"),
+    }
 
-    assert len(results) == 1
-    assert results[0].get("Isolated classes").count == 0
+    merged = lint(datasets, Config(checks=["isolated-classes"]))
+    separately = lint(datasets, Config(checks=["isolated-classes"], per_file=True))
+
+    assert _focus_nodes(merged, "isolated-classes") == set()
+    assert _focus_nodes(separately, "isolated-classes") == {"http://example.org/party#Party"}
 
 
 # ── dependency vocabularies as graphs ─────────────────────────────────────────
@@ -261,7 +282,7 @@ def test_imports_resolve_from_a_supplied_graph_without_touching_the_network():
     :Local rdfs:subClassOf <{EXTERNAL}Thing> ; a owl:Class .
     """)
 
-    [result] = lint_results({"core": graph},
+    [result] = _results({"core": graph},
                             Config(checks=UNDEFINED_TERMS, imports={EXTERNAL: external}))
 
     assert result.get("Undefined terms").passed
@@ -275,7 +296,7 @@ def test_a_term_missing_from_the_supplied_graph_is_still_reported():
     :Local rdfs:subClassOf <{EXTERNAL}Missing> ; a owl:Class .
     """)
 
-    [result] = lint_results({"core": graph},
+    [result] = _results({"core": graph},
                             Config(checks=UNDEFINED_TERMS, imports={EXTERNAL: external}))
 
     check = result.get("Undefined terms")
@@ -291,7 +312,7 @@ def test_an_owl_import_resolves_from_a_supplied_graph():
     : a owl:Ontology ; owl:imports <{EXTERNAL}> .
     """)
 
-    [result] = lint_results({"core": graph},
+    [result] = _results({"core": graph},
                             Config(checks=["owl-imports"], imports={EXTERNAL: external}))
 
     assert result.get("Unresolvable imports").passed
@@ -317,7 +338,7 @@ def test_imports_may_still_be_a_file_path(tmp_path):
     :Local rdfs:subClassOf <{EXTERNAL}Thing> ; a owl:Class .
     """)
 
-    [result] = lint_results({"core": graph},
+    [result] = _results({"core": graph},
                             Config(checks=UNDEFINED_TERMS, imports={EXTERNAL: str(vocabulary)}))
 
     assert result.get("Undefined terms").passed
@@ -336,7 +357,7 @@ def test_uri_parser_decides_how_a_namespace_outside_imports_is_fetched():
     :Local rdfs:subClassOf <{EXTERNAL}Thing> ; a owl:Class .
     """)
 
-    [result] = lint_results({"core": graph}, Config(checks=UNDEFINED_TERMS, uri_parser=parser))
+    [result] = _results({"core": graph}, Config(checks=UNDEFINED_TERMS, uri_parser=parser))
 
     assert result.get("Undefined terms").passed
     assert fetched == [EXTERNAL]
@@ -348,7 +369,7 @@ def test_ignore_imports_trusts_a_namespace():
     :Local rdfs:subClassOf <{EXTERNAL}Thing> ; a owl:Class .
     """)
 
-    [result] = lint_results({"core": graph},
+    [result] = _results({"core": graph},
                             Config(checks=UNDEFINED_TERMS, ignore_imports=[EXTERNAL]))
 
     assert result.get("Undefined terms").passed
@@ -357,14 +378,14 @@ def test_ignore_imports_trusts_a_namespace():
 # ── choosing what runs ────────────────────────────────────────────────────────
 
 def test_checks_selects_what_runs():
-    [result] = lint_results({"core": _graph(":Thing a owl:Class .")},
+    [result] = _results({"core": _graph(":Thing a owl:Class .")},
                             Config(checks=["class-missing-label"]))
 
     assert [c.name for c in result.checks] == ["Class without label"]
 
 
 def test_check_names_may_be_given_in_either_form():
-    [result] = lint_results({"core": _graph(":Thing a owl:Class .")},
+    [result] = _results({"core": _graph(":Thing a owl:Class .")},
                             Config(checks=["check_class_missing_label"]))
 
     assert [c.name for c in result.checks] == ["Class without label"]
@@ -377,7 +398,7 @@ def test_an_unknown_check_is_an_error_rather_than_a_silent_no_op():
 
 def test_a_check_that_depends_on_another_pulls_it_in():
     # Same rule as the CLI's: the description check needs the declaration check.
-    [result] = lint_results({"core": _graph(":Thing a owl:Class .")},
+    [result] = _results({"core": _graph(":Thing a owl:Class .")},
                             Config(checks=["owl-description"]))
 
     assert "Ontology without declaration" in [c.name for c in result.checks]
@@ -385,8 +406,8 @@ def test_a_check_that_depends_on_another_pulls_it_in():
 
 def test_exclude_types_skips_instances_of_that_type():
     body = ":Thing a owl:Class, rdf:PropositionForm ."
-    reported = lint_results({"core": _graph(body)}, Config(checks=["class-missing-label"]))[0]
-    skipped = lint_results({"core": _graph(body)},
+    reported = _results({"core": _graph(body)}, Config(checks=["class-missing-label"]))[0]
+    skipped = _results({"core": _graph(body)},
                            Config(checks=["class-missing-label"],
                                   exclude_types=["rdf:PropositionForm"]))[0]
 
@@ -399,9 +420,9 @@ def test_skip_object_of_is_honoured():
     : a owl:Ontology .
     :Thing a owl:Class ; rdfs:seeAlso <{EXTERNAL}Elsewhere> .
     """)
-    checked = lint_results({"core": graph},
+    checked = _results({"core": graph},
                            Config(checks=UNDEFINED_TERMS, skip_object_of=[]))[0]
-    skipped = lint_results({"core": graph},
+    skipped = _results({"core": graph},
                            Config(checks=UNDEFINED_TERMS, skip_object_of=["rdfs:seeAlso"]))[0]
 
     assert not checked.get("Undefined terms").passed
@@ -437,7 +458,7 @@ def test_prefixes_survive_the_copy():
     only_labels = [c for c in deepcopy_list(CHECKLIST) if c[3] == "missingClassLabel"]
     direct = run_qa(_graph(body), checklist=only_labels)
 
-    [through_api] = lint_results({"core": _graph(body)}, Config(checks=["class-missing-label"]))
+    [through_api] = _results({"core": _graph(body)}, Config(checks=["class-missing-label"]))
 
     assert through_api.profiling["vocabulariesUsed"] == direct.profiling["vocabulariesUsed"] > 0
 
