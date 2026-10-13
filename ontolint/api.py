@@ -9,10 +9,12 @@ have to serialise them to a temporary directory and read a report file back.
     from ontolint import Config, lint
 
     report = lint(
-        {"https://example.org/activities": activities_graph,
-         "https://example.org/parties":    parties_graph},
-        config=Config(per_file=True, imports={"https://schema.org/": schema_graph}),
+        [activities_graph, parties_graph],
+        config=Config(per_file=True, imports=[schema_graph]),
     )
+
+Neither the datasets nor the vocabularies need naming: each is identified by what it
+declares and defines. Pass a mapping where you want to name one yourself.
 
 `report` is a DQV graph: the same one the CLI writes with --dqv-dir, built by the same
 run that the CLI performs (`ontology_qa.lint_graph`).

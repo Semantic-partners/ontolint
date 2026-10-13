@@ -135,7 +135,9 @@ What gets emitted:
 
 If your ontologies are already in memory — fetched from object storage, generated at
 runtime, or transformed before linting — you don't have to go through files and a
-subprocess. `lint()` takes graphs and returns the DQV report as a graph.
+subprocess. Hand `lint()` the graphs as they are — a graph that declares its own
+`owl:Ontology` needs no name, and a vocabulary needs no key — and it returns the DQV
+report as a graph.
 
 **The package exports exactly two names, `Config` and `lint`** — that is the whole
 supported surface, and a test pins it. `help(ontolint.Config)` lists every setting; the
@@ -194,7 +196,7 @@ and `.rdf-lint.yml`, and you build one directly.
 | Field | Type | Default | `.rdf-lint.yml` / CLI equivalent |
 |---|---|---|---|
 | `per_file` | `bool` | `False` | `--per-file` |
-| `imports` | `Mapping[IRI, Graph \| str \| PathLike]` or an iterable of those | `{}` | `imports.local` — values may be a graph as well as a path, and keys are optional |
+| `imports` | `Iterable[Graph \| str \| PathLike]`, or a mapping of those by IRI | `{}` | `imports.local` — a vocabulary may be a graph as well as a path, and needs no key |
 | `ignore_imports` | `Sequence[IRI]` | `()` | `imports.ignore` |
 | `exclude_types` | `Sequence[IRI]` | `()` | `exclude.types` (a CURIE is a `str`, so the type is a union) |
 | `skip_object_of` | `Sequence[IRI] \| None` | `None` | `undefined-terms.skip-object-of` (`None` keeps the defaults) |

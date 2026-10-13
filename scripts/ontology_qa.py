@@ -107,16 +107,19 @@ class Config:
     per_file:       check each dataset on its own, so every violation is attributed to the
                     dataset it came from, rather than merging them into one graph
                     (`--per-file`).
-    imports:        namespace or import IRI -> the vocabulary that defines it, as a graph
-                    the caller already holds or a path to a file (`imports.local`).
-                    References then resolve with no network access. The vocabularies
-                    bundled with ontolint are merged in underneath, and an entry here
-                    overrides a bundled one for the same namespace.
+    imports:        the vocabularies that define the terms the ontology refers to, so they
+                    resolve with no network access (`imports.local`). Pass them as graphs
+                    the caller already holds, or as paths to files.
 
-                    Keys are optional: pass a plain iterable of vocabularies and each is
-                    registered under what it defines (see defined_namespaces), which is
-                    both less work than naming them and more accurate than a caller
-                    guessing one main namespace for a vocabulary spanning several.
+                    Prefer a plain iterable — `imports=[schema_graph, owl_graph]`. Each
+                    vocabulary is then registered under everything it defines (see
+                    defined_namespaces), which is both less work than naming them and more
+                    accurate than a caller picking one main namespace for a vocabulary
+                    that spans several. A mapping of namespace or import IRI -> vocabulary
+                    works too, where you want to say which is which.
+
+                    The vocabularies bundled with ontolint are merged in underneath, and
+                    an entry here overrides a bundled one for the same namespace.
 
                     A key is matched by iri_key(), which ignores one trailing '#' or '/',
                     so a vocabulary's owl:Ontology IRI and its namespace are the same
