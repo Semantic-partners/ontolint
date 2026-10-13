@@ -34,17 +34,17 @@ pytest-xdist = ">=3.6"
 testpaths = ["tests"]
 pythonpath = ["."]
 # --mustrd runs the SPARQL Given-When-Then specs (*.mustrd.ttl) listed in tests/mustrd_configuration.ttl.
-addopts = "-v --cov=scripts --cov-report=xml --mustrd --config=tests/mustrd_configuration.ttl"
+addopts = "-v --cov=scripts --cov=ontolint --cov-report=xml --mustrd --config=tests/mustrd_configuration.ttl"
 
 [tool.coverage.run]
-source = ["scripts"]
+source = ["scripts", "ontolint"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true
 
 [tool.ruff]
-src = ["scripts", "tests"]
+src = ["scripts", "ontolint", "tests"]
 
 [tool.ruff.lint]
 ignore = ["E701"]  # inline `if x: y` — intentional style in this codebase

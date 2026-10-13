@@ -78,6 +78,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
+| `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
@@ -124,6 +125,56 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 ### Bundled vocabularies
 
 `vocabularies/` holds Turtle copies of the core vocabularies (RDF incl. RDF 1.2 terms, RDFS, OWL, XSD, SHACL, SKOS, Dublin Core, FOAF, VANN, PROV, schema.org, …), catalogued in `vocabularies/catalog.ttl`, a DCAT catalog with one `dcat:Dataset` per vocabulary (namespace via `vann:preferredNamespaceUri`, file via `dcat:distribution`/`dcat:downloadURL`, plus source, licence, version and `skos:changeNote`). `run_qa()` merges them into `imports.local` via `merge_local_imports()`, with the project's own entries winning. So the undefined-terms check validates core-vocabulary terms offline, and owl-imports of them resolves locally. There is no list of trusted namespaces; projects trust a namespace with `imports.ignore`. `imports.ignore`/`imports.local` keys are matched through `iri_key()`, which strips a trailing `#`/`/`. `VOCAB_DIR` is module-relative, and bundled files are parsed once per process (`_parse_bundled`). Provenance, licences and local edits are in `vocabularies/README.md`; `tests/test_vocabularies.py` checks the bundle.
+
+### Programmatic API
+
+`ontolint/` is the public package, and exposes exactly two names: `Config` and
+`lint(datasets, config) -> rdflib.Graph`, which takes graphs the caller already holds and
+returns the DQV report as a graph (issue #92). Keep that surface small — anything richer
+belongs on the engine side, where the CLI can use it too.
+
+**Where the surface is specified.** `ontolint/api.py`'s `__all__` block is the statement of
+it; `Config`'s docstring documents every setting; the readme tabulates them. All three are
+enforced by `tests/test_api.py`, which pins `__all__`, the package's public names, and
+`Config`'s field names and defaults, and fails if a field is missing from either the
+docstring or the readme. `Config` is defined in `scripts/ontology_qa.py` (the CLI builds
+one too) but its `__module__` is reset to `ontolint` in `api.py`, so `help()`, pickle and
+generated docs name the supported import path rather than an implementation module — undo
+that once the module is split and `Config` lives in the package.
+
+**One run, two front ends.** `Config` is the single description of a lint run, and
+`ontology_qa.lint_graph(graph, names, config, …)` is the single entry point that performs
+one: inference, then every selected check. `main()` calls it for each file (or for the
+merged graph) and `ontolint.lint()` calls it for each dataset, so neither front end has its
+own idea of what a run is. The pieces around it are what differ — the CLI adds file
+loading, Markdown, CTRF and exit codes; `lint()` adds graph copying, dataset naming and
+`dqv.build_dqv_graph()`. `select_checks()` resolves `Config.checks` the way the config
+file's `enable:` list is resolved; the CLI passes its own checklist instead.
+
+`lint()` returns only the graph, so a consumer reads pass/fail from the per-dataset
+`ontolint-conformance` measurement (`olq:conforms`, and `dqv:value` for the number of
+failed checks). `tests/test_api.py` asserts on that query, so the readme's snippet can't
+rot.
+
+**Naming is optional.** `lint()` takes one graph, an iterable of them, or a mapping of
+names; `Config.imports` takes a mapping or a plain iterable of vocabularies. An unnamed
+dataset is named by the `owl:Ontology` it declares (`api._derive_name`) — which is what it
+would be reported under anyway — falling back to `unnamed-<n>` by position, and two
+unnamed graphs declaring the same ontology are rejected rather than silently collapsed. An
+unkeyed vocabulary is registered under `defined_namespaces()`: its declared ontology IRIs
+and the namespace of each subject, deliberately *excluding* the ontology IRI's own
+namespace, since `<…/core>` sits in `<…/>` and claiming that would capture every sibling
+vocabulary beside it.
+
+Two things in `scripts/` exist for the API:
+- **Graph-valued `imports.local`.** `_parse_local()`, `_is_bundled()` and `_describe_local()`
+  accept an `rdflib.Graph` as well as a path, so a caller can supply a dependency vocabulary
+  it already holds; `describe_configuration()` records such a setting with no `olq:localFile`.
+- **`source_iris`.** `run_qa(source_iris=…)` stores `'sourceIRIs'` in the profiling metrics:
+  one IRI per entry of `filesProcessed`, for sources that are not files. `datasets_for()` and
+  `check_owl_declaration()` use them (via `source_iris()`) instead of minting a `file:` IRI
+  for something that was never on disk. `dqv.dataset_iri()` decides what a caller's name
+  becomes: an absolute IRI is used as it stands, anything else is minted under the base.
 
 ### Report generation
 
