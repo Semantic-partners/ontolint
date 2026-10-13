@@ -156,6 +156,16 @@ file's `enable:` list is resolved; the CLI passes its own checklist instead.
 failed checks). `tests/test_api.py` asserts on that query, so the readme's snippet can't
 rot.
 
+**Naming is optional.** `lint()` takes one graph, an iterable of them, or a mapping of
+names; `Config.imports` takes a mapping or a plain iterable of vocabularies. An unnamed
+dataset is named by the `owl:Ontology` it declares (`api._derive_name`) — which is what it
+would be reported under anyway — falling back to `unnamed-<n>` by position, and two
+unnamed graphs declaring the same ontology are rejected rather than silently collapsed. An
+unkeyed vocabulary is registered under `defined_namespaces()`: its declared ontology IRIs
+and the namespace of each subject, deliberately *excluding* the ontology IRI's own
+namespace, since `<…/core>` sits in `<…/>` and claiming that would capture every sibling
+vocabulary beside it.
+
 Two things in `scripts/` exist for the API:
 - **Graph-valued `imports.local`.** `_parse_local()`, `_is_bundled()` and `_describe_local()`
   accept an `rdflib.Graph` as well as a path, so a caller can supply a dependency vocabulary

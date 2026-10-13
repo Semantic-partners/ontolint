@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 from urllib.request import url2pathname
 from datetime import datetime
 from dataclasses import dataclass, field
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import TypeAlias
 import yaml
 import networkx as nx
@@ -113,6 +113,11 @@ class Config:
                     bundled with ontolint are merged in underneath, and an entry here
                     overrides a bundled one for the same namespace.
 
+                    Keys are optional: pass a plain iterable of vocabularies and each is
+                    registered under what it defines (see defined_namespaces), which is
+                    both less work than naming them and more accurate than a caller
+                    guessing one main namespace for a vocabulary spanning several.
+
                     A key is matched by iri_key(), which ignores one trailing '#' or '/',
                     so a vocabulary's owl:Ontology IRI and its namespace are the same
                     entry however either is written (`.../core`, `.../core#`, `.../core/`).
@@ -140,7 +145,7 @@ class Config:
     """
 
     per_file: bool = False
-    imports: Mapping[IRI, VocabularySource] = field(default_factory=dict)
+    imports: Mapping[IRI, VocabularySource] | Iterable[VocabularySource] = field(default_factory=dict)
     ignore_imports: Sequence[IRI] = ()
     exclude_types: Sequence[IRI] = ()
     skip_object_of: Sequence[IRI] | None = None
@@ -247,6 +252,52 @@ def bundled_datasets():
     catalog = rdflib.Graph().parse(VOCAB_CATALOG, format='turtle')
     return {str(catalog.value(d, rdflib.VANN.preferredNamespaceUri)): str(d)
             for d in catalog.subjects(rdflib.RDF.type, rdflib.DCAT.Dataset)}
+
+
+def ontology_iris(graph):
+    """The owl:Ontology IRIs a graph declares, sorted."""
+    return sorted(str(o) for o in graph.subjects(rdflib.RDF.type, rdflib.OWL.Ontology)
+                  if isinstance(o, rdflib.URIRef))
+
+
+def defined_namespaces(graph):
+    """
+    Every namespace a vocabulary graph defines terms in: the owl:Ontology IRIs it declares,
+    and the namespace of each of its subjects.
+
+    This is what an unkeyed entry in Config.imports is registered under, so a caller can
+    hand over a vocabulary without working out which namespace to file it against — and a
+    vocabulary spanning several is registered for all of them, not a guessed main one.
+    """
+    ontologies = set(ontology_iris(graph))
+    namespaces = set(ontologies)
+    for subject in graph.subjects(unique=True):
+        # The ontology IRI's own namespace is skipped: <.../core> sits in <.../>, and
+        # claiming that would register this vocabulary for every sibling beside it.
+        if isinstance(subject, rdflib.URIRef) and str(subject) not in ontologies:
+            namespace = get_namespace(str(subject))
+            if namespace:
+                namespaces.add(namespace)
+    return namespaces
+
+
+def local_imports_from(imports):
+    """
+    Config.imports as the {namespace: vocabulary} mapping the checks take.
+
+    A mapping is used as given. An unkeyed iterable of vocabularies is keyed by what each
+    one defines (see defined_namespaces); a path is parsed to find out.
+    """
+    if not imports:
+        return {}
+    if isinstance(imports, Mapping):
+        return dict(imports)
+    keyed = {}
+    for vocabulary in imports:
+        graph = vocabulary if isinstance(vocabulary, rdflib.Graph) else _parse_local(vocabulary)
+        for namespace in defined_namespaces(graph):
+            keyed[namespace] = graph
+    return keyed
 
 
 def merge_local_imports(local_imports=None):
@@ -2832,7 +2883,7 @@ def config_kwargs(config):
     """The run_qa() arguments a Config maps to, leaving the empty ones at their defaults."""
     kwargs = {}
     if config.imports:
-        kwargs['local_imports'] = dict(config.imports)
+        kwargs['local_imports'] = local_imports_from(config.imports)
     if config.ignore_imports:
         kwargs['ignore_imports'] = [str(i) for i in config.ignore_imports]
     if config.exclude_types:

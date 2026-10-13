@@ -261,6 +261,50 @@ def test_a_relative_base_iri_is_rejected():
         lint({"core": _graph(":Thing a owl:Class .")}, Config(base_iri="reports/"))
 
 
+# ── passing graphs without naming them ────────────────────────────────────────
+
+def test_a_single_graph_needs_no_container():
+    report = lint(_graph(": a owl:Ontology . :Thing a owl:Class ."), Config(checks=["class-missing-label"]))
+
+    assert _computed_on(report) == {"http://example.org/core#"}
+
+
+def test_unnamed_graphs_are_reported_under_the_ontology_they_declare():
+    # The point of the unkeyed form: the caller doesn't extract what ontolint reads anyway.
+    report = lint(
+        [_graph(": a owl:Ontology . :Activity a owl:Class .", "http://example.org/act#"),
+         _graph(": a owl:Ontology . :Party a owl:Class .", "http://example.org/party#")],
+        Config(per_file=True, checks=["class-missing-label"]),
+    )
+
+    assert _computed_on(report) == {"http://example.org/act#", "http://example.org/party#"}
+
+
+def test_naming_is_only_needed_when_no_ontology_is_declared():
+    report = lint(
+        [_graph(":Activity a owl:Class .", "http://example.org/act#"),
+         _graph(":Party a owl:Class .", "http://example.org/party#")],
+        Config(per_file=True, checks=["class-missing-label"]),
+    )
+
+    assert _computed_on(report) == {f"{DEFAULT_BASE_URI}dataset-unnamed-1",
+                                    f"{DEFAULT_BASE_URI}dataset-unnamed-2"}
+
+
+def test_two_unnamed_graphs_declaring_the_same_ontology_are_rejected():
+    # Silently keeping one of them would drop a dataset from the report.
+    same = ": a owl:Ontology . :Thing a owl:Class ."
+    with pytest.raises(ValueError, match="both named"):
+        lint([_graph(same), _graph(same)], Config(per_file=True))
+
+
+def test_an_unnamed_turtle_string_is_accepted_too():
+    report = lint([_ttl(": a owl:Ontology . :Thing a owl:Class .")],
+                  Config(checks=["class-missing-label"]))
+
+    assert _computed_on(report) == {"http://example.org/core#"}
+
+
 # ── per-dataset versus merged ─────────────────────────────────────────────────
 
 def test_per_file_attributes_each_violation_to_its_own_dataset():
@@ -372,6 +416,57 @@ def test_one_imports_entry_covers_every_namespace_that_graph_defines():
                         Config(checks=UNDEFINED_TERMS, imports={"http://a.example.org/v#": vocabulary}))
 
     assert result.get("Undefined terms").passed
+
+
+def test_imports_may_be_given_without_keys():
+    vocabulary = rdflib.Graph().parse(data=f"""
+    @prefix owl: <{OWL}> .
+    <http://vocab.example.org/core> a owl:Ontology .
+    <http://vocab.example.org/core#Thing> a owl:Class .
+    """, format="turtle")
+    graph = _graph("""
+    : a owl:Ontology .
+    :Local a owl:Class ; rdfs:subClassOf <http://vocab.example.org/core#Thing> .
+    """)
+
+    [result] = _results({"core": graph}, Config(checks=UNDEFINED_TERMS, imports=[vocabulary]))
+
+    assert result.get("Undefined terms").passed
+
+
+def test_an_unkeyed_vocabulary_covers_every_namespace_it_defines():
+    vocabulary = rdflib.Graph().parse(data=f"""
+    @prefix owl: <{OWL}> .
+    <http://a.example.org/v#Thing> a owl:Class .
+    <http://b.example.org/v#Other> a owl:Class .
+    """, format="turtle")
+    graph = _graph("""
+    : a owl:Ontology .
+    :Local a owl:Class ;
+        rdfs:subClassOf <http://a.example.org/v#Thing>, <http://b.example.org/v#Other> .
+    """)
+
+    [result] = _results({"core": graph}, Config(checks=UNDEFINED_TERMS, imports=[vocabulary]))
+
+    assert result.get("Undefined terms").passed
+
+
+def test_an_unkeyed_vocabulary_does_not_claim_its_siblings():
+    # <.../core> sits in <.../>, and claiming that namespace would make every unrelated
+    # term beside it look resolved rather than fetched.
+    vocabulary = rdflib.Graph().parse(data=f"""
+    @prefix owl: <{OWL}> .
+    <http://vocab.example.org/core> a owl:Ontology .
+    <http://vocab.example.org/core#Thing> a owl:Class .
+    """, format="turtle")
+    graph = _graph("""
+    : a owl:Ontology .
+    :Local a owl:Class ; rdfs:subClassOf <http://vocab.example.org/unrelated#Gone> .
+    """)
+
+    [result] = _results({"core": graph}, Config(checks=UNDEFINED_TERMS, imports=[vocabulary]))
+
+    assert not result.get("Undefined terms").passed
 
 
 def test_a_term_missing_from_the_supplied_graph_is_still_reported():
@@ -533,9 +628,9 @@ def test_something_that_is_not_a_graph_is_rejected():
         lint({"core": 42})
 
 
-def test_datasets_must_be_a_mapping():
-    with pytest.raises(TypeError, match="mapping"):
-        lint([_graph(":Thing a owl:Class .")])
+def test_datasets_must_be_graphs_however_they_are_passed():
+    with pytest.raises(TypeError, match="mapping of name to graph"):
+        lint(42)
 
 
 def test_prefixes_survive_the_copy():
