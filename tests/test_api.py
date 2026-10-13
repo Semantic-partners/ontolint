@@ -1,7 +1,12 @@
 """The programmatic API: lint in-memory graphs, get a DQV graph back (issue #92)."""
 
+from dataclasses import fields
+from pathlib import Path
+
 import rdflib
 import pytest
+
+import ontolint
 
 from ontolint import Config, lint
 from scripts.ontology_qa import CHECKLIST, deepcopy_list, lint_graph, run_qa
@@ -58,6 +63,46 @@ def _focus_nodes(report, slug, base=DEFAULT_BASE_URI):
         for m in report.subjects(DQV.isMeasurementOf, metric)
         for v in report.objects(m, OLQ.violation)
     }
+
+
+# ── the public surface ────────────────────────────────────────────────────────
+
+# Every setting a run takes, and what it defaults to. Adding a field is a promise to
+# keep, so it should mean updating this list, the readme table and the Config docstring.
+CONFIG_DEFAULTS = {
+    "per_file": False,
+    "imports": {},
+    "ignore_imports": (),
+    "exclude_types": (),
+    "skip_object_of": None,
+    "checks": None,
+    "base_iri": None,
+    "inference": False,
+    "uri_parser": None,
+}
+
+README = Path(__file__).parent.parent / "readme.md"
+
+
+def test_the_package_exports_exactly_config_and_lint():
+    assert sorted(ontolint.__all__) == ["Config", "lint"]
+    assert sorted(n for n in vars(ontolint) if not n.startswith("_")) == ["Config", "api", "lint"]
+
+
+def test_config_is_the_documented_set_of_settings():
+    assert {f.name for f in fields(Config)} == set(CONFIG_DEFAULTS)
+    assert {name: getattr(Config(), name) for name in CONFIG_DEFAULTS} == CONFIG_DEFAULTS
+
+
+def test_config_is_published_as_ontolints_own():
+    # Otherwise help(), pickle and generated docs name an implementation module.
+    assert Config.__module__ == "ontolint"
+
+
+def test_every_setting_is_documented():
+    readme = README.read_text()
+    assert [f.name for f in fields(Config) if f"`{f.name}`" not in readme] == []
+    assert [f.name for f in fields(Config) if f"{f.name}:" not in (Config.__doc__ or "")] == []
 
 
 # ── the basic contract ────────────────────────────────────────────────────────

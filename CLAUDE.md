@@ -133,6 +133,15 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 returns the DQV report as a graph (issue #92). Keep that surface small — anything richer
 belongs on the engine side, where the CLI can use it too.
 
+**Where the surface is specified.** `ontolint/api.py`'s `__all__` block is the statement of
+it; `Config`'s docstring documents every setting; the readme tabulates them. All three are
+enforced by `tests/test_api.py`, which pins `__all__`, the package's public names, and
+`Config`'s field names and defaults, and fails if a field is missing from either the
+docstring or the readme. `Config` is defined in `scripts/ontology_qa.py` (the CLI builds
+one too) but its `__module__` is reset to `ontolint` in `api.py`, so `help()`, pickle and
+generated docs name the supported import path rather than an implementation module — undo
+that once the module is split and `Config` lives in the package.
+
 **One run, two front ends.** `Config` is the single description of a lint run, and
 `ontology_qa.lint_graph(graph, names, config, …)` is the single entry point that performs
 one: inference, then every selected check. `main()` calls it for each file (or for the

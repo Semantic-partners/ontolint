@@ -135,7 +135,11 @@ What gets emitted:
 
 If your ontologies are already in memory — fetched from object storage, generated at
 runtime, or transformed before linting — you don't have to go through files and a
-subprocess. `lint()` takes graphs and returns the DQV report as a graph:
+subprocess. `lint()` takes graphs and returns the DQV report as a graph.
+
+**The package exports exactly two names, `Config` and `lint`** — that is the whole
+supported surface, and a test pins it. `help(ontolint.Config)` lists every setting; the
+table below is the same list.
 
 ```python
 import rdflib

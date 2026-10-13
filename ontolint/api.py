@@ -27,7 +27,22 @@ from scripts import dqv
 from scripts import ontology_qa as qa
 from scripts.ontology_qa import IRI, Config
 
+# The whole public surface: two names, and nothing else here is supported.
+#
+#   Config  — every setting a run takes, with its default (defined in
+#             scripts.ontology_qa, because the CLI builds one too; it moves here when
+#             that module is split for packaging). `help(ontolint.Config)` lists the
+#             fields, the readme tabulates them, and tests/test_api.py pins both.
+#   lint    — run the checks over named graphs, return the DQV report as a graph.
+#
+# Anything added to __all__ is a promise to keep, so prefer putting new behaviour on the
+# engine side (scripts.ontology_qa), where the CLI can use it too.
 __all__ = ["Config", "lint"]
+
+# Config is defined in the engine module so both front ends can build one, but `ontolint`
+# is where it is published: say so, or help(), pickle and generated docs all send readers
+# to an implementation module. Remove once the module is split and Config lives here.
+Config.__module__ = "ontolint"
 
 # A graph to check, or the Turtle to parse into one.
 Dataset: TypeAlias = rdflib.Graph | str
