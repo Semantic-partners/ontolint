@@ -7,16 +7,25 @@ nothing here runs a check or reads a file.
 """
 
 import json
+from datetime import datetime
 
 import pytest
 
 from scripts.ontology_qa import build_ctrf_report, write_ctrf_report
 
+# A fixed clock, so the projection is a pure function of the QAResult and two builds of the
+# same result are equal.
+AT = datetime(2026, 10, 15, 9, 30, 0)
+
+
+def _build(result):
+    return build_ctrf_report(result, date_time_provider=lambda: AT)
+
 
 @pytest.fixture
 def ctrf(stored_result):
     """The CTRF projection of the stored QAResult."""
-    return build_ctrf_report(stored_result)['results']
+    return _build(stored_result)['results']
 
 
 def test_one_entry_per_executed_check(ctrf, stored_result):
@@ -61,13 +70,23 @@ def test_the_report_names_the_tool(ctrf):
     assert ctrf['tool']['name']
 
 
-def test_the_report_is_timestamped(ctrf):
-    assert ctrf['timestamp']
+def test_the_report_carries_the_time_it_was_built(ctrf):
+    assert ctrf['timestamp'] == "2026-10-15 09:30:00"
+
+
+def test_two_builds_of_the_same_result_are_equal(stored_result):
+    assert _build(stored_result) == _build(stored_result)
+
+
+def test_the_clock_defaults_to_now(stored_result):
+    before = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    assert build_ctrf_report(stored_result)['results']['timestamp'] >= before
 
 
 def test_writing_puts_the_given_report_on_disk(stored_result, tmp_path):
     # The other half of the split: write takes the built report and only writes it.
-    report = build_ctrf_report(stored_result)
+    report = _build(stored_result)
 
     log = write_ctrf_report(report, str(tmp_path), 'report.json')
 
@@ -76,6 +95,6 @@ def test_writing_puts_the_given_report_on_disk(stored_result, tmp_path):
 
 
 def test_writing_falls_back_to_a_generated_filename(stored_result, tmp_path):
-    write_ctrf_report(build_ctrf_report(stored_result), str(tmp_path), None)
+    write_ctrf_report(_build(stored_result), str(tmp_path), None)
 
     assert len(list(tmp_path.glob('*.json'))) == 1
