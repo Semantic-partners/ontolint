@@ -33,9 +33,14 @@ computed on, and the configuration that ran.
 
 | | granularity | built from | pinned by |
 |---|---|---|---|
-| **Markdown** | per result | *mixed — see below* | end-to-end goldens |
-| **CTRF** | per result | `QAResult` | `tests/test_integration.py` |
-| **DQV** | **per run** | all `QAResult`s + all inputs | `tests/dqv/*/expected.ttl` |
+| **Markdown** | per result | *mixed — see below* | `tests/test_lint_to_markdown.py` |
+| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `tests/test_qaresult_to_ctrf.py` |
+| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `tests/test_qaresult_to_dqv.py`, `tests/dqv/*/expected.ttl` |
+
+Each reporter splits building from writing: `build_ctrf_report()` / `write_ctrf_report()`
+and `build_dqv_graph()` / `write_dqv_report()`. The build half is a pure projection of a
+`QAResult`, so it can be asserted without touching the filesystem — which is what the
+reporter suites do. Markdown has no such split yet.
 
 The asymmetry is load-bearing. CTRF and Markdown describe one result each; **DQV describes
 the whole run**, which is why it is written once, outside any per-file loop. Set-level
@@ -105,6 +110,11 @@ expected output can be pinned. Two things are needed and are in place:
 
 `SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
 report — including every minted IRI — is reproducible.
+
+**CTRF is not**: `build_ctrf_report()` stamps `datetime.now()` directly rather than going
+through `dqv._report_timestamp()`, so two runs over identical inputs differ. Nothing else
+in the report varies, so honouring `SOURCE_DATE_EPOCH` there would make it reproducible
+too.
 
 ## Todo
 
