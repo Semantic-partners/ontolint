@@ -17,50 +17,50 @@ def _ctrf(result, tmp_path):
     return report['results']
 
 
-def test_one_entry_per_executed_check(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
+def test_one_entry_per_executed_check(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
 
-    assert len(results['tests']) == len(reporters_result.checks)
-    assert {t['name'] for t in results['tests']} == {c.name for c in reporters_result.checks}
+    assert len(results['tests']) == len(stored_result.checks)
+    assert {t['name'] for t in results['tests']} == {c.name for c in stored_result.checks}
 
 
-def test_each_status_matches_the_check(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
-    expected = {c.name: ('passed' if c.passed else 'failed') for c in reporters_result.checks}
+def test_each_status_matches_the_check(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
+    expected = {c.name: ('passed' if c.passed else 'failed') for c in stored_result.checks}
 
     assert {t['name']: t['status'] for t in results['tests']} == expected
 
 
-def test_the_summary_counts_the_failures(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
+def test_the_summary_counts_the_failures(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
     summary = results['summary']
 
-    assert summary['failed'] == len(reporters_result.failures)
-    assert summary['passed'] == len(reporters_result.checks) - len(reporters_result.failures)
-    assert summary['tests'] == len(reporters_result.checks)
+    assert summary['failed'] == len(stored_result.failures)
+    assert summary['passed'] == len(stored_result.checks) - len(stored_result.failures)
+    assert summary['tests'] == len(stored_result.checks)
 
 
-def test_a_failed_entry_carries_the_offending_elements(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
+def test_a_failed_entry_carries_the_offending_elements(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
     entry = next(t for t in results['tests'] if t['name'] == "Class without label")
 
     assert entry['status'] == 'failed'
-    assert reporters_result.get("Class without label").elements in json.dumps(entry)
+    assert stored_result.get("Class without label").elements in json.dumps(entry)
 
 
-def test_the_input_is_recorded(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
+def test_the_input_is_recorded(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
 
     assert results['filesProcessed'] == ['reporters.ttl']
 
 
-def test_the_report_names_the_tool(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
+def test_the_report_names_the_tool(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
 
     assert results['tool']['name']
 
 
-def test_the_report_is_timestamped(reporters_result, tmp_path):
-    results = _ctrf(reporters_result, tmp_path)
+def test_the_report_is_timestamped(stored_result, tmp_path):
+    results = _ctrf(stored_result, tmp_path)
 
     assert results['timestamp']

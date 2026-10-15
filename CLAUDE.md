@@ -63,13 +63,25 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 
 ### Test suite
 
-**The four reporter suites** (`test_lint_to_*.py`, `test_qaresult_to_*.py`) all describe
-*one* run over *one* input, `tests/data/reporters.ttl`, via the `reporters_result` fixture
-in `conftest.py`. Suite 1 pins what the checks found; 2, 3 and 4 pin how that same result
-is reported. So a change in a check shows up in all four, and each reporter can be read
-against the result it claims to describe. Add to the fixture rather than starting another
-one — it is deliberately mixed (passing and failing checks, a blank node as a domain, a
-duplicate label, a deprecated class, an isolated class) and needs no network.
+**The four reporter suites** turn on two files in `tests/data/`: the input
+`reporters.ttl`, and `reporters_qaresult.py`, which holds the `QAResult` that linting it
+produces, written out as data.
+
+- `test_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
+  only one that runs the checks, and the only one a check change should break. When a
+  check changes on purpose, update the stored instance from the diff it prints.
+- `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take the **stored** instance as
+  input, so they test the projection alone — a change to what a check finds cannot break
+  them, and a reporter bug cannot be blamed on the checks.
+- `test_lint_to_markdown.py` has to run the linter, because Markdown is not a projection
+  of `QAResult` yet (see design.md). It asserts the report agrees with the result rather
+  than restating what the checks should find, so it is sensitive to the rendering and not
+  to the checks.
+
+Verified by sabotage: breaking a check fails only suite 1; breaking the DQV reporter fails
+only suite 4. Add to `reporters.ttl` rather than starting another fixture — it is
+deliberately mixed (passing and failing checks, a blank node as a domain, a duplicate
+label, a deprecated class, an isolated class) and needs no network.
 
 Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam exposed by the refactoring. Each test builds an inline TTL string, parses it into an `rdflib.Graph`, and asserts on the returned `CheckResult` objects (`check.passed`, `check.count`, `check.elements`).
 
@@ -86,10 +98,10 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
-| `test_lint_to_qaresult.py` | **Reporter suite 1 of 4.** What the checks decided, as data: which failed and by how much, the resources named, structured violations, profiling, datasets, the configuration that ran |
-| `test_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the QAResult, no blank-node identifiers, byte-identical between runs |
-| `test_qaresult_to_ctrf.py` | **Suite 3.** The same QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
-| `test_qaresult_to_dqv.py` | **Suite 4.** The same QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
+| `test_lint_to_qaresult.py` | **Reporter suite 1 of 4.** Linting `reporters.ttl` still produces the stored `QAResult` — the checks that ran, what each decided, profiling, datasets, configuration |
+| `test_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
+| `test_qaresult_to_ctrf.py` | **Suite 3.** The **stored** QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
+| `test_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
 | `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
