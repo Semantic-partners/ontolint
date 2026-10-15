@@ -247,10 +247,10 @@ def test_a_name_that_is_not_iri_safe_is_still_one_iri():
 
 
 def test_base_iri_is_used_for_minted_iris():
-    # As with the CLI's --base-uri, a base that ends in no separator gets a '/'.
-    base = "https://example.org/reports/run-123-/"
+    # A prefix-style base is used as given: no separator is inserted after the hyphen.
+    base = "https://example.org/reports/run-123-"
     report = lint({"activities": _graph(":Thing a owl:Class .")},
-                  Config(checks=["class-missing-label"], base_iri="https://example.org/reports/run-123-"))
+                  Config(checks=["class-missing-label"], base_iri=base))
 
     assert _computed_on(report) == {f"{base}dataset-activities"}
     assert _focus_nodes(report, "classes-missing-label", base) == {"http://example.org/core#Thing"}

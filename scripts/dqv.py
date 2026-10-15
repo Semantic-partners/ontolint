@@ -173,10 +173,17 @@ def check_base_uri(base_uri):
         raise ValueError(f"--base-uri must be an absolute IRI (e.g. https://example.org/qa/), got {base_uri!r}")
 
 
+# Characters a base may already end in, meaning the minted name can be appended directly.
+# '-' and '_' matter because a prefix-style base is a normal way to namespace one run
+# (".../run-123-" giving ".../run-123-dataset-activities"); without them it would be
+# turned into ".../run-123-/dataset-activities", with a separator nobody asked for.
+BASE_SEPARATORS = ('/', '#', ':', '-', '_')
+
+
 def _normalise_base(base_uri):
     base = base_uri or DEFAULT_BASE_URI
     check_base_uri(base)
-    return base if base.endswith(('/', '#', ':')) else base + '/'
+    return base if base.endswith(BASE_SEPARATORS) else base + '/'
 
 
 def _mint(base, kind, *parts):

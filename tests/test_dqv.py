@@ -9,7 +9,7 @@ from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST, DEFAULT_
 from scripts import dqv
 from scripts.dqv import (
     build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
-    duplicate_ontology_graph, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
+    duplicate_ontology_graph, dataset_iri, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
 )
 
 EX = rdflib.Namespace("http://example.org#")
@@ -572,3 +572,21 @@ def test_the_duplicate_metric_is_not_a_checklist_check():
     # entry; the invariant that every CHECKLIST key has a metric is unaffected.
     from scripts.dqv import DQV_DUPLICATE_ONTOLOGY_METRIC
     assert DQV_DUPLICATE_ONTOLOGY_METRIC[0] not in {slug for slug, *_ in DQV_METRICS.values()}
+
+
+# ── how a base URI is joined to a minted name ─────────────────────────────────
+
+@pytest.mark.parametrize('base, expected', [
+    # Already ends in a separator: used as given.
+    ('https://example.org/qa/', 'https://example.org/qa/dataset-x'),
+    ('https://example.org/qa#', 'https://example.org/qa#dataset-x'),
+    ('urn:ontolint:', 'urn:ontolint:dataset-x'),
+    # Prefix-style bases, the normal way to namespace one run. Inserting a '/' after the
+    # hyphen would put a separator in that the caller did not ask for.
+    ('https://example.org/reports/run-123-', 'https://example.org/reports/run-123-dataset-x'),
+    ('https://example.org/reports/run_123_', 'https://example.org/reports/run_123_dataset-x'),
+    # Ends in a name character, so it does need one.
+    ('https://example.org/qa', 'https://example.org/qa/dataset-x'),
+])
+def test_a_base_gets_a_separator_only_when_it_needs_one(base, expected):
+    assert str(dataset_iri(base, 'x')) == expected
