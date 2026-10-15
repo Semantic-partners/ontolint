@@ -62,6 +62,13 @@ different kinds of source:
 So the only boundary that exists for Markdown is **argv → stdout**, and that is what the
 end-to-end goldens pin.
 
+The four reporter suites pin this boundary as it stands: `test_lint_to_qaresult.py` for
+what the checks found, and `test_lint_to_markdown.py`, `test_qaresult_to_ctrf.py` and
+`test_qaresult_to_dqv.py` for how that same result is reported. Suite 2 is deliberately a
+consistency test — it asserts the report agrees with the `QAResult` rather than restating
+what the checks should find — so it survives a change to the checks and fails on a change
+to the projection, which is what makes it a safety net for moving the rendering.
+
 **The target** is for Markdown to become a projection like the other two: checks return
 data only, a renderer turns a `QAResult` into Markdown, and run context is carried on the
 result rather than accumulated alongside it. Then all three reporters are projections of
@@ -88,13 +95,22 @@ expected output can be pinned. Two things are needed and are in place:
 - **SELECT results are sorted** in `exec_sparql()`. Rows otherwise arrive in store order,
   which varies between runs. CONSTRUCT results are graphs and are left alone.
 - **Violation lists are sorted** in `violation_formatting()`.
+- **Blank nodes are rendered as `[anonymous]`** by `term_text()`, wherever a term reaches a
+  text report. An rdflib blank-node identifier is invented at parse time and differs every
+  run, so printing it varied the output while telling a reader nothing they could act on.
+  Anything needing stable identity has it in the DQV report, where blank nodes are
+  skolemized under the report's base.
 
 `SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
 report — including every minted IRI — is reproducible.
 
-**Known gap:** verbose output (`-v`) prints raw rdflib blank-node identifiers, which differ
-on every parse, so `-v` output is not yet reproducible. `dqv.canonical_bnode_labels()`
-already solves this for the DQV report and is the obvious fix.
+## Todo
+
+- **Cover verbose output with tests.** `-v` adds tables the default run doesn't emit, and
+  nothing exercises them. It is reproducible now, so it can be pinned; it just isn't yet.
+- **Make Markdown a projection of `QAResult`** — see above.
+- **Collapse the two `main()` paths**, so `--per-file` only decides what the checks run
+  over and nothing else differs between the modes.
 
 ## In flight
 

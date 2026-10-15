@@ -1,0 +1,62 @@
+# The one input behind the four reporter test suites: lint -> QAResult, lint -> Markdown,
+# QAResult -> CTRF and QAResult -> DQV. They all describe the same run, so a change in what
+# a check finds shows up in each of them and they can be compared against one another.
+#
+# It is deliberately mixed: some checks pass, some fail, and it carries the awkward cases —
+# a blank node as a domain (rendered, so it must not vary run to run), a duplicate label, a
+# deprecated class that checks must skip, and an isolated class.
+@prefix :        <https://example.org/reporters#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+: a owl:Ontology ;
+    rdfs:label "Reporter fixture" ;
+    dcterms:description "One ontology exercising every reporter." .
+
+# Passes everything.
+:Animal a owl:Class ;
+    rdfs:label "Animal" ;
+    rdfs:comment "A living creature." .
+
+# Labelled, but no description: fails the class-description check only.
+:Dog a owl:Class ;
+    rdfs:subClassOf :Animal ;
+    rdfs:label "Dog" .
+
+# Neither label nor description.
+:Cat a owl:Class ;
+    rdfs:subClassOf :Animal .
+
+# Shares a label with :Dog, in the same language tag.
+:Hound a owl:Class ;
+    rdfs:subClassOf :Animal ;
+    rdfs:label "Dog" ;
+    rdfs:comment "Clashes with :Dog by label." .
+
+# Declared and never connected to anything: isolated.
+:Mineral a owl:Class ;
+    rdfs:label "Mineral" ;
+    rdfs:comment "Connected to nothing." .
+
+# Deprecated, so the label and description checks must skip it.
+:Beast a owl:DeprecatedClass ;
+    owl:deprecated true .
+
+# Domain is an anonymous class expression: its identifier is invented at parse time, so the
+# report must not print it.
+:hasHabitat a owl:ObjectProperty ;
+    rdfs:label "has habitat" ;
+    rdfs:comment "Where it lives." ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( :Animal :Dog ) ] ;
+    rdfs:range :Animal .
+
+# No domain, no range, no description.
+:hasName a owl:DatatypeProperty ;
+    skos:prefLabel "has name" .
+
+# Instance data, which profiling counts and the checks exclude.
+:rex a :Dog ;
+    rdfs:label "Rex" .
