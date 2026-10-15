@@ -291,11 +291,82 @@ def test_naming_is_only_needed_when_no_ontology_is_declared():
                                     f"{DEFAULT_BASE_URI}dataset-unnamed-2"}
 
 
-def test_two_unnamed_graphs_declaring_the_same_ontology_are_rejected():
-    # Silently keeping one of them would drop a dataset from the report.
+# ── one file, one ontology ────────────────────────────────────────────────────
+
+DUPLICATE_METRIC = rdflib.URIRef(f"{DEFAULT_BASE_URI}metric-duplicate-ontology-iri")
+
+
+def _duplicate_findings(report):
+    """{ontology IRI: the inputs that declared it}, as the report states it."""
+    return {
+        str(report.value(v, rdflib.SH.focusNode)):
+            sorted(str(r) for r in report.objects(v, OLQ.relatedResource))
+        for m in report.subjects(DQV.isMeasurementOf, DUPLICATE_METRIC)
+        for v in report.objects(m, OLQ.violation)
+    }
+
+
+def test_two_inputs_declaring_the_same_ontology_are_reported_not_refused():
     same = ": a owl:Ontology . :Thing a owl:Class ."
-    with pytest.raises(ValueError, match="both named"):
-        lint([_graph(same), _graph(same)], Config(per_file=True))
+
+    report = lint([_graph(same), _graph(same)], Config(per_file=True, checks=["class-missing-label"]))
+
+    assert _duplicate_findings(report) == {
+        "http://example.org/core#": [f"{DEFAULT_BASE_URI}dataset-unnamed-1",
+                                     f"{DEFAULT_BASE_URI}dataset-unnamed-2"],
+    }
+
+
+def test_the_other_checks_still_run_for_a_duplicated_ontology():
+    # The point of reporting rather than refusing: a duplicate must not mask everything else.
+    report = lint([_graph(": a owl:Ontology . :Alpha a owl:Class ."),
+                   _graph(": a owl:Ontology . :Beta a owl:Class .")],
+                  Config(per_file=True, checks=["class-missing-label"]))
+
+    assert _focus_nodes(report, "classes-missing-label") == {
+        "http://example.org/core#Alpha", "http://example.org/core#Beta",
+    }
+
+
+def test_the_duplicate_finding_names_the_inputs_the_caller_named():
+    same = ": a owl:Ontology . :Thing a owl:Class ."
+
+    report = lint({"file-a": _graph(same), "file-b": _graph(same)},
+                  Config(per_file=True, checks=["class-missing-label"]))
+
+    assert _duplicate_findings(report) == {
+        "http://example.org/core#": [f"{DEFAULT_BASE_URI}dataset-file-a",
+                                     f"{DEFAULT_BASE_URI}dataset-file-b"],
+    }
+
+
+def test_distinct_names_do_not_hide_a_duplicated_ontology():
+    # Naming them apart was the old workaround; it never gave them separate identities,
+    # since the report keys on the declared IRI either way.
+    same = ": a owl:Ontology . :Thing a owl:Class ."
+
+    report = lint({"a": _graph(same), "b": _graph(same)},
+                  Config(per_file=True, checks=["class-missing-label"]))
+
+    assert _computed_on(report) == {"http://example.org/core#"}
+    assert _duplicate_findings(report)
+
+
+def test_a_duplicated_ontology_is_reported_in_merged_runs_too():
+    # Merging the graphs first would hide it: two identical declarations are one triple.
+    same = ": a owl:Ontology . :Thing a owl:Class ."
+
+    report = lint([_graph(same), _graph(same)], Config(checks=["class-missing-label"]))
+
+    assert _duplicate_findings(report)
+
+
+def test_distinct_ontologies_raise_no_duplicate_finding():
+    report = lint([_graph(": a owl:Ontology .", "http://example.org/act#"),
+                   _graph(": a owl:Ontology .", "http://example.org/party#")],
+                  Config(per_file=True, checks=["class-missing-label"]))
+
+    assert _duplicate_findings(report) == {}
 
 
 def test_an_unnamed_turtle_string_is_accepted_too():

@@ -166,6 +166,22 @@ and the namespace of each subject, deliberately *excluding* the ontology IRI's o
 namespace, since `<…/core>` sits in `<…/>` and claiming that would capture every sibling
 vocabulary beside it.
 
+**Set-level checks.** Most checks take one graph, but *one file, one ontology* can only be
+judged across the inputs, and only *before* they are merged — the union of two identical
+`owl:Ontology` declarations is a single triple, so the evidence is gone by the time any
+`check_*` runs. `declared_ontology_sources()` builds `{ontology IRI: [source IRIs]}` from
+(source, graph) pairs and `duplicate_ontology_iris()` filters it to the clashes; `lint()`
+calls both, while the CLI fills the same mapping as it loads (`load_rdf(ontology_sources=…)`)
+and `_write_dqv()` filters it. `dqv.duplicate_ontology_graph()` renders one measurement per
+clashing IRI — on the IRI itself, naming the inputs via `olq:relatedResource` — and returns
+it as a graph of its own, which `build_dqv_graph()` merges in.
+
+Such a metric has no `CHECKLIST` entry and no `check_*` function, so it is declared as a
+module-level tuple (`DQV_DUPLICATE_ONTOLOGY_METRIC`) like `DQV_ROLLUP_METRIC`, leaving
+`test_dqv.py`'s CHECKLIST-to-`DQV_METRICS` invariant intact. The *source* of an input is
+distinct from its dataset name: an unnamed graph is named after the ontology it declares, so
+two inputs declaring the same one would otherwise be reported as the same input twice.
+
 Two things in `scripts/` exist for the API:
 - **Graph-valued `imports.local`.** `_parse_local()`, `_is_bundled()` and `_describe_local()`
   accept an `rdflib.Graph` as well as a path, so a caller can supply a dependency vocabulary

@@ -178,6 +178,12 @@ lint([activities_graph, parties_graph])            # several
 lint({"https://example.org/parties": parties})     # named
 ```
 
+**One file, one ontology.** If two inputs declare the same `owl:Ontology` IRI, that is
+reported as a `duplicate-ontology-iri` finding naming both of them, and every other check
+still runs — the run is not refused. The condition is detected before the inputs are
+merged, since merging two identical declarations leaves a single triple. The CLI reports
+it the same way, in both `--per-file` and grouped runs.
+
 An unnamed graph that declares no ontology falls back to `unnamed-1`, `unnamed-2` by
 position — stable for the same order and no more, so name those if you want to compare
 runs. A name that is itself an absolute IRI identifies the dataset as it stands, so runs
