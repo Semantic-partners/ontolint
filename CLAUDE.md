@@ -87,6 +87,10 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 
 ## Architecture
 
+`design.md` has the shape of a run — the pipeline, the three reporters and their
+granularity, what `--per-file` should mean, and why Markdown is not yet a projection of
+`QAResult`. Read it before changing how a report is assembled.
+
 ### Data flow
 
 1. `ontology_qa.py` loads one or more RDF files/directories into a single `rdflib.Graph`

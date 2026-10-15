@@ -1,0 +1,105 @@
+# Design
+
+How a run is put together, and which parts are settled versus in flight. `CLAUDE.md` has
+the module-by-module detail; this is the shape.
+
+## The pipeline
+
+```
+args + .rdf-lint.yml ──→ Config + checklist
+                              │
+parse ──→ graph(s) ──→ lint ──→ QAResult(s)
+                              ├──→ Markdown   (per result)   ← assembled throughout
+                              ├──→ CTRF       (per result)
+                              └──→ DQV        (per RUN, over all results)
+```
+
+**Config + checklist.** `Config` is the single description of a run — the CLI builds one
+from its arguments and `.rdf-lint.yml`, a library caller builds one directly. The checklist
+says which checks are enabled, resolved by `select_checks()` or handed in by the CLI.
+
+**parse → graph(s).** One graph per file, or one merged graph, depending on how the run is
+scoped (see *per-file*).
+
+**lint.** `lint_graph()` is the single entry point that performs one run: inference if
+configured, then every selected check. Both front ends call it, so a run means the same
+thing however it was asked for.
+
+**QAResult.** What a run produced: profiling metrics, a `CheckResult` per executed check
+(name, passed, count, offending elements, structured violations), the datasets it was
+computed on, and the configuration that ran.
+
+## The three reporters
+
+| | granularity | built from | pinned by |
+|---|---|---|---|
+| **Markdown** | per result | *mixed — see below* | end-to-end goldens |
+| **CTRF** | per result | `QAResult` | `tests/test_integration.py` |
+| **DQV** | **per run** | all `QAResult`s + all inputs | `tests/dqv/*/expected.ttl` |
+
+The asymmetry is load-bearing. CTRF and Markdown describe one result each; **DQV describes
+the whole run**, which is why it is written once, outside any per-file loop. Set-level
+findings live there and nowhere else — *one file, one ontology* can only be judged across
+the inputs, and only before they are merged, since the union of two identical
+`owl:Ontology` declarations is a single triple.
+
+## Markdown is not a projection of QAResult (yet)
+
+Worth stating plainly, because it is the thing most likely to be assumed otherwise: **you
+cannot write a `QAResult → Markdown` test today.** Markdown is assembled from three
+different kinds of source:
+
+1. **Projections of `QAResult`** — `print_profiling_metrics()`, `print_profiling_table()`
+   and `print_qa_table()` render from `result.profiling`, `result.elements` and the
+   checklist. These *are* projections.
+2. **Text the checks already rendered.** Each `check_*` builds a `log` string as it runs
+   and `run_qa()` collects them into `result.logs`. The Markdown for every check is
+   therefore produced *inside* the check, as a side effect of running it, and the reporter
+   only concatenates. A test at this boundary would assert that concatenation concatenates.
+3. **Run context that never reaches `QAResult`** — the load log (which files parsed, which
+   failed) and the config log (what `.rdf-lint.yml` changed), both assembled in `main()`.
+
+So the only boundary that exists for Markdown is **argv → stdout**, and that is what the
+end-to-end goldens pin.
+
+**The target** is for Markdown to become a projection like the other two: checks return
+data only, a renderer turns a `QAResult` into Markdown, and run context is carried on the
+result rather than accumulated alongside it. Then all three reporters are projections of
+the same data, each testable at its own boundary, and the reporters stop constraining how
+the insides are organised. That is a change to make deliberately, not a prerequisite for
+the ones in flight.
+
+## per-file
+
+`--per-file` should mean one thing: **do the checks run per graph, or across all the graphs
+at once?** Everything else about the two modes — how reports are named, where they are
+written, which messages are emitted — is incidental and should not differ.
+
+It does differ today (`main()` has two paths), which is tracked in #96 along with the
+deeper question of scope: a check computed over "whatever was in this invocation" gives an
+answer that depends on how the caller batched their files, which is why uniqueness can be
+reported for two independent ontologies that merely share a label.
+
+## Determinism
+
+Reports must be byte-identical for the same inputs, or diffs are unreviewable and no
+expected output can be pinned. Two things are needed and are in place:
+
+- **SELECT results are sorted** in `exec_sparql()`. Rows otherwise arrive in store order,
+  which varies between runs. CONSTRUCT results are graphs and are left alone.
+- **Violation lists are sorted** in `violation_formatting()`.
+
+`SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
+report — including every minted IRI — is reproducible.
+
+**Known gap:** verbose output (`-v`) prints raw rdflib blank-node identifiers, which differ
+on every parse, so `-v` output is not yet reproducible. `dqv.canonical_bnode_labels()`
+already solves this for the DQV report and is the obvious fix.
+
+## In flight
+
+- **#94** — publish to PyPI; moves these modules into the package.
+- **#96** — what per-file versus grouped linting means; proposes loading into an
+  `rdflib.Dataset` with one named graph per file, so provenance is recorded per triple and
+  a term can be attributed to the ontology that owns it.
+- **#97** — a file declaring two ontologies fails the build while the report says PASS.
