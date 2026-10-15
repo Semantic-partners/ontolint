@@ -1710,12 +1710,12 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             for row in results:
                 predicate = row.property
                 if row.domain:
-                    domain = row.domain
+                    domain = term_text(row.domain)
                 else:
                     domain = 'None'
                     dCount.append(predicate)
                 if row.range:
-                    range = row.range
+                    range = term_text(row.range)
                 else:
                     range = 'None'
                     rCount.append(predicate)
@@ -1730,16 +1730,16 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             log += "| Property | Domain | Range |\n|--|--|--|\n"
             for row in results:
                 if row.domain:
-                    domain = row.domain
+                    domain = term_text(row.domain)
                 else:
                     domain = 'None'
                 
                 if row.range:
-                    range = row.range
+                    range = term_text(row.range)
                 else:
                     range = 'None'
                 
-                log += f"| {row.property} | {domain} | {range} |\n"
+                log += f"| {term_text(row.property)} | {domain} | {range} |\n"
             
             log  += "\n"
         
@@ -1834,6 +1834,18 @@ def _same_label_records(label, label_property, members):
         records.append(dqv.Violation(iri, comment=comment, related=others, value=label))
     return records
 
+def term_text(term):
+    """
+    A term as it appears in a text report.
+
+    A blank node's rdflib identifier is invented at parse time and differs on every run, so
+    printing it makes the report vary run to run while telling a reader nothing they can
+    act on or look up. Anything that needs stable identity has it in the DQV report, where
+    blank nodes are skolemized under the report's base.
+    """
+    return "[anonymous]" if isinstance(term, rdflib.BNode) else term
+
+
 def violation_formatting(array, unique=False):
     """
     Format a string of elements into a markdown list.
@@ -1851,7 +1863,9 @@ def violation_formatting(array, unique=False):
     """
     if unique:
         array = set(array)
-    array = sorted(array, key=str)
+    # Rendered before sorting: sorting blank nodes by their invented identifiers would be
+    # as unstable as printing them.
+    array = sorted((term_text(element) for element in array), key=str)
 
     formatted_string = ""
     for element in array:

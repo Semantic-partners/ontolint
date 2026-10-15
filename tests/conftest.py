@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 # Must run before scripts.ontology_qa is imported so module-level SPARQL loading
 # resolves the sparql/ directory correctly regardless of where pytest is invoked from.
@@ -43,3 +44,35 @@ def make_graph():
         g.parse(data=PREFIXES + ttl, format='turtle')
         return g
     return _make
+
+
+# ── the shared reporter fixture ───────────────────────────────────────────────
+#
+# One input behind four suites — lint -> QAResult, lint -> Markdown, QAResult -> CTRF and
+# QAResult -> DQV — so they all describe the same run and can be read against each other.
+# See tests/data/reporters.ttl.
+
+REPORTERS_TTL = Path(__file__).parent / 'data' / 'reporters.ttl'
+
+
+def _offline(uri):
+    raise OSError(f"the reporter fixture must not need the network: {uri}")
+
+
+@pytest.fixture
+def reporters_ttl():
+    """The path to the shared input, for the suites that run the CLI over it."""
+    return REPORTERS_TTL
+
+
+@pytest.fixture
+def reporters_graph():
+    """A fresh parse each time: the checks remove instance data from the graph they run on."""
+    return rdflib.Graph().parse(REPORTERS_TTL, format='turtle')
+
+
+@pytest.fixture
+def reporters_result(reporters_graph):
+    """The QAResult every reporter suite reports on."""
+    from scripts.ontology_qa import Config, lint_graph
+    return lint_graph(reporters_graph, ['reporters.ttl'], Config(uri_parser=_offline))
