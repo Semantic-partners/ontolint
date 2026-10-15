@@ -2440,17 +2440,13 @@ def _collect_files(paths):
             result.append(path)
     return result
 
-def load_rdf(paths, verbose: bool = False, ontology_sources: dict | None = None):
+def load_rdf(paths, verbose: bool = False):
     """
     Load RDF files from files or directories.
 
     Args:
         paths (list): List of file and/or directory paths.
         verbose (bool): Logical flag for printing additional information during loading.
-        ontology_sources (dict): If given, filled with {ontology IRI: [file: IRI, ...]} as
-            each file is read. The files are merged into one graph here, and that merge
-            destroys the record of which file declared what (two identical declarations
-            become one triple), so it has to be taken while they are still separate.
 
     Returns:
         file_counter (int): Number of files successfully loaded.
@@ -2458,6 +2454,10 @@ def load_rdf(paths, verbose: bool = False, ontology_sources: dict | None = None)
         graph (rdflib.Graph): The RDF graph object with all loaded data.
         log_results (str): Parsing result and status log.
         files_failed (list): List of file names that could not be loaded.
+        ontology_sources (dict): {ontology IRI: [file: IRI, ...]}, recorded as each file is
+            read. The files are merged into one graph here and that merge destroys the
+            record of which file declared what — two identical owl:Ontology declarations
+            become a single triple — so it has to be taken while they are still separate.
     """
     def _bind_namespaces(target_graph, source_graph):
         """Bind namespaces from source to target graph."""
@@ -2473,6 +2473,7 @@ def load_rdf(paths, verbose: bool = False, ontology_sources: dict | None = None)
     files_failed = []
     graph = rdflib.Graph()
     log_results = ""
+    ontology_sources = {}
 
     for file_path in _collect_files(paths):
         success, file_graph, log_msg = load_rdf_file(file_path)
@@ -2480,9 +2481,8 @@ def load_rdf(paths, verbose: bool = False, ontology_sources: dict | None = None)
             log_results += log_msg
             files_processed.append(file_path)
             file_counter += 1
-            if ontology_sources is not None:
-                for iri in ontology_iris(file_graph):
-                    ontology_sources.setdefault(iri, []).append(dqv.file_iri(file_path))
+            for iri in ontology_iris(file_graph):
+                ontology_sources.setdefault(iri, []).append(dqv.file_iri(file_path))
             graph += file_graph
             _bind_namespaces(graph, file_graph)
         else:
@@ -2490,7 +2490,7 @@ def load_rdf(paths, verbose: bool = False, ontology_sources: dict | None = None)
             log_results += f"ERROR - {log_msg}"
             files_failed.append(file_path)
 
-    return file_counter, files_processed, graph, log_results, files_failed
+    return file_counter, files_processed, graph, log_results, files_failed, ontology_sources
 
 def _parse_failure_log(files_failed):
     """Format a Markdown error block listing files that failed to parse."""
@@ -3179,8 +3179,10 @@ def main():
             log_output = "# Ontology Quality Assurance\n\n"
             if config_log:
                 log_output += config_log
-            file_counter, files_processed, g, load_log, files_failed = load_rdf(
-                [fp], verbose=args.verbose, ontology_sources=ontology_sources)
+            file_counter, files_processed, g, load_log, files_failed, file_sources = load_rdf(
+                [fp], verbose=args.verbose)
+            for iri, sources in file_sources.items():
+                ontology_sources.setdefault(iri, []).extend(sources)
             log_output += load_log
             if files_failed:
                 log_output += _parse_failure_log(files_failed)
@@ -3208,9 +3210,8 @@ def main():
 
     # Single-run (default) mode.
     log_output = "# Ontology Quality Assurance\n\n"
-    ontology_sources = {}
-    file_counter, files_processed, g, log_results, files_failed = load_rdf(
-        args.data_files, verbose=args.verbose, ontology_sources=ontology_sources)
+    file_counter, files_processed, g, log_results, files_failed, ontology_sources = load_rdf(
+        args.data_files, verbose=args.verbose)
     log_output += log_results
 
     # A file that can't be parsed would silently shrink the graph under test, so
