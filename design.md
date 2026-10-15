@@ -71,10 +71,11 @@ The reporter suites are built around that split. `tests/data/reporters_qaresult.
 a `QAResult` as data; `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take **that
 instance** and assert the projection, so they never run a check.
 `test_lint_to_qaresult.py` keeps the stored instance honest by asserting lint still
-produces it. `test_lint_to_markdown.py` is the odd one out precisely because Markdown is
-not a projection: it has to run the linter, and it asserts the report agrees with the
-result rather than restating what the checks should find. Once Markdown *is* a projection,
-it can take the stored instance like the other two, and that is the sign the move worked.
+produces it, and `test_lint_to_markdown.py` does the same for `reporters_markdown.py`, the
+rendered text stored beside it. Markdown is the odd one out only in *how* it is produced:
+it has to run the linter, because the per-check text is rendered inside the checks. Once it
+is a projection, the stored text stays exactly as it is and only the way it is produced
+changes — which is how the move gets checked.
 
 **The target** is for Markdown to become a projection like the other two: checks return
 data only, a renderer turns a `QAResult` into Markdown, and run context is carried on the

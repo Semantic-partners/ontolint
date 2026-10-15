@@ -63,9 +63,9 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 
 ### Test suite
 
-**The four reporter suites** turn on two files in `tests/data/`: the input
-`reporters.ttl`, and `reporters_qaresult.py`, which holds the `QAResult` that linting it
-produces, written out as data.
+**The four reporter suites** turn on three files in `tests/data/`: the input
+`reporters.ttl`, and two expectations written out as data — `reporters_qaresult.py`, the
+`QAResult` that linting it produces, and `reporters_markdown.py`, the Markdown it renders.
 
 - `test_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
   only one that runs the checks, and the only one a check change should break. When a
@@ -73,13 +73,13 @@ produces, written out as data.
 - `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take the **stored** instance as
   input, so they test the projection alone — a change to what a check finds cannot break
   them, and a reporter bug cannot be blamed on the checks.
-- `test_lint_to_markdown.py` has to run the linter, because Markdown is not a projection
-  of `QAResult` yet (see design.md). It asserts the report agrees with the result rather
-  than restating what the checks should find, so it is sensitive to the rendering and not
-  to the checks.
+- `test_lint_to_markdown.py` asserts a lint still renders the stored Markdown. It has to
+  run the linter, because Markdown is not a projection of `QAResult` yet (see design.md).
+  Its other assertions are not a second expectation — they say why parts of the text must
+  hold, so a failure explains itself instead of handing over a 189-line diff.
 
-Verified by sabotage: breaking a check fails only suite 1; breaking the DQV reporter fails
-only suite 4. Add to `reporters.ttl` rather than starting another fixture — it is
+Verified by sabotage: breaking a check fails only suite 1, breaking the DQV reporter fails
+only suite 4, and changing a line of report wording fails only suite 2. Add to `reporters.ttl` rather than starting another fixture — it is
 deliberately mixed (passing and failing checks, a blank node as a domain, a duplicate
 label, a deprecated class, an isolated class) and needs no network.
 

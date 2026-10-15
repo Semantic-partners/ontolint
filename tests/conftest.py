@@ -90,3 +90,40 @@ def stored_result():
     """
     from tests.data.reporters_qaresult import EXPECTED
     return EXPECTED
+
+
+@pytest.fixture
+def stored_markdown():
+    """The Markdown stored under tests/data/, which linting the input should still render."""
+    from tests.data.reporters_markdown import EXPECTED
+    return EXPECTED
+
+
+@pytest.fixture
+def render_markdown():
+    """
+    Render the Markdown for a fresh lint of the input, as many times as asked.
+
+    Taken from `_process_loaded_graph`, the seam that turns a run into report text. `main()`
+    wraps it with the heading, the load log and the config log — run context rather than
+    anything the checks produced, and carrying input paths, so test_integration.py covers
+    those. Each call reparses, because blank node identifiers and SPARQL row order both
+    differ between parses and that is what makes a rendering unstable.
+    """
+    from types import SimpleNamespace
+    from scripts.ontology_qa import CHECKLIST, Config, _process_loaded_graph, deepcopy_list
+
+    def render():
+        log, _ = _process_loaded_graph(
+            rdflib.Graph().parse(REPORTERS_TTL, format='turtle'), ['reporters.ttl'],
+            SimpleNamespace(verbose=False, profile_only=False),
+            Config(uri_parser=_offline), deepcopy_list(CHECKLIST), None)
+        return log
+
+    return render
+
+
+@pytest.fixture
+def rendered_markdown(render_markdown):
+    """The Markdown a lint of the input renders."""
+    return render_markdown()
