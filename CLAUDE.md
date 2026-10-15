@@ -192,6 +192,15 @@ Two things in `scripts/` exist for the API:
   for something that was never on disk. `dqv.dataset_iri()` decides what a caller's name
   becomes: an absolute IRI is used as it stands, anything else is minted under the base.
 
+### Shared graph helpers
+
+`scripts/graphutil.py` holds the rdflib helpers with no ontolint knowledge in them —
+`bound_graph(prefixes)` and `copy_namespaces(target, source)` — so `ontology_qa` and `dqv`
+can both use them without importing each other. `copy_namespaces` had been written twice
+(`load_rdf`'s inner `_bind_namespaces` and `api._bind`); prefixes are not decoration here,
+since the hijacking and profiling checks report on what the input declared, and `+=` copies
+triples but not bindings. `dqv.REPORT_PREFIXES` lists what the DQV report binds.
+
 ### Report generation
 
 `generate_custom_report.py` aggregates all CTRF JSON files from a directory and renders a Markdown report using `templates/ctrf-report.hbs`. The Handlebars rendering (`simple_handlebars_render`) is implemented from scratch with no external dependency — it supports `{{#each}}`, `{{#if}}`, `{{else}}`, and `{{variable}}`.

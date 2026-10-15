@@ -28,9 +28,10 @@ import yaml
 import networkx as nx
 
 try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
+    from scripts import dqv, graphutil
 except ImportError:  # run as a script: scripts/ itself is on sys.path
     import dqv
+    import graphutil
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
@@ -2459,14 +2460,6 @@ def load_rdf(paths, verbose: bool = False):
             record of which file declared what — two identical owl:Ontology declarations
             become a single triple — so it has to be taken while they are still separate.
     """
-    def _bind_namespaces(target_graph, source_graph):
-        """Bind namespaces from source to target graph."""
-        for prefix, uri in source_graph.namespace_manager.namespaces():
-            try:
-                target_graph.namespace_manager.bind(prefix, uri)
-            except Exception:
-                pass  # ignore binding errors
-
     # Process all files
     file_counter = 0
     files_processed = []
@@ -2484,7 +2477,7 @@ def load_rdf(paths, verbose: bool = False):
             for iri in ontology_iris(file_graph):
                 ontology_sources.setdefault(iri, []).append(dqv.file_iri(file_path))
             graph += file_graph
-            _bind_namespaces(graph, file_graph)
+            graphutil.copy_namespaces(graph, file_graph)
         else:
             # Always report parse failures, regardless of verbosity.
             log_results += f"ERROR - {log_msg}"

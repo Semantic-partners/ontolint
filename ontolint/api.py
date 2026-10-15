@@ -25,7 +25,7 @@ from typing import TypeAlias
 
 import rdflib
 
-from scripts import dqv
+from scripts import dqv, graphutil
 from scripts import ontology_qa as qa
 from scripts.ontology_qa import IRI, Config
 
@@ -188,22 +188,12 @@ def _derive_name(graph, index):
 def _copy(graph):
     target = rdflib.Graph()
     target += graph
-    _bind(target, graph)
-    return target
+    return graphutil.copy_namespaces(target, graph)
 
 
 def _merge(graphs):
     merged = rdflib.Graph()
     for graph in graphs:
         merged += graph
-        _bind(merged, graph)
+        graphutil.copy_namespaces(merged, graph)
     return merged
-
-
-def _bind(target, source):
-    """Carry prefixes over: the hijacking and profiling checks report on declared prefixes."""
-    for prefix, uri in source.namespace_manager.namespaces():
-        try:
-            target.namespace_manager.bind(prefix, uri)
-        except Exception:
-            pass  # a prefix that can't be rebound is not worth failing a run over

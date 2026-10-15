@@ -19,6 +19,11 @@ from urllib.parse import quote
 
 import rdflib
 
+try:  # imported as part of the scripts package (e.g. by the tests)
+    from scripts import graphutil
+except ImportError:  # run as a script: scripts/ itself is on sys.path
+    import graphutil
+
 
 @dataclass
 class Violation:
@@ -69,6 +74,11 @@ SH = rdflib.SH
 # minted under this base unless --base-uri is given. OLQ holds only vocabulary terms.
 DEFAULT_BASE_URI = "urn:ontolint:"
 DEFAULT_DQV_FILENAME = "ontolint-dqv.ttl"
+
+# Every prefix the report uses, so any part of it serialised on its own stays legible.
+REPORT_PREFIXES = [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('dcat', DCAT),
+                   ('dcterms', rdflib.DCTERMS), ('skos', rdflib.SKOS),
+                   ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]
 
 # slug -> (label, definition)
 DQV_DIMENSIONS = {
@@ -282,16 +292,6 @@ def _add_configuration(g, base, settings, config_file=None):
     return configuration
 
 
-def _bound_graph():
-    """An empty graph with the report's prefixes, so any part of it reads on its own."""
-    g = rdflib.Graph()
-    for prefix, ns in [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('dcat', DCAT),
-                       ('dcterms', rdflib.DCTERMS), ('skos', rdflib.SKOS),
-                       ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]:
-        g.bind(prefix, ns)
-    return g
-
-
 def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
     """
     The triples reporting each ontology IRI that more than one input declared, as a graph
@@ -300,7 +300,7 @@ def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
     Reported once, on the IRI itself, naming the inputs that declared it, rather than once
     per input, which would put two identical measurements on the same dataset.
     """
-    g = _bound_graph()
+    g = graphutil.bound_graph(REPORT_PREFIXES)
     if not duplicate_ontologies:
         return g
     base = _normalise_base(base_uri)
@@ -354,7 +354,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None, duplicate_ontologies
     timestamp = timestamp or _report_timestamp()
     stamp = timestamp.isoformat()
 
-    g = _bound_graph()
+    g = graphutil.bound_graph(REPORT_PREFIXES)
 
     # Configurations first: the assessment's identity includes them, so the same files
     # assessed under different configurations never share assessment or measurement IRIs.
