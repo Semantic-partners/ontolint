@@ -111,10 +111,11 @@ expected output can be pinned. Two things are needed and are in place:
 `SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
 report — including every minted IRI — is reproducible.
 
-**CTRF is not**: `build_ctrf_report()` stamps `datetime.now()` directly rather than going
-through `dqv._report_timestamp()`, so two runs over identical inputs differ. Nothing else
-in the report varies, so honouring `SOURCE_DATE_EPOCH` there would make it reproducible
-too.
+**CTRF is not, by default**: its timestamp comes from `datetime.now()`, so two runs over
+identical inputs differ. The clock is injected — `build_ctrf_report(result,
+date_time_provider=…)` — so a caller can fix it, and the tests do, which is what makes the
+projection a pure function of the `QAResult`. Nothing else in the report varies, so having
+the CLI pass a provider that honours `SOURCE_DATE_EPOCH` would make CTRF reproducible too.
 
 ## Todo
 

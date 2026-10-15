@@ -548,11 +548,15 @@ def print_if_executed(metrics, checks, key):
         output = metrics[key]
     return output
 
-def build_ctrf_report(result: QAResult):
+def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     """
     A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
     check, with the run's summary. Returns the report; writing it is write_ctrf_report's
     job, so the projection can be built and inspected without touching the filesystem.
+
+    date_time_provider supplies the report's timestamp. It is injected so a caller can fix
+    it — without that the projection is not a pure function of the QAResult, and two
+    reports built over the same result differ.
     """
     passed = 0
     failed = 0
@@ -587,7 +591,7 @@ def build_ctrf_report(result: QAResult):
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": date_time_provider().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
     return ctrf_report
