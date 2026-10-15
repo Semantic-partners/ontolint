@@ -62,12 +62,14 @@ different kinds of source:
 So the only boundary that exists for Markdown is **argv → stdout**, and that is what the
 end-to-end goldens pin.
 
-The four reporter suites pin this boundary as it stands: `test_lint_to_qaresult.py` for
-what the checks found, and `test_lint_to_markdown.py`, `test_qaresult_to_ctrf.py` and
-`test_qaresult_to_dqv.py` for how that same result is reported. Suite 2 is deliberately a
-consistency test — it asserts the report agrees with the `QAResult` rather than restating
-what the checks should find — so it survives a change to the checks and fails on a change
-to the projection, which is what makes it a safety net for moving the rendering.
+The reporter suites are built around that split. `tests/data/reporters_qaresult.py` holds
+a `QAResult` as data; `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take **that
+instance** and assert the projection, so they never run a check.
+`test_lint_to_qaresult.py` keeps the stored instance honest by asserting lint still
+produces it. `test_lint_to_markdown.py` is the odd one out precisely because Markdown is
+not a projection: it has to run the linter, and it asserts the report agrees with the
+result rather than restating what the checks should find. Once Markdown *is* a projection,
+it can take the stored instance like the other two, and that is the sign the move worked.
 
 **The target** is for Markdown to become a projection like the other two: checks return
 data only, a renderer turns a `QAResult` into Markdown, and run context is carried on the

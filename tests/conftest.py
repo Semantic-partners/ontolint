@@ -73,6 +73,20 @@ def reporters_graph():
 
 @pytest.fixture
 def reporters_result(reporters_graph):
-    """The QAResult every reporter suite reports on."""
+    """The QAResult produced by linting the input — what test_lint_to_qaresult.py checks."""
     from scripts.ontology_qa import Config, lint_graph
     return lint_graph(reporters_graph, ['reporters.ttl'], Config(uri_parser=_offline))
+
+
+@pytest.fixture
+def stored_result():
+    """
+    The QAResult written out under tests/data/, and the input to the reporter suites.
+
+    They take the stored instance rather than a freshly linted one, so they test the
+    projection alone: a change to what a check finds cannot break them, and a change to a
+    reporter cannot be blamed on the checks. test_lint_to_qaresult.py is what keeps the
+    stored instance honest — it asserts linting the input still produces it.
+    """
+    from tests.data.reporters_qaresult import EXPECTED
+    return EXPECTED
