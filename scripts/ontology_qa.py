@@ -195,6 +195,12 @@ def exec_sparql(graph, key, exclude_types=None):
             f"FILTER NOT EXISTS {{ VALUES ?excludedType {{ {values} }} ?c a ?excludedType . }}"
         )
     results = graph.query(sparql_query)
+    if results.type == 'SELECT':
+        # Rows come back in store order, which varies between runs: the same inputs would
+        # otherwise produce a differently ordered report each time, so diffs are
+        # unreviewable and the output can't be compared against an expected one. CONSTRUCT
+        # results are graphs and are left alone.
+        return sorted(results, key=lambda row: tuple(str(value) for value in row))
     return results
 
 def get_namespace(uri):
@@ -1832,17 +1838,21 @@ def violation_formatting(array, unique=False):
     """
     Format a string of elements into a markdown list.
     
+    Elements are always sorted. They arrive in SPARQL result order, which varies between
+    runs, so without this the same inputs produce a different report each time: diffs are
+    unreviewable and the output can't be compared against an expected one.
+
     Args:
         array (list): List of elements to format.
-        unique (bool): Logical flag to sort and remove duplicates.
+        unique (bool): Logical flag to also remove duplicates.
     
     Returns:
         formatted_string (str): String formatted as a markdown list.
     """
     if unique:
-        array = list(set(array))
-        array.sort()
-    
+        array = set(array)
+    array = sorted(array, key=str)
+
     formatted_string = ""
     for element in array:
         formatted_string += f"{element},<br> "
