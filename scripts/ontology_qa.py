@@ -548,9 +548,11 @@ def print_if_executed(metrics, checks, key):
         output = metrics[key]
     return output
 
-def write_ctrf_report(result: QAResult, file_path, filename):
+def build_ctrf_report(result: QAResult):
     """
-    Convert QA metrics to CTRF (Common Test Result Format) JSON.
+    A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
+    check, with the run's summary. Returns the report; writing it is write_ctrf_report's
+    job, so the projection can be built and inspected without touching the filesystem.
     """
     passed = 0
     failed = 0
@@ -588,8 +590,11 @@ def write_ctrf_report(result: QAResult, file_path, filename):
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
-    
-    # Write to file
+    return ctrf_report
+
+
+def write_ctrf_report(ctrf_report, file_path, filename):
+    """Write a CTRF report (see build_ctrf_report) to a file. Returns the log line."""
     os.makedirs(file_path, exist_ok=True)
     # Fallback CTRF filename
     if not filename:
@@ -597,9 +602,8 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     output_file = os.path.join(file_path, filename)
     with open(output_file, 'w') as f:
         json.dump(ctrf_report, f, indent=2)
-    
-    log = f"\nCTRF report written to: {output_file}\n"
-    return ctrf_report, log
+
+    return f"\nCTRF report written to: {output_file}\n"
 
 def print_profiling_metrics(metrics, elements, verbose):
     log  = "\n## Profiling Details\n\n"
@@ -3211,7 +3215,8 @@ def main():
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
-                write_ctrf_report(result, args.ctrf_dir, f"{stem}-qa-report.json")
+                write_ctrf_report(build_ctrf_report(result), args.ctrf_dir,
+                                  f"{stem}-qa-report.json")
                 dqv_results.append(result)
                 if not result.passed:
                     any_violation = True
@@ -3253,7 +3258,7 @@ def main():
     log_output += qa_log
 
     if result is not None:
-        write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
+        write_ctrf_report(build_ctrf_report(result), args.ctrf_dir, args.ctrf_filename)
         _write_dqv(args, config, [result], ontology_sources)
 
     qa_terminate(args.output, log_output)

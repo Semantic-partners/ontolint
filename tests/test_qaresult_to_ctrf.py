@@ -1,66 +1,81 @@
 """
-QAResult -> CTRF, from the same result as tests/test_lint_to_qaresult.py.
+QAResult -> CTRF, from the QAResult stored in tests/data/reporters_qaresult.py.
 
-CTRF is a projection of the QAResult: one test entry per executed check, with the run's
-summary. Nothing is re-derived from the graph here, so these assertions are about the
-mapping alone.
+CTRF is a projection: one test case per executed check, plus the run's summary. These
+assertions are about that mapping alone — `build_ctrf_report` returns the report, so
+nothing here runs a check or reads a file.
 """
 
 import json
 
-from scripts.ontology_qa import write_ctrf_report
+import pytest
+
+from scripts.ontology_qa import build_ctrf_report, write_ctrf_report
 
 
-def _ctrf(result, tmp_path):
-    report, _ = write_ctrf_report(result, str(tmp_path), 'report.json')
-    assert json.loads((tmp_path / 'report.json').read_text()) == report, "file and return differ"
-    return report['results']
+@pytest.fixture
+def ctrf(stored_result):
+    """The CTRF projection of the stored QAResult."""
+    return build_ctrf_report(stored_result)['results']
 
 
-def test_one_entry_per_executed_check(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
-
-    assert len(results['tests']) == len(stored_result.checks)
-    assert {t['name'] for t in results['tests']} == {c.name for c in stored_result.checks}
+def test_one_entry_per_executed_check(ctrf, stored_result):
+    assert len(ctrf['tests']) == len(stored_result.checks)
+    assert {t['name'] for t in ctrf['tests']} == {c.name for c in stored_result.checks}
 
 
-def test_each_status_matches_the_check(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
+def test_each_status_matches_the_check(ctrf, stored_result):
     expected = {c.name: ('passed' if c.passed else 'failed') for c in stored_result.checks}
 
-    assert {t['name']: t['status'] for t in results['tests']} == expected
+    assert {t['name']: t['status'] for t in ctrf['tests']} == expected
 
 
-def test_the_summary_counts_the_failures(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
-    summary = results['summary']
+def test_the_summary_counts_the_failures(ctrf, stored_result):
+    summary = ctrf['summary']
 
     assert summary['failed'] == len(stored_result.failures)
     assert summary['passed'] == len(stored_result.checks) - len(stored_result.failures)
     assert summary['tests'] == len(stored_result.checks)
 
 
-def test_a_failed_entry_carries_the_offending_elements(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
-    entry = next(t for t in results['tests'] if t['name'] == "Class without label")
+def test_a_failed_entry_carries_the_offending_elements(ctrf, stored_result):
+    entry = next(t for t in ctrf['tests'] if t['name'] == "Class without label")
 
     assert entry['status'] == 'failed'
-    assert stored_result.get("Class without label").elements in json.dumps(entry)
+    assert entry['failure']['elements'] == stored_result.get("Class without label").elements
+    assert entry['failure']['violations'] == stored_result.get("Class without label").count
 
 
-def test_the_input_is_recorded(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
+def test_a_passing_entry_carries_no_failure(ctrf):
+    passing = [t for t in ctrf['tests'] if t['status'] == 'passed']
 
-    assert results['filesProcessed'] == ['reporters.ttl']
-
-
-def test_the_report_names_the_tool(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
-
-    assert results['tool']['name']
+    assert passing, "the stored result is meant to have passing checks too"
+    assert all('failure' not in t for t in passing)
 
 
-def test_the_report_is_timestamped(stored_result, tmp_path):
-    results = _ctrf(stored_result, tmp_path)
+def test_the_input_is_recorded(ctrf):
+    assert ctrf['filesProcessed'] == ['reporters.ttl']
 
-    assert results['timestamp']
+
+def test_the_report_names_the_tool(ctrf):
+    assert ctrf['tool']['name']
+
+
+def test_the_report_is_timestamped(ctrf):
+    assert ctrf['timestamp']
+
+
+def test_writing_puts_the_given_report_on_disk(stored_result, tmp_path):
+    # The other half of the split: write takes the built report and only writes it.
+    report = build_ctrf_report(stored_result)
+
+    log = write_ctrf_report(report, str(tmp_path), 'report.json')
+
+    assert json.loads((tmp_path / 'report.json').read_text()) == report
+    assert 'report.json' in log
+
+
+def test_writing_falls_back_to_a_generated_filename(stored_result, tmp_path):
+    write_ctrf_report(build_ctrf_report(stored_result), str(tmp_path), None)
+
+    assert len(list(tmp_path.glob('*.json'))) == 1
