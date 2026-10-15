@@ -28,9 +28,10 @@ import yaml
 import networkx as nx
 
 try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
+    from scripts import dqv, graphutil
 except ImportError:  # run as a script: scripts/ itself is on sys.path
     import dqv
+    import graphutil
 
 # Create a dictionary with SPARQL queries, from files.
 sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
@@ -261,6 +262,31 @@ def ontology_iris(graph):
     """The owl:Ontology IRIs a graph declares, sorted."""
     return sorted(str(o) for o in graph.subjects(rdflib.RDF.type, rdflib.OWL.Ontology)
                   if isinstance(o, rdflib.URIRef))
+
+
+def declared_ontology_sources(sources):
+    """
+    {ontology IRI: [source IRIs]} from an iterable of (source IRI, graph) pairs.
+
+    The CLI builds the same mapping as it loads (see load_rdf), because it merges the files
+    into one graph and that merge destroys the record: the union of two identical
+    declarations is a single triple.
+    """
+    declared = {}
+    for source, graph in sources:
+        for iri in ontology_iris(graph):
+            declared.setdefault(iri, []).append(str(source))
+    return declared
+
+
+def duplicate_ontology_iris(ontology_sources):
+    """
+    The entries of an {ontology IRI: [source IRIs]} mapping that more than one input declared.
+
+    Ontolint's rule is one file, one ontology, so an IRI declared by two inputs means two
+    files claim to be the same ontology. One definition of that, for both front ends.
+    """
+    return {iri: s for iri, s in (ontology_sources or {}).items() if len(s) > 1}
 
 
 def defined_namespaces(graph):
@@ -2422,28 +2448,25 @@ def load_rdf(paths, verbose: bool = False):
     Args:
         paths (list): List of file and/or directory paths.
         verbose (bool): Logical flag for printing additional information during loading.
-    
+
     Returns:
         file_counter (int): Number of files successfully loaded.
         files_processed (list): List of successfully processed file names.
         graph (rdflib.Graph): The RDF graph object with all loaded data.
         log_results (str): Parsing result and status log.
         files_failed (list): List of file names that could not be loaded.
+        ontology_sources (dict): {ontology IRI: [file: IRI, ...]}, recorded as each file is
+            read. The files are merged into one graph here and that merge destroys the
+            record of which file declared what — two identical owl:Ontology declarations
+            become a single triple — so it has to be taken while they are still separate.
     """
-    def _bind_namespaces(target_graph, source_graph):
-        """Bind namespaces from source to target graph."""
-        for prefix, uri in source_graph.namespace_manager.namespaces():
-            try:
-                target_graph.namespace_manager.bind(prefix, uri)
-            except Exception:
-                pass  # ignore binding errors
-
     # Process all files
     file_counter = 0
     files_processed = []
     files_failed = []
     graph = rdflib.Graph()
     log_results = ""
+    ontology_sources = {}
 
     for file_path in _collect_files(paths):
         success, file_graph, log_msg = load_rdf_file(file_path)
@@ -2451,14 +2474,16 @@ def load_rdf(paths, verbose: bool = False):
             log_results += log_msg
             files_processed.append(file_path)
             file_counter += 1
+            for iri in ontology_iris(file_graph):
+                ontology_sources.setdefault(iri, []).append(dqv.file_iri(file_path))
             graph += file_graph
-            _bind_namespaces(graph, file_graph)
+            graphutil.copy_namespaces(graph, file_graph)
         else:
             # Always report parse failures, regardless of verbosity.
             log_results += f"ERROR - {log_msg}"
             files_failed.append(file_path)
 
-    return file_counter, files_processed, graph, log_results, files_failed
+    return file_counter, files_processed, graph, log_results, files_failed, ontology_sources
 
 def _parse_failure_log(files_failed):
     """Format a Markdown error block listing files that failed to parse."""
@@ -3057,14 +3082,16 @@ def _process_loaded_graph(g, files_processed, args, config, checklist, provenanc
     return log, result
 
 
-def _write_dqv(args, config, results):
+def _write_dqv(args, config, results, ontology_sources=None):
     """Write the DQV report if --dqv-dir or --dqv-filename was given."""
     if not (args.dqv_dir or args.dqv_filename):
         return
     if not results:
         sys.stderr.write("Ontolint: no QA results, DQV report not written.\n")
         return
-    _, log = dqv.write_dqv_report(results, args.dqv_dir or '.', args.dqv_filename, config.base_iri)
+    duplicates = duplicate_ontology_iris(ontology_sources)
+    _, log = dqv.write_dqv_report(results, args.dqv_dir or '.', args.dqv_filename, config.base_iri,
+                                  duplicate_ontologies=duplicates)
     sys.stderr.write(log.lstrip())
 
 def main():
@@ -3140,11 +3167,15 @@ def main():
         any_violation = False
         any_parse_failure = False
         dqv_results = []
+        ontology_sources = {}
         for fp in individual_files:
             log_output = "# Ontology Quality Assurance\n\n"
             if config_log:
                 log_output += config_log
-            file_counter, files_processed, g, load_log, files_failed = load_rdf([fp], verbose=args.verbose)
+            file_counter, files_processed, g, load_log, files_failed, file_sources = load_rdf(
+                [fp], verbose=args.verbose)
+            for iri, sources in file_sources.items():
+                ontology_sources.setdefault(iri, []).extend(sources)
             log_output += load_log
             if files_failed:
                 log_output += _parse_failure_log(files_failed)
@@ -3165,14 +3196,15 @@ def main():
                 if not result.passed:
                     any_violation = True
             qa_terminate(None, log_output)
-        _write_dqv(args, config, dqv_results)
+        _write_dqv(args, config, dqv_results, ontology_sources)
         if any_parse_failure or (args.exit_status and any_violation):
             sys.exit(1)
         return
 
     # Single-run (default) mode.
     log_output = "# Ontology Quality Assurance\n\n"
-    file_counter, files_processed, g, log_results, files_failed = load_rdf(args.data_files, verbose=args.verbose)
+    file_counter, files_processed, g, log_results, files_failed, ontology_sources = load_rdf(
+        args.data_files, verbose=args.verbose)
     log_output += log_results
 
     # A file that can't be parsed would silently shrink the graph under test, so
@@ -3202,7 +3234,7 @@ def main():
 
     if result is not None:
         write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
-        _write_dqv(args, config, [result])
+        _write_dqv(args, config, [result], ontology_sources)
 
     qa_terminate(args.output, log_output)
 

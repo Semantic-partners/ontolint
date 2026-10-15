@@ -2,8 +2,10 @@ import json
 import os
 from unittest.mock import patch
 import pytest
+import rdflib
 
 from scripts.ontology_qa import main
+from scripts import dqv
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
@@ -312,3 +314,69 @@ def test_per_file_parse_failure_exits_nonzero_but_reports_other_files(tmp_path):
         run_main(pass_ttl, str(bad), '--per-file', '--ctrf-dir', str(ctrf_dir))
     assert exc.value.code == 1
     assert [p.name for p in ctrf_dir.glob('*.json')] == ['example_pass-qa-report.json']
+
+
+# ── one file, one ontology (issue #95) ────────────────────────────────────────
+
+DUPLICATE_METRIC = rdflib.URIRef(f"{dqv.DEFAULT_BASE_URI}metric-duplicate-ontology-iri")
+
+SAME_ONTOLOGY = """
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+<https://example.org/thing#> a owl:Ontology ; rdfs:comment "Declared in both files" .
+<https://example.org/thing#%s> a owl:Class ; rdfs:label "%s" ; rdfs:comment "A class" .
+"""
+
+
+def _duplicate_sources(report_path):
+    """The inputs the report blames for a duplicated ontology IRI."""
+    g = rdflib.Graph().parse(report_path, format='turtle')
+    return {
+        str(g.value(v, rdflib.SH.focusNode)):
+            sorted(str(r) for r in g.objects(v, dqv.OLQ.relatedResource))
+        for m in g.subjects(dqv.DQV.isMeasurementOf, DUPLICATE_METRIC)
+        for v in g.objects(m, dqv.OLQ.violation)
+    }
+
+
+@pytest.fixture
+def two_files_one_ontology(tmp_path):
+    """Two input files declaring the same owl:Ontology IRI."""
+    for name in ('alpha', 'beta'):
+        (tmp_path / f"{name}.ttl").write_text(SAME_ONTOLOGY % (name, name))
+    return tmp_path, [dqv.file_iri(tmp_path / f"{name}.ttl") for name in ('alpha', 'beta')]
+
+
+@pytest.mark.parametrize('mode', [[], ['--per-file']])
+def test_duplicate_ontology_iri_is_reported_naming_both_files(two_files_one_ontology, tmp_path, mode):
+    # Merging the inputs first would hide this: two identical declarations are one triple,
+    # so it is recorded while the files are still separate (load_rdf's ontology_sources).
+    inputs, file_iris = two_files_one_ontology
+    out = tmp_path / 'out'
+
+    run_main(str(inputs), *mode, '--ctrf-dir', str(out / 'ctrf'), '--dqv-dir', str(out))
+
+    assert _duplicate_sources(out / dqv.DEFAULT_DQV_FILENAME) == {
+        "https://example.org/thing#": sorted(file_iris),
+    }
+
+
+def test_a_duplicate_does_not_stop_the_run(two_files_one_ontology, tmp_path):
+    inputs, _ = two_files_one_ontology
+    out = tmp_path / 'out'
+
+    run_main(str(inputs), '--per-file', '--ctrf-dir', str(out / 'ctrf'), '--dqv-dir', str(out))
+
+    # Both files were checked and reported, rather than the run aborting on the clash.
+    assert len(list((out / 'ctrf').glob('*.json'))) == 2
+
+
+def test_distinct_ontologies_raise_no_duplicate_finding(tmp_path):
+    for name in ('one', 'two'):
+        (tmp_path / f"{name}.ttl").write_text(
+            SAME_ONTOLOGY.replace('thing', name) % ('Thing', 'Thing'))
+    out = tmp_path / 'out'
+
+    run_main(str(tmp_path), '--per-file', '--ctrf-dir', str(out / 'ctrf'), '--dqv-dir', str(out))
+
+    assert _duplicate_sources(out / dqv.DEFAULT_DQV_FILENAME) == {}

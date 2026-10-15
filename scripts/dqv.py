@@ -19,6 +19,11 @@ from urllib.parse import quote
 
 import rdflib
 
+try:  # imported as part of the scripts package (e.g. by the tests)
+    from scripts import graphutil
+except ImportError:  # run as a script: scripts/ itself is on sys.path
+    import graphutil
+
 
 @dataclass
 class Violation:
@@ -70,6 +75,11 @@ SH = rdflib.SH
 DEFAULT_BASE_URI = "urn:ontolint:"
 DEFAULT_DQV_FILENAME = "ontolint-dqv.ttl"
 
+# Every prefix the report uses, so any part of it serialised on its own stays legible.
+REPORT_PREFIXES = [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('dcat', DCAT),
+                   ('dcterms', rdflib.DCTERMS), ('skos', rdflib.SKOS),
+                   ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]
+
 # slug -> (label, definition)
 DQV_DIMENSIONS = {
     'metadata':      ("Metadata",      "The ontology declares itself and describes its purpose."),
@@ -111,6 +121,15 @@ DQV_METRICS = {
 DQV_ROLLUP_METRIC = ('ontolint-conformance', "Ontolint conformance",
                      "Number of ontolint checks that failed for the dataset; 0 means every executed check passed.",
                      'conformance')
+
+# A set-level metric: it is about the inputs taken together, not about one graph, so it has
+# no CHECKLIST entry and no check_* function. Ontolint's rule is one file, one ontology —
+# two inputs declaring the same owl:Ontology IRI break it, and the evidence only exists
+# before they are merged (the union of two identical declarations is a single triple).
+DQV_DUPLICATE_ONTOLOGY_METRIC = ('duplicate-ontology-iri', "Duplicate ontology IRI",
+                                 "An owl:Ontology IRI is declared by more than one input; "
+                                 "each ontology should be declared by exactly one.",
+                                 'uniqueness', SH.Violation)
 
 
 def file_iri(path):
@@ -154,10 +173,17 @@ def check_base_uri(base_uri):
         raise ValueError(f"--base-uri must be an absolute IRI (e.g. https://example.org/qa/), got {base_uri!r}")
 
 
+# Characters a base may already end in, meaning the minted name can be appended directly.
+# '-' and '_' matter because a prefix-style base is a normal way to namespace one run
+# (".../run-123-" giving ".../run-123-dataset-activities"); without them it would be
+# turned into ".../run-123-/dataset-activities", with a separator nobody asked for.
+BASE_SEPARATORS = ('/', '#', ':', '-', '_')
+
+
 def _normalise_base(base_uri):
     base = base_uri or DEFAULT_BASE_URI
     check_base_uri(base)
-    return base if base.endswith(('/', '#', ':')) else base + '/'
+    return base if base.endswith(BASE_SEPARATORS) else base + '/'
 
 
 def _mint(base, kind, *parts):
@@ -273,7 +299,45 @@ def _add_configuration(g, base, settings, config_file=None):
     return configuration
 
 
-def build_dqv_graph(results, base_uri=None, timestamp=None):
+def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
+    """
+    The triples reporting each ontology IRI that more than one input declared, as a graph
+    of their own — empty when there are none.
+
+    Reported once, on the IRI itself, naming the inputs that declared it, rather than once
+    per input, which would put two identical measurements on the same dataset.
+    """
+    g = graphutil.bound_graph(REPORT_PREFIXES)
+    if not duplicate_ontologies:
+        return g
+    base = _normalise_base(base_uri)
+    slug, label, definition, dimension, severity = DQV_DUPLICATE_ONTOLOGY_METRIC
+    metric = _add_metric(g, base, slug, label, definition, dimension, severity)
+    for iri, sources in sorted(duplicate_ontologies.items()):
+        dataset = rdflib.URIRef(iri)
+        sources = sorted(str(source) for source in sources)
+        measurement = _mint(base, 'measurement', assessment, dataset, slug)
+        g.add((assessment, DQV.hasQualityMeasurement, measurement))
+        g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
+        g.add((measurement, DQV.isMeasurementOf, metric))
+        g.add((measurement, DQV.computedOn, dataset))
+        g.add((measurement, DQV.value, rdflib.Literal(len(sources))))
+        g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
+        g.add((measurement, OLQ.severity, severity))
+        node = _mint(base, 'violation', measurement, dataset, *sources)
+        g.add((measurement, OLQ.violation, node))
+        g.add((node, rdflib.RDF.type, SH.ValidationResult))
+        g.add((node, SH.resultSeverity, severity))
+        g.add((node, SH.sourceConstraintComponent, SH.SPARQLConstraintComponent))
+        g.add((node, SH.focusNode, dataset))
+        g.add((node, SH.resultMessage, rdflib.Literal(
+            f"declared by {len(sources)} inputs: " + ", ".join(sources))))
+        for source in sources:
+            g.add((node, OLQ.relatedResource, rdflib.URIRef(source)))
+    return g
+
+
+def build_dqv_graph(results, base_uri=None, timestamp=None, duplicate_ontologies=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
 
@@ -287,6 +351,9 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
       merged result over several is computed on one aggregate dcat:Dataset that
       dcterms:hasPart each of them, rather than being asserted on every ontology.
     - A dqv:QualityMetadata assessment node linking every measurement.
+    - duplicate_ontologies ({ontology IRI: [source IRIs]}) adds one set-level measurement
+      per IRI that more than one input declared — a condition no single graph can show,
+      since merging two identical declarations leaves one triple.
     No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
     under base_uri. The olq: namespace is used only for vocabulary terms.
     """
@@ -294,11 +361,7 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     timestamp = timestamp or _report_timestamp()
     stamp = timestamp.isoformat()
 
-    g = rdflib.Graph()
-    for prefix, ns in [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('dcat', DCAT),
-                       ('dcterms', rdflib.DCTERMS), ('skos', rdflib.SKOS),
-                       ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]:
-        g.bind(prefix, ns)
+    g = graphutil.bound_graph(REPORT_PREFIXES)
 
     # Configurations first: the assessment's identity includes them, so the same files
     # assessed under different configurations never share assessment or measurement IRIs.
@@ -309,6 +372,8 @@ def build_dqv_graph(results, base_uri=None, timestamp=None):
     g.add((assessment, PROV.generatedAtTime, rdflib.Literal(stamp, datatype=rdflib.XSD.dateTime)))
     for configuration in configurations:
         g.add((assessment, OLQ.configuration, configuration))
+
+    g += duplicate_ontology_graph(base, assessment, duplicate_ontologies)
 
     slug, label, definition, dimension = DQV_ROLLUP_METRIC
     rollup = _add_metric(g, base, slug, label, definition, dimension)
@@ -396,11 +461,13 @@ def check_dqv_filename(filename):
         raise ValueError(f"--dqv-filename must be a file name without directories or control characters, got {filename!r}; use --dqv-dir for the location")
 
 
-def write_dqv_report(results, file_path, filename=None, base_uri=None, timestamp=None):
+def write_dqv_report(results, file_path, filename=None, base_uri=None, timestamp=None,
+                     duplicate_ontologies=None):
     """Serialise the DQV graph for the given QAResults to Turtle. Returns (graph, log)."""
     filename = filename or DEFAULT_DQV_FILENAME
     check_dqv_filename(filename)
-    g = build_dqv_graph(results, base_uri=base_uri, timestamp=timestamp)
+    g = build_dqv_graph(results, base_uri=base_uri, timestamp=timestamp,
+                        duplicate_ontologies=duplicate_ontologies)
     os.makedirs(file_path, exist_ok=True)
     output_file = os.path.join(file_path, filename)
     g.serialize(destination=output_file, format='turtle')

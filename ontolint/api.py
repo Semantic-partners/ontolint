@@ -25,7 +25,7 @@ from typing import TypeAlias
 
 import rdflib
 
-from scripts import dqv
+from scripts import dqv, graphutil
 from scripts import ontology_qa as qa
 from scripts.ontology_qa import IRI, Config
 
@@ -68,6 +68,10 @@ def lint(datasets: Datasets, config: Config | None = None) -> rdflib.Graph:
     declares no ontology falls back to `unnamed-1`, `unnamed-2` by position, which is
     stable only for the same order; name those if you want to compare runs.
 
+    Ontolint's rule is one file, one ontology. If two graphs declare the same
+    `owl:Ontology` IRI, that is reported in the graph as a `duplicate-ontology-iri`
+    finding naming both inputs, and every other check still runs.
+
     A name that is itself an absolute IRI is used as the dataset's identity as it stands,
     so the same dataset is identified the same way across runs, machines and callers. Any
     other name is a local label, minted into an IRI under `base_iri` and meaningful only
@@ -88,6 +92,10 @@ def lint(datasets: Datasets, config: Config | None = None) -> rdflib.Graph:
     config = config or Config()
     prepared = _prepare(datasets)
     _check_base_iri(config.base_iri)
+    # One file, one ontology: two inputs declaring the same owl:Ontology IRI is a finding,
+    # not a reason to refuse. Computed here because merging them would hide it.
+    duplicates = qa.duplicate_ontology_iris(qa.declared_ontology_sources(
+        (dqv.dataset_iri(config.base_iri, source), graph) for _, source, graph in prepared))
     # Resolved once, so an unknown check name is rejected before anything runs.
     checklist, lint_config, rule_reasons = qa.select_checks(config.checks)
     provenance = {'lint_config': lint_config, 'rule_reasons': rule_reasons}
@@ -97,10 +105,11 @@ def lint(datasets: Datasets, config: Config | None = None) -> rdflib.Graph:
                              source_iris=[dqv.dataset_iri(config.base_iri, name) for name in names])
 
     if config.per_file:
-        results = [run(graph, [name]) for name, graph in prepared]
+        results = [run(graph, [name]) for name, _, graph in prepared]
     else:
-        results = [run(_merge(graph for _, graph in prepared), [name for name, _ in prepared])]
-    return dqv.build_dqv_graph(results, base_uri=config.base_iri)
+        results = [run(_merge(graph for *_, graph in prepared), [name for name, *_ in prepared])]
+    return dqv.build_dqv_graph(results, base_uri=config.base_iri,
+                               duplicate_ontologies=duplicates)
 
 
 def _check_base_iri(base_iri):
@@ -116,7 +125,7 @@ def _check_base_iri(base_iri):
 
 def _prepare(datasets):
     """
-    [(name, a private copy of the graph to check)], whichever way they were passed.
+    [(name, source, a private copy of the graph to check)], whichever way they were passed.
 
     The checks remove instance data from the graph they run on, and inference adds to it,
     so a caller's graph is copied rather than worked on in place.
@@ -124,16 +133,13 @@ def _prepare(datasets):
     prepared = []
     for index, (name, value) in enumerate(_items(datasets), start=1):
         graph = _as_graph(name, value)
-        prepared.append((str(name) if name is not None else _derive_name(graph, index), graph))
-
-    seen = {}
-    for name, _ in prepared:
-        if name in seen:
-            raise ValueError(
-                f"two datasets are both named {name!r}; pass a mapping with distinct names "
-                "so each one can be reported separately"
-            )
-        seen[name] = True
+        # The source is how the caller referred to this input, which is what a set-level
+        # finding has to name. It differs from the dataset name for an unnamed graph: that
+        # is named after the ontology it declares, so two inputs declaring the same one
+        # would otherwise be reported as the same input twice.
+        source = str(name) if name is not None else f"unnamed-{index}"
+        prepared.append((str(name) if name is not None else _derive_name(graph, index),
+                         source, graph))
     return prepared
 
 
@@ -182,22 +188,12 @@ def _derive_name(graph, index):
 def _copy(graph):
     target = rdflib.Graph()
     target += graph
-    _bind(target, graph)
-    return target
+    return graphutil.copy_namespaces(target, graph)
 
 
 def _merge(graphs):
     merged = rdflib.Graph()
     for graph in graphs:
         merged += graph
-        _bind(merged, graph)
+        graphutil.copy_namespaces(merged, graph)
     return merged
-
-
-def _bind(target, source):
-    """Carry prefixes over: the hijacking and profiling checks report on declared prefixes."""
-    for prefix, uri in source.namespace_manager.namespaces():
-        try:
-            target.namespace_manager.bind(prefix, uri)
-        except Exception:
-            pass  # a prefix that can't be rebound is not worth failing a run over

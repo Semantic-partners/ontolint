@@ -9,7 +9,7 @@ from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST, DEFAULT_
 from scripts import dqv
 from scripts.dqv import (
     build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
-    DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
+    duplicate_ontology_graph, dataset_iri, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
 )
 
 EX = rdflib.Namespace("http://example.org#")
@@ -534,3 +534,59 @@ def test_empty_skip_object_of_records_no_skips(make_graph):
     g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), skip_object_of=[], config_file='.rdf-lint.yml')], timestamp=TS)
     assert _settings(g, 'undefined-terms.skip-object-of') == []
     assert list(g.objects(None, OLQ.configurationFile)) == [Literal('.rdf-lint.yml')]
+
+
+# ── the set-level duplicate-ontology finding (issue #95) ──────────────────────
+
+def test_duplicate_ontology_graph_is_empty_when_there_are_none():
+    assert len(duplicate_ontology_graph(None, URIRef("urn:ontolint:assessment-x"), None)) == 0
+    assert len(duplicate_ontology_graph(None, URIRef("urn:ontolint:assessment-x"), {})) == 0
+
+
+def test_duplicate_ontology_graph_carries_only_its_own_triples():
+    # It builds a graph of its own rather than writing into the report, so the finding can
+    # be read, tested or serialised on its own.
+    g = duplicate_ontology_graph(None, URIRef("urn:ontolint:assessment-x"),
+                                 {"https://example.org/thing#": ["urn:a", "urn:b"]})
+
+    [measurement] = list(g.subjects(RDF.type, DQV.QualityMeasurement))
+    assert g.value(measurement, DQV.computedOn) == URIRef("https://example.org/thing#")
+    assert g.value(measurement, DQV.value).toPython() == 2
+    assert g.value(measurement, OLQ.conforms).toPython() is False
+
+    [violation] = list(g.objects(measurement, OLQ.violation))
+    assert g.value(violation, SH.focusNode) == URIRef("https://example.org/thing#")
+    assert sorted(str(r) for r in g.objects(violation, OLQ.relatedResource)) == ["urn:a", "urn:b"]
+    assert "declared by 2 inputs" in str(g.value(violation, SH.resultMessage))
+
+
+def test_duplicate_ontology_graph_reads_on_its_own():
+    g = duplicate_ontology_graph(None, URIRef("urn:ontolint:assessment-x"),
+                                 {"https://example.org/thing#": ["urn:a", "urn:b"]})
+
+    assert "olq:" in g.serialize(format="turtle")   # prefixes bound, no ns1:
+
+
+def test_the_duplicate_metric_is_not_a_checklist_check():
+    # It is about the inputs taken together, so it has no check_* function and no CHECKLIST
+    # entry; the invariant that every CHECKLIST key has a metric is unaffected.
+    from scripts.dqv import DQV_DUPLICATE_ONTOLOGY_METRIC
+    assert DQV_DUPLICATE_ONTOLOGY_METRIC[0] not in {slug for slug, *_ in DQV_METRICS.values()}
+
+
+# ── how a base URI is joined to a minted name ─────────────────────────────────
+
+@pytest.mark.parametrize('base, expected', [
+    # Already ends in a separator: used as given.
+    ('https://example.org/qa/', 'https://example.org/qa/dataset-x'),
+    ('https://example.org/qa#', 'https://example.org/qa#dataset-x'),
+    ('urn:ontolint:', 'urn:ontolint:dataset-x'),
+    # Prefix-style bases, the normal way to namespace one run. Inserting a '/' after the
+    # hyphen would put a separator in that the caller did not ask for.
+    ('https://example.org/reports/run-123-', 'https://example.org/reports/run-123-dataset-x'),
+    ('https://example.org/reports/run_123_', 'https://example.org/reports/run_123_dataset-x'),
+    # Ends in a name character, so it does need one.
+    ('https://example.org/qa', 'https://example.org/qa/dataset-x'),
+])
+def test_a_base_gets_a_separator_only_when_it_needs_one(base, expected):
+    assert str(dataset_iri(base, 'x')) == expected
