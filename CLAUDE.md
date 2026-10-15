@@ -63,6 +63,26 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 
 ### Test suite
 
+**The four reporter suites** turn on three files in `tests/data/`: the input
+`reporters.ttl`, and two expectations written out as data — `reporters_qaresult.py`, the
+`QAResult` that linting it produces, and `reporters_markdown.py`, the Markdown it renders.
+
+- `test_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
+  only one that runs the checks, and the only one a check change should break. When a
+  check changes on purpose, update the stored instance from the diff it prints.
+- `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take the **stored** instance as
+  input, so they test the projection alone — a change to what a check finds cannot break
+  them, and a reporter bug cannot be blamed on the checks.
+- `test_lint_to_markdown.py` asserts a lint still renders the stored Markdown. It has to
+  run the linter, because Markdown is not a projection of `QAResult` yet (see design.md).
+  Its other assertions are not a second expectation — they say why parts of the text must
+  hold, so a failure explains itself instead of handing over a 189-line diff.
+
+Verified by sabotage: breaking a check fails only suite 1, breaking the DQV reporter fails
+only suite 4, and changing a line of report wording fails only suite 2. Add to `reporters.ttl` rather than starting another fixture — it is
+deliberately mixed (passing and failing checks, a blank node as a domain, a duplicate
+label, a deprecated class, an isolated class) and needs no network.
+
 Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam exposed by the refactoring. Each test builds an inline TTL string, parses it into an `rdflib.Graph`, and asserts on the returned `CheckResult` objects (`check.passed`, `check.count`, `check.elements`).
 
 | File | What it covers |
@@ -78,6 +98,10 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
+| `test_lint_to_qaresult.py` | **Reporter suite 1 of 4.** Linting `reporters.ttl` still produces the stored `QAResult` — the checks that ran, what each decided, profiling, datasets, configuration |
+| `test_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
+| `test_qaresult_to_ctrf.py` | **Suite 3.** The **stored** QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
+| `test_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
 | `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
 | `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
@@ -86,6 +110,10 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 `tests/conftest.py` sets `QA_SPARQL_DIR` to an absolute path before any import, so tests work regardless of working directory. Its autouse `no_network` fixture blocks sockets, so tests never fetch from the network: an unmocked fetch fails at once, as offline. Use a fake `uri_parser` or `imports.local` to test resolution.
 
 ## Architecture
+
+`design.md` has the shape of a run — the pipeline, the three reporters and their
+granularity, what `--per-file` should mean, and why Markdown is not yet a projection of
+`QAResult`. Read it before changing how a report is assembled.
 
 ### Data flow
 
