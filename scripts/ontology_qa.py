@@ -1976,7 +1976,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
     if not results and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
-    elif int(in_metrics['classCount']) == 0:
+    elif not results and int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
 
     elif results:
