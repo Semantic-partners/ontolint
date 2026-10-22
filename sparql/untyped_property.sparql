@@ -14,9 +14,18 @@ WHERE {
   # Restrict to ontology namespace
   OPTIONAL {
     ?ontology a owl:Ontology .
-    BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
+    BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?nsBase)
   }
-  FILTER (!BOUND(?ns) || STRSTARTS(STR(?property), ?ns))
+  BIND(REPLACE(STR(?property), "[^#/]*$", "") AS ?pns)
+  BIND(
+    IF(
+      BOUND(?nsBase),
+      IF(STRLEN(?nsBase) < STRLEN(?pns) - 1, STR(?ontology), ?nsBase),
+      ?nsBase
+    )
+    AS ?ns
+  )
+  FILTER (!BOUND(?ns) || ?pns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
   MINUS {
     VALUES ?type { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty rdf:Property sh:ConstraintComponent }
     ?property a ?type .
