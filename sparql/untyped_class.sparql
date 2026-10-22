@@ -20,7 +20,6 @@ WHERE {
 	VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
     ?r a owl:Restriction ;
     ?restriction ?c .
-
   }
   
   # Exclude resources typed with a configured exclude-types IRI (injected at runtime)
@@ -30,10 +29,18 @@ WHERE {
 
   # Restrict to ontology namespace
   OPTIONAL {
-	?ontology a owl:Ontology .
-	BIND(STR(?ontology) AS ?ns)
+	  ?ontology a owl:Ontology .
+    BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?nsBase)
   }
   BIND(REPLACE(STR(?c), "[^#/]*$", "") AS ?cns)
+  BIND(
+    IF(
+      BOUND(?nsBase),
+      IF(STRLEN(?nsBase) < STRLEN(?cns) - 1, STR(?ontology), ?nsBase),
+      ?nsBase
+    )
+    AS ?ns
+  )
   FILTER (!BOUND(?ns) || ?cns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
   MINUS {
     VALUES ?type { owl:Class rdfs:Class rdfs:Datatype }
