@@ -30,10 +30,11 @@ WHERE {
 
   # Restrict to ontology namespace
   OPTIONAL {
-    ?ontology a owl:Ontology .
-    BIND(REPLACE(STR(?ontology), "^(.{8,})[#/][^#/]*$", "$1") AS ?ns)
+	?ontology a owl:Ontology .
+	BIND(STR(?ontology) AS ?ns)
   }
-  FILTER (!BOUND(?ns) || STRSTARTS(STR(?c), ?ns))
+  BIND(REPLACE(STR(?c), "[^#/]*$", "") AS ?cns)
+  FILTER (!BOUND(?ns) || ?cns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
   MINUS {
     VALUES ?type { owl:Class rdfs:Class rdfs:Datatype }
     ?c a ?type .
