@@ -172,12 +172,41 @@ def test_class_used_as_range_without_declaration_fails(make_graph):
     assert "UndeclaredClass" in check.elements
 
 
-def test_untyped_class_check_requires_ontology_declaration(make_graph):
-    # Without owl:Ontology, the namespace filter can't fire; no violations reported.
+def test_untyped_class_without_ontology_declaration(make_graph):
     g = make_graph("""
+    :DeclaredClass a owl:Class .
     :hasFur a owl:ObjectProperty ; rdfs:range :UndeclaredClass .
     """)
+    assert not run_qa(g).get("Untyped Classes").passed
+
+
+def test_untyped_class_without_ontology_declaration_unspecific(make_graph):
+    g = make_graph("""
+    @prefix ex: <http://test.example.org/test#> .
+    :DeclaredClass a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range ex:UndeclaredClass .
+    """)
+    assert not run_qa(g).get("Untyped Classes").passed
+
+
+def test_untyped_class_pass_class_from_external_ontology(make_graph):
+    g = make_graph("""
+    @prefix ex: <http://test.example.org/test#> .
+    : a owl:Ontology .
+    :DeclaredClass a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range ex:Fur .
+    """)
     assert run_qa(g).get("Untyped Classes").passed
+
+
+def test_untyped_class_with_ontology_short_iri(make_graph):
+    g = make_graph("""
+    @prefix : <http://test.example.org/long#> .
+    <http://test.example.org/long> a owl:Ontology .
+    :DeclaredClass a owl:Class .
+    :hasFur a owl:ObjectProperty ; rdfs:range :Fur .
+    """)
+    assert not run_qa(g).get("Untyped Classes").passed
 
 
 RDF_PROPOSITION_FORM = "http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm"

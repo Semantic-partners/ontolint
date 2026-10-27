@@ -1972,13 +1972,11 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
-    ontology_check = False
-    if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
     if not results and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
-    elif int(in_metrics['classCount']) == 0:
+    elif not results and int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
 
     elif results:
@@ -1990,7 +1988,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
-    if ontology_check:
+    if 'ontologyNotDeclared' in in_metrics:
         if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
             log += "WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
         elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
@@ -2028,8 +2026,6 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     metrics[check] = 0 # 'untypedProperties'
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
-    ontology_check = False
-    if 'ontologyNotDeclared' in in_metrics: ontology_check = True
 
     if not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
@@ -2046,7 +2042,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    if ontology_check:
+    if 'ontologyNotDeclared' in in_metrics:
         if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
             log += "WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
         elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
