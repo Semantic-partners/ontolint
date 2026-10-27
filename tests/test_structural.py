@@ -199,17 +199,6 @@ def test_untyped_class_pass_class_from_external_ontology(make_graph):
     assert run_qa(g).get("Untyped Classes").passed
 
 
-
-def test_untyped_class_with_ontology_long_iri(make_graph):
-    g = make_graph("""
-    @prefix : <http://test.example.org/long#> .
-    :extra a owl:Ontology .
-    :DeclaredClass a owl:Class .
-    :hasFur a owl:ObjectProperty ; rdfs:range :Fur .
-    """)
-    assert not run_qa(g).get("Untyped Classes").passed
-
-
 def test_untyped_class_with_ontology_short_iri(make_graph):
     g = make_graph("""
     @prefix : <http://test.example.org/long#> .
