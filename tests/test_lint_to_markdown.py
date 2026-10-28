@@ -17,12 +17,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from tests.conftest import CASES, render_case, stored_markdown_for
+
 # An rdflib blank node identifier: invented per parse, so it must never reach the report.
 RAW_BNODE = re.compile(r'\bn[0-9a-f]{32}b\d+\b')
 
 
-def test_a_lint_renders_the_stored_markdown(rendered_markdown, stored_markdown):
-    assert rendered_markdown == stored_markdown
+@pytest.mark.parametrize('case', CASES)
+def test_a_lint_renders_the_stored_markdown(case):
+    """Every case, whole. The assertions below are about the main case's content."""
+    assert render_case(case) == stored_markdown_for(case)
 
 
 def test_it_renders_the_same_text_every_time(render_markdown):

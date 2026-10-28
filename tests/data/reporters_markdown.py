@@ -1,5 +1,5 @@
 """
-The Markdown that linting `reporters.ttl` produces, written out as data.
+The Markdown that linting the `reporters.ttl` produces, written out as data.
 
 `test_lint_to_markdown.py` asserts a lint still renders exactly this. It is stored the same
 way as the QAResult beside it, for the same reason: when the rendering changes on purpose

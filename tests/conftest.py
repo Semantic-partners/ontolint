@@ -52,34 +52,48 @@ def make_graph():
 # QAResult -> DQV — so they all describe the same run and can be read against each other.
 # See tests/data/reporters.ttl.
 
-REPORTERS_TTL = Path(__file__).parent / 'data' / 'reporters.ttl'
+DATA = Path(__file__).parent / 'data'
+REPORTERS_TTL = DATA / 'reporters.ttl'
+
+# The reporter suites run over three cases, because several checks answer differently
+# depending only on how the inputs were batched — which is the whole of #96. Linted alone,
+# the fragment is the only way to see the two ontology-metadata checks fail; linted beside
+# reporters.ttl it changes the declaration check's answer again, and puts its own terms
+# outside the one declared namespace.
+CASES = {
+    'reporters': ['reporters.ttl'],
+    'fragment': ['reporters_fragment.ttl'],
+    'merged': ['reporters.ttl', 'reporters_fragment.ttl'],
+}
+
+# The DQV report describes a run, not a result, so its cases are run shapes rather than
+# inputs: one file, two files checked separately, two files merged into one graph.
+DQV_RUNS = {
+    'single': ['reporters'],
+    'per-file': ['reporters', 'fragment'],
+    'merged': ['merged'],
+}
 
 
 def _offline(uri):
     raise OSError(f"the reporter fixture must not need the network: {uri}")
 
 
-@pytest.fixture
-def reporters_ttl():
-    """The path to the shared input, for the suites that run the CLI over it."""
-    return REPORTERS_TTL
-
-
-@pytest.fixture
-def reporters_graph():
+def case_graph(case):
     """A fresh parse each time: the checks remove instance data from the graph they run on."""
-    return rdflib.Graph().parse(REPORTERS_TTL, format='turtle')
+    graph = rdflib.Graph()
+    for name in CASES[case]:
+        graph.parse(DATA / name, format='turtle')
+    return graph
 
 
-@pytest.fixture
-def reporters_result(reporters_graph):
-    """The QAResult produced by linting the input — what test_lint_to_qaresult.py checks."""
+def lint_case(case):
+    """The QAResult linting a case produces — what test_lint_to_qaresult.py checks."""
     from scripts.ontology_qa import Config, lint_graph
-    return lint_graph(reporters_graph, ['reporters.ttl'], Config(uri_parser=_offline))
+    return lint_graph(case_graph(case), list(CASES[case]), Config(uri_parser=_offline))
 
 
-@pytest.fixture
-def stored_qa_result():
+def stored_qa_result_for(case):
     """
     The QAResult written out under tests/data/, and the input to the reporter suites.
 
@@ -88,35 +102,67 @@ def stored_qa_result():
     reporter cannot be blamed on the checks. test_lint_to_qaresult.py is what keeps the
     stored instance honest — it asserts linting the input still produces it.
     """
-    from tests.data.reporters_qaresult import EXPECTED
-    return EXPECTED
+    import importlib
+    return importlib.import_module(f'tests.data.{case}_qaresult').EXPECTED
+
+
+def stored_markdown_for(case):
+    """The Markdown stored under tests/data/, which linting the case should still render."""
+    import importlib
+    return importlib.import_module(f'tests.data.{case}_markdown').EXPECTED
+
+
+def stored_ctrf_for(case):
+    """The CTRF report stored under tests/data/, as the dict build_ctrf_report returns."""
+    import json
+    return json.loads((DATA / f'{case}_ctrf.json').read_text())
+
+
+def stored_dqv_for(run):
+    """The DQV report stored under tests/data/, parsed back into a graph."""
+    return rdflib.Graph().parse(DATA / f'{run.replace("-", "_")}_dqv.ttl', format='turtle')
+
+
+@pytest.fixture
+def reporters_ttl():
+    """The path to the main input, for the suites that run the CLI over it."""
+    return REPORTERS_TTL
+
+
+@pytest.fixture
+def reporters_graph():
+    return case_graph('reporters')
+
+
+@pytest.fixture
+def reporters_result():
+    return lint_case('reporters')
+
+
+@pytest.fixture
+def stored_qa_result():
+    """The stored QAResult for the main case, for assertions written against its content."""
+    return stored_qa_result_for('reporters')
 
 
 @pytest.fixture
 def stored_markdown():
-    """The Markdown stored under tests/data/, which linting the input should still render."""
-    from tests.data.reporters_markdown import EXPECTED
-    return EXPECTED
+    return stored_markdown_for('reporters')
 
 
 @pytest.fixture
 def stored_ctrf():
-    """The CTRF report stored under tests/data/, as the dict build_ctrf_report returns."""
-    import json
-    return json.loads((Path(__file__).parent / 'data' / 'reporters_ctrf.json').read_text())
+    return stored_ctrf_for('reporters')
 
 
 @pytest.fixture
 def stored_dqv():
-    """The DQV report stored under tests/data/, parsed back into a graph."""
-    return rdflib.Graph().parse(Path(__file__).parent / 'data' / 'reporters_dqv.ttl',
-                                format='turtle')
+    return stored_dqv_for('single')
 
 
-@pytest.fixture
-def render_markdown():
+def render_case(case):
     """
-    Render the Markdown for a fresh lint of the input, as many times as asked.
+    Render the Markdown for a fresh lint of a case.
 
     Taken from `_process_loaded_graph`, the seam that turns a run into report text. `main()`
     wraps it with the heading, the load log and the config log — run context rather than
@@ -126,15 +172,17 @@ def render_markdown():
     """
     from types import SimpleNamespace
     from scripts.ontology_qa import CHECKLIST, Config, _process_loaded_graph, deepcopy_list
+    log, _ = _process_loaded_graph(
+        case_graph(case), list(CASES[case]),
+        SimpleNamespace(verbose=False, profile_only=False),
+        Config(uri_parser=_offline), deepcopy_list(CHECKLIST), None)
+    return log
 
-    def render():
-        log, _ = _process_loaded_graph(
-            rdflib.Graph().parse(REPORTERS_TTL, format='turtle'), ['reporters.ttl'],
-            SimpleNamespace(verbose=False, profile_only=False),
-            Config(uri_parser=_offline), deepcopy_list(CHECKLIST), None)
-        return log
 
-    return render
+@pytest.fixture
+def render_markdown():
+    """Render the main case's Markdown, as many times as asked."""
+    return lambda: render_case('reporters')
 
 
 @pytest.fixture

@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from scripts.ontology_qa import build_ctrf_report, write_ctrf_report
+from tests.conftest import CASES, stored_ctrf_for, stored_qa_result_for
 
 # The instant the stored report was built at. Injected rather than read from the
 # environment: the provider is the only way to fix this clock.
@@ -30,18 +31,20 @@ def ctrf(stored_qa_result):
     return _build(stored_qa_result)['results']
 
 
-STORED_CTRF = Path(__file__).parent / 'data' / 'reporters_ctrf.json'
+DATA = Path(__file__).parent / 'data'
 
 
-def test_it_builds_the_stored_report(stored_qa_result, stored_ctrf):
+@pytest.mark.parametrize('case', CASES)
+def test_it_builds_the_stored_report(case):
     """The projection, whole. Everything below says which part of it must hold, and why."""
-    report = _build(stored_qa_result)
+    report = _build(stored_qa_result_for(case))
+    stored_path = DATA / f'{case}_ctrf.json'
     if os.environ.get('UPDATE_GOLDEN'):
-        STORED_CTRF.write_text(json.dumps(report, indent=4) + "\n", encoding='utf-8')
-        pytest.skip(f"updated {STORED_CTRF.name}")
+        stored_path.write_text(json.dumps(report, indent=4) + "\n", encoding='utf-8')
+        pytest.skip(f"updated {stored_path.name}")
 
-    assert report == stored_ctrf, (
-        "the built report and tests/data/reporters_ctrf.json differ; regenerate with "
+    assert report == stored_ctrf_for(case), (
+        f"the built report and tests/data/{stored_path.name} differ; regenerate with "
         "UPDATE_GOLDEN=1 poetry run pytest tests/test_qaresult_to_ctrf.py")
 
 

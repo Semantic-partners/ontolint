@@ -12,6 +12,55 @@ empty in the stored instance (see its docstring). `test_lint_to_markdown.py` cov
 
 from pathlib import Path, PurePath
 
+import pytest
+
+from tests.conftest import CASES, lint_case, stored_qa_result_for
+
+
+@pytest.mark.parametrize('case', CASES)
+def test_a_lint_produces_the_stored_result(case):
+    """
+    Every case, whole. The assertions below take the main case apart field by field, so a
+    failure there says which field; this one says which case.
+    """
+    produced = lint_case(case)
+    stored = stored_qa_result_for(case)
+
+    assert _repo_relative(produced.profiling) == stored.profiling
+    assert produced.checks == stored.checks
+    assert produced.datasets == stored.datasets
+    assert produced.settings == stored.settings
+
+
+def test_the_fragment_is_the_only_case_failing_the_metadata_checks():
+    """
+    The reason the fragment exists. reporters.ttl declares a described ontology, so it
+    cannot fail either check; the fragment declares none, so it fails both.
+    """
+    failed = {case: {c.key for c in stored_qa_result_for(case).failures} for case in CASES}
+
+    assert 'ontologyDescription' in failed['fragment']
+    assert 'ontologyDescription' not in failed['reporters']
+    # Declaration is the three-way one: none of the files declared an ontology, some did,
+    # all did. The merged case is the only one that reaches the middle branch.
+    assert 'ontologyNotDeclared' in failed['fragment']
+    assert 'ontologyNotDeclared' in failed['merged']
+    assert 'ontologyNotDeclared' not in failed['reporters']
+
+
+def test_batching_the_same_files_changes_the_answer():
+    """
+    Grouping is not neutral, which is the whole of #96. The fragment's terms sit outside
+    the only declared namespace once the two are merged, so they become hijacking; and its
+    predicates stop being reported as untyped, because that check's namespace guard has an
+    ontology to bind to again.
+    """
+    alone = {c.key: c.count for c in stored_qa_result_for('fragment').failures}
+    merged = {c.key: c.count for c in stored_qa_result_for('merged').failures}
+
+    assert 'hijacking' not in alone and merged['hijacking'] > 0
+    assert alone['untypedProperties'] > merged.get('untypedProperties', 0)
+
 
 def test_the_same_checks_ran(reporters_result, stored_qa_result):
     assert [c.key for c in reporters_result.checks] == [c.key for c in stored_qa_result.checks]

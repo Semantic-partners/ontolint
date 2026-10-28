@@ -18,6 +18,7 @@ import rdflib
 from rdflib.compare import graph_diff
 
 from scripts.dqv import build_dqv_graph, DQV_METRICS, DQV, OLQ, DEFAULT_BASE_URI
+from tests.conftest import DQV_RUNS, stored_dqv_for, stored_qa_result_for
 
 EX = "https://example.org/reporters#"
 ROLLUP = rdflib.URIRef(f"{DEFAULT_BASE_URI}metric-ontolint-conformance")
@@ -41,17 +42,22 @@ def _measured(graph):
 # environment so the test says which clock it means.
 AT = datetime(2026, 10, 15, 9, 30, 0, tzinfo=timezone.utc)
 
-STORED_DQV = Path(__file__).parent / 'data' / 'reporters_dqv.ttl'
+DATA = Path(__file__).parent / 'data'
 
 
-def test_it_builds_the_stored_report(stored_qa_result, stored_dqv):
-    """The projection, whole. Everything below says which part of it must hold, and why."""
-    graph = build_dqv_graph([stored_qa_result], timestamp=AT)
+@pytest.mark.parametrize('run', DQV_RUNS)
+def test_it_builds_the_stored_report(run):
+    """
+    The projection, whole, for each run shape: one file, two checked separately, two
+    merged. DQV describes a run rather than a result, so these are its cases.
+    """
+    graph = build_dqv_graph([stored_qa_result_for(c) for c in DQV_RUNS[run]], timestamp=AT)
+    stored_path = DATA / f'{run.replace("-", "_")}_dqv.ttl'
     if os.environ.get('UPDATE_GOLDEN'):
-        STORED_DQV.write_text(graph.serialize(format='turtle'), encoding='utf-8')
-        pytest.skip(f"updated {STORED_DQV.name}")
+        stored_path.write_text(graph.serialize(format='turtle'), encoding='utf-8')
+        pytest.skip(f"updated {stored_path.name}")
 
-    in_report, in_stored = graph_diff(graph, stored_dqv)[1:]
+    in_report, in_stored = graph_diff(graph, stored_dqv_for(run))[1:]
     assert not list(in_report) and not list(in_stored), _diff_message(in_report, in_stored)
 
 
@@ -59,7 +65,7 @@ def _diff_message(in_report, in_stored):
     def lines(label, triples):
         shown = sorted(f"    {s} {p} {o}" for s, p, o in triples)[:10]
         return f"  {label} ({len(triples)}):\n" + "\n".join(shown) if len(triples) else ""
-    return ("the built report and tests/data/reporters_dqv.ttl differ\n"
+    return ("the built report and its stored copy under tests/data/ differ\n"
             + lines("only in the built report", in_report)
             + lines("only in the stored report", in_stored)
             + "\n  regenerate with: UPDATE_GOLDEN=1 poetry run pytest tests/test_qaresult_to_dqv.py")

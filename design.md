@@ -38,7 +38,10 @@ computed on, and the configuration that ran.
 | **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `reporters_dqv.ttl`, via `tests/test_qaresult_to_dqv.py`; also `tests/dqv/*/expected.ttl` |
 
 Each is pinned the same way: one stored copy of the whole output under `tests/data/`, and
-one lead test asserting the reporter still produces it. The assertions after that lead test
+one lead test asserting the reporter still produces it — per case, because several checks
+answer differently depending only on how the inputs were batched. The cases are
+`reporters.ttl` alone, `reporters_fragment.ttl` alone, and the two merged; DQV's are run
+shapes instead (one file, two checked separately, two merged), since it describes a run. The assertions after that lead test
 are not a second expectation — they say *why* parts of it must hold, so a failure explains
 itself instead of handing over a thousand-line diff. CTRF and DQV regenerate with
 `UPDATE_GOLDEN=1`; the stored Markdown and `QAResult` are still updated by hand.
