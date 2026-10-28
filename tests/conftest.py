@@ -107,8 +107,7 @@ def stored_qa_result_for(case):
 
 def stored_markdown_for(case):
     """The Markdown stored under tests/data/, which linting the case should still render."""
-    import importlib
-    return importlib.import_module(f'tests.data.{case}_markdown').EXPECTED
+    return (DATA / f'{case}_report.md').read_text()
 
 
 def stored_ctrf_for(case):

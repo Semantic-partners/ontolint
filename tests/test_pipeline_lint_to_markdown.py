@@ -1,6 +1,6 @@
 """
 lint -> Markdown: linting `tests/data/reporters.ttl` renders the Markdown stored in
-`tests/data/reporters_markdown.py`.
+`tests/data/reporters_report.md`.
 
 The stored text is the expectation, exactly as the stored QAResult is for the checks. The
 assertions after it are not a second expectation — they say *why* parts of it must hold, so

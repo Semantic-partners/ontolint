@@ -65,7 +65,7 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 
 **The four reporter suites** turn on three files in `tests/data/`: the input
 `reporters.ttl`, and two expectations written out as data — `reporters_qaresult.py`, the
-`QAResult` that linting it produces, and `reporters_markdown.py`, the Markdown it renders.
+`QAResult` that linting it produces, and `reporters_report.md`, the Markdown it renders.
 
 - `test_pipeline_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
   only one that runs the checks, and the only one a check change should break. When a
