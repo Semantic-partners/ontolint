@@ -487,6 +487,14 @@ def canonical_bnode_labels(graph, bnodes):
     if not bnodes:
         return {}
     from rdflib.compare import _TripleCanonicalizer
+    # Canonicalisation is defined over triples, and a Dataset iterates quads, so the union
+    # is materialised first. Blank nodes are scoped to the store rather than to a named
+    # graph, so canonicalising the union is the same question as canonicalising the merge.
+    if not isinstance(graph, rdflib.Graph) or isinstance(graph, rdflib.Dataset):
+        triples = rdflib.Graph()
+        for triple in graph.triples((None, None, None)):
+            triples.add(triple)
+        graph = triples
     # canonical_triples() yields the graph's triples in iteration order with blank nodes
     # relabelled, so pairing it with the graph gives the original -> canonical mapping.
     labels = {}

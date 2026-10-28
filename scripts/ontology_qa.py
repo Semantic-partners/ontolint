@@ -376,7 +376,7 @@ def prefixes(g):
 
     # Collect all namespaces actually used in the graph
     used_namespaces = set()
-    for s, p, o in g:
+    for s, p, o in g.triples((None, None, None)):
         for term in [s, p, o]:
             if isinstance(term, rdflib.URIRef):
                 ns = get_namespace(str(term))
@@ -849,6 +849,10 @@ def exclude_instance_data(graph):
 
     return instances, len(subjects)
 
+# Where inferred triples live in a Dataset: not a file, so not one of the file contexts.
+INFERRED_CONTEXT = rdflib.URIRef("urn:ontolint:inferred")
+
+
 def infer_subclass_relations(graph):
     """
     Construct sub-class relations recursively using the sub-class inference rule.
@@ -868,7 +872,15 @@ def infer_subclass_relations(graph):
             log += "No new subclass inferences to add. Inference complete.\n"
             break
         graph_size_before = len(graph)
-        graph += inferred_triples_result
+        # Inferred triples came from no file, so they get a context of their own rather
+        # than being folded into one that stands for an input. On a plain Graph (the
+        # programmatic API passes one) there are no contexts and they just go in.
+        if isinstance(graph, rdflib.Dataset):
+            inferred = graph.graph(INFERRED_CONTEXT)
+            for triple in inferred_triples_result:
+                inferred.add(triple)
+        else:
+            graph += inferred_triples_result
         graph_size_after = len(graph)
         if graph_size_after == graph_size_before:
             log += "No new subclass inferences in this pass. Inference complete.\n"
@@ -2312,7 +2324,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     is_reference = _reference_predicate_matcher(
         skip_object_of if skip_object_of is not None
         else [expand_curie(t, allow_wildcard=True) for t in DEFAULT_SKIP_OBJECT_OF])
-    for s, p, o in graph:
+    for s, p, o in graph.triples((None, None, None)):
         # Objects of reference properties (rdfs:seeAlso, dcterms:license, owl:versionIRI, ...)
         # link to documents, not terms, so they are neither reported nor fetched. The same
         # IRI used elsewhere as a term is still collected from that other triple.
@@ -2505,7 +2517,12 @@ def load_rdf(paths, verbose: bool = False):
     file_counter = 0
     files_processed = []
     files_failed = []
-    graph = rdflib.Graph()
+    # One named graph per file, so which file a triple came from survives the load. A
+    # merged Graph loses that — two identical owl:Ontology declarations become a single
+    # triple — which is why ontology_sources had to be taken as each file was read. With
+    # default_union the checks still see one graph: SPARQL, len() and triples() all read
+    # the union, so a check cannot tell the difference.
+    graph = rdflib.Dataset(default_union=True)
     log_results = ""
     ontology_sources = {}
 
@@ -2517,7 +2534,7 @@ def load_rdf(paths, verbose: bool = False):
             file_counter += 1
             for iri in ontology_iris(file_graph):
                 ontology_sources.setdefault(iri, []).append(dqv.file_iri(file_path))
-            graph += file_graph
+            graph.graph(rdflib.URIRef(dqv.file_iri(file_path))).__iadd__(file_graph)
             graphutil.copy_namespaces(graph, file_graph)
         else:
             # Always report parse failures, regardless of verbosity.

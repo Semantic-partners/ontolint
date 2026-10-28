@@ -18,8 +18,19 @@ parse ──→ graph(s) ──→ lint ──→ QAResult(s)
 from its arguments and `.rdf-lint.yml`, a library caller builds one directly. The checklist
 says which checks are enabled, resolved by `select_checks()` or handed in by the CLI.
 
-**parse → graph(s).** One graph per file, or one merged graph, depending on how the run is
-scoped (see *per-file*).
+**parse → graph(s).** `load_rdf()` builds an `rdflib.Dataset` with one named graph per
+file, keyed by the file's `file:` IRI. A merged `Graph` answers "is this triple present";
+a Dataset also answers "which file put it there", which is what a finding has to name
+(#96) and is why `ontology_sources` had to be collected as each file was read.
+
+`default_union` is set, so SPARQL, `len()` and `triples()` all read the union: the checks
+see one graph and cannot tell the inputs were separate. Two things do not come from a
+file and are handled explicitly — inferred triples get `INFERRED_CONTEXT` rather than
+being folded into an input's context, and blank-node canonicalisation materialises the
+union first, since canonicalisation is defined over triples.
+
+Nothing downstream requires a Dataset: `ontolint.lint()` passes plain graphs, and every
+seam accepts either.
 
 **lint.** `lint_graph()` is the single entry point that performs one run: inference if
 configured, then every selected check. Both front ends call it, so a run means the same
