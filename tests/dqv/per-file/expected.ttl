@@ -7,10 +7,16 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <https://example.org/qa#assessment-3d65fc5ad636e4d2> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-293910d546583d80>,
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-28bbe647dbf9b21f>,
+        <https://example.org/qa#measurement-293910d546583d80>,
+        <https://example.org/qa#measurement-32f1755af86ff1b2>,
         <https://example.org/qa#measurement-8bc7a4cb95065c82>,
         <https://example.org/qa#measurement-91f6a28ba2b270a7>,
-        <https://example.org/qa#measurement-93e895b854a24a30> ;
+        <https://example.org/qa#measurement-93e895b854a24a30>,
+        <https://example.org/qa#measurement-999061e841a61df1>,
+        <https://example.org/qa#measurement-c3b0f3be8cfab512>,
+        <https://example.org/qa#measurement-d4a22b065ce7d079>,
+        <https://example.org/qa#measurement-ed5e65b8c8af043f> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -26,13 +32,6 @@
     skos:prefLabel "Isolated classes" ;
     dqv:inDimension <https://example.org/qa#dimension-structure> ;
     olq:severity sh:Warning .
-
-<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
-    rdfs:label "Namespace hijacking" ;
-    skos:definition "A resource is defined using an external vocabulary's namespace." ;
-    skos:prefLabel "Namespace hijacking" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:severity sh:Violation .
 
 <https://example.org/qa#metric-node-shapes-missing-description> a dqv:Metric ;
     rdfs:label "NodeShape without description" ;
@@ -76,34 +75,6 @@
     dqv:inDimension <https://example.org/qa#dimension-metadata> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#metric-properties-missing-description> a dqv:Metric ;
-    rdfs:label "Property without description" ;
-    skos:definition "A property has no description annotation." ;
-    skos:prefLabel "Property without description" ;
-    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
-    olq:severity sh:Warning .
-
-<https://example.org/qa#metric-properties-missing-domain> a dqv:Metric ;
-    rdfs:label "Property without domain" ;
-    skos:definition "A property has no rdfs:domain." ;
-    skos:prefLabel "Property without domain" ;
-    dqv:inDimension <https://example.org/qa#dimension-structure> ;
-    olq:severity sh:Warning .
-
-<https://example.org/qa#metric-properties-missing-label> a dqv:Metric ;
-    rdfs:label "Property without label" ;
-    skos:definition "A property has no label annotation." ;
-    skos:prefLabel "Property without label" ;
-    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
-    olq:severity sh:Violation .
-
-<https://example.org/qa#metric-properties-missing-range> a dqv:Metric ;
-    rdfs:label "Property without range" ;
-    skos:definition "A property has no rdfs:range." ;
-    skos:prefLabel "Property without range" ;
-    dqv:inDimension <https://example.org/qa#dimension-structure> ;
-    olq:severity sh:Warning .
-
 <https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
     rdfs:label "Properties with the same label" ;
     skos:definition "Two or more properties share a label in the same language and with the same predicate." ;
@@ -139,13 +110,6 @@
     dqv:inDimension <https://example.org/qa#dimension-structure> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
-    rdfs:label "Undefined terms" ;
-    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
-    skos:prefLabel "Undefined terms" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:severity sh:Violation .
-
 <https://example.org/qa#metric-unresolvable-imports> a dqv:Metric ;
     rdfs:label "Unresolvable imports" ;
     skos:definition "An owl:imports target could not be resolved or contains no triples." ;
@@ -169,6 +133,14 @@
 
 <https://example.org/ontology/a#> rdfs:label "A" .
 
+<https://example.org/qa#measurement-28bbe647dbf9b21f> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-namespace-hijacking> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-e879183986acf20b> .
+
 <https://example.org/qa#measurement-293910d546583d80> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
@@ -178,10 +150,18 @@
     olq:violation <https://example.org/qa#violation-e4364e1ca963a936>,
         <https://example.org/qa#violation-f56ba51ff813db6b> .
 
+<https://example.org/qa#measurement-32f1755af86ff1b2> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-domain> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-a5b0f79598e7c6f2> .
+
 <https://example.org/qa#measurement-8bc7a4cb95065c82> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 2 ;
+    dqv:value 8 ;
     olq:conforms false .
 
 <https://example.org/qa#measurement-91f6a28ba2b270a7> a dqv:QualityMeasurement ;
@@ -199,6 +179,38 @@
     dqv:value 0 ;
     olq:conforms true .
 
+<https://example.org/qa#measurement-999061e841a61df1> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-range> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-32374cdd49a11f9e> .
+
+<https://example.org/qa#measurement-c3b0f3be8cfab512> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-description> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-a1733ff3ae9f5d71> .
+
+<https://example.org/qa#measurement-d4a22b065ce7d079> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-5d247f98e3034598> .
+
+<https://example.org/qa#measurement-ed5e65b8c8af043f> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-label> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-97d42bbb1af3d7a9> .
+
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
     skos:definition "A class has no description annotation." ;
@@ -213,8 +225,71 @@
     dqv:inDimension <https://example.org/qa#dimension-documentation> ;
     olq:severity sh:Violation .
 
+<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
+    rdfs:label "Namespace hijacking" ;
+    skos:definition "A resource is defined using an external vocabulary's namespace." ;
+    skos:prefLabel "Namespace hijacking" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-missing-description> a dqv:Metric ;
+    rdfs:label "Property without description" ;
+    skos:definition "A property has no description annotation." ;
+    skos:prefLabel "Property without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-missing-domain> a dqv:Metric ;
+    rdfs:label "Property without domain" ;
+    skos:definition "A property has no rdfs:domain." ;
+    skos:prefLabel "Property without domain" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-missing-label> a dqv:Metric ;
+    rdfs:label "Property without label" ;
+    skos:definition "A property has no label annotation." ;
+    skos:prefLabel "Property without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-missing-range> a dqv:Metric ;
+    rdfs:label "Property without range" ;
+    skos:definition "A property has no rdfs:range." ;
+    skos:prefLabel "Property without range" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
+    rdfs:label "Undefined terms" ;
+    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
+    skos:prefLabel "Undefined terms" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#violation-32374cdd49a11f9e> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-5d247f98e3034598> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
+    sh:resultMessage "namespace https://example.org/ontology/a# could not be fetched" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
 <https://example.org/qa#violation-957cb22d6db4b91a> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Base> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-97d42bbb1af3d7a9> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-a1733ff3ae9f5d71> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
@@ -223,8 +298,18 @@
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
+<https://example.org/qa#violation-a5b0f79598e7c6f2> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
 <https://example.org/qa#violation-e4364e1ca963a936> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Base> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-e879183986acf20b> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
@@ -243,8 +328,6 @@
     skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> .
-
-<https://example.org/ontology/b#> rdfs:label "B" .
 
 <https://example.org/qa#dimension-structure> a dqv:Dimension ;
     rdfs:label "Structure" ;
@@ -265,4 +348,6 @@
     rdfs:label "Documentation" ;
     skos:definition "Terms carry human-readable labels and descriptions." ;
     skos:prefLabel "Documentation" .
+
+<https://example.org/ontology/b#> rdfs:label "B" .
 

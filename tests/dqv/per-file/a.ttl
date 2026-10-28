@@ -2,7 +2,9 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-# Clean dataset: only its roll-up measurement appears.
+# Clean dataset: only its roll-up measurement appears. b.ttl mints a:borrowed in this
+# namespace, and none of its failures appear here - a term belongs to the ontology
+# declared in the file it sits in, not to the namespace it borrows.
 
 : a owl:Ontology ; rdfs:label "A" ; rdfs:comment "Passes every check." .
 :Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "A thing." ; rdfs:subClassOf :Base .

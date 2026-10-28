@@ -1,9 +1,17 @@
 @prefix : <https://example.org/ontology/b#> .
+@prefix a: <https://example.org/ontology/a#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 # Failing dataset: measurements are computedOn <https://example.org/ontology/b#> only.
+#
+# a:borrowed is minted here, in b's file, under a's namespace. A term is owned by the
+# ontology declared in the file it sits in, so every failure it raises - the hijack
+# itself, and its missing label, description, domain and range - is charged to b, with
+# the term named as the violation's sh:focusNode. None of it reaches a, whose own report
+# stays clean.
 
 : a owl:Ontology ; rdfs:label "B" ; rdfs:comment "Has unlabelled classes." .
 :Thing a owl:Class ; rdfs:subClassOf :Base .
 :Base a owl:Class .
+a:borrowed a owl:ObjectProperty .
