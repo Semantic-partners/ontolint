@@ -562,16 +562,15 @@ def ctrf_timestamp():
     return datetime.now()
 
 
-def build_ctrf_report(result: QAResult, date_time_provider=ctrf_timestamp):
+def build_ctrf_report(result: QAResult):
     """
     A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
     check, with the run's summary. Returns the report; writing it is write_ctrf_report's
     job, so the projection can be built and inspected without touching the filesystem.
 
-    date_time_provider supplies the report's timestamp, and defaults to ctrf_timestamp,
-    which honours SOURCE_DATE_EPOCH. It stays injectable so a test can fix the clock
-    without touching the environment — without that the projection is not a pure function
-    of the QAResult, and two reports built over the same result differ.
+    The timestamp comes from ctrf_timestamp(), which honours SOURCE_DATE_EPOCH. Pinned,
+    the report is a pure function of the QAResult and two builds of the same result are
+    identical.
     """
     passed = 0
     failed = 0
@@ -606,7 +605,7 @@ def build_ctrf_report(result: QAResult, date_time_provider=ctrf_timestamp):
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),
-            "timestamp": date_time_provider().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": ctrf_timestamp().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
     return ctrf_report

@@ -79,21 +79,21 @@ def test_it_renders_the_same_text_under_any_hash_seed(tmp_path):
         )
 
 
-def test_every_failing_check_is_reported_as_a_violation(stored_markdown, stored_result):
+def test_every_failing_check_is_reported_as_a_violation(stored_markdown, stored_qa_result):
     # The stored Markdown and the stored QAResult describe the same run, so they must agree
     # about what failed.
-    for check in stored_result.failures:
+    for check in stored_qa_result.failures:
         assert check.name in stored_markdown, f"{check.name} failed but is not in the report"
 
 
-def test_the_counts_in_the_report_match_the_result(stored_markdown, stored_result):
+def test_the_counts_in_the_report_match_the_result(stored_markdown, stored_qa_result):
     reported = sorted(int(n) for n in re.findall(r'^VIOLATION - Found (\d+)', stored_markdown, re.M))
 
-    assert reported == sorted(c.count for c in stored_result.failures)
+    assert reported == sorted(c.count for c in stored_qa_result.failures)
 
 
-def test_a_violation_names_the_offending_resource(stored_markdown, stored_result):
-    for element in stored_result.get("Class without label").elements.split(",<br> "):
+def test_a_violation_names_the_offending_resource(stored_markdown, stored_qa_result):
+    for element in stored_qa_result.get("Class without label").elements.split(",<br> "):
         assert element in stored_markdown
 
 

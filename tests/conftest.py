@@ -79,7 +79,7 @@ def reporters_result(reporters_graph):
 
 
 @pytest.fixture
-def stored_result():
+def stored_qa_result():
     """
     The QAResult written out under tests/data/, and the input to the reporter suites.
 
@@ -97,6 +97,31 @@ def stored_markdown():
     """The Markdown stored under tests/data/, which linting the input should still render."""
     from tests.data.reporters_markdown import EXPECTED
     return EXPECTED
+
+
+# 2026-10-15T09:30:00Z. Both reports carry a timestamp, so one has to be pinned before
+# either can be compared against a stored copy at all.
+REPORTS_EPOCH = '1792056600'
+
+
+@pytest.fixture
+def pinned_clock(monkeypatch):
+    """SOURCE_DATE_EPOCH set to REPORTS_EPOCH, which is what the stored reports were built at."""
+    monkeypatch.setenv('SOURCE_DATE_EPOCH', REPORTS_EPOCH)
+
+
+@pytest.fixture
+def stored_ctrf():
+    """The CTRF report stored under tests/data/, as the dict build_ctrf_report returns."""
+    import json
+    return json.loads((Path(__file__).parent / 'data' / 'reporters_ctrf.json').read_text())
+
+
+@pytest.fixture
+def stored_dqv():
+    """The DQV report stored under tests/data/, parsed back into a graph."""
+    return rdflib.Graph().parse(Path(__file__).parent / 'data' / 'reporters_dqv.ttl',
+                                format='turtle')
 
 
 @pytest.fixture

@@ -33,9 +33,15 @@ computed on, and the configuration that ran.
 
 | | granularity | built from | pinned by |
 |---|---|---|---|
-| **Markdown** | per result | *mixed — see below* | `tests/test_lint_to_markdown.py` |
-| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `tests/test_qaresult_to_ctrf.py` |
-| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `tests/test_qaresult_to_dqv.py`, `tests/dqv/*/expected.ttl` |
+| **Markdown** | per result | *mixed — see below* | `reporters_markdown.py`, via `tests/test_lint_to_markdown.py` |
+| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `reporters_ctrf.json`, via `tests/test_qaresult_to_ctrf.py` |
+| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `reporters_dqv.ttl`, via `tests/test_qaresult_to_dqv.py`; also `tests/dqv/*/expected.ttl` |
+
+Each is pinned the same way: one stored copy of the whole output under `tests/data/`, and
+one lead test asserting the reporter still produces it. The assertions after that lead test
+are not a second expectation — they say *why* parts of it must hold, so a failure explains
+itself instead of handing over a thousand-line diff. CTRF and DQV regenerate with
+`UPDATE_GOLDEN=1`; the stored Markdown and `QAResult` are still updated by hand.
 
 Each reporter splits building from writing: `build_ctrf_report()` / `write_ctrf_report()`
 and `build_dqv_graph()` / `write_dqv_report()`. The build half is a pure projection of a
@@ -126,12 +132,11 @@ test asserting two renders match. `test_it_renders_the_same_text_under_any_hash_
 covers that class of bug by rendering in a subprocess per seed. It samples a few seeds,
 so it is a detector rather than a proof.
 
-**CTRF honours it too**, through `ctrf_timestamp()`, the default clock for
-`build_ctrf_report()`. Nothing else in a CTRF report varies between two runs over the same
-inputs, so with the clock pinned the file is byte-identical and can be compared against an
-expected one. The clock stays injectable — `build_ctrf_report(result,
-date_time_provider=…)` — so a test can fix it without touching the environment, which is
-what makes the projection a pure function of the `QAResult`.
+**CTRF honours it too**, through `ctrf_timestamp()`, the clock `build_ctrf_report()` uses.
+Nothing else in a CTRF report varies between two runs over the same inputs, so pinned it is
+byte-identical — which is what lets `tests/data/reporters_ctrf.json` exist at all. Pinning
+it is the whole mechanism; there is no separate injection point, because a second way to
+fix the clock would only be a second thing to keep in step.
 
 Only the pinned branch is UTC: unpinned, CTRF keeps the local clock it has always
 rendered, so turning this on adds reproducibility to a published format without restating
