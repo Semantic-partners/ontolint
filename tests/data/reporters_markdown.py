@@ -183,7 +183,7 @@ VIOLATION - Found 1 isolated classes:
 
 --------------------
 
-Check 19: Missing Domain in Properties.
+Check 19: Property without domain.
 WARNING - Found 2 properties without `rdfs:domain` or `rdfs:range` declaration:
 
 | Property | Domain | Range |
@@ -196,7 +196,7 @@ VIOLATION - Found 1 properties without `rdfs:domain` declaration:
 
 --------------------
 
-Check 20: Missing Range in Properties.
+Check 20: Property without range.
 VIOLATION - Found 1 properties without `rdfs:range` declaration:
  - https://example.org/reporters#withoutRange
 

@@ -1,4 +1,4 @@
-from scripts.ontology_qa import exec_sparql, run_qa
+from scripts.ontology_qa import CHECKLIST, exec_sparql, render_markdown, run_qa
 
 
 # ── Isolated Classes ──────────────────────────────────────────────────────────
@@ -82,15 +82,17 @@ def test_property_missing_both_domain_and_range_fails(make_graph):
     assert not result.get("Property without domain").passed
     assert not result.get("Property without range").passed
 
-def test_property_with_domain_and_range_markdown(make_graph):
+def test_domain_and_range_are_reported_as_two_checks(make_graph):
+    # One function serves both checks, so the report has to show a section for each — and
+    # under the same names the CTRF and DQV reports use, which it did not until #101.
     g = make_graph("""
     :hasFur a owl:ObjectProperty ;
         rdfs:domain :Cat ;
         rdfs:range :Fur .
     """)
-    result = run_qa(g)
-    assert any("Missing Domain in Properties" in log for log in result.logs)
-    assert any("Missing Range in Properties" in log for log in result.logs)
+    rendered = render_markdown(run_qa(g), CHECKLIST)
+    assert "Check 19: Property without domain." in rendered
+    assert "Check 20: Property without range." in rendered
 
 
 # ── Non-Unique Identifiers ────────────────────────────────────────────────────

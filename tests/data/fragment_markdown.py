@@ -153,13 +153,13 @@ PASS - All classes are connected to another class through a subclass or property
 
 --------------------
 
-Check 19: Missing Domain in Properties.
+Check 19: Property without domain.
 INFO - All properties have domain and range defined.
 PASS - All properties have domain defined.
 
 --------------------
 
-Check 20: Missing Range in Properties.
+Check 20: Property without range.
 PASS - All properties have range defined.
 
 --------------------

@@ -750,11 +750,6 @@ def print_profiling_metrics(metrics, elements, verbose):
     log += f"Number of cardinality restrictions: {metrics['CardinalityRestrictions']}\n"
     return log
 
-def qa_check_results(description,qan):
-    log = f"\nCheck {qan}: {description}.\n"
-    qan += 1
-    return qan, log
-
 def sep():
     return "\n" + "-"*20 + "\n"
 
@@ -984,7 +979,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     violations = {}
     num_files = max(len(in_metrics['filesProcessed']), 1)
     metrics['ontologyURI'] = [ ]
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'owl_declaration')
 
     declared = ontologies_by_source(graph, in_metrics)
@@ -1039,7 +1034,6 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
         for _ in range(num_uri):
             log += f" - {metrics['ontologyURI'][_]}\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbose):
@@ -1068,7 +1062,7 @@ def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbo
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     declared = ontologies_by_source(graph, in_metrics)
     offenders = {} if declared is None else {
         source: iris for source, iris in sorted(declared.items()) if len(iris) > 1}
@@ -1094,7 +1088,6 @@ def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbo
         ]
         log += string.replace(",<br> ", "\n - ") + "\n"
 
-    log += sep()
     return metrics, violations, log, c, status
 
 
@@ -1121,7 +1114,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     num_files = max(len(in_metrics['filesProcessed']), 1)
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
 
     if in_metrics['ontologyNotDeclared'] == num_files:
         log += "WARNING - No ontology declared, invalid metric.\n"
@@ -1150,7 +1143,6 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
             log += string.replace(",<br> ", "\n - ")
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
@@ -1176,7 +1168,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'class_missing_label', exclude_types)
     metrics[check] = 0 # 'missingClassLabel'
     violations[check] = ""
@@ -1202,7 +1194,6 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_missing_label(in_metrics, graph, name, check, c, status, verbose):
@@ -1227,7 +1218,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'property_missing_label')
     metrics[check] = 0 # 'missingPropertyLabel'
     violations[check] = ""
@@ -1253,7 +1244,6 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, verbose):
@@ -1278,7 +1268,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'node_shape_missing_label')
     metrics[check] = 0 # 'missingNSLabel'
     violations[check] = ""
@@ -1304,7 +1294,6 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_shape_missing_label(in_metrics, graph, name, check, c, status, verbose):
@@ -1329,7 +1318,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'property_shape_missing_label')
     metrics[check] = 0 # 'missingPSLabel'
     violations[check] = ""
@@ -1355,7 +1344,6 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
@@ -1381,7 +1369,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'class_missing_comment', exclude_types)
     metrics[check] = 0 # 'missingClassDescription'
     violations[check] = ""
@@ -1407,7 +1395,6 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_missing_comment(in_metrics, graph, name, check, c, status, verbose):
@@ -1432,7 +1419,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'property_missing_comment')
     metrics[check] = 0 # 'missingPropertyDescription'
     violations[check] = ""
@@ -1458,7 +1445,6 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, verbose):
@@ -1483,7 +1469,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'node_shape_missing_comment')
     metrics[check] = 0 # 'missingNSDescription'
     violations[check] = ""
@@ -1508,7 +1494,6 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_shape_missing_comment(in_metrics, graph, name, check, c, status, verbose):
@@ -1533,7 +1518,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'property_shape_missing_comment')
     metrics[check] = 0 # 'missingPSDescription'
     violations[check] = ""
@@ -1559,7 +1544,6 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
@@ -1585,7 +1569,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'class_same_label', exclude_types)
     metrics[check] = 0 # 'nonUniqueClassLabels'
     violations[check] = ""
@@ -1614,7 +1598,6 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
         violations[check] = string
         violations[records_key(check)] = records
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_same_label(in_metrics, graph, name, check, c, status, verbose):
@@ -1639,7 +1622,7 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'property_same_label')
     metrics[check] = 0 # 'nonUniquePropertyLabels'
     violations[check] = ""
@@ -1667,7 +1650,6 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         violations[check] = string
         violations[records_key(check)] = records
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbose):
@@ -1692,7 +1674,7 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'node_shape_same_label')
     metrics[check] = 0 # 'nonUniqueNSLabels'
     violations[check] = ""
@@ -1721,7 +1703,6 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         violations[check] = string
         violations[records_key(check)] = records
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_shape_same_label(in_metrics, graph, name, check, c, status, verbose):
@@ -1746,7 +1727,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'property_shape_same_label')
     metrics[check] = 0 # 'nonUniquePSLabels'
     violations[check] = ""
@@ -1775,7 +1756,6 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         violations[check] = string
         violations[records_key(check)] = records
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
@@ -1801,7 +1781,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'isolated_classes', exclude_types)
     metrics[check] = 0 # 'isolatedClasses'
     violations[check] = ""
@@ -1821,7 +1801,6 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, verbose):
@@ -1831,7 +1810,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
-        _ (str): Not used. The name of the QA check is determined from `check`
+        _ (str): Not used. The reporter titles the check (see MARKDOWN_HEADINGS)
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
@@ -1851,11 +1830,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
     # Check if the test has been run already.
     if 'missingDomainRange' not in in_metrics:
         metrics['missingDomainRange'] = 0
-        if check == 'missingDomain':
-            local_name = "Missing Domain in Properties"
-        else:
-            local_name = "Missing Range in Properties"
-        c, log = qa_check_results(local_name, c)
+        c, log = c + 1, ''
         dCount = []
         rCount = []
 
@@ -1940,14 +1915,12 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
                 violations[check] = ""
                 if int(in_metrics['propertyCount']) > 0: log += "PASS - All properties have range defined.\n"
         
-        log += sep()
 
     else:
         # This condition is satisfied only for range violations.
         # It relies on the fact that the array test_checklist is ordered,
         # with missingDomain defined before missingRange.
-        local_name = "Missing Range in Properties"
-        c, log = qa_check_results(local_name, c)
+        c, log = c + 1, ''
         rCount = []
 
         # Analyse the results
@@ -1975,7 +1948,6 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             violations[check] = ""
             log += "PASS - All properties have range defined.\n"
         
-        log += sep()
 
     return metrics, violations, log, c, status
 
@@ -2075,7 +2047,7 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'unique_identifiers')
     metrics[check] = 0 # 'nonUniqueIdentifiers'
     violations[check] = ""
@@ -2099,7 +2071,6 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         violations[check] = violation_formatting(iri)
         violations[records_key(check)] = records
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
@@ -2124,7 +2095,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'subclass_cycles')
     metrics[check] = 0 # 'subclassCycles'
     violations[check] = ""
@@ -2145,7 +2116,6 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
@@ -2171,7 +2141,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'untyped_class', exclude_types)
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
@@ -2203,7 +2173,6 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
             and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
         log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
@@ -2228,7 +2197,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'untyped_property')
     metrics[check] = 0 # 'untypedProperties'
     violations[check] = ""
@@ -2260,7 +2229,6 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
             and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
         log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
@@ -2286,7 +2254,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     num_files = len(in_metrics['filesProcessed'])
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     fallback = False
     ontology_check = False
     if 'ontologyNotDeclared' in in_metrics:
@@ -2321,7 +2289,6 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     else:
         log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
     
-    log += sep()
     return metrics, violations, log, c, status
 
 def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore_imports=None, local_imports=None):
@@ -2346,7 +2313,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     results = exec_sparql(graph, 'owl_imports')
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
@@ -2365,7 +2332,6 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
             log += "WARNING - All owl:imports URLs are ignored by configuration.\n"
         else:
             log += "WARNING - No owl:imports statements found.\n"
-        log += sep()
         return metrics, violations, log, c, status
 
     failed_imports = []
@@ -2414,7 +2380,6 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
         for ontology, url in import_urls:
             log += f"| {ontology} | {url} | {_check(url)} |\n"
 
-    log += sep()
     return metrics, violations, log, c, status
 
 
@@ -2461,7 +2426,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     """
     metrics = {}
     violations = {}
-    c, log = qa_check_results(name, c)
+    c, log = c + 1, ''
     metrics[check] = 0  # 'undefinedTerms'
     violations[check] = ""
     
@@ -2492,7 +2457,6 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
 
     if not used_terms:
         log += "WARNING - No terms to check.\n"
-        log += sep()
         return metrics, violations, log, c, status
 
     # Collect every HTTP namespace used that falls outside the local namespace(s) and isn't
@@ -2594,7 +2558,6 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     if not local_namespaces:
         log += "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.\n"
 
-    log += sep()
     return metrics, violations, log, c, status
 
 
@@ -3254,6 +3217,31 @@ def _display_path(path):
     return _relative_path(path) or path
 
 
+def render_markdown(result, checklist, verbose=False):
+    """
+    The Markdown body of a report, from a QAResult.
+
+    The counterpart of build_ctrf_report() and dqv.build_dqv_graph(): one reporter, one
+    seam. It is not yet a projection of the result alone — the per-check text is still
+    rendered inside each check as it runs and carried on `logs` — so this assembles what
+    is already text rather than producing it. See design.md and #101.
+
+    `main()` wraps the result of this with the heading, the load log and the config log,
+    which are run context rather than anything the checks produced.
+    """
+    log = result.inference_log
+    tests = {key: enabled for enabled, _, _, key in checklist}
+    log += print_profiling_metrics(result.profiling, result.elements, verbose)
+    log += "\n## Quality Assurance Checks\n"
+    # Numbering, titling and separating a check's section is the reporter's job: the check
+    # says what it found, not how a report lays it out.
+    for index, (check, body) in enumerate(zip(result.checks, result.logs), start=1):
+        log += f"\nCheck {index}: {check.name}.\n{body}{sep()}"
+    log += print_profiling_table(result.profiling)
+    log += print_qa_table(result.profiling, tests)
+    return log
+
+
 def _process_loaded_graph(g, files_processed, args, config, checklist, provenance=None):
     """
     Run inference (if requested), then profiling or full QA on an already-loaded graph.
@@ -3282,15 +3270,7 @@ def _process_loaded_graph(g, files_processed, args, config, checklist, provenanc
 
     result = lint_graph(g, files_processed, config, checklist=checklist,
                         verbose=args.verbose, provenance=provenance)
-    log += result.inference_log
-    qa_metrics = result.profiling
-    qa_tests = {key: enabled for enabled, _, _, key in checklist}
-    log += print_profiling_metrics(qa_metrics, result.elements, args.verbose)
-    log += "\n## Quality Assurance Checks\n"
-    for entry in result.logs:
-        log += entry
-    log += print_profiling_table(qa_metrics)
-    log += print_qa_table(qa_metrics, qa_tests)
+    log += render_markdown(result, checklist, args.verbose)
     return log, result
 
 
