@@ -3123,6 +3123,19 @@ def _process_loaded_graph(g, files_processed, args, config, checklist, provenanc
     return log, result
 
 
+def _ctrf_filename(args, run_inputs):
+    """
+    What this run's CTRF report is called.
+
+    A merged run produces one report, so --ctrf-filename names it. Per file there is one
+    per input, so each is named after the input it describes; a single name could not hold
+    them, which is why passing both is rejected rather than quietly ignored.
+    """
+    if not args.per_file:
+        return args.ctrf_filename
+    return f"{os.path.splitext(os.path.basename(run_inputs[0]))[0]}-qa-report.json"
+
+
 def _write_dqv(args, config, results, ontology_sources=None):
     """Write the DQV report if --dqv-dir or --dqv-filename was given."""
     if not (args.dqv_dir or args.dqv_filename):
@@ -3145,11 +3158,11 @@ def main():
     parser.add_argument('-i', '--inference', action='store_true', help='Enable inference of subclass relations before running QA checks. (default: False)')
     parser.add_argument('--per-file', action='store_true', help='Run QA independently on each input file and produce a separate report per file.')
     parser.add_argument('--ctrf-dir', type=str, metavar='directory', default='ctrf', help='Directory to write CTRF report to.')
-    parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for CTRF report (if None, uses default pattern). Ignored with --per-file.')
+    parser.add_argument('--ctrf-filename', type=str, metavar='filename', default=None, help='Filename for the CTRF report (if None, uses default pattern). Not valid with --per-file, which names each report after its input.')
     parser.add_argument('--dqv-dir', type=str, metavar='directory', default=None, help='Directory to write a DQV (W3C Data Quality Vocabulary) Turtle report to. Setting this or --dqv-filename enables DQV output.')
     parser.add_argument('--dqv-filename', type=str, metavar='filename', default=None, help=f'Filename for the DQV report (default: {dqv.DEFAULT_DQV_FILENAME}). With --per-file, all files are written to this one report.')
     parser.add_argument('--base-uri', type=str, metavar='uri', default=None, help=f'Namespace under which DQV instance IRIs (metrics, dimensions, measurements, violations, assessment) are minted (default: {dqv.DEFAULT_BASE_URI}).')
-    parser.add_argument('-o', '--output', type=str, metavar='filename', help='Output file name (optional). If omitted, print to stdout. Ignored with --per-file.')
+    parser.add_argument('-o', '--output', type=str, metavar='filename', help='Write the report to this file instead of printing it. With --per-file it holds every report, in the order the inputs were checked.')
     parser.add_argument('-c', '--config', type=str, metavar='path/to/config.yml', help='Path to a YAML configuration file to enable or disable individual checks. Note that if the current directory contains a .rdf-lint.yml file, it will be used by default.')
     parser.add_argument('--init', action='store_true', help='Generate a default .rdf-lint.yml config file in the current directory.')
     parser.add_argument('data_files', nargs='*', help='List of RDF files or folders to process.')
@@ -3165,6 +3178,9 @@ def main():
     # Validate arguments: data_files is required unless --init is used.
     if not args.init and not args.data_files:
         parser.error("data_files is required unless -i/--init option is used")
+    if args.per_file and args.ctrf_filename:
+        parser.error("--ctrf-filename names a single report; with --per-file each input "
+                     "gets its own, named after it")
 
     # Write an empty lint configuration file and exit.
     if args.init:
@@ -3198,90 +3214,74 @@ def main():
                     ignore_imports=ignore_imports, exclude_types=exclude_types,
                     skip_object_of=skip_object_of, base_iri=args.base_uri)
 
-    # Per-file mode: process each input file independently.
+    # --per-file decides one thing: whether the checks run over each input on its own or
+    # over all of them merged. Everything else about a run is the same either way, so
+    # there is one loop rather than two paths — see #103 for what used to differ.
     if args.per_file:
-        individual_files = _collect_files(args.data_files)
-        if not individual_files:
-            print("ERROR - No files found in specified paths.")
-            if args.exit_status: sys.exit(1)
-            return
-        any_violation = False
-        any_parse_failure = False
-        dqv_results = []
-        ontology_sources = {}
-        for fp in individual_files:
-            log_output = "# Ontology Quality Assurance\n\n"
-            if config_log:
-                log_output += config_log
-            file_counter, files_processed, g, load_log, files_failed, file_sources = load_rdf(
-                [fp], verbose=args.verbose)
-            for iri, sources in file_sources.items():
-                ontology_sources.setdefault(iri, []).extend(sources)
-            log_output += load_log
-            if files_failed:
-                log_output += _parse_failure_log(files_failed)
-                print(f"ERROR - Failed to parse: {fp}", file=sys.stderr)
-                any_parse_failure = True
-                qa_terminate(None, log_output)
-                continue
-            log_output += f"\n> {file_counter} file processed.\n"
-            for f in files_processed:
-                log_output += f"> - `{f}`\n"
-            log_output += ">\n"
-            qa_log, result = _process_loaded_graph(g, files_processed, args, config, checklist, provenance)
-            log_output += qa_log
-            if result is not None:
-                stem = os.path.splitext(os.path.basename(fp))[0]
-                write_ctrf_report(build_ctrf_report(result), args.ctrf_dir,
-                                  f"{stem}-qa-report.json")
-                dqv_results.append(result)
-                if not result.passed:
-                    any_violation = True
-            qa_terminate(None, log_output)
-        _write_dqv(args, config, dqv_results, ontology_sources)
-        if any_parse_failure or (args.exit_status and any_violation):
-            sys.exit(1)
-        return
+        runs = [[path] for path in _collect_files(args.data_files)]
+    else:
+        runs = [args.data_files]
 
-    # Single-run (default) mode.
-    log_output = "# Ontology Quality Assurance\n\n"
-    file_counter, files_processed, g, log_results, files_failed, ontology_sources = load_rdf(
-        args.data_files, verbose=args.verbose)
-    log_output += log_results
+    log_output = ""
+    results = []
+    ontology_sources = {}
+    files_checked = 0
+    any_parse_failure = False
 
-    # A file that can't be parsed would silently shrink the graph under test, so
-    # abort the run rather than report QA results for an incomplete ontology.
-    if files_failed:
-        log_output += _parse_failure_log(files_failed)
-        qa_terminate(args.output, log_output)
-        for f in files_failed:
-            print(f"ERROR - Failed to parse: {f}", file=sys.stderr)
-        sys.exit(1)
+    for run_inputs in runs:
+        # One report per run, on one stream. Each was printed separately before, so the
+        # blank line between them came from print(); it has to be explicit now, or a
+        # heading lands directly under the previous report's table and stops being one.
+        if log_output:
+            log_output += "\n"
+        log_output += "# Ontology Quality Assurance\n\n"
+        file_counter, files_processed, g, load_log, files_failed, sources = load_rdf(
+            run_inputs, verbose=args.verbose)
+        files_checked += file_counter
+        for iri, iri_sources in sources.items():
+            ontology_sources.setdefault(iri, []).extend(iri_sources)
+        log_output += load_log
 
-    if file_counter == 0:
+        # A file that can't be parsed would silently shrink the graph under test. That is
+        # the one thing --per-file legitimately changes beyond the checks' scope: in a
+        # merged run the whole graph is compromised and there is nothing left to check,
+        # while per file the others are independent runs and still worth checking.
+        if files_failed:
+            log_output += _parse_failure_log(files_failed)
+            for failed in files_failed:
+                print(f"ERROR - Failed to parse: {failed}", file=sys.stderr)
+            any_parse_failure = True
+            continue
+
+        if file_counter == 0:
+            continue
+
+        log_output += f"\n> {file_counter} file{'' if file_counter == 1 else 's'} processed.\n"
+        for processed in files_processed:
+            log_output += f"> - `{processed}`\n"
+        log_output += ">\n"
+        if config_log:
+            log_output += config_log
+
+        qa_log, result = _process_loaded_graph(g, files_processed, args, config, checklist,
+                                               provenance)
+        log_output += qa_log
+        if result is not None:
+            write_ctrf_report(build_ctrf_report(result), args.ctrf_dir,
+                              _ctrf_filename(args, run_inputs))
+            results.append(result)
+
+    if files_checked == 0:
         log_output += "ERROR - No RDF data in input files or directories."
-        qa_terminate(args.output, log_output)
-        if args.exit_status: sys.exit(1)
-        return
 
-    log_output += f"\n> {file_counter} files processed.\n"
-    for f in files_processed:
-        log_output += f"> - `{f}`\n"
-    log_output += ">\n"
-    if config_log:
-        log_output += config_log
-
-    qa_log, result = _process_loaded_graph(g, files_processed, args, config, checklist, provenance)
-    log_output += qa_log
-
-    if result is not None:
-        write_ctrf_report(build_ctrf_report(result), args.ctrf_dir, args.ctrf_filename)
-        _write_dqv(args, config, [result], ontology_sources)
-
+    _write_dqv(args, config, results, ontology_sources)
     qa_terminate(args.output, log_output)
 
-    if result is not None and args.exit_status and not result.passed:
+    if any_parse_failure:
         sys.exit(1)
+    if args.exit_status and (files_checked == 0 or not all(r.passed for r in results)):
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

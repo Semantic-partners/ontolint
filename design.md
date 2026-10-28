@@ -168,14 +168,25 @@ the ones in flight.
 
 ## per-file
 
-`--per-file` should mean one thing: **do the checks run per graph, or across all the graphs
-at once?** Everything else about the two modes — how reports are named, where they are
-written, which messages are emitted — is incidental and should not differ.
+`--per-file` means one thing: **do the checks run per graph, or across all the graphs at
+once?** `main()` is one loop over a list of runs, where a merged run is the list of length
+one, so everything after the loop — the DQV report, where output goes, the exit code — is
+the same either way.
 
-It does differ today (`main()` has two paths), which is tracked in #96 along with the
-deeper question of scope: a check computed over "whatever was in this invocation" gives an
-answer that depends on how the caller batched their files, which is why uniqueness can be
-reported for two independent ontologies that merely share a label.
+Two things still differ, both deliberately, and `tests/test_e2e_cli.py` pins them:
+
+- **A CTRF report is named per run.** `--ctrf-filename` names the one a merged run
+  produces; per file each is named after its input, and passing both is refused rather
+  than quietly ignored.
+- **A parse failure aborts a merged run but not a per-file one.** A file that cannot be
+  parsed silently shrinks the graph under test, so there is nothing left to check in a
+  merged run; per file the others are independent and still worth checking. This one
+  follows from what the checks run over, which is the one thing `--per-file` decides.
+
+What remains open is the deeper question of scope, tracked in #96: a check computed over
+"whatever was in this invocation" gives an answer that depends on how the caller batched
+their files, which is why uniqueness can be reported for two independent ontologies that
+merely share a label.
 
 ## Determinism
 
@@ -221,13 +232,6 @@ clock is a parameter, and the published format keeps the wall clock it has alway
 
 - **Make Markdown a projection of `QAResult`** — see above. Tracked as its own change,
   since it moves where every check's text is produced.
-- **Collapse the two `main()` paths**, so `--per-file` only decides what the checks run
-  over and nothing else differs between the modes. What differs today is pinned in
-  `test_e2e_cli.py`: `-o` writes a file in a single run and is ignored per-file,
-  `--ctrf-filename` likewise, an empty directory reports differently in each, and
-  `--profile-only --per-file` is the one combination producing no CTRF and no report. The
-  collapse has to decide what each of those means, and these tests are what make that a
-  decision rather than an accident.
 
 ## In flight
 
