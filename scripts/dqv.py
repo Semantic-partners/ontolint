@@ -198,12 +198,12 @@ def mint_id(kind, *parts):
     return hashlib.sha256("\x1f".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:16]
 
 
-def _mint(base, kind, *parts):
+def _mint(base, kind, *parts, node_namer=None):
     """Deterministic, collision-resistant instance IRI: <base><kind>-<name of parts>."""
-    return rdflib.URIRef(f"{base}{kind}-{mint_id(kind, *parts)}")
+    return rdflib.URIRef(f"{base}{kind}-{(node_namer or mint_id)(kind, *parts)}")
 
 
-def _resource_node(base, value, bnode_keys):
+def _resource_node(base, value, bnode_keys, node_namer=None):
     """
     The IRI to emit for a violation's resource. Blank nodes (e.g. anonymous SHACL property
     shapes) are skolemized to <base>bnode-<hash> of their canonical label in the checked
@@ -212,7 +212,7 @@ def _resource_node(base, value, bnode_keys):
     if value is None:
         return None
     if isinstance(value, rdflib.BNode):
-        return _mint(base, 'bnode', bnode_keys.get(value, str(value)))
+        return _mint(base, 'bnode', bnode_keys.get(value, str(value)), node_namer=node_namer)
     return rdflib.URIRef(str(value))
 
 
@@ -263,7 +263,7 @@ def _setting_value(base, setting):
     return rdflib.URIRef(value) if _ABSOLUTE_IRI.match(value) else rdflib.Literal(value)
 
 
-def _add_configuration(g, base, settings, config_file=None):
+def _add_configuration(g, base, settings, config_file=None, node_namer=None):
     """
     The configuration a run actually used, as an olq:Configuration of olq:Settings. Each
     setting records the .rdf-lint.yml key it corresponds to, its value, its origin (the
@@ -279,7 +279,7 @@ def _add_configuration(g, base, settings, config_file=None):
     # comment or source (e.g. another bundled vocabulary release) never share an IRI.
     signature = sorted(f"{s.key}|{_setting_value(base, s)}|{s.origin}|{s.enabled}|{s.local_file}"
                        f"|{s.reason}|{s.derived_from}" for s in settings)
-    configuration = _mint(base, 'configuration', config_file or '', *signature)
+    configuration = _mint(base, 'configuration', config_file or '', *signature, node_namer=node_namer)
     g.add((configuration, rdflib.RDF.type, OLQ.Configuration))
     g.add((configuration, rdflib.RDFS.label, rdflib.Literal("Effective ontolint configuration")))
     if config_file:
@@ -287,7 +287,7 @@ def _add_configuration(g, base, settings, config_file=None):
     for s in settings:
         value = _setting_value(base, s)
         node = _mint(base, 'setting', configuration, s.key, value, s.origin, s.enabled, s.local_file or '',
-                     s.reason or '', s.derived_from or '')
+                     s.reason or '', s.derived_from or '', node_namer=node_namer)
         g.add((configuration, OLQ.setting, node))
         g.add((node, rdflib.RDF.type, OLQ.Setting))
         shown = s.label if s.key == 'checks' and s.label else value
@@ -307,7 +307,7 @@ def _add_configuration(g, base, settings, config_file=None):
     return configuration
 
 
-def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
+def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies, node_namer=None):
     """
     The triples reporting each ontology IRI that more than one input declared, as a graph
     of their own — empty when there are none.
@@ -324,7 +324,7 @@ def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
     for iri, sources in sorted(duplicate_ontologies.items()):
         dataset = rdflib.URIRef(iri)
         sources = sorted(str(source) for source in sources)
-        measurement = _mint(base, 'measurement', assessment, dataset, slug)
+        measurement = _mint(base, 'measurement', assessment, dataset, slug, node_namer=node_namer)
         g.add((assessment, DQV.hasQualityMeasurement, measurement))
         g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
         g.add((measurement, DQV.isMeasurementOf, metric))
@@ -332,7 +332,7 @@ def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
         g.add((measurement, DQV.value, rdflib.Literal(len(sources))))
         g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
         g.add((measurement, OLQ.severity, severity))
-        node = _mint(base, 'violation', measurement, dataset, *sources)
+        node = _mint(base, 'violation', measurement, dataset, *sources, node_namer=node_namer)
         g.add((measurement, OLQ.violation, node))
         g.add((node, rdflib.RDF.type, SH.ValidationResult))
         g.add((node, SH.resultSeverity, severity))
@@ -345,7 +345,8 @@ def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
     return g
 
 
-def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_ontologies=None):
+def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_ontologies=None,
+                    node_namer=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
 
@@ -377,15 +378,16 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
 
     # Configurations first: the assessment's identity includes them, so the same files
     # assessed under different configurations never share assessment or measurement IRIs.
-    configurations = [_add_configuration(g, base, r.settings, r.config_file) for r in results if r.settings]
+    configurations = [_add_configuration(g, base, r.settings, r.config_file, node_namer=node_namer)
+                      for r in results if r.settings]
     run_files = sorted(f for r in results for f in r.profiling.get('filesProcessed', []))
-    assessment = _mint(base, 'assessment', stamp, *run_files, *sorted(set(configurations)))
+    assessment = _mint(base, 'assessment', stamp, *run_files, *sorted(set(configurations)), node_namer=node_namer)
     g.add((assessment, rdflib.RDF.type, DQV.QualityMetadata))
     g.add((assessment, PROV.generatedAtTime, rdflib.Literal(stamp, datatype=rdflib.XSD.dateTime)))
     for configuration in configurations:
         g.add((assessment, OLQ.configuration, configuration))
 
-    g += duplicate_ontology_graph(base, assessment, duplicate_ontologies)
+    g += duplicate_ontology_graph(base, assessment, duplicate_ontologies, node_namer=node_namer)
 
     slug, label, definition, dimension = DQV_ROLLUP_METRIC
     rollup = _add_metric(g, base, slug, label, definition, dimension)
@@ -401,14 +403,14 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
                 g.add((iri, rdflib.RDFS.label, rdflib.Literal(ds.label)))
         if not datasets:
             # No owl:Ontology and no input files (e.g. an in-memory graph).
-            dataset = _mint(base, 'dataset', assessment, index, *run_key)
+            dataset = _mint(base, 'dataset', assessment, index, *run_key, node_namer=node_namer)
         elif len(datasets) == 1:
             dataset = datasets[0]
         else:
             # A merged run over several ontologies can't attribute a violation to the one it
             # came from, so its results are computed on an aggregate of them (use --per-file
             # for per-ontology attribution). The aggregate is stable for the same inputs.
-            dataset = _mint(base, 'dataset', *sorted(datasets), *run_key)
+            dataset = _mint(base, 'dataset', *sorted(datasets), *run_key, node_namer=node_namer)
             names = [ds.label or ds.iri for ds in result.datasets]
             g.add((dataset, rdflib.RDF.type, DCAT.Dataset))
             g.add((dataset, rdflib.RDFS.label, rdflib.Literal("Merged: " + ", ".join(names))))
@@ -423,7 +425,7 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
             metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, severity)
             if check.passed:
                 continue
-            measurement = _mint(base, 'measurement', assessment, *run_key, dataset, m_slug)
+            measurement = _mint(base, 'measurement', assessment, *run_key, dataset, m_slug, node_namer=node_namer)
             g.add((assessment, DQV.hasQualityMeasurement, measurement))
             g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
             g.add((measurement, DQV.isMeasurementOf, metric))
@@ -432,10 +434,11 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
             g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
             g.add((measurement, OLQ.severity, severity))
             for v in check.violations:
-                resource = _resource_node(base, v.resource, result.bnode_keys)
-                related = sorted((_resource_node(base, r, result.bnode_keys) for r in v.related), key=str)
+                resource = _resource_node(base, v.resource, result.bnode_keys, node_namer=node_namer)
+                related = sorted((_resource_node(base, r, result.bnode_keys, node_namer=node_namer)
+                                  for r in v.related), key=str)
                 node = _mint(base, 'violation', measurement, resource or '', _hash_key(v.value),
-                             v.comment or '', *related)
+                             v.comment or '', *related, node_namer=node_namer)
                 g.add((measurement, OLQ.violation, node))
                 # Each violation is a SHACL validation result. sh:sourceShape is omitted
                 # until checks are expressed as shapes; the metric identifies the check.
@@ -453,7 +456,7 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
                     g.add((node, OLQ.relatedResource, r))
 
         failed = len(result.failures)
-        measurement = _mint(base, 'measurement', assessment, *run_key, dataset, slug)
+        measurement = _mint(base, 'measurement', assessment, *run_key, dataset, slug, node_namer=node_namer)
         g.add((assessment, DQV.hasQualityMeasurement, measurement))
         g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
         g.add((measurement, DQV.isMeasurementOf, rollup))
@@ -474,12 +477,12 @@ def check_dqv_filename(filename):
 
 
 def write_dqv_report(results, file_path, filename=None, base_uri=None,
-                     date_time_provider=None, duplicate_ontologies=None):
+                     date_time_provider=None, duplicate_ontologies=None, node_namer=None):
     """Serialise the DQV graph for the given QAResults to Turtle. Returns (graph, log)."""
     filename = filename or DEFAULT_DQV_FILENAME
     check_dqv_filename(filename)
     g = build_dqv_graph(results, base_uri=base_uri, date_time_provider=date_time_provider,
-                        duplicate_ontologies=duplicate_ontologies)
+                        duplicate_ontologies=duplicate_ontologies, node_namer=node_namer)
     os.makedirs(file_path, exist_ok=True)
     output_file = os.path.join(file_path, filename)
     g.serialize(destination=output_file, format='turtle')

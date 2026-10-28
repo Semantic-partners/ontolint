@@ -134,9 +134,19 @@ any of them.
 
 | provider | replaced with | otherwise |
 |---|---|---|
-| `dqv.utc_now` | a fixed instant | every minted IRI derives from the timestamp, so no two runs agree |
+| `dqv.utc_now`, as `date_time_provider` | a fixed instant | every minted IRI derives from the timestamp, so no two runs agree |
+| `dqv.mint_id`, as `node_namer` | a name taken from what a node is *about* | a node's name nests: a violation hashes its measurement, which hashes the assessment, which hashes the effective configuration — which lists every check. Adding one check renamed every node in every stored report |
 | `dqv.file_iri` | an IRI relative to the case directory | a report naming an input names it by absolute path, so a golden matches only the machine that wrote it |
-| `dqv.mint_id` | a name taken from what a node is *about* | a node's name nests: a violation hashes its measurement, which hashes the assessment, which hashes the effective configuration — which lists every check. Adding one check renamed every node in every stored report |
+
+The first two are parameters of `build_dqv_graph` and `write_dqv_report`, so a test calling
+either passes one in — `test_pipeline_qaresult_to_dqv.py` does. `dqv.file_iri` is not, and
+deliberately: it is called from `load_rdf` in `ontology_qa.py`, so a parameter would have to
+run through `load_rdf` → `run_qa` → `lint_graph` → `main` to reach the one test that wants
+it. It stays a module-level function replaced in place.
+
+Every one of them is *also* replaceable in place, because each default is looked up when the
+report is built rather than bound into its definition. A run through `main()` takes no
+arguments for any of this, so `test_e2e_dqv.py` replaces all three that way.
 
 That last one is the difference between a reviewable diff and an unreadable one. Adding a
 check used to move 161 lines of `tests/dqv/mixed/expected.ttl` and 1120 of

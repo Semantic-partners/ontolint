@@ -15,10 +15,8 @@ from pathlib import Path
 
 import pytest
 import rdflib
-from unittest.mock import patch
 from rdflib.compare import graph_diff
 
-from scripts import dqv
 from scripts.dqv import build_dqv_graph, DQV_METRICS, DQV, DEFAULT_BASE_URI
 from tests.conftest import CASES, stored_dqv_for, stored_qa_result_for
 from tests.golden import stable_mint_id
@@ -58,8 +56,8 @@ def test_it_builds_the_stored_report(case):
     so multi-result runs are pinned end-to-end in tests/dqv/, where `per-file/` and
     `merged/` cover both shapes against the CLI.
     """
-    with patch.object(dqv, 'mint_id', stable_mint_id):
-        graph = build_dqv_graph([stored_qa_result_for(case)], date_time_provider=lambda: AT)
+    graph = build_dqv_graph([stored_qa_result_for(case)], date_time_provider=lambda: AT,
+                            node_namer=stable_mint_id)
     stored_path = DATA / f'{case}_dqv.ttl'
     if os.environ.get('UPDATE_GOLDEN'):
         stored_path.write_text(graph.serialize(format='turtle'), encoding='utf-8')
