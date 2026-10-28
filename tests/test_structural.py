@@ -1,4 +1,4 @@
-from scripts.ontology_qa import run_qa
+from scripts.ontology_qa import exec_sparql, run_qa
 
 
 # ── Isolated Classes ──────────────────────────────────────────────────────────
@@ -172,21 +172,74 @@ def test_class_used_as_range_without_declaration_fails(make_graph):
     assert "UndeclaredClass" in check.elements
 
 
-def test_untyped_class_without_ontology_declaration(make_graph):
+def test_untyped_class_without_ontology_declaration_reports_nothing(make_graph):
+    """
+    With no owl:Ontology, the namespace guard has nothing to compare against (#102).
+
+    It used to pass everything instead of nothing, so the check reported every term the
+    file touched — rdf:type and rdfs:label included — and failed the build on a list that
+    was almost entirely other people's vocabulary. The cost of reporting nothing is this
+    first case: :UndeclaredClass really is undeclared, and is no longer named. There is no
+    way to tell it apart from ex:UndeclaredClass below without a namespace to judge by.
+    """
     g = make_graph("""
     :DeclaredClass a owl:Class .
     :hasFur a owl:ObjectProperty ; rdfs:range :UndeclaredClass .
     """)
-    assert not run_qa(g).get("Untyped Classes").passed
+    check = run_qa(g).get("Untyped Classes")
+    assert check.passed
+    assert check.count == 0
 
 
-def test_untyped_class_without_ontology_declaration_unspecific(make_graph):
+def test_untyped_class_without_ontology_declaration_ignores_other_vocabularies(make_graph):
+    # The false positive the fix is for: ex:UndeclaredClass belongs to someone else.
     g = make_graph("""
     @prefix ex: <http://test.example.org/test#> .
     :DeclaredClass a owl:Class .
     :hasFur a owl:ObjectProperty ; rdfs:range ex:UndeclaredClass .
     """)
-    assert not run_qa(g).get("Untyped Classes").passed
+    assert run_qa(g).get("Untyped Classes").passed
+
+
+def test_untyped_property_without_ontology_declaration_reports_nothing(make_graph):
+    # :chases is an untyped predicate, and ex:owns belongs to someone else. With no
+    # declared namespace neither can be judged, and both used to be reported.
+    g = make_graph("""
+    @prefix ex: <http://test.example.org/test#> .
+    :Dog :chases :Cat .
+    :Dog ex:owns :Bone .
+    """)
+    check = run_qa(g).get("Untyped Properties")
+    assert check.passed
+    assert check.count == 0
+
+
+def test_the_untyped_queries_require_a_declared_namespace(make_graph):
+    """
+    The guard is in the queries, not only in the checks that report them.
+
+    Each check short-circuits on the declaration before it looks at its results, so a
+    query that went back to passing everything would be invisible through run_qa. These
+    are the queries other callers would get.
+    """
+    g = make_graph("""
+    @prefix ex: <http://test.example.org/test#> .
+    :DeclaredClass a owl:Class .
+    :Dog :chases ex:Cat .
+    """)
+    assert not exec_sparql(g, 'untyped_class')
+    assert not exec_sparql(g, 'untyped_property')
+
+
+def test_untyped_checks_say_the_metric_is_invalid_rather_than_passing(make_graph):
+    # Reporting nothing must not read as PASS: nothing was looked at. Each check says so
+    # in its own log, so a reader is not told the file is clean on this point.
+    g = make_graph(""":DeclaredClass a owl:Class . :Dog :chases :Cat .""")
+    logs = run_qa(g).logs
+    for word in ("class", "property"):
+        expected = (f"WARNING - Ontology namespace undefined, invalid metric. No way to confirm "
+                    f"if a {word} is defined in the ontology or an external vocabulary.")
+        assert any(expected in log for log in logs), word
 
 
 def test_untyped_class_pass_class_from_external_ontology(make_graph):

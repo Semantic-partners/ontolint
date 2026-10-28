@@ -23,8 +23,7 @@
     dqv:hasQualityMeasurement <urn:ontolint:measurement-ontolint-conformance-e3b7f34d>,
         <urn:ontolint:measurement-ontology-missing-description-863e4304>,
         <urn:ontolint:measurement-ontology-not-declared-469e57ac>,
-        <urn:ontolint:measurement-undefined-terms-907063c4>,
-        <urn:ontolint:measurement-untyped-properties-13a3d4a1> ;
+        <urn:ontolint:measurement-undefined-terms-907063c4> ;
     prov:generatedAtTime "2026-10-15T09:30:00+00:00"^^xsd:dateTime ;
     olq:configuration <urn:ontolint:configuration-effective> .
 
@@ -95,7 +94,7 @@
 <urn:ontolint:measurement-ontolint-conformance-e3b7f34d> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/input/fragment.ttl> ;
     dqv:isMeasurementOf <urn:ontolint:metric-ontolint-conformance> ;
-    dqv:value 4 ;
+    dqv:value 3 ;
     olq:conforms false .
 
 <urn:ontolint:measurement-ontology-missing-description-863e4304> a dqv:QualityMeasurement ;
@@ -123,18 +122,6 @@
     olq:violation <urn:ontolint:violation-urn-ontolint-measurement-undefined-terms-5a8dbe00>,
         <urn:ontolint:violation-urn-ontolint-measurement-undefined-terms-6e10e77f>,
         <urn:ontolint:violation-urn-ontolint-measurement-undefined-terms-e7b72890> .
-
-<urn:ontolint:measurement-untyped-properties-13a3d4a1> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/fragment.ttl> ;
-    dqv:isMeasurementOf <urn:ontolint:metric-untyped-properties> ;
-    dqv:value 5 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-af1c75d1>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-b18dc2f5>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-c9335ac3>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-e2c30284>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-fd293632> .
 
 <urn:ontolint:metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -286,6 +273,13 @@
     rdfs:label "Untyped Classes" ;
     skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
     skos:prefLabel "Untyped Classes" ;
+    dqv:inDimension <urn:ontolint:dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<urn:ontolint:metric-untyped-properties> a dqv:Metric ;
+    rdfs:label "Untyped Properties" ;
+    skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
+    skos:prefLabel "Untyped Properties" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
     olq:severity sh:Violation .
 
@@ -816,31 +810,6 @@
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-af1c75d1> a sh:ValidationResult ;
-    sh:focusNode rdfs:domain ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-b18dc2f5> a sh:ValidationResult ;
-    sh:focusNode rdfs:comment ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-c9335ac3> a sh:ValidationResult ;
-    sh:focusNode rdfs:range ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-e2c30284> a sh:ValidationResult ;
-    sh:focusNode rdf:type ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-fd293632> a sh:ValidationResult ;
-    sh:focusNode rdfs:label ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
 <urn:ontolint:metric-ontology-missing-description> a dqv:Metric ;
     rdfs:label "Ontology without description" ;
     skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
@@ -862,13 +831,6 @@
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
     olq:severity sh:Violation .
 
-<urn:ontolint:metric-untyped-properties> a dqv:Metric ;
-    rdfs:label "Untyped Properties" ;
-    skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
-    skos:prefLabel "Untyped Properties" ;
-    dqv:inDimension <urn:ontolint:dimension-conformance> ;
-    olq:severity sh:Violation .
-
 <urn:ontolint:dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;
     skos:definition "The ontology declares itself and describes its purpose." ;
@@ -879,12 +841,12 @@
     skos:definition "Terms are connected into a well-formed hierarchy with domains and ranges." ;
     skos:prefLabel "Structure" .
 
+<https://example.org/input/fragment.ttl> rdfs:label "fragment.ttl" .
+
 <urn:ontolint:dimension-uniqueness> a dqv:Dimension ;
     rdfs:label "Uniqueness" ;
     skos:definition "Labels and identifiers unambiguously denote a single term." ;
     skos:prefLabel "Uniqueness" .
-
-<https://example.org/input/fragment.ttl> rdfs:label "fragment.ttl" .
 
 <urn:ontolint:dimension-conformance> a dqv:Dimension ;
     rdfs:label "Conformance" ;

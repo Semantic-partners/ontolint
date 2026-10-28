@@ -286,6 +286,30 @@ would make `a:borrowed` ontology a's defect, which lets one input degrade anothe
 score from outside. Ownership follows the file; minting into someone else's namespace is the
 finding, not the attribution rule.
 
+## A check that cannot answer says so
+
+The untyped-class and untyped-property checks judge a term by whether it is in the
+ontology's own namespace. With no `owl:Ontology` declared there is no such namespace, and
+the guard used to read *"keep it if it is mine, **or if I do not know what mine is**"* —
+so a headerless file had every term it touched reported, `rdf:type` and `rdfs:label`
+included, and the build failed on a list of other people's vocabulary (#102).
+
+The guard now requires a declared namespace, in the queries *and* in the checks: the
+queries return nothing, and the checks say `invalid metric` rather than `PASS`, because
+reporting nothing and finding nothing are different things and only one of them is a
+clean bill of health. It is the same shape as `WARNING - No classes defined, invalid
+metric` elsewhere.
+
+What this gives up is deliberate. A term in the file's own namespace, used and never
+typed, really is a defect and is no longer named — there is no way to tell it from a
+third party's term without a namespace to judge by. Excluding only the vocabularies we
+already know offline would keep it, and is worth revisiting; it is not what this change
+does.
+
+Each half has its own failing test, because they can hide each other: the checks
+short-circuit on the declaration before looking at their results, so a query that went
+back to passing everything would be invisible through `run_qa`.
+
 ## Determinism
 
 Reports must be byte-identical for the same inputs, or diffs are unreviewable and no

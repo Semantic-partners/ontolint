@@ -6,8 +6,8 @@
         },
         "summary": {
             "tests": 25,
-            "passed": 21,
-            "failed": 4
+            "passed": 22,
+            "failed": 3
         },
         "tests": [
             {
@@ -116,11 +116,7 @@
             },
             {
                 "name": "Untyped Properties",
-                "status": "failed",
-                "failure": {
-                    "violations": 5,
-                    "elements": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type,<br> http://www.w3.org/2000/01/rdf-schema#comment,<br> http://www.w3.org/2000/01/rdf-schema#domain,<br> http://www.w3.org/2000/01/rdf-schema#label,<br> http://www.w3.org/2000/01/rdf-schema#range"
-                }
+                "status": "passed"
             },
             {
                 "name": "Namespace hijacking",

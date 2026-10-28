@@ -17,7 +17,9 @@ WHERE {
     BIND(STR(?ontology) AS ?ns)
   }
   BIND(REPLACE(STR(?property), "[^#/]*$", "") AS ?pns)
-  FILTER (!BOUND(?ns) || ?pns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
+  # An unbound ?ns means no owl:Ontology was declared, so there is no namespace to
+  # judge against: require it, and report nothing rather than everything.
+  FILTER (BOUND(?ns) && ?pns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
   MINUS {
     VALUES ?type { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty rdf:Property sh:ConstraintComponent }
     ?property a ?type .

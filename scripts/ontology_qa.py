@@ -2114,7 +2114,12 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
 
-    if not results and int(in_metrics['classCount']) > 0:
+    if not ontology_iris(graph):
+        # Without a declared namespace, a term of the ontology's own cannot be told from an
+        # external vocabulary's, so the query reports nothing. PASS would imply it had looked.
+        log += "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+
+    elif not results and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
     elif not results and int(in_metrics['classCount']) == 0:
@@ -2129,13 +2134,9 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
 
-    if 'ontologyNotDeclared' in in_metrics:
-        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += "WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
-        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-    else:
-        log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+    if ('ontologyNotDeclared' in in_metrics
+            and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
+        log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status
@@ -2168,7 +2169,12 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     violations[check] = ""
     num_files = len(in_metrics['filesProcessed'])
 
-    if not results and int(in_metrics['propertyCount']) > 0:
+    if not ontology_iris(graph):
+        # Without a declared namespace, a term of the ontology's own cannot be told from an
+        # external vocabulary's, so the query reports nothing. PASS would imply it had looked.
+        log += "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+
+    elif not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
               
     elif not results and int(in_metrics['propertyCount']) == 0:
@@ -2183,13 +2189,9 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         violations[check] = string
         log += string.replace(",<br> ", "\n - ") + "\n"
     
-    if 'ontologyNotDeclared' in in_metrics:
-        if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += "WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
-        elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
-    else:
-        log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+    if ('ontologyNotDeclared' in in_metrics
+            and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
+        log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
     
     log += sep()
     return metrics, violations, log, c, status

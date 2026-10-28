@@ -19,7 +19,7 @@ Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.p
 them.
 """
 
-from rdflib import Literal, URIRef
+from rdflib import Literal
 
 from scripts.dqv import ConfigSetting, Dataset, Violation
 from scripts.ontology_qa import CheckResult, QAResult
@@ -69,7 +69,7 @@ EXPECTED = QAResult(
         'nonUniqueIdentifiers': 0,
         'subclassCycles': 0,
         'untypedClasses': 0,
-        'untypedProperties': 5,
+        'untypedProperties': 0,
         'hijacking': 0,
     },
     checks=[
@@ -144,13 +144,9 @@ EXPECTED = QAResult(
         CheckResult(name='Untyped Classes', key='untypedClasses', passed=True, count=0,
                     elements='',
                     violations=[]),
-        CheckResult(name='Untyped Properties', key='untypedProperties', passed=False, count=5,
-                    elements='http://www.w3.org/1999/02/22-rdf-syntax-ns#type,<br> http://www.w3.org/2000/01/rdf-schema#comment,<br> http://www.w3.org/2000/01/rdf-schema#domain,<br> http://www.w3.org/2000/01/rdf-schema#label,<br> http://www.w3.org/2000/01/rdf-schema#range',
-                    violations=[Violation(URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')),
-                        Violation(URIRef('http://www.w3.org/2000/01/rdf-schema#comment')),
-                        Violation(URIRef('http://www.w3.org/2000/01/rdf-schema#domain')),
-                        Violation(URIRef('http://www.w3.org/2000/01/rdf-schema#label')),
-                        Violation(URIRef('http://www.w3.org/2000/01/rdf-schema#range'))]),
+        CheckResult(name='Untyped Properties', key='untypedProperties', passed=True, count=0,
+                    elements='',
+                    violations=[]),
         CheckResult(name='Namespace hijacking', key='hijacking', passed=True, count=0,
                     elements='',
                     violations=[]),

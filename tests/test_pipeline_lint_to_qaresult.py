@@ -90,15 +90,20 @@ def test_the_fragment_is_the_only_case_failing_the_metadata_checks():
 def test_batching_the_same_files_changes_the_answer():
     """
     Grouping is not neutral, which is the whole of #96. The fragment's terms sit outside
-    the only declared namespace once the two are merged, so they become hijacking; and its
-    predicates stop being reported as untyped, because that check's namespace guard has an
-    ontology to bind to again.
+    the only declared namespace once the two are merged, so they become hijacking; and the
+    untyped checks go from refusing to answer to answering, because the merge gives their
+    namespace guard an ontology to bind to.
     """
     alone = {c.key: c.count for c in stored_qa_result_for('fragment').failures}
     merged = {c.key: c.count for c in stored_qa_result_for('merged').failures}
 
     assert 'hijacking' not in alone and merged['hijacking'] > 0
-    assert alone['untypedProperties'] > merged.get('untypedProperties', 0)
+    # Alone the fragment declares no ontology, so the untyped checks have nothing to judge
+    # against and report nothing (#102). Merged, reporters.ttl supplies the namespace, and
+    # what is reported is reporters' own untyped term — the fragment's fall outside it and
+    # are hijacking instead.
+    assert 'untypedProperties' not in alone
+    assert merged['untypedProperties'] > 0
 
 
 def _repo_relative(profiling):
