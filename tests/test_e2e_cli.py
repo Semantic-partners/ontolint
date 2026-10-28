@@ -147,14 +147,14 @@ def test_per_file_no_files_found_exit_status(tmp_path, capsys):
     with pytest.raises(SystemExit) as exc:
         run_main(str(empty), '--per-file', '-e', '--ctrf-dir', str(tmp_path / 'ctrf'))
     assert exc.value.code == 1
-    assert 'No files found' in capsys.readouterr().out
+    assert 'No RDF data in input files or directories.' in capsys.readouterr().out
 
 
 def test_per_file_no_files_found_without_exit_status_returns(tmp_path, capsys):
     empty = tmp_path / 'empty'
     empty.mkdir()
     run_main(str(empty), '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'))  # must not raise
-    assert 'No files found' in capsys.readouterr().out
+    assert 'No RDF data in input files or directories.' in capsys.readouterr().out
 
 
 def test_per_file_output_contains_header_per_file(tmp_path, capsys):
@@ -410,23 +410,36 @@ def test_output_option_creates_missing_directories(tmp_path):
     assert out.exists()
 
 
-def test_output_option_is_ignored_with_per_file(tmp_path, capsys):
+def test_output_option_holds_every_report_with_per_file(tmp_path, capsys):
     out = tmp_path / 'report.md'
     run_main(REPORTERS, FRAGMENT, '--per-file', '-o', str(out),
              '--ctrf-dir', str(tmp_path / 'ctrf'))
 
-    assert not out.exists(), "--per-file is documented as ignoring -o"
-    assert '## Quality Assurance Checks' in capsys.readouterr().out
+    # Per-file already concatenated its reports onto one stream; -o writes that stream to
+    # a file rather than dropping it, so the flag means the same thing in both modes.
+    report = out.read_text()
+    assert report.count('# Ontology Quality Assurance') == 2
+    assert 'reporters.ttl' in report and 'fragment.ttl' in report
+    assert capsys.readouterr().out == ''
 
 
-def test_ctrf_filename_is_ignored_with_per_file(tmp_path):
+def test_per_file_names_each_ctrf_report_after_its_input(tmp_path):
     ctrf = tmp_path / 'ctrf'
-    run_main(REPORTERS, FRAGMENT, '--per-file', '--ctrf-filename', 'custom.json',
-             '--ctrf-dir', str(ctrf))
+    run_main(REPORTERS, FRAGMENT, '--per-file', '--ctrf-dir', str(ctrf))
 
-    # One report per input, named after it — the single name could not hold two runs.
     assert sorted(p.name for p in ctrf.glob('*.json')) == [
         'fragment-qa-report.json', 'reporters-qa-report.json']
+
+
+def test_ctrf_filename_is_refused_with_per_file(tmp_path, capsys):
+    # One name cannot hold a report per input. It used to be accepted and ignored, which
+    # silently gave the caller something other than what they asked for.
+    with pytest.raises(SystemExit) as exit_info:
+        run_main(REPORTERS, FRAGMENT, '--per-file', '--ctrf-filename', 'custom.json',
+                 '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    assert exit_info.value.code == 2
+    assert '--ctrf-filename' in capsys.readouterr().err
 
 
 def test_empty_directory_in_a_single_run_reports_no_rdf_data(tmp_path, capsys):

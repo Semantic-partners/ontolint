@@ -29,7 +29,8 @@ options:
   --per-file            Run QA independently on each input file and produce a separate report per file.
   --ctrf-dir directory  Directory to write CTRF report to.
   --ctrf-filename filename
-                        Filename for CTRF report (if None, uses default pattern). Ignored with --per-file.
+                        Filename for the CTRF report (if None, uses default pattern). Not valid with
+                        --per-file, which names each report after its input.
   --dqv-dir directory   Directory to write a DQV (W3C Data Quality Vocabulary) Turtle report to. Setting this or
                         --dqv-filename enables DQV output.
   --dqv-filename filename
@@ -38,7 +39,8 @@ options:
   --base-uri uri        Namespace under which DQV instance IRIs (metrics, dimensions, measurements, violations,
                         assessment) are minted (default: urn:ontolint:).
   -o filename, --output filename
-                        Output file name (optional). If omitted, print to stdout. Ignored with --per-file.
+                        Write the report to this file instead of printing it. With --per-file it holds
+                        every report, in the order the inputs were checked.
   -c path/to/config.yml, --config path/to/config.yml
                         Path to a YAML configuration file to enable or disable individual checks. Note that if the
                         current directory contains a .rdf-lint.yml file, it will be used by default.
