@@ -1603,25 +1603,25 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
     violations[check] = ""
     
     if not results and int(in_metrics['classCount']) > 0:
-        log += "PASS - No classes share the same label.\n"
+        decided(violations, check, "PASS - No classes share the same label.")
 
     elif int(in_metrics['classCount']) == 0:
-        log += "WARNING - No classes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No classes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} labels shared by multiple classes.\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} labels shared by multiple classes.")
         status += 1
         string = ""
         records = []
-        log += "| Label | Label Property | Classes |\n|--|--|--|\n"
+        rows = []
         for row in results:
             members = concat_members(row.classes)
-            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            rows.append((row.label, row.labelProperty, members))
             string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.classes))
-        
+        tabulate(violations, check, ('Label', 'Label Property', 'Classes'), rows)
         string = string.removesuffix(";<br> ")
         violations[check] = string
         violations[records_key(check)] = records
@@ -1656,24 +1656,25 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
     violations[check] = ""
 
     if not results and int(in_metrics['propertyCount']) > 0:
-        log += "PASS - No property share the same label.\n"
+        decided(violations, check, "PASS - No property share the same label.")
 
     elif int(in_metrics['propertyCount']) == 0:
-        log += "WARNING - No properties defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No properties defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} labels shared by multiple properties.\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} labels shared by multiple properties.")
         status += 1
         string = ""
         records = []
-        log += "| Label | Label Property | Properties |\n|--|--|--|\n"
+        rows = []
         for row in results:
             members = concat_members(row.properties)
-            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            rows.append((row.label, row.labelProperty, members))
             string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.properties))
+        tabulate(violations, check, ('Label', 'Label Property', 'Properties'), rows)
         string = string.removesuffix(";<br> ")
         violations[check] = string
         violations[records_key(check)] = records
@@ -1708,25 +1709,25 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
     violations[check] = ""
 
     if not results and int(in_metrics['nodeShapes']) > 0:
-        log += "PASS - No NodeShape share the same label.\n"
+        decided(violations, check, "PASS - No NodeShape share the same label.")
 
     elif int(in_metrics['nodeShapes']) == 0:
-        log += "WARNING - No NodeShape defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No NodeShape defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} labels shared by multiple NodeShapes.\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} labels shared by multiple NodeShapes.")
         status += 1
         string = ""
         records = []
-        log += "| Label | Label Property | NodeShapes |\n|--|--|--|\n"
+        rows = []
         for row in results:
             members = concat_members(row.nsList)
-            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            rows.append((row.label, row.labelProperty, members))
             string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.nsList))
-        
+        tabulate(violations, check, ('Label', 'Label Property', 'NodeShapes'), rows)
         string = string.removesuffix(";<br> ")
         violations[check] = string
         violations[records_key(check)] = records
@@ -1764,22 +1765,22 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
        log += "PASS - No PropertyShape share the same label.\n"
 
     elif int(in_metrics['propertyShapes']) == 0:
-        log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No PropertyShapes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} labels shared by multiple PropertyShapes.\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} labels shared by multiple PropertyShapes.")
         status += 1
         string = ""
         records = []
-        log += "| Label | Label Property | PropertyShapes |\n|--|--|--|\n"
+        rows = []
         for row in results:
             members = concat_members(row.psList)
-            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            rows.append((row.label, row.labelProperty, members))
             string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.psList))
-        
+        tabulate(violations, check, ('Label', 'Label Property', 'PropertyShapes'), rows)
         string = string.removesuffix(";<br> ")
         violations[check] = string
         violations[records_key(check)] = records
