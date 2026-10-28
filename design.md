@@ -132,16 +132,16 @@ test asserting two renders match. `test_it_renders_the_same_text_under_any_hash_
 covers that class of bug by rendering in a subprocess per seed. It samples a few seeds,
 so it is a detector rather than a proof.
 
-**CTRF honours it too**, through `ctrf_timestamp()`, the clock `build_ctrf_report()` uses.
-Nothing else in a CTRF report varies between two runs over the same inputs, so pinned it is
-byte-identical — which is what lets `tests/data/reporters_ctrf.json` exist at all. Pinning
-it is the whole mechanism; there is no separate injection point, because a second way to
-fix the clock would only be a second thing to keep in step.
+**CTRF is not reproducible from the CLI**: its timestamp is `datetime.now()`, so two runs
+over identical inputs differ by that one field. The clock is injected —
+`build_ctrf_report(result, date_time_provider=…)` — and that is the only way to fix it.
+Nothing else in the report varies, so a caller that supplies a clock gets a byte-identical
+file, which is what `tests/data/reporters_ctrf.json` is compared against.
 
-Only the pinned branch is UTC: unpinned, CTRF keeps the local clock it has always
-rendered, so turning this on adds reproducibility to a published format without restating
-every existing report's timestamp in another zone. The DQV report is UTC either way, where
-the ISO offset says so.
+The two reporters pin their clocks differently on purpose. DQV reads `SOURCE_DATE_EPOCH`
+because its *minted IRIs* derive from the timestamp, so a whole run has to agree on one
+instant even across processes. CTRF has no such dependency — only the one field — so the
+clock is a parameter, and the published format keeps the wall clock it has always carried.
 
 ## Todo
 

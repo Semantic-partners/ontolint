@@ -10,6 +10,7 @@ tests/test_dqv.py covers the vocabulary and minting rules; this is about the pro
 """
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -36,17 +37,16 @@ def _measured(graph):
     }
 
 
-@pytest.fixture(autouse=True)
-def _pinned(pinned_clock):
-    """Every test here builds at the epoch the stored report was built at."""
-
+# The instant the stored report was built at, passed in rather than read from the
+# environment so the test says which clock it means.
+AT = datetime(2026, 10, 15, 9, 30, 0, tzinfo=timezone.utc)
 
 STORED_DQV = Path(__file__).parent / 'data' / 'reporters_dqv.ttl'
 
 
 def test_it_builds_the_stored_report(stored_qa_result, stored_dqv):
     """The projection, whole. Everything below says which part of it must hold, and why."""
-    graph = build_dqv_graph([stored_qa_result])
+    graph = build_dqv_graph([stored_qa_result], timestamp=AT)
     if os.environ.get('UPDATE_GOLDEN'):
         STORED_DQV.write_text(graph.serialize(format='turtle'), encoding='utf-8')
         pytest.skip(f"updated {STORED_DQV.name}")

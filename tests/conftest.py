@@ -99,17 +99,6 @@ def stored_markdown():
     return EXPECTED
 
 
-# 2026-10-15T09:30:00Z. Both reports carry a timestamp, so one has to be pinned before
-# either can be compared against a stored copy at all.
-REPORTS_EPOCH = '1792056600'
-
-
-@pytest.fixture
-def pinned_clock(monkeypatch):
-    """SOURCE_DATE_EPOCH set to REPORTS_EPOCH, which is what the stored reports were built at."""
-    monkeypatch.setenv('SOURCE_DATE_EPOCH', REPORTS_EPOCH)
-
-
 @pytest.fixture
 def stored_ctrf():
     """The CTRF report stored under tests/data/, as the dict build_ctrf_report returns."""

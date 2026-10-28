@@ -20,7 +20,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import url2pathname
-from datetime import datetime, timezone
+from datetime import datetime
 from dataclasses import dataclass, field
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import TypeAlias
@@ -544,33 +544,16 @@ def print_if_executed(metrics, checks, key):
         output = metrics[key]
     return output
 
-def ctrf_timestamp():
-    """
-    Now, or SOURCE_DATE_EPOCH if that is set (the reproducible-builds convention).
-
-    Honouring it is what makes a CTRF report reproducible: nothing else in it varies
-    between two runs over the same inputs, so with the clock pinned the file is
-    byte-identical — as the DQV report already was (dqv._report_timestamp).
-
-    Only the pinned branch is UTC. An unpinned report keeps the local clock it has always
-    rendered, so turning this on adds reproducibility to a published format without
-    restating every existing report's timestamp in another zone.
-    """
-    epoch = os.environ.get("SOURCE_DATE_EPOCH")
-    if epoch:
-        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-    return datetime.now()
-
-
-def build_ctrf_report(result: QAResult):
+def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     """
     A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
     check, with the run's summary. Returns the report; writing it is write_ctrf_report's
     job, so the projection can be built and inspected without touching the filesystem.
 
-    The timestamp comes from ctrf_timestamp(), which honours SOURCE_DATE_EPOCH. Pinned,
-    the report is a pure function of the QAResult and two builds of the same result are
-    identical.
+    date_time_provider supplies the report's timestamp. It is injected so a caller can fix
+    it — without that the projection is not a pure function of the QAResult, and two
+    reports built over the same result differ. It is also the only way to fix it: a CTRF
+    report written by the CLI carries the wall clock and is not reproducible.
     """
     passed = 0
     failed = 0
@@ -605,7 +588,7 @@ def build_ctrf_report(result: QAResult):
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),
-            "timestamp": ctrf_timestamp().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": date_time_provider().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
     return ctrf_report
