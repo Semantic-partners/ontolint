@@ -1047,8 +1047,13 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     
     # Record the violation elements.
     num_uri = len(metrics['ontologyURI'])
+    # A verbose run lists the ontologies it found, so the verdict introduces them rather
+    # than ending. It used to be rewritten after the fact, by trimming the full stop off a
+    # sentence already in the log — which only a check that writes its own report can do.
+    lists_ontologies = verbose and metrics[check] <= 0
+    end = ":" if lists_ontologies else "."
     if metrics[check] == num_files:
-        log += "VIOLATION - No `owl:Ontology` declaration found.\n"
+        decided(violations, check, "VIOLATION - No `owl:Ontology` declaration found.")
         violations[check] = "**All** processed files missing ontology declaration."
         violations[records_key(check)] = [
             dqv.Violation(iri, comment="no owl:Ontology declaration")
@@ -1056,34 +1061,27 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
         ] or [dqv.Violation(comment="no owl:Ontology declaration")]
     
     elif metrics[check] > 0 and metrics[check] < num_files:
-        if metrics[check] == 1:
-            log += "VIOLATION - 1 ontology without `owl:Ontology` declaration.\n"
-        else:
-            log += f"VIOLATION - {metrics[check]} ontologies without `owl:Ontology` declaration.\n"
+        found = "1 ontology" if metrics[check] == 1 else f"{metrics[check]} ontologies"
+        decided(violations, check, f"VIOLATION - {found} without `owl:Ontology` declaration.")
         violations[check] = "**Some** processed files missing ontology declaration.<br> Check files individually."
         violations[records_key(check)] = [dqv.Violation(comment=f"{metrics[check]} processed file(s) have no owl:Ontology declaration; check files individually")]
     
     else:
-        if num_uri == 1:
-            log += "PASS - Found 1 ontology with `owl:Ontology` declaration.\n"
-        else:
-            log += f"PASS - Found {num_uri} ontologies with `owl:Ontology` declaration.\n"
-        
+        found = "1 ontology" if num_uri == 1 else f"{num_uri} ontologies"
+        decided(violations, check, f"PASS - Found {found} with `owl:Ontology` declaration{end}")
         violations[check] = ""
     
-    # Print additional information.
-    if verbose and metrics[check] <= 0:
-        log = log.removesuffix(".\n")
-        log += ":\n"
-        for _ in range(num_uri):
-            log += f" - {metrics['ontologyURI'][_]}\n"
+    if lists_ontologies:
+        for iri in metrics['ontologyURI']:
+            note(violations, check, f" - {iri}")
 
-    # Print more information if violations are found.
+    # What was found is worth naming when something is missing, to say where to look.
     if metrics[check] > 0:
-        log += "Check the input files individually to find out which one violates this check.\n"
-        if num_uri > 0: log += "WARNING - The following ontology URIs were found:\n"
-        for _ in range(num_uri):
-            log += f" - {metrics['ontologyURI'][_]}\n"
+        note(violations, check, "Check the input files individually to find out which one violates this check.")
+        if num_uri > 0:
+            note(violations, check, "WARNING - The following ontology URIs were found:")
+        for iri in metrics['ontologyURI']:
+            note(violations, check, f" - {iri}")
     
     return metrics, violations, log, c, status
 
@@ -1166,7 +1164,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     c, log = c + 1, ''
 
     if in_metrics['ontologyNotDeclared'] == num_files:
-        log += "WARNING - No ontology declared, invalid metric.\n"
+        decided(violations, check, "WARNING - No ontology declared, invalid metric.")
         not_assessed(violations, check, 'ontologyNotDeclared')
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
@@ -1174,14 +1172,14 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     else:
         results = exec_sparql(graph, 'owl_no_description')
         if not results:
-            log += "PASS - All declared ontologies have a description.\n"
+            decided(violations, check, "PASS - All declared ontologies have a description.")
             metrics[check] = 0 # yes
             violations[check] = ""
             if verbose:
                 log_results = exec_sparql(graph, 'owl_description')
-                log += "\n**Ontology + Description:**\n"
+                note(violations, check, "\n**Ontology + Description:**")
                 for row in log_results:
-                    log += f" - {row.ont}\n   *{row.comment}*\n"
+                    note(violations, check, f" - {row.ont}\n   *{row.comment}*")
                 
         else:
             metrics[check] = len(results) #  violations
@@ -1189,8 +1187,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             string = violation_formatting([row.ont for row in results])
             violations[records_key(check)] = [dqv.Violation(row.ont) for row in results]
             violations[check] = string
-            log += f"VIOLATION - Found {metrics[check]} ontologies without description:\n - "
-            log += string.replace(",<br> ", "\n - ")
+            decided(violations, check, f"VIOLATION - Found {metrics[check]} ontologies without description:", AS_LIST)
     
     return metrics, violations, log, c, status
 
@@ -2351,9 +2348,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
 
     if not import_urls:
         if ignored:
-            log += "WARNING - All owl:imports URLs are ignored by configuration.\n"
+            decided(violations, check, "WARNING - All owl:imports URLs are ignored by configuration.")
         else:
-            log += "WARNING - No owl:imports statements found.\n"
+            decided(violations, check, "WARNING - No owl:imports statements found.")
         return metrics, violations, log, c, status
 
     failed_imports = []
@@ -2373,12 +2370,12 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
 
     local_subs = sorted({(url, local_map[iri_key(url)]) for _, url in import_urls if iri_key(url) in local_map})
     if local_subs:
-        log += f"> NOTE - {len(local_subs)} import(s) resolved from local file(s):\n"
+        note(violations, check, f"> NOTE - {len(local_subs)} import(s) resolved from local file(s):")
         for url, path in local_subs:
-            log += f">   `{url}` → {_describe_local(path)}\n"
+            note(violations, check, f">   `{url}` → {_describe_local(path)}")
 
     if not failed_imports:
-        log += f"PASS - All {len(import_urls)} import(s) resolved and contain triples.\n"
+        decided(violations, check, f"PASS - All {len(import_urls)} import(s) resolved and contain triples.")
     else:
         metrics[check] = len(failed_imports)
         status += 1
@@ -2388,8 +2385,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
             dqv.Violation(url, comment="import could not be resolved or is empty", related=[ontology])
             for ontology, url in failed_pairs
         ]
-        log += f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):\n - "
-        log += string.replace(",<br> ", "\n - ") + "\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} unresolvable or empty import(s):", AS_LIST)
 
     def _check(failed):
         if failed in failed_imports:
@@ -2398,9 +2394,9 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
             return chr(9989)  # V
 
     if verbose:
-        log += "\n| Ontology | Import URL | Resolves? |\n|--|--|--|\n"
-        for ontology, url in import_urls:
-            log += f"| {ontology} | {url} | {_check(url)} |\n"
+        tabulate(violations, check, ("Ontology", "Import URL", "Resolves?"),
+                 [(ontology, url, _check(url)) for ontology, url in import_urls],
+                 verbose_only=True)
 
     return metrics, violations, log, c, status
 
@@ -2478,7 +2474,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
             local_subjects.add(str(s))
 
     if not used_terms:
-        log += "WARNING - No terms to check.\n"
+        decided(violations, check, "WARNING - No terms to check.")
         return metrics, violations, log, c, status
 
     # Collect every HTTP namespace used that falls outside the local namespace(s) and isn't
@@ -2551,9 +2547,9 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     }
 
     if not all_violations:
-        log += "PASS - All used terms are defined locally or in their respective remote ontologies.\n"
+        decided(violations, check, "PASS - All used terms are defined locally or in their respective remote ontologies.")
         if verbose:
-            log += f"\nChecked {len(used_terms)} term(s) across {len(remote_namespaces)} remote namespace(s).\n"
+            note(violations, check, f"\nChecked {len(used_terms)} term(s) across {len(remote_namespaces)} remote namespace(s).")
     else:
         metrics[check] = len(all_violations)
         status += 1
@@ -2563,22 +2559,21 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
             dqv.Violation(uri, comment=f"namespace {get_namespace(uri)} could not be fetched")
             for uri in fetch_failure_terms
         ]
-        log += f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):\n - "
-        log += string.replace(",<br> ", "\n - ") + "\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):", AS_LIST)
     if remote_namespaces:
         applied_subs_map = {ns: path for ns, path in applied_subs}
-        log += f"\n> **Remote namespace activity** — {len(remote_namespaces)} checked:\n"
+        note(violations, check, f"\n> **Remote namespace activity** — {len(remote_namespaces)} checked:")
         for ns in sorted(remote_namespaces):
             if ns in applied_subs_map:
-                log += f">   - {chr(9989)} `{ns}` — {_describe_local(applied_subs_map[ns])}\n"
+                note(violations, check, f">   - {chr(9989)} `{ns}` — {_describe_local(applied_subs_map[ns])}")
             elif ns in fetch_failures:
-                log += f">   - {chr(10060)} `{ns}` — fetch failed\n"
+                note(violations, check, f">   - {chr(10060)} `{ns}` — fetch failed")
             else:
                 count = len(remote_subjects_by_ns.get(ns, set()))
-                log += f">   - {chr(9989)} `{ns}` — fetched ({count} subject(s))\n"
+                note(violations, check, f">   - {chr(9989)} `{ns}` — fetched ({count} subject(s))")
 
     if not local_namespaces:
-        log += "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.\n"
+        note(violations, check, "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.")
 
     return metrics, violations, log, c, status
 
