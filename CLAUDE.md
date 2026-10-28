@@ -117,7 +117,12 @@ granularity, what `--per-file` should mean, and why Markdown is not yet a projec
 
 ### Data flow
 
-1. `ontology_qa.py` loads one or more RDF files/directories into a single `rdflib.Graph`
+1. `ontology_qa.py` loads one or more RDF files/directories into an `rdflib.Dataset` with
+   one named graph per file, so which file a triple came from survives the load. It is
+   built with `default_union`, so SPARQL, `len()` and `triples()` all read the union and
+   a check cannot tell the inputs were separate. Inferred triples get a context of their
+   own (`INFERRED_CONTEXT`), since they came from no file. A caller of `ontolint.lint()`
+   passes plain graphs, so every seam below accepts either.
 2. RDFS subclass inference is applied iteratively via `infer_subclass_relations()` until no new triples are added — this is needed so checks like `isolated_classes` work correctly across the full class hierarchy
 3. `profiling()` runs counting queries (class count, shape count, deprecated elements, vocabularies used)
 4. Each QA check function runs its SPARQL query and returns four dicts: `metrics` (counts), `violations` (element lists), `test` (bool flags for CTRF), and a `log` string

@@ -358,3 +358,87 @@ def test_namespace_binding_preserved(tmp_path):
     assert any("example.org" in str(ns) for ns in namespaces.values())
     assert any("custom.org" in str(ns) for ns in namespaces.values())
 
+
+# --- Provenance: one named graph per file ---------------------------------------------
+#
+# The point of loading into a Dataset rather than merging into one Graph. A merge answers
+# "is this triple present"; a Dataset answers "which file put it there", which is what a
+# finding has to name (#96).
+
+TWO_CLASSES = """
+@prefix : <http://example.org#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+:Shared a owl:Class .
+"""
+
+
+def _two_files(tmp_path, first_extra="", second_extra=""):
+    one, two = tmp_path / "one.ttl", tmp_path / "two.ttl"
+    one.write_text(TWO_CLASSES + first_extra)
+    two.write_text(TWO_CLASSES + second_extra)
+    return one, two
+
+
+def test_each_file_gets_its_own_named_graph(tmp_path):
+    one, two = _two_files(tmp_path, ":A a owl:Class .", ":B a owl:Class .")
+
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    named = {str(g.identifier) for g in dataset.graphs() if len(g)}
+    assert named == {f"file://{one}", f"file://{two}"}
+
+
+def test_a_term_can_be_traced_to_the_file_that_defines_it(tmp_path):
+    one, two = _two_files(tmp_path, ":A a owl:Class .", ":B a owl:Class .")
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    defined_in = {str(c) for _, _, _, c in
+                  dataset.quads((rdflib.URIRef("http://example.org#B"), None, None, None))}
+
+    assert defined_in == {f"file://{two}"}
+
+
+def test_a_triple_in_two_files_keeps_both_sources(tmp_path):
+    # The one a merged Graph cannot answer: :Shared is declared identically in both, and
+    # merging makes that a single triple with no record that two files claimed it.
+    one, two = _two_files(tmp_path)
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    sources = {str(c) for _, _, _, c in
+               dataset.quads((rdflib.URIRef("http://example.org#Shared"), None, None, None))}
+
+    assert sources == {f"file://{one}", f"file://{two}"}
+
+
+def test_the_checks_still_see_one_graph(tmp_path):
+    # default_union: a check queries the union and cannot tell the inputs were separate.
+    one, two = _two_files(tmp_path, ":A a owl:Class .", ":B a owl:Class .")
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    classes = {str(row[0]) for row in dataset.query(
+        "SELECT ?c WHERE { ?c a <http://www.w3.org/2002/07/owl#Class> }")}
+
+    assert classes == {"http://example.org#Shared", "http://example.org#A", "http://example.org#B"}
+    assert len(dataset) == 3, "the shared declaration is one triple in the union"
+
+
+def test_inferred_triples_are_not_attributed_to_a_file(tmp_path):
+    from scripts.ontology_qa import INFERRED_CONTEXT, infer_subclass_relations
+    one = tmp_path / "one.ttl"
+    one.write_text("""
+    @prefix : <http://example.org#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    :A a owl:Class . :B a owl:Class ; rdfs:subClassOf :A . :x a :B .
+    """)
+    _, _, dataset, _, _, _ = load_rdf([str(one)])
+    before = len(dataset)
+
+    dataset, _ = infer_subclass_relations(dataset)
+
+    # :x is a :B and :B is a subclass of :A, so :x is also an :A.
+    assert len(dataset) > before, "inference should have added something"
+    inferred = dataset.graph(INFERRED_CONTEXT)
+    assert len(inferred), "inferred triples came from no file, so they get their own context"
+    assert len(dataset.graph(rdflib.URIRef(f"file://{one}"))) == before
+

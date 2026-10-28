@@ -1,4 +1,5 @@
 @prefix : <https://example.org/ontology/b#> .
+@prefix a: <https://example.org/ontology/a#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
@@ -7,3 +8,11 @@
 : a owl:Ontology ; rdfs:label "B" ; rdfs:comment "Has unlabelled classes." .
 :Thing a owl:Class ; rdfs:subClassOf :Base .
 :Base a owl:Class .
+
+# a:borrowed is minted here, in b's file, under a's namespace. It is otherwise complete,
+# so the only thing wrong with it is where it was minted.
+a:borrowed a owl:ObjectProperty ;
+    rdfs:label "borrowed" ;
+    rdfs:comment "Minted in b's file, in a's namespace." ;
+    rdfs:domain :Thing ;
+    rdfs:range :Base .

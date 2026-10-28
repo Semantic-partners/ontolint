@@ -18,8 +18,19 @@ parse ──→ graph(s) ──→ lint ──→ QAResult(s)
 from its arguments and `.rdf-lint.yml`, a library caller builds one directly. The checklist
 says which checks are enabled, resolved by `select_checks()` or handed in by the CLI.
 
-**parse → graph(s).** One graph per file, or one merged graph, depending on how the run is
-scoped (see *per-file*).
+**parse → graph(s).** `load_rdf()` builds an `rdflib.Dataset` with one named graph per
+file, keyed by the file's `file:` IRI. A merged `Graph` answers "is this triple present";
+a Dataset also answers "which file put it there", which is what a finding has to name
+(#96) and is why `ontology_sources` had to be collected as each file was read.
+
+`default_union` is set, so SPARQL, `len()` and `triples()` all read the union: the checks
+see one graph and cannot tell the inputs were separate. Two things do not come from a
+file and are handled explicitly — inferred triples get `INFERRED_CONTEXT` rather than
+being folded into an input's context, and blank-node canonicalisation materialises the
+union first, since canonicalisation is defined over triples.
+
+Nothing downstream requires a Dataset: `ontolint.lint()` passes plain graphs, and every
+seam accepts either.
 
 **lint.** `lint_graph()` is the single entry point that performs one run: inference if
 configured, then every selected check. Both front ends call it, so a run means the same
@@ -90,6 +101,20 @@ also reach the declaration check's middle branch, where *some* of the inputs dec
 Neither input needs the network: the autouse `no_network` fixture blocks sockets, and the
 unresolvable `owl:imports` points at `example.invalid`, reserved by RFC 2606, so it fails
 the same way online or off.
+
+**One term, one failure.** Every term in `reporters.ttl` is complete except for the single
+thing the comment beside it names, so a check that changes moves one line of the stored
+expectations rather than several, and a term appearing twice in a report is a signal rather
+than noise. One exception, and it is in the checks rather than the fixture: an
+`owl:imports` that cannot be resolved is by construction a namespace whose terms cannot be
+checked, so it fails both. The same rule applies to `fragment.ttl` and to the golden cases
+under `tests/dqv/`.
+
+`fragment.ttl` carries the other direction of the same noise, which it cannot avoid: with
+no declared namespace to compare against, the undefined-terms check reports its own three
+terms and the untyped-property check reports `rdf:type`, `rdfs:label` and friends — terms
+the file never put under test. Those are false positives rather than fixture content, and
+pinning them is part of what the file is for, since they are #102.
 
 Each DQV golden covers a **single** result, unlike the run-level report the reporter
 builds in anger. A report over several results is not the union of their individual ones:
@@ -188,6 +213,32 @@ What remains open is the deeper question of scope, tracked in #96: a check compu
 their files, which is why uniqueness can be reported for two independent ontologies that
 merely share a label.
 
+**Where this is going: the unit.** One concept replaces the two modes. A **unit** is one
+ontology — one to many files, with exactly one `owl:Ontology` declaration across the whole
+unit. A **run** is a set of units. **Context** is every unit in the run, available to
+*resolve* references but never to widen what a check is computed over. `--per-file` then
+means "each file is a unit", a merged run means "all the files are one unit", and a run may
+hold both shapes at once, which is how a family of ontologies is actually laid out and
+which nothing in the tool can express today.
+
+`main()` already builds `runs` as `list[list[path]]` and produces one report, one CTRF and
+one `QAResult` per entry, so a unit is already the internal shape. What is missing is
+underneath it — see the Todo.
+
+**What owns a term.** A term belongs to the ontology declared in the file it sits in — not
+to the namespace it is minted under. So a term minted in file 1 under ontology 2's
+namespace is ontology 1's defect: file 1 is where someone did the wrong thing, and charging
+it to ontology 2 would let one input degrade another's quality score from outside.
+
+A per-file run already reports exactly this, and `tests/dqv/per-file/` pins it: `a:borrowed`
+is minted in `b.ttl`, the hijack is charged to `b`, the violation's `sh:focusNode` names the
+term, and `a`'s report stays clean.
+
+This is deliberately *not* the longest-matching-namespace rule #96 first proposed. That one
+would make `a:borrowed` ontology a's defect, which lets one input degrade another ontology's
+score from outside. Ownership follows the file; minting into someone else's namespace is the
+finding, not the attribution rule.
+
 ## Determinism
 
 Reports must be byte-identical for the same inputs, or diffs are unreviewable and no
@@ -207,8 +258,9 @@ expected output can be pinned. Two things are needed and are in place:
   Anything needing stable identity has it in the DQV report, where blank nodes are
   skolemized under the report's base.
 
-`SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
-report — including every minted IRI — is reproducible.
+The DQV report's clock is injected — `build_dqv_graph(results, date_time_provider=…)` —
+and pinning it makes the report, every minted IRI included, reproducible for the same
+inputs and base URI.
 
 **Rendering twice in one process is not enough to prove it.** `PYTHONHASHSEED` is fixed
 for a process's lifetime, so anything ordered by a hash renders identically both times
@@ -223,20 +275,45 @@ over identical inputs differ by that one field. The clock is injected —
 Nothing else in the report varies, so a caller that supplies a clock gets a byte-identical
 file, which is what `tests/data/reporters_ctrf.json` is compared against.
 
-The two reporters pin their clocks differently on purpose. DQV reads `SOURCE_DATE_EPOCH`
-because its *minted IRIs* derive from the timestamp, so a whole run has to agree on one
-instant even across processes. CTRF has no such dependency — only the one field — so the
-clock is a parameter, and the published format keeps the wall clock it has always carried.
+Both reporters pin their clocks the same way, through an injected `date_time_provider`.
+The stakes differ: CTRF's timestamp is one field, while DQV's *minted IRIs* derive from
+it, so an unpinned DQV run names every measurement differently. DQV's default is looked
+up as `dqv.utc_now` when the report is built rather than bound as the parameter's
+default, so the CLI — which has no caller to inject one — can still have its clock
+replaced, which is how `tests/test_e2e_dqv.py` compares against committed reports.
 
 ## Todo
 
-- **Make Markdown a projection of `QAResult`** — see above. Tracked as its own change,
-  since it moves where every check's text is produced.
+- **Make Markdown a projection of `QAResult`** (#101) — see above. Tracked as its own
+  change, since it moves where every check's text is produced.
+- **#108 — a unit cannot see its siblings.** `load_rdf()` is called inside `main()`'s loop,
+  so a per-file run's graph holds one file and nothing else: an ontology referencing a
+  sibling in the same invocation reports every borrowed term as undefined unless the user
+  lists it in `imports.local` by hand. Load the invocation once and scope each unit to its
+  own share of it. #104 landed the substrate — every triple is already keyed by its file.
+- **#107 — hijacking and undefined terms go silent in a merged run.** The same confusion
+  from the other end: both ask "is this namespace declared?" against whatever graph they
+  are handed, so a sibling file that legitimately declares the namespace excuses a hijack.
+  Separating scope from context is one change, so #107 and #108 are likely one PR. It moves
+  numbers in the goldens, since it changes what ontolint finds.
+- **Smaller, once those exist.** "Exactly one declaration per unit" is not a rule anywhere
+  (`check_owl_declaration` counts *files*); a merged run that states several ontologies is
+  accepted and papered over with the synthetic `Merged: …` dataset; and one boolean flag
+  cannot describe a run whose units have different shapes.
+
+**What the unit model deletes.** Per-ontology attribution of measurements was the plan here
+until the model settled it away: a unit yields one result on one ontology, so a check's
+violations never split across ontologies, and the aggregate `Merged: …` dataset exists only
+to paper over a run the model makes invalid. It also reverses #96's answered question 4 —
+inside a unit of five files, one header and four files without it is **correct**, where
+today `check_owl_declaration` reports that as a violation and `tests/data/fragment.ttl`
+exists on the premise that it is a defect.
 
 ## In flight
 
 - **#94** — publish to PyPI; moves these modules into the package.
-- **#96** — what per-file versus grouped linting means; proposes loading into an
-  `rdflib.Dataset` with one named graph per file, so provenance is recorded per triple and
-  a term can be attributed to the ontology that owns it.
+- **#96** — what per-file versus grouped linting means. Its plumbing landed as #104; the
+  unit model above is the rest of it, carried by #107 and #108.
 - **#97** — a file declaring two ontologies fails the build while the report says PASS.
+- **#102** — the untyped checks report every term when no `owl:Ontology` is declared.
+- **#107 / #108** — separating a unit's scope from the run's resolution context.

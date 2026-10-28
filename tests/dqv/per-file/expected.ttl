@@ -6,11 +6,12 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-3d65fc5ad636e4d2> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-293910d546583d80>,
-        <https://example.org/qa#measurement-8bc7a4cb95065c82>,
-        <https://example.org/qa#measurement-91f6a28ba2b270a7>,
-        <https://example.org/qa#measurement-93e895b854a24a30> ;
+<https://example.org/qa#assessment-7e4fde937589b6f7> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-1e1e65e7af14873d>,
+        <https://example.org/qa#measurement-2640dd12035cee10>,
+        <https://example.org/qa#measurement-2a75aadcc493afe4>,
+        <https://example.org/qa#measurement-2e280bc7f60fdb60>,
+        <https://example.org/qa#measurement-a1d7e81402449d8c> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -26,13 +27,6 @@
     skos:prefLabel "Isolated classes" ;
     dqv:inDimension <https://example.org/qa#dimension-structure> ;
     olq:severity sh:Warning .
-
-<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
-    rdfs:label "Namespace hijacking" ;
-    skos:definition "A resource is defined using an external vocabulary's namespace." ;
-    skos:prefLabel "Namespace hijacking" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:severity sh:Violation .
 
 <https://example.org/qa#metric-node-shapes-missing-description> a dqv:Metric ;
     rdfs:label "NodeShape without description" ;
@@ -169,35 +163,43 @@
 
 <https://example.org/ontology/a#> rdfs:label "A" .
 
-<https://example.org/qa#measurement-293910d546583d80> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-1e1e65e7af14873d> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
     dqv:value 2 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-e4364e1ca963a936>,
-        <https://example.org/qa#violation-f56ba51ff813db6b> .
+    olq:violation <https://example.org/qa#violation-a38455c2dcfd63b6>,
+        <https://example.org/qa#violation-e9ba41ee729224d1> .
 
-<https://example.org/qa#measurement-8bc7a4cb95065c82> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-2640dd12035cee10> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 2 ;
+    dqv:value 3 ;
     olq:conforms false .
 
-<https://example.org/qa#measurement-91f6a28ba2b270a7> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-2a75aadcc493afe4> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-namespace-hijacking> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-075eaeaf17aa773f> .
+
+<https://example.org/qa#measurement-2e280bc7f60fdb60> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/a#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 0 ;
+    olq:conforms true .
+
+<https://example.org/qa#measurement-a1d7e81402449d8c> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 2 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-957cb22d6db4b91a>,
-        <https://example.org/qa#violation-a5712d0569d5f8d8> .
-
-<https://example.org/qa#measurement-93e895b854a24a30> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/a#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 0 ;
-    olq:conforms true .
+    olq:violation <https://example.org/qa#violation-362fc7851cb3484f>,
+        <https://example.org/qa#violation-d202f6920c3fd7a7> .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -213,22 +215,34 @@
     dqv:inDimension <https://example.org/qa#dimension-documentation> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-957cb22d6db4b91a> a sh:ValidationResult ;
+<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
+    rdfs:label "Namespace hijacking" ;
+    skos:definition "A resource is defined using an external vocabulary's namespace." ;
+    skos:prefLabel "Namespace hijacking" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#violation-075eaeaf17aa773f> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/a#borrowed> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-362fc7851cb3484f> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Base> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-a5712d0569d5f8d8> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/b#Thing> ;
-    sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-e4364e1ca963a936> a sh:ValidationResult ;
+<https://example.org/qa#violation-a38455c2dcfd63b6> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Base> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-f56ba51ff813db6b> a sh:ValidationResult ;
+<https://example.org/qa#violation-d202f6920c3fd7a7> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Thing> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-e9ba41ee729224d1> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Thing> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .

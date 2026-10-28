@@ -30,8 +30,8 @@
                 "name": "Undefined terms",
                 "status": "failed",
                 "failure": {
-                    "violations": 3,
-                    "elements": "http://www.w3.org/2004/02/skos/core#curatorNote,<br> https://example.invalid/upstream (fetch failure),<br> https://example.org/reporters#namingProperty"
+                    "violations": 2,
+                    "elements": "https://example.invalid/upstream (fetch failure),<br> https://example.org/reporters#namingProperty"
                 }
             },
             {
@@ -47,7 +47,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#undocumented"
+                    "elements": "https://example.org/reporters#unlabelled"
                 }
             },
             {
@@ -55,7 +55,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#BareShape"
+                    "elements": "https://example.org/reporters#UnlabelledShape"
                 }
             },
             {
@@ -63,23 +63,23 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#bareNameShape"
+                    "elements": "https://example.org/reporters#unlabelledNameShape"
                 }
             },
             {
                 "name": "Class without description",
                 "status": "failed",
                 "failure": {
-                    "violations": 2,
-                    "elements": "https://example.org/reporters#Cat,<br> https://example.org/reporters#Dog"
+                    "violations": 1,
+                    "elements": "https://example.org/reporters#Fish"
                 }
             },
             {
                 "name": "Property without description",
                 "status": "failed",
                 "failure": {
-                    "violations": 2,
-                    "elements": "https://example.org/reporters#hasName,<br> https://example.org/reporters#undocumented"
+                    "violations": 1,
+                    "elements": "https://example.org/reporters#undescribed"
                 }
             },
             {
@@ -87,7 +87,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#BareShape"
+                    "elements": "https://example.org/reporters#UndescribedShape"
                 }
             },
             {
@@ -95,7 +95,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#bareNameShape"
+                    "elements": "https://example.org/reporters#undescribedNameShape"
                 }
             },
             {
@@ -143,7 +143,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#hasName"
+                    "elements": "https://example.org/reporters#withoutDomain"
                 }
             },
             {
@@ -151,7 +151,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "https://example.org/reporters#hasName"
+                    "elements": "https://example.org/reporters#withoutRange"
                 }
             },
             {
@@ -191,7 +191,7 @@
                 "status": "failed",
                 "failure": {
                     "violations": 1,
-                    "elements": "http://www.w3.org/2004/02/skos/core#curatorNote"
+                    "elements": "http://www.w3.org/2004/02/skos/core#editorialNote"
                 }
             }
         ],

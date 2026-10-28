@@ -116,7 +116,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <urn:ontolint:violation-ef7c63d938a14034> .
+    olq:violation <urn:ontolint:violation-e58d3c893419310f> .
 
 <urn:ontolint:measurement-2410e9059c2a5780> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -124,9 +124,9 @@
     dqv:value 4 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-6a0456780c2239ca>,
+    olq:violation <urn:ontolint:violation-24777f6884cca2da>,
+        <urn:ontolint:violation-6a0456780c2239ca>,
         <urn:ontolint:violation-da6066faa8772e3b>,
-        <urn:ontolint:violation-e90e8b328a3defaf>,
         <urn:ontolint:violation-f415d073a7cd91e7> .
 
 <urn:ontolint:measurement-35f0bf99818c9231> a dqv:QualityMeasurement ;
@@ -135,7 +135,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-9dd7482aafef7bf5> .
+    olq:violation <urn:ontolint:violation-5f7ff2bd3e1c5ce7> .
 
 <urn:ontolint:measurement-3cf2417f86307ca6> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -149,11 +149,10 @@
 <urn:ontolint:measurement-3e11a0c9900f02c8> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
     dqv:isMeasurementOf <urn:ontolint:metric-properties-missing-description> ;
-    dqv:value 2 ;
+    dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <urn:ontolint:violation-185f97e20486dd26>,
-        <urn:ontolint:violation-24ff562b2d56ef8e> .
+    olq:violation <urn:ontolint:violation-bc82b0553c4da7f8> .
 
 <urn:ontolint:measurement-530d5b6b46c562e9> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -161,7 +160,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-f661f58e04a51d90> .
+    olq:violation <urn:ontolint:violation-96dc6ad3c27ee32d> .
 
 <urn:ontolint:measurement-5507130056ea51c9> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -169,7 +168,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <urn:ontolint:violation-5f9da3b43c87210d> .
+    olq:violation <urn:ontolint:violation-7b3e3f9f0b83f448> .
 
 <urn:ontolint:measurement-5c75ca24d02f55fa> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -177,7 +176,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <urn:ontolint:violation-0bf196296cbd6b07> .
+    olq:violation <urn:ontolint:violation-bcdac79db49c5062> .
 
 <urn:ontolint:measurement-60abc895f1f730e5> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -199,13 +198,12 @@
 <urn:ontolint:measurement-740aba1f8e05b8eb> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
     dqv:isMeasurementOf <urn:ontolint:metric-undefined-terms> ;
-    dqv:value 6 ;
+    dqv:value 5 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
     olq:violation <urn:ontolint:violation-1ac91e8af6e7705d>,
         <urn:ontolint:violation-6b4c1ce08d0755a1>,
         <urn:ontolint:violation-801a3461e7f89f77>,
-        <urn:ontolint:violation-b5aff55972069d1e>,
         <urn:ontolint:violation-c2285a76189f5453>,
         <urn:ontolint:violation-d1810bcd4ca4ab5c> .
 
@@ -239,7 +237,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-77dc1acce5ab3c4c> .
+    olq:violation <urn:ontolint:violation-2778bcd9085ab1f6> .
 
 <urn:ontolint:measurement-a2b3224dd5f01c13> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -247,7 +245,7 @@
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <urn:ontolint:violation-5406b274ba35339e> .
+    olq:violation <urn:ontolint:violation-188da0961a60ba2a> .
 
 <urn:ontolint:measurement-cd52fabb3c9fa5bf> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -278,11 +276,10 @@
 <urn:ontolint:measurement-e91659fc8adad906> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
     dqv:isMeasurementOf <urn:ontolint:metric-classes-missing-description> ;
-    dqv:value 2 ;
+    dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <urn:ontolint:violation-877174764a99029c>,
-        <urn:ontolint:violation-d14dda8e36b48e2d> .
+    olq:violation <urn:ontolint:violation-56f3cfa141651b00> .
 
 <urn:ontolint:measurement-eed07ffecc31d190> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/reporters#> ;
@@ -823,18 +820,13 @@
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-0bf196296cbd6b07> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#hasName> ;
-    sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
 <urn:ontolint:violation-0caeebaf61332018> a sh:ValidationResult ;
     sh:focusNode <https://example.org/reporters#Habitat> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-185f97e20486dd26> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#undocumented> ;
+<urn:ontolint:violation-188da0961a60ba2a> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#UndescribedShape> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
@@ -852,9 +844,14 @@
     sh:value "Name shape" ;
     olq:relatedResource <https://example.org/reporters#animalNameShape> .
 
-<urn:ontolint:violation-24ff562b2d56ef8e> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#hasName> ;
-    sh:resultSeverity sh:Warning ;
+<urn:ontolint:violation-24777f6884cca2da> a sh:ValidationResult ;
+    sh:focusNode skos:editorialNote ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-2778bcd9085ab1f6> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#unlabelledNameShape> ;
+    sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <urn:ontolint:violation-27eff84d3c2a19a7> a sh:ValidationResult ;
@@ -891,14 +888,14 @@
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent ;
     olq:relatedResource <https://example.org/reporters#> .
 
-<urn:ontolint:violation-5406b274ba35339e> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#BareShape> ;
+<urn:ontolint:violation-56f3cfa141651b00> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#Fish> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-5f9da3b43c87210d> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#hasName> ;
-    sh:resultSeverity sh:Warning ;
+<urn:ontolint:violation-5f7ff2bd3e1c5ce7> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#UnlabelledShape> ;
+    sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <urn:ontolint:violation-69f09386f9c1bb64> a sh:ValidationResult ;
@@ -928,9 +925,9 @@
     sh:value "Animal shape" ;
     olq:relatedResource <https://example.org/reporters#AnimalShape> .
 
-<urn:ontolint:violation-77dc1acce5ab3c4c> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#bareNameShape> ;
-    sh:resultSeverity sh:Violation ;
+<urn:ontolint:violation-7b3e3f9f0b83f448> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#withoutDomain> ;
+    sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <urn:ontolint:violation-7ee5bb47963c680a> a sh:ValidationResult ;
@@ -947,11 +944,6 @@
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-877174764a99029c> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#Cat> ;
-    sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
 <urn:ontolint:violation-890c4f9956ebe8fd> a sh:ValidationResult ;
     sh:focusNode <https://example.org/reporters#Dog> ;
     sh:resultMessage "shares label 'Dog' with predicate http://www.w3.org/2000/01/rdf-schema#label and https://example.org/reporters#Hound" ;
@@ -960,13 +952,8 @@
     sh:value "Dog" ;
     olq:relatedResource <https://example.org/reporters#Hound> .
 
-<urn:ontolint:violation-9dd7482aafef7bf5> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#BareShape> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-b5aff55972069d1e> a sh:ValidationResult ;
-    sh:focusNode skos:curatorNote ;
+<urn:ontolint:violation-96dc6ad3c27ee32d> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#unlabelled> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
@@ -983,14 +970,19 @@
     sh:value "has name" ;
     olq:relatedResource <https://example.org/reporters#alsoHasName> .
 
+<urn:ontolint:violation-bc82b0553c4da7f8> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#undescribed> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-bcdac79db49c5062> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#withoutRange> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
 <urn:ontolint:violation-c2285a76189f5453> a sh:ValidationResult ;
     sh:focusNode <https://example.org/reporters#namingProperty> ;
     sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-d14dda8e36b48e2d> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#Dog> ;
-    sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <urn:ontolint:violation-d1810bcd4ca4ab5c> a sh:ValidationResult ;
@@ -1014,23 +1006,13 @@
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-e90e8b328a3defaf> a sh:ValidationResult ;
-    sh:focusNode skos:curatorNote ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-ef7c63d938a14034> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#bareNameShape> ;
+<urn:ontolint:violation-e58d3c893419310f> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/reporters#undescribedNameShape> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <urn:ontolint:violation-f415d073a7cd91e7> a sh:ValidationResult ;
     sh:focusNode <https://example.org/fragment#Worker> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-f661f58e04a51d90> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/reporters#undocumented> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 

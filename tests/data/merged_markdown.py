@@ -19,13 +19,13 @@ paths, so they are covered by `test_e2e_cli.py` instead.
 EXPECTED = """
 ## Profiling Details
 
-RDF/OWL classes: 10
-RDF/OWL properties: 8
+RDF/OWL classes: 11
+RDF/OWL properties: 12
 Instance data: 1
-SHACL Node Shapes: 3
-SHACL Property Shapes: 3
-Local classes in Node Shapes: 3
-Local properties in Property Shapes: 3
+SHACL Node Shapes: 4
+SHACL Property Shapes: 4
+Local classes in Node Shapes: 4
+Local properties in Property Shapes: 4
 Deprecated classes: 1
 Deprecated properties: 0
 External vocabularies declared: 7
@@ -57,7 +57,7 @@ Remote namespace resolution: 8 checked
 
 Hierarchy depth: N/A
 WARNING - The ontology contains cycles in the subclass hierarchy, so the hierarchy depth cannot be computed.
-Average branching factor: 2.000
+Average branching factor: 2.333
 Number of cardinality restrictions: 0
 
 ## Quality Assurance Checks
@@ -82,8 +82,7 @@ VIOLATION - Found 1 unresolvable or empty import(s):
 --------------------
 
 Check 4: Undefined terms.
-VIOLATION - Found 6 term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):
- - http://www.w3.org/2004/02/skos/core#curatorNote
+VIOLATION - Found 5 term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):
  - https://example.invalid/upstream (fetch failure)
  - https://example.org/fragment#Tool (fetch failure)
  - https://example.org/fragment#Worker (fetch failure)
@@ -110,45 +109,43 @@ VIOLATION - Found 1 classes missing a label annotation:
 
 Check 6: Property without label.
 VIOLATION - Found 1 properties missing a label annotation.
- - https://example.org/reporters#undocumented
+ - https://example.org/reporters#unlabelled
 
 --------------------
 
 Check 7: NodeShape without label.
 VIOLATION - Found 1 NodeShape missing a label annotation.
- - https://example.org/reporters#BareShape
+ - https://example.org/reporters#UnlabelledShape
 
 --------------------
 
 Check 8: PropertyShape without label.
 VIOLATION - Found 1 PropertyShape missing a label annotation.
- - https://example.org/reporters#bareNameShape
+ - https://example.org/reporters#unlabelledNameShape
 
 --------------------
 
 Check 9: Class without description.
-VIOLATION - Found 2 classes missing a description annotation:
- - https://example.org/reporters#Cat
- - https://example.org/reporters#Dog
+VIOLATION - Found 1 classes missing a description annotation:
+ - https://example.org/reporters#Fish
 
 --------------------
 
 Check 10: Property without description.
-VIOLATION - Found 2 properties missing a description annotation.
- - https://example.org/reporters#hasName
- - https://example.org/reporters#undocumented
+VIOLATION - Found 1 properties missing a description annotation.
+ - https://example.org/reporters#undescribed
 
 --------------------
 
 Check 11: NodeShape without description.
 VIOLATION - Found 1 NodeShape missing a description annotation:
- - https://example.org/reporters#BareShape
+ - https://example.org/reporters#UndescribedShape
 
 --------------------
 
 Check 12: PropertyShape without description.
 VIOLATION - Found 1 PropertyShape missing a description annotation:
- - https://example.org/reporters#bareNameShape
+ - https://example.org/reporters#undescribedNameShape
 
 --------------------
 
@@ -191,20 +188,21 @@ VIOLATION - Found 1 isolated classes:
 --------------------
 
 Check 18: Missing Domain in Properties.
-WARNING - Found 1 properties without `rdfs:domain` or `rdfs:range` declaration:
+WARNING - Found 2 properties without `rdfs:domain` or `rdfs:range` declaration:
 
 | Property | Domain | Range |
 |--|--|--|
-| https://example.org/reporters#hasName | None | None |
+| https://example.org/reporters#withoutDomain | None | https://example.org/reporters#Animal |
+| https://example.org/reporters#withoutRange | https://example.org/reporters#Animal | None |
 
 VIOLATION - Found 1 properties without `rdfs:domain` declaration:
- - https://example.org/reporters#hasName
+ - https://example.org/reporters#withoutDomain
 
 --------------------
 
 Check 19: Missing Range in Properties.
 VIOLATION - Found 1 properties without `rdfs:range` declaration:
- - https://example.org/reporters#hasName
+ - https://example.org/reporters#withoutRange
 
 --------------------
 
@@ -239,7 +237,7 @@ WARNING - Some ontology namespaces are not defined. The reported violations may 
 
 Check 24: Namespace hijacking.
 VIOLATION - Found 4 resources defined using an external vocabulary prefix:
- - http://www.w3.org/2004/02/skos/core#curatorNote
+ - http://www.w3.org/2004/02/skos/core#editorialNote
  - https://example.org/fragment#Tool
  - https://example.org/fragment#Worker
  - https://example.org/fragment#usedBy
@@ -250,10 +248,10 @@ WARNING - Some ontology namespaces are not defined. The reported violations may 
 ## Profiling Metrics
 | Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported | Hierarchy depth | Ave branching factor | Cardinality restrictions |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| https://example.org/reporters#,<br> 1 URIs not found. | 105 | 10 | 8 | 3 | 3 | 3 | 3 | 1 | 0 | 7 | 1 | N/A | 2.000 | 0 |
+| https://example.org/reporters#,<br> 1 URIs not found. | 141 | 11 | 12 | 4 | 4 | 4 | 4 | 1 | 0 | 7 | 1 | N/A | 2.333 | 0 |
 
 ## Quality Assurance Metrics
 | Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| https://example.org/reporters#,<br> 1 URIs not found. | 0.500 | 0 | 1 | 6 | 0.100 | 0.125 | 0.333 | 0.333 | 0.200 | 0.250 | 0.333 | 0.333 | 0.100 | 0.125 | 0.333 | 0.333 | 0.100 | 0.125 | 0.125 | 1 | 2 | 1 | 1 | 4 |
+| https://example.org/reporters#,<br> 1 URIs not found. | 0.500 | 0 | 1 | 5 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.083 | 1 | 2 | 1 | 1 | 4 |
 """
