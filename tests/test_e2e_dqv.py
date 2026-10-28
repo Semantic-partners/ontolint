@@ -77,8 +77,28 @@ def _without_configuration(g):
     return g
 
 
-def _report(case, path):
+CASE_PREFIX = 'file:///case/'
+
+
+def _portable(g, case_dir):
+    """Rewrite file: IRIs under the case directory to a fixed prefix.
+
+    A report that names one of its input files names it by absolute path, so a golden
+    written on one machine could only ever match that machine — green locally, red in CI.
+    Nothing else in a report depends on where the checkout lives.
+    """
+    nt = g.serialize(format='nt')
+    rewritten = nt.replace(case_dir.resolve().as_uri().rstrip('/') + '/', CASE_PREFIX)
+    if rewritten == nt:
+        return g
+    out = rdflib.Graph()
+    out.parse(data=rewritten, format='nt')
+    return out
+
+
+def _report(case, path, case_dir):
     g = rdflib.Graph().parse(path, format='turtle')
+    g = _portable(g, case_dir)
     return g if case == CONFIG_CASE else _without_configuration(g)
 
 
@@ -96,7 +116,7 @@ def test_dqv_report_matches_expected(case, tmp_path):
     expected_path = case_dir / 'expected.ttl'
     actual_path = _run_case(case_dir, tmp_path)
 
-    actual = _report(case, actual_path)
+    actual = _report(case, actual_path, case_dir)
     if os.environ.get('UPDATE_GOLDEN'):
         expected_path.write_text(actual.serialize(format='turtle'), encoding='utf-8')
         pytest.skip(f"updated {expected_path.relative_to(CASES_DIR.parent.parent)}")
