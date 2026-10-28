@@ -1456,8 +1456,9 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
         records = []
         log += "| Label | Label Property | Classes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.classes} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.classes};<br> "
+            members = concat_members(row.classes)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.classes))
         
         string = string.removesuffix(";<br> ")
@@ -1508,8 +1509,9 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         records = []
         log += "| Label | Label Property | Properties |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.properties} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.properties};<br> "
+            members = concat_members(row.properties)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.properties))
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1559,8 +1561,9 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         records = []
         log += "| Label | Label Property | NodeShapes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.nsList} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.nsList};<br> "
+            members = concat_members(row.nsList)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.nsList))
         
         string = string.removesuffix(";<br> ")
@@ -1611,8 +1614,9 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         records = []
         log += "| Label | Label Property | PropertyShapes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.psList} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.psList};<br> "
+            members = concat_members(row.psList)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.psList))
         
         string = string.removesuffix(";<br> ")
@@ -1854,6 +1858,18 @@ def term_text(term):
     return "[anonymous]" if isinstance(term, rdflib.BNode) else term
 
 
+def concat_members(value):
+    """
+    The members of a GROUP_CONCAT cell, sorted, as text.
+
+    GROUP_CONCAT has no defined order, so the same inputs render the members of a group in
+    a different order from run to run. exec_sparql() sorts the rows; this sorts within one.
+    The DQV records already sort their own copy (see _same_label_records); this is for the
+    text reports, which carry the concatenation as it came back.
+    """
+    return ", ".join(sorted(m.strip() for m in str(value).split(",") if m.strip()))
+
+
 def violation_formatting(array, unique=False):
     """
     Format a string of elements into a markdown list.
@@ -1920,9 +1936,9 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         iri = []
         records = []
         for row in results:
-            log += f"| {row.iri} | {row.declaredAs} |\n"
+            declared = concat_members(row.declaredAs)
+            log += f"| {row.iri} | {declared} |\n"
             iri.append(row.iri)
-            declared = ", ".join(sorted(str(row.declaredAs).split(", ")))  # GROUP_CONCAT order is undefined
             records.append(dqv.Violation(row.iri, comment=f"declared as {declared}"))
 
         violations[check] = violation_formatting(iri)

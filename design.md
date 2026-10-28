@@ -103,6 +103,11 @@ expected output can be pinned. Two things are needed and are in place:
 - **SELECT results are sorted** in `exec_sparql()`. Rows otherwise arrive in store order,
   which varies between runs. CONSTRUCT results are graphs and are left alone.
 - **Violation lists are sorted** in `violation_formatting()`.
+- **GROUP_CONCAT cells are sorted** by `concat_members()`. Six queries concatenate a
+  group's members into one cell, and GROUP_CONCAT has no defined order: sorting the rows
+  does not sort within one. The DQV records always sorted their own copy; the text
+  reports carried the concatenation as it came back, so the same inputs rendered a
+  group's members in a different order on roughly half of runs.
 - **Blank nodes are rendered as `[anonymous]`** by `term_text()`, wherever a term reaches a
   text report. An rdflib blank-node identifier is invented at parse time and differs every
   run, so printing it varied the output while telling a reader nothing they could act on.
@@ -111,6 +116,13 @@ expected output can be pinned. Two things are needed and are in place:
 
 `SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
 report — including every minted IRI — is reproducible.
+
+**Rendering twice in one process is not enough to prove it.** `PYTHONHASHSEED` is fixed
+for a process's lifetime, so anything ordered by a hash renders identically both times
+and still varies between runs — which is how the GROUP_CONCAT ordering above survived a
+test asserting two renders match. `test_it_renders_the_same_text_under_any_hash_seed`
+covers that class of bug by rendering in a subprocess per seed. It samples a few seeds,
+so it is a detector rather than a proof.
 
 **CTRF is not, by default**: its timestamp comes from `datetime.now()`, so two runs over
 identical inputs differ. The clock is injected — `build_ctrf_report(result,
