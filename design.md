@@ -102,6 +102,15 @@ Neither input needs the network: the autouse `no_network` fixture blocks sockets
 unresolvable `owl:imports` points at `example.invalid`, reserved by RFC 2606, so it fails
 the same way online or off.
 
+**One term, one failure.** Every term in `reporters.ttl` is complete except for the single
+thing the comment beside it names, so a check that changes moves one line of the stored
+expectations rather than several, and a term appearing twice in a report is a signal rather
+than noise. Two exceptions, both in the checks rather than the fixture: an `owl:imports`
+that cannot be resolved is by construction a namespace whose terms cannot be checked, so it
+fails both; and `fragment.ttl`, having no declared namespace to compare against, trips the
+undefined-terms and untyped-property checks on its own terms and on `rdfs:label` alike,
+which is #102. The same rule applies to the golden cases under `tests/dqv/`.
+
 Each DQV golden covers a **single** result, unlike the run-level report the reporter
 builds in anger. A report over several results is not the union of their individual ones:
 `_mint` hashes the assessment node into every measurement IRI, and a two-result report has
@@ -199,6 +208,15 @@ What remains open is the deeper question of scope, tracked in #96: a check compu
 their files, which is why uniqueness can be reported for two independent ontologies that
 merely share a label.
 
+**What owns a term.** A term belongs to the ontology declared in the file it sits in — not
+to the namespace it is minted under. So a term minted in file 1 under ontology 2's
+namespace is ontology 1's defect: file 1 is where someone did the wrong thing, and charging
+it to ontology 2 would let one input degrade another's quality score from outside.
+
+A per-file run already reports exactly this, and `tests/dqv/per-file/` pins it: `a:borrowed`
+is minted in `b.ttl`, the hijack is charged to `b`, the violation's `sh:focusNode` names the
+term, and `a`'s report stays clean. A merged run does neither half — see the Todo below.
+
 ## Determinism
 
 Reports must be byte-identical for the same inputs, or diffs are unreviewable and no
@@ -244,13 +262,25 @@ replaced, which is how `tests/test_e2e_dqv.py` compares against committed report
 
 ## Todo
 
-- **Make Markdown a projection of `QAResult`** — see above. Tracked as its own change,
-  since it moves where every check's text is produced.
+- **Make Markdown a projection of `QAResult`** (#101) — see above. Tracked as its own
+  change, since it moves where every check's text is produced.
+- **Attribute a merged run's measurements per ontology.** Today every measurement of a
+  merged run is `dqv:computedOn` one aggregate `Merged: …` dataset, so a report cannot
+  answer "is ontology 2 clean?". The decision is one measurement per `(check, owning
+  ontology)` — plain DQV, and the per-ontology roll-up falls out of it — rather than one
+  measurement with a breakdown under a term of our own. `dqv:value` then counts the
+  violations of that check **owned by that ontology**, and a run total is a sum. The
+  provenance this needs landed with #104; what owns a term is settled above.
+- **#107 — hijacking and undefined terms go silent in a merged run.** The detection half of
+  the same problem, and not fixed by attribution: both checks ask "is this namespace
+  declared?" against the union, so a sibling file that legitimately declares the namespace
+  excuses the hijack and there is no finding left to attribute. This one changes what
+  ontolint finds, so it moves numbers in the goldens.
 
 ## In flight
 
 - **#94** — publish to PyPI; moves these modules into the package.
-- **#96** — what per-file versus grouped linting means; proposes loading into an
-  `rdflib.Dataset` with one named graph per file, so provenance is recorded per triple and
-  a term can be attributed to the ontology that owns it.
+- **#96** — what per-file versus grouped linting means. Its plumbing landed as #104;
+  attribution and #107 are what is left of it.
 - **#97** — a file declaring two ontologies fails the build while the report says PASS.
+- **#102** — the untyped checks report every term when no `owl:Ontology` is declared.
