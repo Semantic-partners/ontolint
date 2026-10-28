@@ -1,0 +1,12 @@
+@prefix : <https://example.org/ontology/undescribed#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# A declared ontology with no description — the only way that check can fail, since
+# without a declaration it is not assessed at all but reported against its dependency on
+# the declaration check instead.
+
+: a owl:Ontology ; rdfs:label "Undescribed" .
+
+:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "A thing." ; rdfs:subClassOf :Base .
+:Base a owl:Class ; rdfs:label "Base" ; rdfs:comment "The base." .

@@ -125,8 +125,10 @@ def write_qaresult(case, result, inputs):
     body.append("    checks=[")
     for check in result.checks:
         body.append(f"        CheckResult(name={check.name!r}, key={check.key!r}, "
-                    f"passed={check.passed}, count={check.count},")
+                    f"status={check.status!r}, count={check.count},")
         body.append(f"                    elements={check.elements!r},")
+        if check.reason:
+            body.append(f"                    reason={check.reason!r},")
         if not check.violations:
             body.append("                    violations=[]),")
         else:

@@ -45,7 +45,28 @@
         <urn:ontolint:measurement-untyped-classes-12ff028f>,
         <urn:ontolint:measurement-untyped-properties-c3c3213d> ;
     prov:generatedAtTime "2026-10-15T09:30:00+00:00"^^xsd:dateTime ;
-    olq:configuration <urn:ontolint:configuration-effective> .
+    olq:configuration <urn:ontolint:configuration-effective> ;
+    olq:notAssessed <urn:ontolint:not-assessed-fragment-ttl-4912cb1b> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-ontology-missing-des-a63e2dc0> a olq:Dependency ;
+    rdfs:comment "A description is read off the declared owl:Ontology, so there is none to read without one." ;
+    olq:dependent <urn:ontolint:metric-ontology-missing-description> ;
+    olq:requires <urn:ontolint:metric-ontology-not-declared> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-unresolvable-imports-6c2035de> a olq:Dependency ;
+    rdfs:comment "owl:imports statements are read off the declared owl:Ontology." ;
+    olq:dependent <urn:ontolint:metric-unresolvable-imports> ;
+    olq:requires <urn:ontolint:metric-ontology-not-declared> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-untyped-classes-503e08e4> a olq:Dependency ;
+    rdfs:comment "Without a declared namespace, a class of the ontology's own cannot be told from an external vocabulary's." ;
+    olq:dependent <urn:ontolint:metric-untyped-classes> ;
+    olq:requires <urn:ontolint:metric-ontology-not-declared> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-untyped-properties-c188c85a> a olq:Dependency ;
+    rdfs:comment "Without a declared namespace, a property of the ontology's own cannot be told from an external vocabulary's." ;
+    olq:dependent <urn:ontolint:metric-untyped-properties> ;
+    olq:requires <urn:ontolint:metric-ontology-not-declared> .
 
 <urn:ontolint:configuration-effective> a olq:Configuration ;
     rdfs:label "Effective ontolint configuration" ;
@@ -313,25 +334,16 @@
     olq:severity sh:Violation ;
     olq:violation <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-7c0fb940> .
 
-<urn:ontolint:metric-multiple-ontologies-in-one-file> a dqv:Metric ;
-    rdfs:label "Multiple ontologies in one file" ;
-    skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
-    skos:prefLabel "Multiple ontologies in one file" ;
-    dqv:inDimension <urn:ontolint:dimension-metadata> ;
-    olq:severity sh:Violation .
-
 <urn:ontolint:metric-ontolint-conformance> a dqv:Metric ;
     rdfs:label "Ontolint conformance" ;
     skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> .
 
-<urn:ontolint:metric-ontology-missing-description> a dqv:Metric ;
-    rdfs:label "Ontology without description" ;
-    skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
-    skos:prefLabel "Ontology without description" ;
-    dqv:inDimension <urn:ontolint:dimension-metadata> ;
-    olq:severity sh:Violation .
+<urn:ontolint:not-assessed-fragment-ttl-4912cb1b> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/reporters#> ;
+    olq:metric <urn:ontolint:metric-multiple-ontologies-in-one-file> ;
+    olq:reason olq:SourcesNotRecorded .
 
 <urn:ontolint:setting-checks-037ff9a7> a olq:Setting ;
     rdfs:label "checks: Properties with the same label (enabled)" ;
@@ -1065,6 +1077,13 @@
     dqv:inDimension <urn:ontolint:dimension-structure> ;
     olq:severity sh:Warning .
 
+<urn:ontolint:metric-multiple-ontologies-in-one-file> a dqv:Metric ;
+    rdfs:label "Multiple ontologies in one file" ;
+    skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
+    skos:prefLabel "Multiple ontologies in one file" ;
+    dqv:inDimension <urn:ontolint:dimension-metadata> ;
+    olq:severity sh:Violation .
+
 <urn:ontolint:metric-namespace-hijacking> a dqv:Metric ;
     rdfs:label "Namespace hijacking" ;
     skos:definition "A resource is defined using an external vocabulary's namespace." ;
@@ -1100,11 +1119,12 @@
     dqv:inDimension <urn:ontolint:dimension-uniqueness> ;
     olq:severity sh:Violation .
 
-<urn:ontolint:metric-ontology-not-declared> a dqv:Metric ;
-    rdfs:label "Ontology without declaration" ;
-    skos:definition "A processed file has no owl:Ontology declaration." ;
-    skos:prefLabel "Ontology without declaration" ;
+<urn:ontolint:metric-ontology-missing-description> a dqv:Metric ;
+    rdfs:label "Ontology without description" ;
+    skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
+    skos:prefLabel "Ontology without description" ;
     dqv:inDimension <urn:ontolint:dimension-metadata> ;
+    olq:dependsOn <urn:ontolint:metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <urn:ontolint:metric-properties-missing-description> a dqv:Metric ;
@@ -1177,11 +1197,17 @@
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
     olq:severity sh:Violation .
 
+<urn:ontolint:dimension-metadata> a dqv:Dimension ;
+    rdfs:label "Metadata" ;
+    skos:definition "The ontology declares itself and describes its purpose." ;
+    skos:prefLabel "Metadata" .
+
 <urn:ontolint:metric-unresolvable-imports> a dqv:Metric ;
     rdfs:label "Unresolvable imports" ;
     skos:definition "An owl:imports target could not be resolved or contains no triples." ;
     skos:prefLabel "Unresolvable imports" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
+    olq:dependsOn <urn:ontolint:metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <urn:ontolint:metric-untyped-classes> a dqv:Metric ;
@@ -1189,6 +1215,7 @@
     skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
     skos:prefLabel "Untyped Classes" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
+    olq:dependsOn <urn:ontolint:metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <urn:ontolint:metric-untyped-properties> a dqv:Metric ;
@@ -1196,12 +1223,8 @@
     skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
     skos:prefLabel "Untyped Properties" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
+    olq:dependsOn <urn:ontolint:metric-ontology-not-declared> ;
     olq:severity sh:Violation .
-
-<urn:ontolint:dimension-metadata> a dqv:Dimension ;
-    rdfs:label "Metadata" ;
-    skos:definition "The ontology declares itself and describes its purpose." ;
-    skos:prefLabel "Metadata" .
 
 <urn:ontolint:dimension-structure> a dqv:Dimension ;
     rdfs:label "Structure" ;
@@ -1222,6 +1245,13 @@
     rdfs:label "Documentation" ;
     skos:definition "Terms carry human-readable labels and descriptions." ;
     skos:prefLabel "Documentation" .
+
+<urn:ontolint:metric-ontology-not-declared> a dqv:Metric ;
+    rdfs:label "Ontology without declaration" ;
+    skos:definition "A processed file has no owl:Ontology declaration." ;
+    skos:prefLabel "Ontology without declaration" ;
+    dqv:inDimension <urn:ontolint:dimension-metadata> ;
+    olq:severity sh:Violation .
 
 <https://example.org/reporters#> rdfs:label "Reporter fixture" .
 

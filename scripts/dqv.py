@@ -127,6 +127,21 @@ DQV_ROLLUP_METRIC = ('ontolint-conformance', "Ontolint conformance",
 # no CHECKLIST entry and no check_* function. Ontolint's rule is one file, one ontology —
 # two inputs declaring the same owl:Ontology IRI break it, and the evidence only exists
 # before they are merged (the union of two identical declarations is a single triple).
+# Which checks need another check's condition to hold before they can be computed.
+# Declared once and used twice: ontology_qa.lint_selection enables the required check when a
+# dependent one is selected, and build_dqv_graph publishes the dependency with its reason.
+DQV_DEPENDENCIES = {
+    'ontologyDescription': ('ontologyNotDeclared',
+                            "A description is read off the declared owl:Ontology, so there is none to read without one."),
+    'unresolvedImports':   ('ontologyNotDeclared',
+                            "owl:imports statements are read off the declared owl:Ontology."),
+    'untypedClasses':      ('ontologyNotDeclared',
+                            "Without a declared namespace, a class of the ontology's own cannot be told from an external vocabulary's."),
+    'untypedProperties':   ('ontologyNotDeclared',
+                            "Without a declared namespace, a property of the ontology's own cannot be told from an external vocabulary's."),
+}
+
+
 DQV_DUPLICATE_ONTOLOGY_METRIC = ('duplicate-ontology-iri', "Duplicate ontology IRI",
                                  "An owl:Ontology IRI is declared by more than one input; "
                                  "each ontology should be declared by exactly one.",
@@ -345,6 +360,48 @@ def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies, node_na
     return g
 
 
+# What a check's reason string means in the report.
+REASON_INDIVIDUALS = {'empty-population': OLQ.EmptyPopulation,
+                      'sources-not-recorded': OLQ.SourcesNotRecorded}
+
+
+def _reason_node(base, check, node_namer=None):
+    """
+    Why a check was not assessed: a shared reason, or the dependency that was not met.
+
+    A reason naming another check means this one needs that check's condition to hold, so
+    the report points at the olq:Dependency that says why rather than repeating it.
+    """
+    if check.reason in REASON_INDIVIDUALS:
+        return REASON_INDIVIDUALS[check.reason]
+    dependent = metric_iri(base, DQV_METRICS[check.key][0])
+    prerequisite = metric_iri(base, DQV_METRICS[check.reason][0])
+    return _mint(base, 'dependency', dependent, prerequisite, node_namer=node_namer)
+
+
+def _add_dependencies(g, base, node_namer=None):
+    """
+    The declared dependencies between the metrics this report describes.
+
+    Stated as an olq:Dependency, which carries why the dependency exists, plus the
+    olq:dependsOn shortcut so the relation can be queried without joining through it. Only
+    for metrics the report describes: a dependency on one it never mentions says nothing a
+    reader of this report could use.
+    """
+    described = set(g.subjects(rdflib.RDF.type, DQV.Metric))
+    for key, (required, why) in sorted(DQV_DEPENDENCIES.items()):
+        dependent = metric_iri(base, DQV_METRICS[key][0])
+        prerequisite = metric_iri(base, DQV_METRICS[required][0])
+        if dependent not in described or prerequisite not in described:
+            continue
+        node = _mint(base, 'dependency', dependent, prerequisite, node_namer=node_namer)
+        g.add((node, rdflib.RDF.type, OLQ.Dependency))
+        g.add((node, OLQ.dependent, dependent))
+        g.add((node, OLQ.requires, prerequisite))
+        g.add((node, rdflib.RDFS.comment, rdflib.Literal(why)))
+        g.add((dependent, OLQ.dependsOn, prerequisite))
+
+
 def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_ontologies=None,
                     node_namer=None):
     """
@@ -455,6 +512,21 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
                 for r in related:
                     g.add((node, OLQ.relatedResource, r))
 
+        # A check that could not be computed, and why. Without this a consumer cannot tell
+        # a metric that was assessed and clean from one nothing ever looked at.
+        for check in result.checks:
+            if check.status != 'skipped' or check.key not in DQV_METRICS:
+                continue
+            m_slug, m_definition, m_dimension, m_severity = DQV_METRICS[check.key]
+            metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, m_severity)
+            node = _mint(base, 'not-assessed', assessment, *run_key, dataset, m_slug,
+                         node_namer=node_namer)
+            g.add((assessment, OLQ.notAssessed, node))
+            g.add((node, rdflib.RDF.type, OLQ.NotAssessed))
+            g.add((node, OLQ.metric, metric))
+            g.add((node, DQV.computedOn, dataset))
+            g.add((node, OLQ.reason, _reason_node(base, check, node_namer=node_namer)))
+
         failed = len(result.failures)
         measurement = _mint(base, 'measurement', assessment, *run_key, dataset, slug, node_namer=node_namer)
         g.add((assessment, DQV.hasQualityMeasurement, measurement))
@@ -464,6 +536,7 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
         g.add((measurement, DQV.value, rdflib.Literal(failed)))
         g.add((measurement, OLQ.conforms, rdflib.Literal(failed == 0)))
 
+    _add_dependencies(g, base, node_namer=node_namer)
     return g
 
 

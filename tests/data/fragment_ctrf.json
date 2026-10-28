@@ -6,8 +6,9 @@
         },
         "summary": {
             "tests": 25,
-            "passed": 22,
-            "failed": 3
+            "passed": 14,
+            "failed": 2,
+            "skipped": 9
         },
         "tests": [
             {
@@ -24,11 +25,8 @@
             },
             {
                 "name": "Ontology without description",
-                "status": "failed",
-                "failure": {
-                    "violations": 1,
-                    "elements": "No ontology declared"
-                }
+                "status": "skipped",
+                "message": "not assessed: ontologyNotDeclared"
             },
             {
                 "name": "Unresolvable imports",
@@ -52,11 +50,13 @@
             },
             {
                 "name": "NodeShape without label",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: empty-population"
             },
             {
                 "name": "PropertyShape without label",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: empty-population"
             },
             {
                 "name": "Class without description",
@@ -68,11 +68,13 @@
             },
             {
                 "name": "NodeShape without description",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: empty-population"
             },
             {
                 "name": "PropertyShape without description",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: empty-population"
             },
             {
                 "name": "Classes with the same label",
@@ -84,11 +86,13 @@
             },
             {
                 "name": "NodeShapes with the same label",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: empty-population"
             },
             {
                 "name": "PropertyShapes with the same label",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: empty-population"
             },
             {
                 "name": "Isolated classes",
@@ -112,11 +116,13 @@
             },
             {
                 "name": "Untyped Classes",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: ontologyNotDeclared"
             },
             {
                 "name": "Untyped Properties",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: ontologyNotDeclared"
             },
             {
                 "name": "Namespace hijacking",

@@ -67,11 +67,17 @@ VocabularySource: TypeAlias = rdflib.Graph | str | os.PathLike
 @dataclass
 class CheckResult:
     name: str
-    passed: bool
+    status: str                       # 'passed', 'failed' or 'skipped'
     count: int
     elements: str
     key: str = ''
     violations: list = field(default_factory=list)
+    reason: str | None = None         # why a 'skipped' check could not be computed
+
+    @property
+    def passed(self):
+        """A check that could not be computed is not a failure, so it does not fail a build."""
+        return self.status != 'failed'
 
 
 @dataclass
@@ -162,6 +168,22 @@ class Config:
 def records_key(check):
     """Key under which a check stores its list of dqv.Violation records in its violations dict."""
     return (check, 'records')
+
+
+def skipped_key(check):
+    """Key under which a check records that it could not be computed, and why."""
+    return (check, 'skipped')
+
+
+# Why a check could not be computed. Either of these, or the key of a check whose condition
+# this one needs (see dqv.DQV_DEPENDENCIES) — then the report names that dependency.
+EMPTY_POPULATION = 'empty-population'
+SOURCES_NOT_RECORDED = 'sources-not-recorded'
+
+
+def not_assessed(violations, check, reason):
+    """Record that a check could not be computed. A count of 0 would read as a clean result."""
+    violations[skipped_key(check)] = reason
 
 
 def source_iris(in_metrics):
@@ -580,23 +602,23 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     reports built over the same result differ. It is also the only way to fix it: a CTRF
     report written by the CLI carries the wall clock and is not reproducible.
     """
-    passed = 0
-    failed = 0
+    counts = {'passed': 0, 'failed': 0, 'skipped': 0}
     test_cases = []
 
     for check in result.checks:
         test_case = {
             "name": check.name,
-            "status": "passed" if check.passed else "failed"
+            "status": check.status
         }
-        if not check.passed:
+        if check.status == 'failed':
             test_case["failure"] = {
                 "violations": check.count,
                 "elements": check.elements
             }
-            failed += 1
-        else:
-            passed += 1
+        elif check.status == 'skipped':
+            # Not a pass: the check could not be computed, so the 0 means nothing.
+            test_case["message"] = f"not assessed: {check.reason}"
+        counts[check.status] += 1
         test_cases.append(test_case)
     
     # Build CTRF report
@@ -608,8 +630,9 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
             },
             "summary": {
                 "tests": len(test_cases),
-                "passed": passed,
-                "failed": failed
+                "passed": counts['passed'],
+                "failed": counts['failed'],
+                "skipped": counts['skipped']
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),
@@ -1032,6 +1055,7 @@ def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbo
 
     if declared is None:
         log += "WARNING - Several files merged into one graph with no record of their sources, invalid metric.\n"
+        not_assessed(violations, check, SOURCES_NOT_RECORDED)
     elif not offenders:
         log += "PASS - No violations found.\n"
     else:
@@ -1079,6 +1103,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
 
     if in_metrics['ontologyNotDeclared'] == num_files:
         log += "WARNING - No ontology declared, invalid metric.\n"
+        not_assessed(violations, check, 'ontologyNotDeclared')
         metrics[check] = 1 # 'ontologyDescription': no
         violations[check] = "No ontology declared"
         violations[records_key(check)] = [dqv.Violation(comment="no ontology declared")]
@@ -1144,6 +1169,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
             
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1194,6 +1220,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
 
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1244,6 +1271,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
             
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1294,6 +1322,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
               
     elif results:
         metrics[check] = len(results)
@@ -1345,6 +1374,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1395,6 +1425,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1444,6 +1475,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
                 log += f"| {row.ns} | {row.comment} |\n"
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1494,6 +1526,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
@@ -1540,6 +1573,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
 
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -1593,6 +1627,7 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
 
     elif int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -1645,6 +1680,7 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
 
     elif int(in_metrics['nodeShapes']) == 0:
         log += "WARNING - No NodeShape defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -1698,6 +1734,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
 
     elif int(in_metrics['propertyShapes']) == 0:
         log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -1751,6 +1788,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
         log += "PASS - All classes are connected to another class through a subclass or property relation.\n"
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -1806,6 +1844,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
 
         elif int(in_metrics['propertyCount']) == 0:
             log += "WARNING - No properties defined, invalid metric.\n"
+            not_assessed(violations, check, EMPTY_POPULATION)
 
         elif results:
             metrics['missingDomainRange'] = len(results)
@@ -1903,6 +1942,7 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
         if int(in_metrics['propertyCount']) == 0:
             violations[check] = ""
             log += "WARNING - No properties defined, invalid metric.\n"
+            not_assessed(violations, check, EMPTY_POPULATION)
         elif metrics[check] > 0:
             string = violation_formatting(rCount)
             violations[records_key(check)] = [dqv.Violation(p) for p in rCount]
@@ -2072,6 +2112,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
 
     elif int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -2118,12 +2159,14 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
         # Without a declared namespace, a term of the ontology's own cannot be told from an
         # external vocabulary's, so the query reports nothing. PASS would imply it had looked.
         log += "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+        not_assessed(violations, check, 'ontologyNotDeclared')
 
     elif not results and int(in_metrics['classCount']) > 0:
         log += "PASS - No violations found.\n"
 
     elif not results and int(in_metrics['classCount']) == 0:
         log += "WARNING - No classes defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -2173,12 +2216,14 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
         # Without a declared namespace, a term of the ontology's own cannot be told from an
         # external vocabulary's, so the query reports nothing. PASS would imply it had looked.
         log += "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+        not_assessed(violations, check, 'ontologyNotDeclared')
 
     elif not results and int(in_metrics['propertyCount']) > 0:
         log += "PASS - No violations found.\n"
               
     elif not results and int(in_metrics['propertyCount']) == 0:
         log += "WARNING - No properties defined, invalid metric.\n"
+        not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
@@ -2781,25 +2826,20 @@ def lint_selection(selection, checklist, rule_reasons=None):
             log += "> " + "> ".join(yaml.dump(selection, default_flow_style=False).splitlines(keepends=True))
             log += "> ```"
         
-        # Constraints
-        for i, item in enumerate(checklist):
-            if item[3] == 'ontologyNotDeclared': index_owl_declaration = i
-            if item[3] == 'ontologyDescription': index_owl_description = i
-            if item[3] == 'unresolvedImports':   index_owl_imports = i
-        
-        # 1. Enable owl-declaration if only owl-description is enabled.
-        if not checklist[index_owl_declaration][0] and checklist[index_owl_description][0]:
-            checklist[index_owl_declaration][0] = True
-            log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology description was selected.\n"
-            if rule_reasons is not None:
-                rule_reasons['ontologyNotDeclared'] = "Enabled because the ontology-description check was selected and depends on it."
-        
-        # 2. Enable owl-declaration if only owl-imports is enabled.
-        if not checklist[index_owl_declaration][0] and checklist[index_owl_imports][0]:
-            checklist[index_owl_declaration][0] = True
-            log += "> WARNING: Check for OWL ontology declaration has been enabled because check for ontology imports was selected.\n"
-            if rule_reasons is not None:
-                rule_reasons['ontologyNotDeclared'] = "Enabled because the owl-imports check was selected and depends on it."
+        # A check whose condition another needs is enabled with it, so a dependent check
+        # has something to stand on and the report can say why it could not run. The
+        # dependencies are declared once, in dqv.DQV_DEPENDENCIES, and published there too.
+        by_key = {item[3]: item for item in checklist}
+        for key, (required, _why) in sorted(dqv.DQV_DEPENDENCIES.items()):
+            dependent, prerequisite = by_key[key], by_key[required]
+            if dependent[0] and not prerequisite[0]:
+                prerequisite[0] = True
+                selected = config_check_name(dependent[1], key)
+                log += (f"> WARNING: Check '{prerequisite[2]}' has been enabled because "
+                        f"check '{dependent[2]}' was selected and depends on it.\n")
+                if rule_reasons is not None:
+                    rule_reasons[required] = (f"Enabled because the {selected} check was selected "
+                                              "and depends on it.")
         return checklist, log
 
 CHECKLIST = [
@@ -3000,13 +3040,18 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
             logs.append(log_results)
             count = int(qa_metrics.get(key, 0))
             raw = qa_violations.get(key, '')
+            # A check that could not be computed says so, rather than reporting the 0 it
+            # never measured: a consumer cannot otherwise tell a clean result from one
+            # nothing looked at.
+            reason = qa_violations.get(skipped_key(key))
             checks.append(CheckResult(
                 name=display_name,
-                passed=(count == 0),
+                status='skipped' if reason else ('passed' if count == 0 else 'failed'),
                 count=count,
                 elements=str(raw) if raw else '',
                 key=key,
                 violations=qa_violations.get(records_key(key), []) if count else [],
+                reason=reason,
             ))
     
     # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.

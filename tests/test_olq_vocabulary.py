@@ -45,9 +45,14 @@ def _sample_report(make_graph):
                     local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"},
                     checklist=checklist, lint_config=lint_config, rule_reasons=rule_reasons,
                     config_file=".rdf-lint.yml")
-    # And a run configured by its caller, with no config file (olq:CallerArgument).
+    # And a run configured by its caller, with no config file (olq:CallerArgument). It is
+    # given two file names over one plain graph, which is how a caller merges inputs: the
+    # per-input check then has no record of which file a triple came from, the one case
+    # that is not assessed for olq:SourcesNotRecorded.
     called = run_qa(g, uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)),
-                    ignore_imports=[MISSING_IMPORT])
+                    ignore_imports=[MISSING_IMPORT], files_processed=['a.ttl', 'b.ttl'],
+                    source_iris=['https://example.org/input/a.ttl',
+                                 'https://example.org/input/b.ttl'])
     return build_dqv_graph([result, called])
 
 

@@ -6,8 +6,9 @@
         },
         "summary": {
             "tests": 25,
-            "passed": 2,
-            "failed": 23
+            "passed": 1,
+            "failed": 23,
+            "skipped": 1
         },
         "tests": [
             {
@@ -20,7 +21,8 @@
             },
             {
                 "name": "Multiple ontologies in one file",
-                "status": "passed"
+                "status": "skipped",
+                "message": "not assessed: sources-not-recorded"
             },
             {
                 "name": "Ontology without description",

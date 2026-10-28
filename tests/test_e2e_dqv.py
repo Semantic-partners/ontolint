@@ -99,7 +99,7 @@ def _run_case(case_dir, out_dir, mint=stable_mint_id):
     return out_dir / 'actual.ttl'
 
 
-REAL_NAME = re.compile(r'#(assessment|measurement|violation|dataset|configuration|setting|bnode)-[0-9a-f]{16}$')
+REAL_NAME = re.compile(r'#(assessment|measurement|violation|dataset|configuration|setting|bnode|dependency|not-assessed)-[0-9a-f]{16}$')
 
 
 def test_a_real_run_mints_hashed_iris(tmp_path):

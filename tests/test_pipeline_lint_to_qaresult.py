@@ -77,8 +77,14 @@ def test_the_fragment_is_the_only_case_failing_the_metadata_checks():
     cannot fail either check; the fragment declares none, so it fails both.
     """
     failed = {case: {c.key for c in stored_qa_result_for(case).failures} for case in CASES}
+    skipped = {case: {c.key: c.reason for c in stored_qa_result_for(case).checks
+                      if c.status == 'skipped'} for case in CASES}
 
-    assert 'ontologyDescription' in failed['fragment']
+    # The description check is not among them: with no declaration there is nothing to
+    # describe, so it is not assessed rather than failed, and says so against its
+    # dependency on the declaration check. Its failing case — a declared ontology with no
+    # description — is the golden tests/dqv/no-description/.
+    assert skipped['fragment']['ontologyDescription'] == 'ontologyNotDeclared'
     assert 'ontologyDescription' not in failed['reporters']
     # Declaration is the three-way one: none of the files declared an ontology, some did,
     # all did. The merged case is the only one that reaches the middle branch.

@@ -7,7 +7,8 @@
         "summary": {
             "tests": 25,
             "passed": 3,
-            "failed": 22
+            "failed": 22,
+            "skipped": 0
         },
         "tests": [
             {
