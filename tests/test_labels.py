@@ -1,4 +1,4 @@
-from scripts.ontology_qa import run_qa
+from scripts.ontology_qa import CHECKLIST, render_markdown, run_qa
 
 
 # ── Classes ──────────────────────────────────────────────────────────────────
@@ -41,8 +41,8 @@ def test_class_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :Cat a owl:Class ; skos:prefLabel "Cat-label" .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Cat-label" in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Cat-label" in rendered
 
 
 # ── Properties ───────────────────────────────────────────────────────────────
@@ -83,8 +83,8 @@ def test_property_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFur a owl:ObjectProperty ; rdfs:label "Has Fur" .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Has Fur" in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Has Fur" in rendered
 
 
 # ── NodeShapes ────────────────────────────────────────────────────────────────
@@ -110,8 +110,8 @@ def test_node_shape_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :CatShape a sh:NodeShape ; rdfs:label "Cat Shape" .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Cat Shape" in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Cat Shape" in rendered
 
 
 # ── PropertyShapes ────────────────────────────────────────────────────────────
@@ -148,13 +148,13 @@ def test_anonymous_typed_property_shape_label_listed_once_in_verbose(make_graph)
     :DogShape a sh:NodeShape ; rdfs:label "Dog shape" ;
         sh:property [ a sh:PropertyShape ; sh:path :name ; rdfs:label "Name shape" ] .
     """)
-    logs = "".join(run_qa(g, verbose=True).logs)
-    assert logs.count("Name shape") == 1
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert rendered.count("Name shape") == 1
 
 
 def test_property_shape_with_rdfs_label_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFurShape a sh:PropertyShape ; rdfs:label "Has Fur Shape" .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Has Fur Shape" in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Has Fur Shape" in rendered

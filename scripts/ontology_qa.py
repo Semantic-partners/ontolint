@@ -74,6 +74,9 @@ class CheckResult:
     violations: list = field(default_factory=list)
     reason: str | None = None         # why a 'skipped' check could not be computed
     outcome: tuple | None = None      # (sentence, detail) a reporter renders; see decided()
+    notes: list = field(default_factory=list)   # remarks that follow the sentence
+    table: tuple | None = None        # (headers, rows) the check produced
+    verbose_table: tuple | None = None          # the same, shown only on a verbose run
 
     @property
     def passed(self):
@@ -186,6 +189,16 @@ AS_LIST = 'list'      # one per line, under the sentence
 AS_TABLE = 'table'    # the check built a Markdown table
 
 
+def notes_key(check):
+    """Key under which a check records remarks that follow its sentence."""
+    return (check, 'notes')
+
+
+def table_key(check, verbose_only=False):
+    """Key under which a check records a table of its own, for a reporter to lay out."""
+    return (check, 'verbose-table' if verbose_only else 'table')
+
+
 def decided(violations, check, sentence, detail=None):
     """
     Record what a check decided, as a sentence and how its elements follow it.
@@ -194,6 +207,22 @@ def decided(violations, check, sentence, detail=None):
     report cannot be rendered any other way, which is what #101 is about.
     """
     violations[outcome_key(check)] = (sentence, detail)
+
+
+def note(violations, check, line):
+    """Add a remark after a check's sentence — a caveat on what it could see."""
+    violations.setdefault(notes_key(check), []).append(line)
+
+
+def tabulate(violations, check, headers, rows, verbose_only=False):
+    """
+    Record a table a check produced: its column headings and its rows of cells.
+
+    The rows are data, not Markdown, so a reporter lays them out — including the ones only
+    a verbose run shows, which are a second query's worth of detail rather than a finding.
+    """
+    violations[table_key(check, verbose_only)] = (
+        tuple(headers), [tuple(str(cell) for cell in row) for row in rows])
 
 
 # Why a check could not be computed. Either of these, or the key of a check whose condition
@@ -1195,25 +1224,22 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     violations[check] = ""
 
     if not results and int(in_metrics['classCount']) > 0:
-        log += "PASS - All classes have a label annotation.\n"
+        decided(violations, check, "PASS - All classes have a label annotation.")
         if verbose:
-            log_results = exec_sparql(graph, 'class_labels')
-            log += "\n|  Class | Label |\n|--|--|\n"
-            for row in log_results:
-                log += f"| {row.c} | {row.label} |\n"
-            
+            tabulate(violations, check, ("Class", "Label"),
+                     [(row.c, row.label) for row in exec_sparql(graph, 'class_labels')],
+                     verbose_only=True)
     elif int(in_metrics['classCount']) == 0:
-        log += "WARNING - No classes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No classes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} classes missing a label annotation:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} classes missing a label annotation:", AS_LIST)
         status += 1
         string = violation_formatting([row.c for row in results])
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1245,25 +1271,22 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     violations[check] = ""
 
     if not results and int(in_metrics['propertyCount']) > 0:
-        log += "PASS - All properties have a label annotation.\n"
+        decided(violations, check, "PASS - All properties have a label annotation.")
         if verbose:
-            log_results = exec_sparql(graph, 'property_labels')
-            log += "|  Property | Label |\n|--|--|\n"
-            for row in log_results:
-                log += f"| {row.property} | {row.label} |\n"
-
+            tabulate(violations, check, ("Property", "Label"),
+                     [(row.property, row.label) for row in exec_sparql(graph, 'property_labels')],
+                     verbose_only=True)
     elif int(in_metrics['propertyCount']) == 0:
-        log += "WARNING - No properties defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No properties defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} properties missing a label annotation.\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} properties missing a label annotation.", AS_LIST)
         status += 1
         string = violation_formatting([row.property for row in results])
         violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1295,25 +1318,22 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
     violations[check] = ""
 
     if not results and int(in_metrics['nodeShapes']) > 0:
-        log += "PASS - All NodeShape have a label annotation.\n"
+        decided(violations, check, "PASS - All NodeShape have a label annotation.")
         if verbose:
-            log_results = exec_sparql(graph, 'node_shape_labels')
-            log += "|  NodeShape | Label |\n|--|--|\n"
-            for row in log_results:
-                log += f"| {row.ns} | {row.label} |\n"
-            
+            tabulate(violations, check, ("NodeShape", "Label"),
+                     [(row.ns, row.label) for row in exec_sparql(graph, 'node_shape_labels')],
+                     verbose_only=True)
     elif int(in_metrics['nodeShapes']) == 0:
-        log += "WARNING - No NodeShape defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No NodeShape defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} NodeShape missing a label annotation.", AS_LIST)
         status += 1
         string = violation_formatting([row.ns for row in results])
         violations[records_key(check)] = [dqv.Violation(row.ns) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1345,25 +1365,22 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     violations[check] = ""
 
     if not results and int(in_metrics['propertyShapes']) > 0:
-        log += "PASS - All PropertyShape have a label annotation.\n"
+        decided(violations, check, "PASS - All PropertyShape have a label annotation.")
         if verbose:
-            log_results = exec_sparql(graph, 'property_shape_labels')
-            log += "|  PropertyShape | Label |\n|--|--|\n"
-            for row in log_results:
-                log += f"| {row.ps} | {row.label} |\n"
-    
+            tabulate(violations, check, ("PropertyShape", "Label"),
+                     [(row.ps, row.label) for row in exec_sparql(graph, 'property_shape_labels')],
+                     verbose_only=True)
     elif int(in_metrics['propertyShapes']) == 0:
-        log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No PropertyShapes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
               
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} PropertyShape missing a label annotation.", AS_LIST)
         status += 1
         string = violation_formatting([row.ps for row in results])
         violations[records_key(check)] = [dqv.Violation(row.ps) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1396,25 +1413,22 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     violations[check] = ""
 
     if not results and int(in_metrics['classCount']) > 0:
-        log += "PASS - All classes have a description annotation.\n"
+        decided(violations, check, "PASS - All classes have a description annotation.")
         if verbose:
-            log_results = exec_sparql(graph, 'class_comments')
-            log += "|  Class | Description |\n|--|--|\n"
-            for row in log_results:
-                log += f"| {row.c} | {row.comment} |\n"
-    
+            tabulate(violations, check, ("Class", "Description"),
+                     [(row.c, row.comment) for row in exec_sparql(graph, 'class_comments')],
+                     verbose_only=True)
     elif int(in_metrics['classCount']) == 0:
-        log += "WARNING - No classes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No classes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} classes missing a description annotation:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} classes missing a description annotation:", AS_LIST)
         status += 1
         string = violation_formatting([row.c for row in results])
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1446,25 +1460,22 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     violations[check] = ""
 
     if not results and int(in_metrics['propertyCount']) > 0:
-        log += "PASS - All properties have a description annotation.\n"
+        decided(violations, check, "PASS - All properties have a description annotation.")
         if verbose:
-            log_results = exec_sparql(graph, 'property_comments')
-            log += "| Property | Description |\n|--|--|\n"
-            for row in log_results:
-                log += f"| {row.property} | {row.comment} |\n"
-    
+            tabulate(violations, check, ("Property", "Description"),
+                     [(row.property, row.comment) for row in exec_sparql(graph, 'property_comments')],
+                     verbose_only=True)
     elif int(in_metrics['propertyCount']) == 0:
-        log += "WARNING - No properties defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No properties defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} properties missing a description annotation.\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} properties missing a description annotation.", AS_LIST)
         status += 1
         string = violation_formatting([row.property for row in results])
         violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1496,24 +1507,22 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     violations[check] = ""
 
     if not results and int(in_metrics['nodeShapes']) > 0:
-        log += "PASS - All NodeShape have a description annotation.\n"
+        decided(violations, check, "PASS - All NodeShape have a description annotation.")
         if verbose:
-            results = exec_sparql(graph, 'node_shape_comments')
-            log += "| NodeShape | Description |\n|--|--|\n"
-            for row in results:
-                log += f"| {row.ns} | {row.comment} |\n"
+            tabulate(violations, check, ("NodeShape", "Description"),
+                     [(row.ns, row.comment) for row in exec_sparql(graph, 'node_shape_comments')],
+                     verbose_only=True)
     elif int(in_metrics['nodeShapes']) == 0:
-        log += "WARNING - No NodeShape defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No NodeShape defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} NodeShape missing a description annotation:", AS_LIST)
         status += 1
         string = violation_formatting([row.ns for row in results])
         violations[records_key(check)] = [dqv.Violation(row.ns) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -1545,25 +1554,23 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     violations[check] = ""
 
     if not results and int(in_metrics['propertyShapes']) > 0:
-        log += "PASS - All PropertyShape have a description annotation.\n"
+        decided(violations, check, "PASS - All PropertyShape have a description annotation.")
         if verbose:
-            results = exec_sparql(graph, 'property_shape_comments')
-            log += "| PropertyShape | Description |\n|--|--|\n"
-            for row in results:
-                log += f"| {row.ps} | {row.comment} |\n"
+            tabulate(violations, check, ("PropertyShape", "Description"),
+                     [(row.ps, row.comment) for row in exec_sparql(graph, 'property_shape_comments')],
+                     verbose_only=True)
     
     elif int(in_metrics['propertyShapes']) == 0:
-        log += "WARNING - No PropertyShapes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No PropertyShapes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
     
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} PropertyShape missing a description annotation:", AS_LIST)
         status += 1
         string = violation_formatting([row.ps for row in results])
         violations[records_key(check)] = [dqv.Violation(row.ps) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     return metrics, violations, log, c, status
 
@@ -3059,6 +3066,9 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 violations=qa_violations.get(records_key(key), []) if count else [],
                 reason=reason,
                 outcome=qa_violations.get(outcome_key(key)),
+                notes=qa_violations.get(notes_key(key), []),
+                table=qa_violations.get(table_key(key)),
+                verbose_table=qa_violations.get(table_key(key, verbose_only=True)),
             ))
     
     # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
@@ -3239,7 +3249,15 @@ def _display_path(path):
     return _relative_path(path) or path
 
 
-def render_outcome(check):
+def render_table(headers, rows):
+    """A Markdown table from column headings and rows of cells."""
+    out = "| " + " | ".join(headers) + " |\n|" + "--|" * len(headers) + "\n"
+    for row in rows:
+        out += "| " + " | ".join(str(cell) for cell in row) + " |\n"
+    return out
+
+
+def render_outcome(check, verbose=False):
     """
     A check's section body, from what it decided.
 
@@ -3249,11 +3267,15 @@ def render_outcome(check):
     if not check.outcome:
         return ""
     sentence, detail = check.outcome
+    body = f"{sentence}\n"
     if detail == AS_LIST and check.elements:
-        return f"{sentence}\n - " + check.elements.replace(",<br> ", "\n - ") + "\n"
-    if detail == AS_TABLE and check.elements:
-        return f"{sentence}\n{check.elements}\n"
-    return f"{sentence}\n"
+        body = f"{sentence}\n - " + check.elements.replace(",<br> ", "\n - ") + "\n"
+    if check.table:
+        body += render_table(*check.table)
+    if verbose and check.verbose_table:
+        body += "\n" + render_table(*check.verbose_table)
+    body += "".join(f"{line}\n" for line in check.notes)
+    return body
 
 
 def render_markdown(result, checklist, verbose=False):
@@ -3275,7 +3297,7 @@ def render_markdown(result, checklist, verbose=False):
     # Numbering, titling and separating a check's section is the reporter's job: the check
     # says what it found, not how a report lays it out.
     for index, (check, body) in enumerate(zip(result.checks, result.logs), start=1):
-        log += f"\nCheck {index}: {check.name}.\n{render_outcome(check) or body}{sep()}"
+        log += f"\nCheck {index}: {check.name}.\n{render_outcome(check, verbose) or body}{sep()}"
     log += print_profiling_table(result.profiling)
     log += print_qa_table(result.profiling, tests)
     return log
