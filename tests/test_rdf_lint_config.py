@@ -53,7 +53,7 @@ def _jsonld_graph():
 def _model_graph(monkeypatch):
     """The config-file settings as this branch's DQV report records them."""
     monkeypatch.chdir(DIR)
-    lint_config, ignore, local, exclude, skip = parse_lint_config(CONFIG.name)
+    lint_config, ignore, local, exclude, skip, _ = parse_lint_config(CONFIG.name)
     rule_reasons = {}
     checklist, _ = lint_selection(lint_config, deepcopy_list(CHECKLIST), rule_reasons)
     settings = describe_configuration(checklist, lint_config, rule_reasons, ignore, local,
@@ -83,7 +83,7 @@ def _check(g, expected_path):
 
 def test_sample_config_still_loads_with_the_existing_parser():
     # The JSON-LD route must not need any change to the YAML format.
-    lint_config, ignore, local, exclude, skip = parse_lint_config(str(CONFIG))
+    lint_config, ignore, local, exclude, skip, _ = parse_lint_config(str(CONFIG))
     assert lint_config == {'disable': ['check_owl_declaration', 'check_hijacking', 'check_property_missing_domain']}
     assert ignore and local and exclude and skip
 

@@ -570,9 +570,16 @@ imports:
   local:
     http://www.w3.org/ns/shacl#: vocab/shacl-1.2.ttl
     https://example.org/partner/ontology: vocab/partner.ttl
+  # Resolve references against the other inputs of the same run, so a family of ontologies
+  # that refers to itself before it is published needs no `local` entries for its own
+  # members. On unless you set this. An input answers only for the ontology it declares.
+  siblings: true
 ```
 
-Entries match **with or without a trailing `#` or `/`**, so `http://www.w3.org/2004/02/skos/core` and `http://www.w3.org/2004/02/skos/core#` are the same entry. One entry covers both the namespace (used by undefined-terms) and the ontology IRI (used by owl-imports). Relative `local` paths are resolved from the config file's directory.
+Entries match **with or without a trailing `#` or `/`**, so `http://www.w3.org/2004/02/skos/core` and `http://www.w3.org/2004/02/skos/core#` are the same entry. One entry covers both the namespace (used by undefined-terms) and the ontology IRI (used by owl-imports). Relative `local` paths are resolved from the config file's directory. A `local` entry wins
+over an input of the same run, which in turn wins over the bundled copy. Note that an input
+only resolves for the runs it is *not* part of: linting one file on its own has no siblings,
+so a reference to a file outside that run still needs a `local` entry.
 
 ### Pinning to a version
 

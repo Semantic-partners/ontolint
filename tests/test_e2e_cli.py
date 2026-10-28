@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import rdflib
 
-from scripts.ontology_qa import main
+from scripts.ontology_qa import main, parse_lint_config
 from scripts import dqv
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
@@ -582,3 +582,24 @@ def test_a_merged_run_needs_no_sibling_context(tmp_path, capsys):
     report = capsys.readouterr().out
     assert 'fetch failure' not in report
     assert "another input: `" not in report
+
+
+def test_imports_siblings_false_checks_each_input_alone(tmp_path, capsys):
+    """
+    A project can turn sibling resolution off, and is told in the report that it did.
+
+    Resolving against the run is on by default, but a directory of unrelated ontologies
+    may want each judged strictly on its own — with a reference to a neighbour reported
+    as the unresolvable reference it would be anywhere else.
+    """
+    core, domain = _family(tmp_path)
+    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: false\n")
+    run_main(core, domain, '--per-file', '--config', str(tmp_path / '.rdf-lint.yml'),
+             '--ctrf-dir', str(tmp_path / 'ctrf'))
+    assert 'fetch failure' in capsys.readouterr().out
+
+
+def test_imports_siblings_must_be_a_boolean(tmp_path):
+    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: sometimes\n")
+    with pytest.raises(ValueError, match="imports.siblings must be true or false"):
+        parse_lint_config(str(tmp_path / '.rdf-lint.yml'))

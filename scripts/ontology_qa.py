@@ -2646,6 +2646,8 @@ def parse_lint_config(config):
             (see TYPE_EXCLUDABLE_CHECKS).
         skip_object_of (list | None): Predicate IRIs (or `<namespace>*` wildcards) whose objects
             the undefined-terms check ignores; None when not configured (use the defaults).
+        resolve_siblings (bool | None): Whether a run may resolve references against the
+            other inputs of the same invocation; None when not configured (on by default).
     """
     if not os.path.isfile(config):
         raise FileNotFoundError(f"Config file not found: {config}")
@@ -2662,6 +2664,12 @@ def parse_lint_config(config):
     imports_section = selection.pop("imports", None) or {}
     ignore_imports = [str(u) for u in (imports_section.get("ignore") or [])]
     raw_local = imports_section.get("local") or {}
+    # imports.siblings: on unless the project turns it off. A run resolving against files
+    # it is not checking is usually what is wanted (#108), but a project that lints a
+    # directory of unrelated ontologies may want each judged strictly on its own.
+    resolve_siblings = imports_section.get("siblings")
+    if resolve_siblings is not None and not isinstance(resolve_siblings, bool):
+        raise ValueError(f"imports.siblings must be true or false, got {resolve_siblings!r}")
     config_dir = os.path.dirname(os.path.abspath(config))
     local_imports = {
         str(url): (path if os.path.isabs(path) else os.path.join(config_dir, path))
@@ -2685,7 +2693,8 @@ def parse_lint_config(config):
         for key, value_list in selection.items()
     }
 
-    return transformed_selection, ignore_imports, local_imports, exclude_types, skip_object_of
+    return (transformed_selection, ignore_imports, local_imports, exclude_types,
+            skip_object_of, resolve_siblings)
 
 def lint_selection(selection, checklist, rule_reasons=None):
         """
@@ -2779,7 +2788,8 @@ def config_check_name(func, key):
 
 
 def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignore_imports=None,
-                           local_imports=None, exclude_types=None, skip_object_of=None, config_file=None):
+                           local_imports=None, exclude_types=None, skip_object_of=None,
+                           config_file=None, resolve_siblings=None):
     """
     The configuration a run actually uses, as dqv.ConfigSetting records. Each records the
     .rdf-lint.yml key it corresponds to and where it came from: the config file, an
@@ -2850,6 +2860,16 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
                                               "Bundled with ontolint; resolved offline",
                                               local_file=os.path.basename(path), derived_from=datasets.get(ns)))
 
+    # Whether a run may resolve against the files it is not checking changes what the
+    # undefined-terms result means, so a consumer is told it was in force — as the setting
+    # it is, not as one entry per sibling, which would differ from run to run (#108).
+    settings.append(dqv.ConfigSetting(
+        'imports.siblings', resolve_siblings is not False,
+        'config' if resolve_siblings is not None else 'default',
+        "References may resolve against the other inputs of this run, without fetching them"
+        if resolve_siblings is not False else
+        "Each input is checked on its own; references do not resolve against the other inputs"))
+
     for t in exclude_types or []:
         settings.append(dqv.ConfigSetting('exclude.types', t, given,
                                           "Instances are skipped by the class checks"))
@@ -2865,13 +2885,13 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     return settings
 
 
-def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, source_iris: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None, lint_config: dict | None = None, rule_reasons: dict | None = None, config_file: str | None = None) -> QAResult:
+def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, source_iris: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None, lint_config: dict | None = None, rule_reasons: dict | None = None, config_file: str | None = None, resolve_siblings: bool | None = None) -> QAResult:
     """
     Run all QA checks on the given RDF graph.
     Returns structured pass/fail results — no file I/O, no arg parsing.
 
-    lint_config, rule_reasons and config_file describe where the configuration came from
-    (see describe_configuration); they don't change what runs.
+    lint_config, rule_reasons, config_file and resolve_siblings describe where the
+    configuration came from (see describe_configuration); they don't change what runs.
 
     files_processed names the sources the graph was built from. They are file paths unless
     source_iris gives an IRI for each of them, as the programmatic API does for graphs that
@@ -2880,7 +2900,8 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     if checklist is None:
         checklist = deepcopy_list(CHECKLIST)
     settings = describe_configuration(checklist, lint_config, rule_reasons, ignore_imports,
-                                      local_imports, exclude_types, skip_object_of, config_file)
+                                      local_imports, exclude_types, skip_object_of, config_file,
+                                      resolve_siblings)
     # Bundled vocabularies resolve offline unless the project maps the namespace itself.
     local_imports = merge_local_imports(local_imports)
 
@@ -3282,6 +3303,7 @@ def main():
     local_imports = {}
     exclude_types = []
     skip_object_of = None
+    resolve_siblings = None            # unset: a run resolves against its siblings
     config_log = ""
     # Everything that describes the run itself goes into a Config, which is what
     # lint_graph() takes — the same object a caller of ontolint.lint() builds by hand.
@@ -3291,11 +3313,13 @@ def main():
     if args.config or os.path.isfile(config_path):
         if args.config:
             config_path = args.config
-        lint_config, ignore_imports, local_imports, exclude_types, skip_object_of = parse_lint_config(config_path)
+        (lint_config, ignore_imports, local_imports, exclude_types, skip_object_of,
+         resolve_siblings) = parse_lint_config(config_path)
         rule_reasons = {}
         checklist, config_log = lint_selection(lint_config, checklist, rule_reasons)
         provenance = {'lint_config': lint_config, 'rule_reasons': rule_reasons,
-                      'config_file': _display_path(config_path)}
+                      'config_file': _display_path(config_path),
+                      'resolve_siblings': resolve_siblings}
         if exclude_types:
             config_log += "> Class checks skip resources typed as: " + ", ".join(f"`{t}`" for t in exclude_types) + "\n"
 
@@ -3358,7 +3382,9 @@ def main():
 
         qa_log, result = _process_loaded_graph(g, files_processed, args, config, checklist,
                                                provenance,
-                                               context_imports=sibling_imports(parsed, set(files_processed)))
+                                               context_imports=(
+                                                   sibling_imports(parsed, set(files_processed))
+                                                   if resolve_siblings is not False else None))
         log_output += qa_log
         if result is not None:
             write_ctrf_report(build_ctrf_report(result), args.ctrf_dir,
