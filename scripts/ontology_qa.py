@@ -511,10 +511,11 @@ def prefixes(g):
 def normalise(count, total):
     count = float(count)
     total = float(total)
-    if total > 0:
-        out = count / total
-    else:
-        out = 0
+    if total == 0:
+        # Nothing of the kind exists, so nothing violated: 0 out of 0 is not all of them.
+        # The check that measured it says so itself — see normalise_if_executed.
+        return 0
+    out = count / total
     # Format the normalised value
     if count == total:
         out = 1
@@ -630,36 +631,32 @@ def print_qa_table(metrics, checks):
     log += f"| {print_if_executed(metrics, checks, 'hijacking')} |\n"
     return log
 
+# What a cell says when there is no score to give: the check was not selected, or it ran
+# and could not measure anything. A number would read as a score either way, and a skipped
+# check scoring 0 reads as a clean result it never earned.
+NOT_SELECTED = "N/A"
+NOT_ASSESSED = "skipped"
+
+
+def _no_score(checks, key):
+    """The cell for a check with no score, or None when it has one."""
+    status = checks.get(key)
+    if not status:
+        return NOT_SELECTED
+    return NOT_ASSESSED if status == 'skipped' else None
+
+
 def normalise_if_executed(metrics, checks, key, total):
-    """
-    Normalise the value of a QA metrics if the test has been executed.
-    Otherwise, print a N/A value.
-    """
-    output = "N/A"
-    if checks[key]:
-        output = normalise(metrics[key], metrics[total])
-    return output
+    """The check's violations as a fraction of what it measured, or why there is no fraction."""
+    return _no_score(checks, key) or normalise(metrics[key], metrics[total])
 
 def normalise_if_executed_len(metrics, checks, key, total):
-    """
-    Normalise the value of a QA metrics if the test has been executed.
-    Otherwise, print a N/A value.
-    Use the length of an array to normalise.
-    """
-    output = "N/A"
-    if checks[key]:
-        output = normalise(metrics[key], len(metrics[total]))
-    return output
+    """The same, where the denominator is the length of a list rather than a count."""
+    return _no_score(checks, key) or normalise(metrics[key], len(metrics[total]))
 
 def print_if_executed(metrics, checks, key):
-    """
-    Print the value of a QA metrics if the test has been executed.
-    Otherwise, print a N/A value.
-    """
-    output = "N/A"
-    if checks[key]:
-        output = metrics[key]
-    return output
+    """The check's raw count, or why there is none."""
+    return _no_score(checks, key) or metrics[key]
 
 def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     """
@@ -3094,7 +3091,10 @@ def render_markdown(result, checklist, verbose=False):
     which are run context rather than anything the checks produced.
     """
     log = result.inference_log
-    tests = {key: enabled for enabled, _, _, key in checklist}
+    # What each check did, not merely whether it was selected: a check that could not be
+    # computed has no score to show, and a 0 would read as a clean result.
+    outcomes = {check.key: check.status for check in result.checks}
+    tests = {key: outcomes.get(key) if enabled else None for enabled, _, _, key in checklist}
     log += print_profiling_metrics(result.profiling, result.elements, verbose)
     log += "\n## Quality Assurance Checks\n"
     # Numbering, titling and separating a check's section is the reporter's job: the check

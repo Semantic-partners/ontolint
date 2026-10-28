@@ -2,12 +2,12 @@
 
 ## Summary
 
-| File | Tests | Passed | Failed |
-|------|-------|--------|--------|
-{{#each reports}}| {{ontologyFile}} | {{results.summary.tests}} | {{results.summary.passed}} | {{results.summary.failed}} |
+| File | Tests | Passed | Failed | Skipped |
+|------|-------|--------|--------|---------|
+{{#each reports}}| {{ontologyFile}} | {{results.summary.tests}} | {{results.summary.passed}} | {{results.summary.failed}} | {{results.summary.skipped}} |
 {{/each}}
 
-**Total**: {{totalTests}} tests | {{totalPassed}} passed | {{totalFailed}} failed
+**Total**: {{totalTests}} tests | {{totalPassed}} passed | {{totalFailed}} failed | {{totalSkipped}} skipped
 
 ---
 
@@ -22,7 +22,7 @@ Files checked:
 
 | Test Name | Status | Violations | Elements |
 |-----------|--------|--------|--------|
-{{#each results.tests}}| {{name}} | {{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}} | {{#if (eq status "passed")}}0{{else}}{{failure.violations}}{{/if}} | {{#if (eq status "passed")}} {{else}}{{failure.elements}}{{/if}} |
+{{#each results.tests}}| {{name}} | {{statusLabel}} | {{violationCount}} | {{detail}} |
 {{/each}}
 
 ---

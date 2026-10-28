@@ -240,6 +240,20 @@ only the Markdown suite. Nothing asserts that a *lint* renders the stored text a
 because nothing needs to: linting produces the stored instance and the stored instance
 renders the stored text, so the composition holds. Both directions verified by sabotage.
 
+**A skipped check gets no score.** Every number in the QA metrics table is one, and
+`normalise(count, total)` ends with `if count == total: out = 1` — so a check with nothing
+to measure, 0 of 0, scored **1**, the same as one where every single element failed.
+*"No NodeShapes exist"* and *"every NodeShape is unlabelled"* rendered identically, while
+the section above said `WARNING - No NodeShape defined, invalid metric.` The table now reads
+`CheckResult.status` rather than re-deriving a verdict from counts: `N/A` for a check that
+was not selected, `skipped` for one that ran and could not measure.
+
+The same split had been in the aggregated CTRF report, where
+`{{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}}` rendered a skipped check as a
+**failure**. Its summary now carries a Skipped column, and each row's status cell is worked
+out in `generate_custom_report.describe_status()` rather than in the template — the
+hand-rolled renderer has no nested conditionals, and a three-way status needs one.
+
 **How the move was checked.** The stored Markdown under `tests/data/*_report.md` was the
 expectation throughout, and the conversion went check by check with it green. It moved four
 times, each an inconsistency straightened rather than a change of substance: two checks were

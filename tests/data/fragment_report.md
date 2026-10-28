@@ -180,4 +180,4 @@ WARNING - Ontology namespace undefined. The reported violations may be incorrect
 ## Quality Assurance Metrics
 | Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| fragment.ttl | 1 | 0 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| fragment.ttl | 1 | 0 | skipped | 0 | 3 | 0 | 0 | skipped | skipped | 0 | 0 | skipped | skipped | 0 | 0 | skipped | skipped | 0 | 0 | 0 | 0 | 0 | skipped | skipped | 0 |

@@ -72,7 +72,7 @@ def blocked(*args, **kwargs):
 socket.getaddrinfo = blocked
 socket.socket.connect = blocked
 
-from scripts.ontology_qa import main
+from scripts.ontology_qa import CHECKLIST, main
 sys.argv = ['ontology_qa.py', os.path.join(root, 'tests/data/reporters.ttl'),
             '--ctrf-dir', ctrf]
 main()
@@ -106,3 +106,25 @@ def test_no_blank_node_identifier_reaches_the_report(stored_markdown):
     assert not RAW_BNODE.search(stored_markdown), "a raw blank node identifier reached the report"
 
 
+
+
+def test_the_metrics_table_scores_no_check_it_could_not_compute():
+    """
+    A skipped check gets no score, because every number in that row is one.
+
+    It used to get the worst one. `normalise(count, total)` ends with
+    `if count == total: out = 1`, and a check with nothing to measure has 0 of 0 — so
+    *"no NodeShapes exist"* and *"every NodeShape is unlabelled"* rendered identically,
+    while the section above said `WARNING - No NodeShape defined, invalid metric.`
+    """
+    result = stored_qa_result_for('fragment')
+    skipped = {c.key for c in result.checks if c.status == 'skipped'}
+    assert skipped, "the fragment case should skip several checks"
+
+    # The last such row is the QA metrics table; the profiling table above it starts alike.
+    row = [cell.strip() for cell in
+           [line for line in render_result(result).splitlines()
+            if line.startswith('| fragment.ttl |')][-1].strip('|').split('|')]
+    # By count, not by column: print_qa_table writes its columns in its own order, which is
+    # not the checklist's, so there is nothing to pair a cell with.
+    assert row.count('skipped') == len(skipped), f"{len(skipped)} skipped, {row.count('skipped')} cells say so"
