@@ -213,6 +213,18 @@ What remains open is the deeper question of scope, tracked in #96: a check compu
 their files, which is why uniqueness can be reported for two independent ontologies that
 merely share a label.
 
+**Where this is going: the unit.** One concept replaces the two modes. A **unit** is one
+ontology — one to many files, with exactly one `owl:Ontology` declaration across the whole
+unit. A **run** is a set of units. **Context** is every unit in the run, available to
+*resolve* references but never to widen what a check is computed over. `--per-file` then
+means "each file is a unit", a merged run means "all the files are one unit", and a run may
+hold both shapes at once, which is how a family of ontologies is actually laid out and
+which nothing in the tool can express today.
+
+`main()` already builds `runs` as `list[list[path]]` and produces one report, one CTRF and
+one `QAResult` per entry, so a unit is already the internal shape. What is missing is
+underneath it — see the Todo.
+
 **What owns a term.** A term belongs to the ontology declared in the file it sits in — not
 to the namespace it is minted under. So a term minted in file 1 under ontology 2's
 namespace is ontology 1's defect: file 1 is where someone did the wrong thing, and charging
@@ -220,7 +232,12 @@ it to ontology 2 would let one input degrade another's quality score from outsid
 
 A per-file run already reports exactly this, and `tests/dqv/per-file/` pins it: `a:borrowed`
 is minted in `b.ttl`, the hijack is charged to `b`, the violation's `sh:focusNode` names the
-term, and `a`'s report stays clean. A merged run does neither half — see the Todo below.
+term, and `a`'s report stays clean.
+
+This is deliberately *not* the longest-matching-namespace rule #96 first proposed. That one
+would make `a:borrowed` ontology a's defect, which lets one input degrade another ontology's
+score from outside. Ownership follows the file; minting into someone else's namespace is the
+finding, not the attribution rule.
 
 ## Determinism
 
@@ -269,23 +286,34 @@ replaced, which is how `tests/test_e2e_dqv.py` compares against committed report
 
 - **Make Markdown a projection of `QAResult`** (#101) — see above. Tracked as its own
   change, since it moves where every check's text is produced.
-- **Attribute a merged run's measurements per ontology.** Today every measurement of a
-  merged run is `dqv:computedOn` one aggregate `Merged: …` dataset, so a report cannot
-  answer "is ontology 2 clean?". The decision is one measurement per `(check, owning
-  ontology)` — plain DQV, and the per-ontology roll-up falls out of it — rather than one
-  measurement with a breakdown under a term of our own. `dqv:value` then counts the
-  violations of that check **owned by that ontology**, and a run total is a sum. The
-  provenance this needs landed with #104; what owns a term is settled above.
-- **#107 — hijacking and undefined terms go silent in a merged run.** The detection half of
-  the same problem, and not fixed by attribution: both checks ask "is this namespace
-  declared?" against the union, so a sibling file that legitimately declares the namespace
-  excuses the hijack and there is no finding left to attribute. This one changes what
-  ontolint finds, so it moves numbers in the goldens.
+- **#108 — a unit cannot see its siblings.** `load_rdf()` is called inside `main()`'s loop,
+  so a per-file run's graph holds one file and nothing else: an ontology referencing a
+  sibling in the same invocation reports every borrowed term as undefined unless the user
+  lists it in `imports.local` by hand. Load the invocation once and scope each unit to its
+  own share of it. #104 landed the substrate — every triple is already keyed by its file.
+- **#107 — hijacking and undefined terms go silent in a merged run.** The same confusion
+  from the other end: both ask "is this namespace declared?" against whatever graph they
+  are handed, so a sibling file that legitimately declares the namespace excuses a hijack.
+  Separating scope from context is one change, so #107 and #108 are likely one PR. It moves
+  numbers in the goldens, since it changes what ontolint finds.
+- **Smaller, once those exist.** "Exactly one declaration per unit" is not a rule anywhere
+  (`check_owl_declaration` counts *files*); a merged run that states several ontologies is
+  accepted and papered over with the synthetic `Merged: …` dataset; and one boolean flag
+  cannot describe a run whose units have different shapes.
+
+**What the unit model deletes.** Per-ontology attribution of measurements was the plan here
+until the model settled it away: a unit yields one result on one ontology, so a check's
+violations never split across ontologies, and the aggregate `Merged: …` dataset exists only
+to paper over a run the model makes invalid. It also reverses #96's answered question 4 —
+inside a unit of five files, one header and four files without it is **correct**, where
+today `check_owl_declaration` reports that as a violation and `tests/data/fragment.ttl`
+exists on the premise that it is a defect.
 
 ## In flight
 
 - **#94** — publish to PyPI; moves these modules into the package.
-- **#96** — what per-file versus grouped linting means. Its plumbing landed as #104;
-  attribution and #107 are what is left of it.
+- **#96** — what per-file versus grouped linting means. Its plumbing landed as #104; the
+  unit model above is the rest of it, carried by #107 and #108.
 - **#97** — a file declaring two ontologies fails the build while the report says PASS.
 - **#102** — the untyped checks report every term when no `owl:Ontology` is declared.
+- **#107 / #108** — separating a unit's scope from the run's resolution context.
