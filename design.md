@@ -33,24 +33,9 @@ computed on, and the configuration that ran.
 
 | | granularity | built from | pinned by |
 |---|---|---|---|
-| **Markdown** | per result | *mixed — see below* | `reporters_markdown.py`, via `tests/test_lint_to_markdown.py` |
-| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `reporters_ctrf.json`, via `tests/test_qaresult_to_ctrf.py` |
-| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `reporters_dqv.ttl`, via `tests/test_qaresult_to_dqv.py`; also `tests/dqv/*/expected.ttl` |
-
-Each is pinned the same way: one stored copy of the whole output under `tests/data/`, and
-one lead test asserting the reporter still produces it — per case, because several checks
-answer differently depending only on how the inputs were batched. The cases are
-`reporters.ttl` alone, `reporters_fragment.ttl` alone, and the two merged.
-
-DQV gets one report per case like the others, but only ever over a single result. A report
-covering several results is **not** the union of their individual ones: `_mint` hashes the
-assessment node into every measurement IRI, and a two-result report has one assessment
-where two one-result reports have two, so every measurement IRI differs. Multi-result runs
-are therefore pinned end-to-end in `tests/dqv/`, where `per-file/` and `merged/` already
-run the CLI over two inputs each. The assertions after that lead test
-are not a second expectation — they say *why* parts of it must hold, so a failure explains
-itself instead of handing over a thousand-line diff. CTRF and DQV regenerate with
-`UPDATE_GOLDEN=1`; the stored Markdown and `QAResult` are still updated by hand.
+| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_lint_to_markdown.py` |
+| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `<case>_ctrf.json`, via `tests/test_qaresult_to_ctrf.py` |
+| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `<case>_dqv.ttl`, via `tests/test_qaresult_to_dqv.py`; run shapes in `tests/dqv/*/expected.ttl` |
 
 Each reporter splits building from writing: `build_ctrf_report()` / `write_ctrf_report()`
 and `build_dqv_graph()` / `write_dqv_report()`. The build half is a pure projection of a
@@ -62,6 +47,82 @@ the whole run**, which is why it is written once, outside any per-file loop. Set
 findings live there and nowhere else — *one file, one ontology* can only be judged across
 the inputs, and only before they are merged, since the union of two identical
 `owl:Ontology` declarations is a single triple.
+
+## How the reporters are pinned
+
+`tests/data/` holds the whole output of each reporter, written out as data. Each suite
+leads with one assertion that the reporter still produces it, and follows with the
+assertions that say *why* parts of it must hold — so a failure explains itself instead of
+handing over a thousand-line diff.
+
+| suite | input | asserts |
+|---|---|---|
+| `test_lint_to_qaresult.py` | the `.ttl` files | lint still produces the stored `QAResult` |
+| `test_lint_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
+| `test_qaresult_to_ctrf.py` | the stored `QAResult`s | the CTRF projection |
+| `test_qaresult_to_dqv.py` | the stored `QAResult`s | the DQV projection |
+
+The last two take the *stored* instance, never one they produced, so they never run a
+check: a change to what a check finds cannot break them, and a reporter bug cannot be
+blamed on the checks. The first two are what keep the stored instances honest.
+
+Verified by sabotage, which is the only way to know a safety net holds: breaking a check
+fails suite 1 alone, one line of report wording fails suite 2 alone, and the DQV reporter
+fails suite 4 alone.
+
+### The cases
+
+Several checks answer differently depending only on how the inputs were batched, so every
+reporter is pinned per case rather than once:
+
+| case | inputs |
+|---|---|
+| `reporters` | `reporters.ttl` |
+| `fragment` | `reporters_fragment.ttl` |
+| `merged` | both, in one graph |
+
+`reporters.ttl` is deliberately mixed and fails 22 of the 24 checks. `reporters_fragment.ttl`
+declares no `owl:Ontology`, which is the only way to fail the two ontology-metadata checks —
+a file cannot both declare a described ontology and fail to. Together they give every check
+a failing case, so a check that silently stops detecting anything is caught. Merged, they
+also reach the declaration check's middle branch, where *some* of the inputs declared one.
+
+Neither input needs the network: the autouse `no_network` fixture blocks sockets, and the
+unresolvable `owl:imports` points at `example.invalid`, reserved by RFC 2606, so it fails
+the same way online or off.
+
+Each DQV golden covers a **single** result, unlike the run-level report the reporter
+builds in anger. A report over several results is not the union of their individual ones:
+`_mint` hashes the assessment node into every measurement IRI, and a two-result report has
+one assessment where its two parts have two, so every measurement IRI differs. Multi-result
+run shapes are pinned end-to-end in `tests/dqv/` instead, where `per-file/` and `merged/`
+run the CLI over two inputs each.
+
+### Changing a stored expectation
+
+```
+UPDATE_GOLDEN=1 poetry run pytest tests/test_qaresult_to_ctrf.py tests/test_qaresult_to_dqv.py
+UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py
+```
+
+The stored `QAResult` and Markdown are still edited by hand from the failing diff. For the
+`QAResult` that is deliberate — a new check should be a deliberate addition to the
+expectation — but it is a cost. Review every regenerated diff; that is the point of
+storing them.
+
+Two rules for anything that reaches a stored expectation:
+
+- **It must not name the checkout.** An absolute path makes the expectation match only the
+  machine that wrote it, and the symptom is a suite that is green locally and red in CI.
+  It has happened twice — `fetchActivity`'s vocabulary paths, and a violation naming its
+  source file — so `test_no_stored_expectation_embeds_a_checkout_path` now asserts the
+  class rather than the instances. `source_iris` exists so a run can name its inputs
+  without minting a `file:` IRI from the working directory.
+- **Anything derived from a set must be sorted.** Dict and graph comparison ignore order,
+  so an unsorted value passes the test while churning the file on every regeneration.
+
+Running the whole suite from a second checkout at a different path is the cheapest way to
+catch the first before CI does.
 
 ## Markdown is not a projection of QAResult (yet)
 
