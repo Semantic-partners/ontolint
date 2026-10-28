@@ -1,9 +1,10 @@
 """
-The Markdown that linting the `reporters_fragment.ttl` produces, written out as data.
+The Markdown that linting `fragment.ttl` produces, written out as data.
 
-`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. It is stored the same
-way as the QAResult beside it, for the same reason: when the rendering changes on purpose
-the diff is reviewable, and when it changes by accident the test says so.
+`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. Regenerate
+with:
+
+    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_markdown.py
 
 Markdown is not a projection of QAResult yet — the per-check text is rendered inside each
 check as it runs — so this is the output of the lint, not of a reporter (see design.md).
@@ -194,10 +195,10 @@ WARNING - Ontology namespace undefined. The reported violations may be incorrect
 ## Profiling Metrics
 | Name | Number of triples | Class count | Property count | NodeShape count | PropertyShape count | Local classes in NodeShape | Local properties in PropertyShape | Deprecated Class count | Deprecated Property count | Vocabularies used | Ontologies Imported | Hierarchy depth | Ave branching factor | Cardinality restrictions |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| reporters_fragment.ttl | 11 | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
+| fragment.ttl | 11 | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
 
 ## Quality Assurance Metrics
 | Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| reporters_fragment.ttl | 1 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
+| fragment.ttl | 1 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
 """

@@ -78,10 +78,10 @@ reporter is pinned per case rather than once:
 | case | inputs |
 |---|---|
 | `reporters` | `reporters.ttl` |
-| `fragment` | `reporters_fragment.ttl` |
+| `fragment` | `fragment.ttl` |
 | `merged` | both, in one graph |
 
-`reporters.ttl` is deliberately mixed and fails 22 of the 24 checks. `reporters_fragment.ttl`
+`reporters.ttl` is deliberately mixed and fails 22 of the 24 checks. `fragment.ttl`
 declares no `owl:Ontology`, which is the only way to fail the two ontology-metadata checks —
 a file cannot both declare a described ontology and fail to. Together they give every check
 a failing case, so a check that silently stops detecting anything is caught. Merged, they
@@ -100,15 +100,19 @@ run the CLI over two inputs each.
 
 ### Changing a stored expectation
 
+Every stored expectation regenerates the same way — there is no hand-edited one left:
+
 ```
-UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_qaresult_to_ctrf.py tests/test_pipeline_qaresult_to_dqv.py
-UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
+UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_*.py tests/test_e2e_dqv.py
 ```
 
-The stored `QAResult` and Markdown are still edited by hand from the failing diff. For the
-`QAResult` that is deliberate — a new check should be a deliberate addition to the
-expectation — but it is a cost. Review every regenerated diff; that is the point of
-storing them.
+Review every regenerated diff; that is the point of storing them. A new check should be a
+deliberate addition to the expectation, not something that appears while you look away.
+
+The writers live in `tests/golden.py`, in the tree rather than in a script beside it. A
+generator that is not in the repo cannot be kept in step with the tests it writes about:
+the file headers went stale exactly that way when the suites were renamed, and a
+regeneration quietly put the old names back.
 
 Two rules for anything that reaches a stored expectation:
 

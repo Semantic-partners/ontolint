@@ -62,8 +62,8 @@ REPORTERS_TTL = DATA / 'reporters.ttl'
 # outside the one declared namespace.
 CASES = {
     'reporters': ['reporters.ttl'],
-    'fragment': ['reporters_fragment.ttl'],
-    'merged': ['reporters.ttl', 'reporters_fragment.ttl'],
+    'fragment': ['fragment.ttl'],
+    'merged': ['reporters.ttl', 'fragment.ttl'],
 }
 
 def _offline(uri):

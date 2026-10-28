@@ -10,11 +10,13 @@ match — deliberately, in a diff a reviewer can read.
 empty in the stored instance (see its docstring). `test_pipeline_lint_to_markdown.py` covers them.
 """
 
+import os
 from pathlib import Path, PurePath
 
 import pytest
 
 from tests.conftest import CASES, lint_case, stored_qa_result_for
+from tests.golden import write_qaresult
 
 
 @pytest.mark.parametrize('case', CASES)
@@ -27,6 +29,8 @@ def test_a_lint_produces_the_stored_result(case):
     stored instance's docstring.
     """
     produced = lint_case(case)
+    if os.environ.get('UPDATE_GOLDEN'):
+        pytest.skip(f"updated {write_qaresult(case, produced, CASES[case]).name}")
     stored = stored_qa_result_for(case)
 
     assert produced.checks == stored.checks

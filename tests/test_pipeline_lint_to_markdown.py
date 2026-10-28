@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 
 from tests.conftest import CASES, render_case, stored_markdown_for
+from tests.golden import write_markdown
 
 # An rdflib blank node identifier: invented per parse, so it must never reach the report.
 RAW_BNODE = re.compile(r'\bn[0-9a-f]{32}b\d+\b')
@@ -28,7 +29,11 @@ RAW_BNODE = re.compile(r'\bn[0-9a-f]{32}b\d+\b')
 @pytest.mark.parametrize('case', CASES)
 def test_a_lint_renders_the_stored_markdown(case):
     """Every case, whole. The assertions below are about the main case's content."""
-    assert render_case(case) == stored_markdown_for(case)
+    rendered = render_case(case)
+    if os.environ.get('UPDATE_GOLDEN'):
+        pytest.skip(f"updated {write_markdown(case, rendered, CASES[case]).name}")
+
+    assert rendered == stored_markdown_for(case)
 
 
 def test_it_renders_the_same_text_every_time(render_markdown):

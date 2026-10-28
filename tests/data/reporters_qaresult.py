@@ -1,22 +1,25 @@
 """
-The QAResult that linting the `reporters.ttl` produces, written out as data.
+The QAResult that linting `reporters.ttl` produces, written out as data.
 
 This is the input to the reporter suites — `test_pipeline_qaresult_to_ctrf.py` and
-`test_pipeline_qaresult_to_dqv.py` take *these* instances, not ones produced by running the linter,
-so they test the projection alone: a change to what a check finds cannot break them, and a
-change to a reporter cannot be blamed on the checks.
+`test_pipeline_qaresult_to_dqv.py` take *these* instances, not ones produced by running the
+linter, so they test the projection alone: a change to what a check finds cannot break
+them, and a change to a reporter cannot be blamed on the checks.
 
-`test_pipeline_lint_to_qaresult.py` is what keeps it honest — it asserts that linting the input
-still produces this. When a check changes on purpose that test fails, and this file is
-updated to match, deliberately and in a reviewable diff.
+`test_pipeline_lint_to_qaresult.py` is what keeps it honest — it asserts that linting the
+input still produces this. Regenerate with:
+
+    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_qaresult.py
+
+and read the diff: a new check should be a deliberate addition to the expectation.
 
 `logs` and `elements` are left empty. They are the Markdown's raw material — rendered text
 and profiling detail — consumed by no other reporter, and they leave QAResult entirely once
-Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers them.
+Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers
+them.
 """
 
 from rdflib import XSD, Literal, URIRef
-
 
 from scripts.dqv import ConfigSetting, Dataset, Violation
 from scripts.ontology_qa import CheckResult, QAResult
@@ -45,9 +48,6 @@ EXPECTED = QAResult(
         'ontologyDescription': 0,
         'unresolvedImports': 1,
         'undefinedTerms': 3,
-        # Paths are relative to the repo root: fetchActivity records where each
-        # vocabulary was read from, and the absolute path is the checkout's, not the
-        # run's. test_lint_to_qaresult normalises the produced result to match.
         'fetchActivity': {'local': {'http://purl.org/dc/terms/': 'vocabularies/dcterms.ttl', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'vocabularies/rdf.ttl', 'http://www.w3.org/2000/01/rdf-schema#': 'vocabularies/rdfs.ttl', 'http://www.w3.org/2002/07/owl#': 'vocabularies/owl.ttl', 'http://www.w3.org/2004/02/skos/core#': 'vocabularies/skos.ttl', 'http://www.w3.org/ns/shacl#': 'vocabularies/shacl.ttl'}, 'fetched': {}, 'failed': ['https://example.invalid/']},
         'missingClassLabel': 1,
         'missingPropertyLabel': 1,

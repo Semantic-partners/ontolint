@@ -390,7 +390,7 @@ def test_distinct_ontologies_raise_no_duplicate_finding(tmp_path):
 
 DATA_DIR = os.path.join(TESTS_DIR, 'data')
 REPORTERS = os.path.join(DATA_DIR, 'reporters.ttl')
-FRAGMENT = os.path.join(DATA_DIR, 'reporters_fragment.ttl')
+FRAGMENT = os.path.join(DATA_DIR, 'fragment.ttl')
 
 
 def test_output_option_writes_the_report_to_a_file(tmp_path, capsys):
@@ -426,7 +426,7 @@ def test_ctrf_filename_is_ignored_with_per_file(tmp_path):
 
     # One report per input, named after it — the single name could not hold two runs.
     assert sorted(p.name for p in ctrf.glob('*.json')) == [
-        'reporters-qa-report.json', 'reporters_fragment-qa-report.json']
+        'fragment-qa-report.json', 'reporters-qa-report.json']
 
 
 def test_empty_directory_in_a_single_run_reports_no_rdf_data(tmp_path, capsys):

@@ -19,12 +19,12 @@
 @prefix vann: <http://purl.org/vocab/vann/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<urn:ontolint:assessment-f3ca4c4b8c2f0956> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <urn:ontolint:measurement-289eb2d75e405120>,
-        <urn:ontolint:measurement-540653ca6caeccf7>,
-        <urn:ontolint:measurement-6db32fac382df887>,
-        <urn:ontolint:measurement-d02e4a175179b9e0>,
-        <urn:ontolint:measurement-f8f76f1bd428e289> ;
+<urn:ontolint:assessment-fe3cd464f39a4282> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <urn:ontolint:measurement-0746f4abc7455b30>,
+        <urn:ontolint:measurement-140ca6f87d5e80cf>,
+        <urn:ontolint:measurement-37f920fdbb713ab0>,
+        <urn:ontolint:measurement-961775d42390d2d4>,
+        <urn:ontolint:measurement-cb95f8b82be04789> ;
     prov:generatedAtTime "2026-10-15T09:30:00+00:00"^^xsd:dateTime ;
     olq:configuration <urn:ontolint:configuration-0d79f0a69bf552c9> .
 
@@ -91,49 +91,49 @@
         <urn:ontolint:setting-fea1e28dee0d64e7>,
         <urn:ontolint:setting-ffb26dde4af1c311> .
 
-<urn:ontolint:measurement-289eb2d75e405120> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/reporters_fragment.ttl> ;
-    dqv:isMeasurementOf <urn:ontolint:metric-untyped-properties> ;
-    dqv:value 5 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-31e11064ebb87916>,
-        <urn:ontolint:violation-7a81c6ee38452e4d>,
-        <urn:ontolint:violation-b945255713f432de>,
-        <urn:ontolint:violation-d4fccaf10c260fc7>,
-        <urn:ontolint:violation-f07a037c00f0a601> .
-
-<urn:ontolint:measurement-540653ca6caeccf7> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/reporters_fragment.ttl> ;
-    dqv:isMeasurementOf <urn:ontolint:metric-ontolint-conformance> ;
-    dqv:value 4 ;
-    olq:conforms false .
-
-<urn:ontolint:measurement-6db32fac382df887> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/reporters_fragment.ttl> ;
+<urn:ontolint:measurement-0746f4abc7455b30> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
     dqv:isMeasurementOf <urn:ontolint:metric-ontology-not-declared> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-02bccfca0299415a> .
+    olq:violation <urn:ontolint:violation-f635a0dac1b7eb54> .
 
-<urn:ontolint:measurement-d02e4a175179b9e0> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/reporters_fragment.ttl> ;
+<urn:ontolint:measurement-140ca6f87d5e80cf> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    dqv:isMeasurementOf <urn:ontolint:metric-untyped-properties> ;
+    dqv:value 5 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <urn:ontolint:violation-563edafcc9ffff02>,
+        <urn:ontolint:violation-74b3ef92f060a93e>,
+        <urn:ontolint:violation-7a25a59b2e52ef6c>,
+        <urn:ontolint:violation-b6efb3bf4d448f52>,
+        <urn:ontolint:violation-f6dd9c984a62339c> .
+
+<urn:ontolint:measurement-37f920fdbb713ab0> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    dqv:isMeasurementOf <urn:ontolint:metric-ontolint-conformance> ;
+    dqv:value 4 ;
+    olq:conforms false .
+
+<urn:ontolint:measurement-961775d42390d2d4> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
     dqv:isMeasurementOf <urn:ontolint:metric-undefined-terms> ;
     dqv:value 3 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-0482a537f61f72e1>,
-        <urn:ontolint:violation-c209413cac2e9bc5>,
-        <urn:ontolint:violation-d937c3428621ff7c> .
+    olq:violation <urn:ontolint:violation-6103c900189825eb>,
+        <urn:ontolint:violation-a8d24d34510f09c0>,
+        <urn:ontolint:violation-b7e5b4fa5d3569fd> .
 
-<urn:ontolint:measurement-f8f76f1bd428e289> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/reporters_fragment.ttl> ;
+<urn:ontolint:measurement-cb95f8b82be04789> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
     dqv:isMeasurementOf <urn:ontolint:metric-ontology-missing-description> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-e2541db5286285d6> .
+    olq:violation <urn:ontolint:violation-d91fa768547391b9> .
 
 <urn:ontolint:metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -771,57 +771,57 @@
     olq:origin olq:OntolintDefault ;
     olq:value <urn:ontolint:metric-untyped-properties> .
 
-<urn:ontolint:violation-02bccfca0299415a> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/input/reporters_fragment.ttl> ;
-    sh:resultMessage "no owl:Ontology declaration" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-0482a537f61f72e1> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/fragment#usedBy> ;
-    sh:resultMessage "namespace https://example.org/fragment# could not be fetched" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-31e11064ebb87916> a sh:ValidationResult ;
-    sh:focusNode rdfs:label ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-7a81c6ee38452e4d> a sh:ValidationResult ;
-    sh:focusNode rdfs:range ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-b945255713f432de> a sh:ValidationResult ;
+<urn:ontolint:violation-563edafcc9ffff02> a sh:ValidationResult ;
     sh:focusNode rdf:type ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-c209413cac2e9bc5> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/fragment#Tool> ;
-    sh:resultMessage "namespace https://example.org/fragment# could not be fetched" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-d4fccaf10c260fc7> a sh:ValidationResult ;
-    sh:focusNode rdfs:domain ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-d937c3428621ff7c> a sh:ValidationResult ;
+<urn:ontolint:violation-6103c900189825eb> a sh:ValidationResult ;
     sh:focusNode <https://example.org/fragment#Worker> ;
     sh:resultMessage "namespace https://example.org/fragment# could not be fetched" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-e2541db5286285d6> a sh:ValidationResult ;
+<urn:ontolint:violation-74b3ef92f060a93e> a sh:ValidationResult ;
+    sh:focusNode rdfs:range ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-7a25a59b2e52ef6c> a sh:ValidationResult ;
+    sh:focusNode rdfs:label ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-a8d24d34510f09c0> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/fragment#usedBy> ;
+    sh:resultMessage "namespace https://example.org/fragment# could not be fetched" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-b6efb3bf4d448f52> a sh:ValidationResult ;
+    sh:focusNode rdfs:comment ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-b7e5b4fa5d3569fd> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/fragment#Tool> ;
+    sh:resultMessage "namespace https://example.org/fragment# could not be fetched" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-d91fa768547391b9> a sh:ValidationResult ;
     sh:resultMessage "no ontology declared" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-f07a037c00f0a601> a sh:ValidationResult ;
-    sh:focusNode rdfs:comment ;
+<urn:ontolint:violation-f635a0dac1b7eb54> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/input/fragment.ttl> ;
+    sh:resultMessage "no owl:Ontology declaration" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<urn:ontolint:violation-f6dd9c984a62339c> a sh:ValidationResult ;
+    sh:focusNode rdfs:domain ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
@@ -868,7 +868,7 @@
     skos:definition "Labels and identifiers unambiguously denote a single term." ;
     skos:prefLabel "Uniqueness" .
 
-<https://example.org/input/reporters_fragment.ttl> rdfs:label "reporters_fragment.ttl" .
+<https://example.org/input/fragment.ttl> rdfs:label "fragment.ttl" .
 
 <urn:ontolint:dimension-conformance> a dqv:Dimension ;
     rdfs:label "Conformance" ;

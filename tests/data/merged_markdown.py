@@ -1,9 +1,10 @@
 """
-The Markdown that linting the `reporters.ttl` and `reporters_fragment.ttl` together produces, written out as data.
+The Markdown that linting `reporters.ttl` and `fragment.ttl` together produces, written out as data.
 
-`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. It is stored the same
-way as the QAResult beside it, for the same reason: when the rendering changes on purpose
-the diff is reviewable, and when it changes by accident the test says so.
+`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. Regenerate
+with:
+
+    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_markdown.py
 
 Markdown is not a projection of QAResult yet — the per-check text is rendered inside each
 check as it runs — so this is the output of the lint, not of a reporter (see design.md).

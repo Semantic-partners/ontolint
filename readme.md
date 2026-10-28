@@ -298,8 +298,7 @@ cases. Changing anything that assembles a report means regenerating those, so re
 are chosen, how to regenerate a stored expectation and what must never reach one.
 
 ```bash
-UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_qaresult_to_ctrf.py tests/test_pipeline_qaresult_to_dqv.py
-UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
+UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_*.py tests/test_e2e_dqv.py
 ```
 
 Reports must be byte-identical between runs over the same inputs, or no expectation can be
