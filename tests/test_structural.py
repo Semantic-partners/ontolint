@@ -237,11 +237,11 @@ def test_untyped_checks_say_the_metric_is_invalid_rather_than_passing(make_graph
     # Reporting nothing must not read as PASS: nothing was looked at. Each check says so
     # in its own log, so a reader is not told the file is clean on this point.
     g = make_graph(""":DeclaredClass a owl:Class . :Dog :chases :Cat .""")
-    logs = run_qa(g).logs
+    rendered = render_markdown(run_qa(g), CHECKLIST)
     for word in ("class", "property"):
         expected = (f"WARNING - Ontology namespace undefined, invalid metric. No way to confirm "
                     f"if a {word} is defined in the ontology or an external vocabulary.")
-        assert any(expected in log for log in logs), word
+        assert expected in rendered, word
 
 
 def test_untyped_class_pass_class_from_external_ontology(make_graph):

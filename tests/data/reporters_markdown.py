@@ -225,7 +225,7 @@ VIOLATION - Found 1 classes without `owl:Class` or `rdfs:Class` declaration:
 
 Check 24: Untyped Properties.
 VIOLATION - Found 1 property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:
-https://example.org/reporters#curatedBy
+ - https://example.org/reporters#curatedBy
 
 --------------------
 

@@ -1120,23 +1120,21 @@ def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbo
     violations[check] = ""
 
     if declared is None:
-        log += "WARNING - Several files merged into one graph with no record of their sources, invalid metric.\n"
+        decided(violations, check, "WARNING - Several files merged into one graph with no record of their sources, invalid metric.")
         not_assessed(violations, check, SOURCES_NOT_RECORDED)
     elif not offenders:
-        log += "PASS - No violations found.\n"
+        decided(violations, check, "PASS - No violations found.")
     else:
-        log += f"VIOLATION - Found {metrics[check]} file(s) declaring more than one `owl:Ontology`:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} file(s) declaring more than one `owl:Ontology`:", AS_LIST)
         status += 1
-        string = violation_formatting(
+        violations[check] = violation_formatting(
             [f"{source} declares {len(iris)}: {', '.join(iris)}" for source, iris in offenders.items()])
-        violations[check] = string
         violations[records_key(check)] = [
             dqv.Violation(rdflib.URIRef(source),
                           comment=f"declares {len(iris)} ontologies; one file, one ontology",
                           related=[rdflib.URIRef(iri) for iri in iris])
             for source, iris in offenders.items()
         ]
-        log += string.replace(",<br> ", "\n - ") + "\n"
 
     return metrics, violations, log, c, status
 
@@ -1762,7 +1760,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
     violations[check] = ""
 
     if not results and int(in_metrics['propertyShapes']) > 0:
-       log += "PASS - No PropertyShape share the same label.\n"
+       decided(violations, check, "PASS - No PropertyShape share the same label.")
 
     elif int(in_metrics['propertyShapes']) == 0:
         decided(violations, check, "WARNING - No PropertyShapes defined, invalid metric.")
@@ -1816,19 +1814,17 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
     violations[check] = ""
 
     if not results and int(in_metrics['classCount']) > 0:
-        log += "PASS - All classes are connected to another class through a subclass or property relation.\n"
+        decided(violations, check, "PASS - All classes are connected to another class through a subclass or property relation.")
     elif int(in_metrics['classCount']) == 0:
-        log += "WARNING - No classes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No classes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} isolated classes:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} isolated classes:", AS_LIST)
         status += 1
-        string = violation_formatting([row.c for row in results])
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
-        violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
+        violations[check] = violation_formatting([row.c for row in results])
     
     return metrics, violations, log, c, status
 
@@ -2082,20 +2078,21 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
     violations[check] = ""
 
     if not results:
-        log += "PASS - No violations found.\n"
+        decided(violations, check, "PASS - No violations found.")
         
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} elements with non-unique identifiers.\n"
-        log += "| URI | Declared as |\n|--|--|\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} elements with non-unique identifiers.")
         status += 1
         iri = []
         records = []
+        rows = []
         for row in results:
             declared = concat_members(row.declaredAs)
-            log += f"| {row.iri} | {declared} |\n"
+            rows.append((row.iri, declared))
             iri.append(row.iri)
             records.append(dqv.Violation(row.iri, comment=f"declared as {declared}"))
+        tabulate(violations, check, ("URI", "Declared as"), rows)
 
         violations[check] = violation_formatting(iri)
         violations[records_key(check)] = records
@@ -2130,20 +2127,18 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     violations[check] = ""
 
     if not results and int(in_metrics['classCount']) > 0:
-        log += "PASS - No violations found.\n"
+        decided(violations, check, "PASS - No violations found.")
 
     elif int(in_metrics['classCount']) == 0:
-        log += "WARNING - No classes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No classes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} classes involved in subclass cycles:", AS_LIST)
         status += 1
-        string = violation_formatting([row.c for row in results])
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
-        violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
+        violations[check] = violation_formatting([row.c for row in results])
     
     return metrics, violations, log, c, status
 
@@ -2179,28 +2174,27 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
     if not ontology_iris(graph):
         # Without a declared namespace, a term of the ontology's own cannot be told from an
         # external vocabulary's, so the query reports nothing. PASS would imply it had looked.
-        log += "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a class is defined in the ontology or an external vocabulary.\n"
+        decided(violations, check, "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a class is defined in the ontology or an external vocabulary.")
         not_assessed(violations, check, 'ontologyNotDeclared')
 
     elif not results and int(in_metrics['classCount']) > 0:
-        log += "PASS - No violations found.\n"
+        decided(violations, check, "PASS - No violations found.")
 
     elif not results and int(in_metrics['classCount']) == 0:
-        log += "WARNING - No classes defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No classes defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} classes without `owl:Class` or `rdfs:Class` declaration:", AS_LIST)
         status += 1
         string = violation_formatting([row.c for row in results])
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
 
     if ('ontologyNotDeclared' in in_metrics
             and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
-        log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+        note(violations, check, "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.")
     
     return metrics, violations, log, c, status
 
@@ -2235,28 +2229,27 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     if not ontology_iris(graph):
         # Without a declared namespace, a term of the ontology's own cannot be told from an
         # external vocabulary's, so the query reports nothing. PASS would imply it had looked.
-        log += "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a property is defined in the ontology or an external vocabulary.\n"
+        decided(violations, check, "WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a property is defined in the ontology or an external vocabulary.")
         not_assessed(violations, check, 'ontologyNotDeclared')
 
     elif not results and int(in_metrics['propertyCount']) > 0:
-        log += "PASS - No violations found.\n"
+        decided(violations, check, "PASS - No violations found.")
               
     elif not results and int(in_metrics['propertyCount']) == 0:
-        log += "WARNING - No properties defined, invalid metric.\n"
+        decided(violations, check, "WARNING - No properties defined, invalid metric.")
         not_assessed(violations, check, EMPTY_POPULATION)
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:\n"
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:", AS_LIST)
         status += 1
         string = violation_formatting([row.property for row in results])
         violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     if ('ontologyNotDeclared' in in_metrics
             and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
-        log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+        note(violations, check, "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.")
     
     return metrics, violations, log, c, status
 
@@ -2300,23 +2293,22 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     violations[check] = ""
 
     if not results:
-        log += "PASS - No violations found.\n"
+        decided(violations, check, "PASS - No violations found.")
 
     elif results:
         metrics[check] = len(results)
-        log += f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:\n - "
+        decided(violations, check, f"VIOLATION - Found {metrics[check]} resources defined using an external vocabulary prefix:", AS_LIST)
         string = violation_formatting([row.resource for row in results])
         violations[records_key(check)] = [dqv.Violation(row.resource) for row in results]
         violations[check] = string
-        log += string.replace(",<br> ", "\n - ") + "\n"
     
     if ontology_check:
         if (in_metrics['ontologyNotDeclared'] > 0 and num_files == 1) or in_metrics['ontologyNotDeclared'] == num_files:
-            log += "WARNING - Ontology namespace undefined. The reported violations may be incorrect.\n"
+            note(violations, check, "WARNING - Ontology namespace undefined. The reported violations may be incorrect.")
         elif in_metrics['ontologyNotDeclared'] > 0 and in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0:
-            log += "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.\n"
+            note(violations, check, "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.")
     else:
-        log += "WARNING - Ontology namespace not checked. The reported violations may be incorrect.\n"
+        note(violations, check, "WARNING - Ontology namespace not checked. The reported violations may be incorrect.")
     
     return metrics, violations, log, c, status
 
