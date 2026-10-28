@@ -34,22 +34,22 @@
 <https://example.org/qa#dependency-metric-ontology-missing-description-99fb3c38> a olq:Dependency ;
     rdfs:comment "A description is read off the declared owl:Ontology, so there is none to read without one." ;
     olq:dependent <https://example.org/qa#metric-ontology-missing-description> ;
-    olq:requires <https://example.org/qa#metric-ontology-not-declared> .
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
 
 <https://example.org/qa#dependency-metric-unresolvable-imports-b81fcda7> a olq:Dependency ;
     rdfs:comment "owl:imports statements are read off the declared owl:Ontology." ;
     olq:dependent <https://example.org/qa#metric-unresolvable-imports> ;
-    olq:requires <https://example.org/qa#metric-ontology-not-declared> .
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
 
 <https://example.org/qa#dependency-metric-untyped-classes-06450b30> a olq:Dependency ;
     rdfs:comment "Without a declared namespace, a class of the ontology's own cannot be told from an external vocabulary's." ;
     olq:dependent <https://example.org/qa#metric-untyped-classes> ;
-    olq:requires <https://example.org/qa#metric-ontology-not-declared> .
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
 
 <https://example.org/qa#dependency-metric-untyped-properties-2bfd47c0> a olq:Dependency ;
     rdfs:comment "Without a declared namespace, a property of the ontology's own cannot be told from an external vocabulary's." ;
     olq:dependent <https://example.org/qa#metric-untyped-properties> ;
-    olq:requires <https://example.org/qa#metric-ontology-not-declared> .
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
 
 <https://example.org/qa#configuration-effective> a olq:Configuration ;
     rdfs:label "Effective ontolint configuration" ;
@@ -710,10 +710,10 @@
 
 <https://example.org/qa#metric-ontology-missing-description> a dqv:Metric ;
     rdfs:label "Ontology without description" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
     skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
     skos:prefLabel "Ontology without description" ;
     dqv:inDimension <https://example.org/qa#dimension-metadata> ;
-    olq:dependsOn <https://example.org/qa#metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <https://example.org/qa#metric-property-shapes-missing-description> a dqv:Metric ;
@@ -739,26 +739,26 @@
 
 <https://example.org/qa#metric-unresolvable-imports> a dqv:Metric ;
     rdfs:label "Unresolvable imports" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
     skos:definition "An owl:imports target could not be resolved or contains no triples." ;
     skos:prefLabel "Unresolvable imports" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:dependsOn <https://example.org/qa#metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <https://example.org/qa#metric-untyped-classes> a dqv:Metric ;
     rdfs:label "Untyped Classes" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
     skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
     skos:prefLabel "Untyped Classes" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:dependsOn <https://example.org/qa#metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <https://example.org/qa#metric-untyped-properties> a dqv:Metric ;
     rdfs:label "Untyped Properties" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
     skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
     skos:prefLabel "Untyped Properties" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
-    olq:dependsOn <https://example.org/qa#metric-ontology-not-declared> ;
     olq:severity sh:Violation .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;

@@ -22,7 +22,7 @@
             {
                 "name": "Multiple ontologies in one file",
                 "status": "skipped",
-                "message": "not assessed: sources-not-recorded"
+                "message": "not assessed: the graph does not record which input each triple came from"
             },
             {
                 "name": "Ontology without description",

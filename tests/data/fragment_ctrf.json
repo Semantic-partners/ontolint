@@ -26,7 +26,7 @@
             {
                 "name": "Ontology without description",
                 "status": "skipped",
-                "message": "not assessed: ontologyNotDeclared"
+                "message": "not assessed: requires 'Ontology without declaration', which failed"
             },
             {
                 "name": "Unresolvable imports",
@@ -51,12 +51,12 @@
             {
                 "name": "NodeShape without label",
                 "status": "skipped",
-                "message": "not assessed: empty-population"
+                "message": "not assessed: nothing of the kind it measures is present"
             },
             {
                 "name": "PropertyShape without label",
                 "status": "skipped",
-                "message": "not assessed: empty-population"
+                "message": "not assessed: nothing of the kind it measures is present"
             },
             {
                 "name": "Class without description",
@@ -69,12 +69,12 @@
             {
                 "name": "NodeShape without description",
                 "status": "skipped",
-                "message": "not assessed: empty-population"
+                "message": "not assessed: nothing of the kind it measures is present"
             },
             {
                 "name": "PropertyShape without description",
                 "status": "skipped",
-                "message": "not assessed: empty-population"
+                "message": "not assessed: nothing of the kind it measures is present"
             },
             {
                 "name": "Classes with the same label",
@@ -87,12 +87,12 @@
             {
                 "name": "NodeShapes with the same label",
                 "status": "skipped",
-                "message": "not assessed: empty-population"
+                "message": "not assessed: nothing of the kind it measures is present"
             },
             {
                 "name": "PropertyShapes with the same label",
                 "status": "skipped",
-                "message": "not assessed: empty-population"
+                "message": "not assessed: nothing of the kind it measures is present"
             },
             {
                 "name": "Isolated classes",
@@ -117,12 +117,12 @@
             {
                 "name": "Untyped Classes",
                 "status": "skipped",
-                "message": "not assessed: ontologyNotDeclared"
+                "message": "not assessed: requires 'Ontology without declaration', which failed"
             },
             {
                 "name": "Untyped Properties",
                 "status": "skipped",
-                "message": "not assessed: ontologyNotDeclared"
+                "message": "not assessed: requires 'Ontology without declaration', which failed"
             },
             {
                 "name": "Namespace hijacking",

@@ -383,8 +383,8 @@ def _add_dependencies(g, base, node_namer=None):
     """
     The declared dependencies between the metrics this report describes.
 
-    Stated as an olq:Dependency, which carries why the dependency exists, plus the
-    olq:dependsOn shortcut so the relation can be queried without joining through it. Only
+    Stated as an olq:Dependency, which carries why the dependency exists, plus a
+    dcterms:requires shortcut so the relation can be queried without joining through it. Only
     for metrics the report describes: a dependency on one it never mentions says nothing a
     reader of this report could use.
     """
@@ -397,9 +397,12 @@ def _add_dependencies(g, base, node_namer=None):
         node = _mint(base, 'dependency', dependent, prerequisite, node_namer=node_namer)
         g.add((node, rdflib.RDF.type, OLQ.Dependency))
         g.add((node, OLQ.dependent, dependent))
-        g.add((node, OLQ.requires, prerequisite))
+        g.add((node, OLQ.prerequisite, prerequisite))
         g.add((node, rdflib.RDFS.comment, rdflib.Literal(why)))
-        g.add((dependent, OLQ.dependsOn, prerequisite))
+        # dcterms:requires is exactly this relation — "required by the described resource
+        # to support its function, delivery, or coherence" — so it is used rather than a
+        # term of our own; the olq:Dependency above says why it holds.
+        g.add((dependent, rdflib.DCTERMS.requires, prerequisite))
 
 
 def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_ontologies=None,

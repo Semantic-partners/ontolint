@@ -186,6 +186,27 @@ def not_assessed(violations, check, reason):
     violations[skipped_key(check)] = reason
 
 
+NOT_ASSESSED_MESSAGES = {
+    EMPTY_POPULATION: "nothing of the kind it measures is present",
+    SOURCES_NOT_RECORDED: "the graph does not record which input each triple came from",
+}
+
+
+def not_assessed_message(check, by_key):
+    """
+    Why a check could not be computed, in words a reader of the report can act on.
+
+    A reason naming another check is a dependency, so the message names that check and what
+    became of it: a skip caused by a failure elsewhere should not read like the benign kind.
+    """
+    if check.reason in NOT_ASSESSED_MESSAGES:
+        return f"not assessed: {NOT_ASSESSED_MESSAGES[check.reason]}"
+    required = by_key.get(check.reason)
+    if required is None:
+        return f"not assessed: requires {check.reason}"
+    return f"not assessed: requires '{required.name}', which {required.status}"
+
+
 def source_iris(in_metrics):
     """
     One IRI per processed source, to name it in a violation.
@@ -603,6 +624,7 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     report written by the CLI carries the wall clock and is not reproducible.
     """
     counts = {'passed': 0, 'failed': 0, 'skipped': 0}
+    by_key = {c.key: c for c in result.checks}
     test_cases = []
 
     for check in result.checks:
@@ -617,7 +639,7 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
             }
         elif check.status == 'skipped':
             # Not a pass: the check could not be computed, so the 0 means nothing.
-            test_case["message"] = f"not assessed: {check.reason}"
+            test_case["message"] = not_assessed_message(check, by_key)
         counts[check.status] += 1
         test_cases.append(test_case)
     

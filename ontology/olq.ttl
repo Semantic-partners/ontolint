@@ -71,7 +71,7 @@ olq:relatedResource a owl:ObjectProperty ;
 
 olq:Dependency a owl:Class ;
     rdfs:label "dependency"@en ;
-    rdfs:comment "One metric's need of another: the dependent metric can only be computed where the required metric's condition holds. Declared once and used twice — to enable the required check when a dependent one is selected, and to say why a dependent metric was not assessed."@en ;
+    rdfs:comment "One metric's need of another, and why: the dependent metric can only be computed where the prerequisite metric's condition holds. The relation between the two metrics is stated with dcterms:requires; this explains it. Declared once and used twice — to enable the prerequisite check when a dependent one is selected, and to say why a dependent metric was not assessed."@en ;
     rdfs:isDefinedBy olq: .
 
 olq:dependent a owl:ObjectProperty, owl:FunctionalProperty ;
@@ -81,19 +81,13 @@ olq:dependent a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:range dqv:Metric ;
     rdfs:isDefinedBy olq: .
 
-olq:requires a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:label "requires"@en ;
-    rdfs:comment "The metric whose condition must hold for the dependent metric to be computed."@en ;
+olq:prerequisite a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "prerequisite"@en ;
+    rdfs:comment "The metric whose condition must hold for the dependent metric to be computed. The relation itself is stated with dcterms:requires; this names the far end of the olq:Dependency that explains it."@en ;
     rdfs:domain olq:Dependency ;
     rdfs:range dqv:Metric ;
-    rdfs:isDefinedBy olq: .
-
-olq:dependsOn a owl:ObjectProperty ;
-    rdfs:label "depends on"@en ;
-    rdfs:comment "Shortcut from a metric to one it requires, stated alongside the olq:Dependency that explains why, so the relation can be queried without joining through it."@en ;
-    rdfs:domain dqv:Metric ;
-    rdfs:range dqv:Metric ;
-    rdfs:isDefinedBy olq: .
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso dcterms:requires .
 
 olq:Reason a owl:Class ;
     rdfs:label "reason"@en ;

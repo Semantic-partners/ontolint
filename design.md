@@ -316,8 +316,10 @@ in the check.
 They are now data — `dqv.DQV_DEPENDENCIES` — used three times from one statement:
 
 - `lint_selection` enables the required check when a dependent one is selected;
-- the report publishes each as an `olq:Dependency`, carrying *why* it exists, plus an
-  `olq:dependsOn` shortcut for querying;
+- the report publishes each as an `olq:Dependency`, carrying *why* it exists, plus a
+  `dcterms:requires` shortcut for querying. The relation itself is Dublin Core's — *"a
+  related resource that is required by the described resource to support its function,
+  delivery, or coherence"* is exactly this — so only the explanation needs a term of ours;
 - a skipped check's `olq:reason` points at the dependency it could not meet, so a consumer
   reading *"untyped properties: not assessed"* can follow it to *"because no ontology was
   declared"* and on to the measurement that says so.
@@ -328,6 +330,13 @@ the declaration check alone names the defect. One term, one failure, applied to 
 
 `olq:metric` links a not-assessed record to its metric rather than `dqv:isMeasurementOf`,
 whose domain is `dqv:QualityMeasurement` — nothing was measured, which is the whole point.
+
+A skip caused by a failure elsewhere must not read like the benign kind, so the CTRF message
+names the check it needed and what became of it — `not assessed: requires 'Ontology without
+declaration', which failed` — rather than the internal reason key. The status stays
+`skipped` for both: CTRF's vocabulary is `passed | failed | skipped | pending | other`, and
+`other` would say less, not more. A prerequisite skip is never silently green in any case —
+the check it needs is itself failing, and the dependency rule guarantees that check runs.
 
 
 
