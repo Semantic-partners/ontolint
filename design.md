@@ -234,6 +234,12 @@ settles how its verdict ends before saying it.
 domain and range, every class's label. Those rows are data on the result, so the reporter
 needs nothing but the result; handing it the graph instead would have defeated the point.
 
+**The boundary this buys.** Breaking a check now fails `test_pipeline_lint_to_qaresult.py`
+and the end-to-end tests, and leaves the Markdown suite alone; breaking the reporter fails
+only the Markdown suite. Nothing asserts that a *lint* renders the stored text any more,
+because nothing needs to: linting produces the stored instance and the stored instance
+renders the stored text, so the composition holds. Both directions verified by sabotage.
+
 **How the move was checked.** The stored Markdown under `tests/data/*_report.md` was the
 expectation throughout, and the conversion went check by check with it green. It moved four
 times, each an inconsistency straightened rather than a change of substance: two checks were

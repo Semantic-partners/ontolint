@@ -19,8 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import (CASES, render_case, render_result, stored_markdown_for,
-                            stored_qa_result_for)
+from tests.conftest import CASES, render_result, stored_markdown_for, stored_qa_result_for
 from tests.golden import write_markdown
 
 # An rdflib blank node identifier: invented per parse, so it must never reach the report.
@@ -35,23 +34,18 @@ def test_it_renders_the_stored_markdown(case):
     Like the CTRF and DQV suites, this takes the stored instance rather than a freshly
     linted one, so it tests the reporter alone: a change to what a check finds cannot break
     it, and a reporter bug cannot be blamed on the checks.
+
+    Nothing here asserts that a *lint* renders this text, because nothing needs to: linting
+    produces the stored instance (`test_pipeline_lint_to_qaresult.py`) and the stored
+    instance renders this (above), so the composition holds. The tests below use a fresh
+    lint for a different reason — to render twice and compare the renders, which is how
+    instability shows up at all.
     """
     rendered = render_result(stored_qa_result_for(case))
     if os.environ.get('UPDATE_GOLDEN'):
         pytest.skip(f"updated {write_markdown(case, rendered, CASES[case]).name}")
 
     assert rendered == stored_markdown_for(case)
-
-
-@pytest.mark.parametrize('case', CASES)
-def test_a_lint_renders_the_stored_markdown(case):
-    """
-    And a lint still renders it — the same text, from a run rather than from the store.
-
-    What keeps the two honest about each other: the suite above could agree with the store
-    while the linter had stopped producing it.
-    """
-    assert render_case(case) == stored_markdown_for(case)
 
 
 def test_it_renders_the_same_text_every_time(render_markdown):
