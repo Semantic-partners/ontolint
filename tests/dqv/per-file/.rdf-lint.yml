@@ -1,0 +1,5 @@
+# a's namespace is trusted, so a:borrowed is not also reported as an undefined term.
+# That leaves namespace hijacking as the only thing the case says about it.
+imports:
+  ignore:
+    - https://example.org/ontology/a#
