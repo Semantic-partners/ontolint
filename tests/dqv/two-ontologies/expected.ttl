@@ -8,9 +8,9 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-3f1ee934fdb4dcb4> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-2f281924789bd4b8>,
-        <https://example.org/qa#measurement-a162e3d4b5daf5d2> ;
+<https://example.org/qa#assessment-ff47c2ab> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-multiple-ontologies-in-one-file-04237cbc>,
+        <https://example.org/qa#measurement-ontolint-conformance-7edaf730> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
@@ -181,16 +181,16 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#measurement-2f281924789bd4b8> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/qa#dataset-b4dc108313cc2713> ;
+<https://example.org/qa#measurement-multiple-ontologies-in-one-file-04237cbc> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/qa#dataset-b4dc1083> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-multiple-ontologies-in-one-file> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-8df10cdeb7337b86> .
+    olq:violation <https://example.org/qa#violation-measurement-multiple-ontologies-in-one-f-6de5e576> .
 
-<https://example.org/qa#measurement-a162e3d4b5daf5d2> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/qa#dataset-b4dc108313cc2713> ;
+<https://example.org/qa#measurement-ontolint-conformance-7edaf730> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/qa#dataset-b4dc1083> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
     dqv:value 1 ;
     olq:conforms false .
@@ -208,7 +208,7 @@
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> .
 
-<https://example.org/qa#violation-8df10cdeb7337b86> a sh:ValidationResult ;
+<https://example.org/qa#violation-measurement-multiple-ontologies-in-one-f-6de5e576> a sh:ValidationResult ;
     sh:focusNode <file:///case/two-ontologies.ttl> ;
     sh:resultMessage "declares 2 ontologies; one file, one ontology" ;
     sh:resultSeverity sh:Violation ;
@@ -220,7 +220,7 @@
 
 <https://example.org/ontology/two#> rdfs:label "Two" .
 
-<https://example.org/qa#dataset-b4dc108313cc2713> a dcat:Dataset ;
+<https://example.org/qa#dataset-b4dc1083> a dcat:Dataset ;
     rdfs:label "Merged: One, Two" ;
     dcterms:hasPart <https://example.org/ontology/one#>,
         <https://example.org/ontology/two#> .

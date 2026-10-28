@@ -19,12 +19,15 @@ main() takes no clock and no path resolver, so two things are pinned at the poin
 made: dqv.utc_now, which fixes the report timestamp and with it every minted IRI, and
 dqv.file_iri, which names an input relative to the case directory instead of to this
 checkout. Both are hashed into minted IRIs, so neither can be corrected after the fact.
+dqv.mint_id is replaced too, so a node is named after what it is about rather than after
+the run — see design.md for what that leaves these reports testing.
 
 After an intentional change to the report, regenerate the expected files and review the diff:
 
     UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
 """
 import os
+import re
 import shlex
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,6 +38,7 @@ import rdflib
 
 from scripts import dqv
 from scripts.ontology_qa import main
+from tests.golden import stable_mint_id
 
 CASES_DIR = Path(__file__).parent / 'dqv'
 CASES = sorted(p.name for p in CASES_DIR.iterdir() if p.is_dir())
@@ -75,7 +79,7 @@ def _case_file_iri(path):
         return resolved.as_uri()
 
 
-def _run_case(case_dir, out_dir):
+def _run_case(case_dir, out_dir, mint=stable_mint_id):
     inputs = sorted(p.name for p in case_dir.glob('*.ttl') if p.name != 'expected.ttl')
     assert inputs, f"no input .ttl files in {case_dir}"
     extra = shlex.split((case_dir / 'args.txt').read_text()) if (case_dir / 'args.txt').exists() else []
@@ -87,11 +91,36 @@ def _run_case(case_dir, out_dir):
     os.chdir(case_dir)
     try:
         with patch('sys.argv', argv), patch.object(dqv, 'utc_now', lambda: AT), \
-             patch.object(dqv, 'file_iri', _case_file_iri):
+             patch.object(dqv, 'file_iri', _case_file_iri), \
+             patch.object(dqv, 'mint_id', mint):
             main()
     finally:
         os.chdir(cwd)
     return out_dir / 'actual.ttl'
+
+
+REAL_NAME = re.compile(r'#(assessment|measurement|violation|dataset|configuration|setting|bnode)-[0-9a-f]{16}$')
+
+
+def test_a_real_run_mints_hashed_iris(tmp_path):
+    """
+    The goldens replace dqv.mint_id, so nothing else here runs the real one end to end.
+
+    Without this the naming could stop being wired into a CLI run — or stay replaced by
+    accident — and every stored report would still match. It asserts the shape production
+    emits, not any particular name.
+    """
+    report = _run_case(CASES_DIR / 'clean', tmp_path, mint=dqv.mint_id)
+    g = rdflib.Graph().parse(report, format='turtle')
+    minted = [str(s) for s in set(g.subjects()) if str(s).startswith(BASE_URI)
+              and not str(s).startswith(f"{BASE_URI}metric-")
+              and not str(s).startswith(f"{BASE_URI}dimension-")]
+    assert minted, "a report with no minted instance IRIs at all"
+    assert all(REAL_NAME.search(name) for name in minted), sorted(minted)[:5]
+
+    # And the substitute really is substituting: the golden's names are not these.
+    stored = rdflib.Graph().parse(CASES_DIR / 'clean' / 'expected.ttl', format='turtle')
+    assert not (set(minted) & {str(s) for s in stored.subjects()})
 
 
 def _without_configuration(g):
