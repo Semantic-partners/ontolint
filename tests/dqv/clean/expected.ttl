@@ -6,8 +6,8 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-0b6f09289e8a5546> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-d9d8dba55cc98fd1> ;
+<https://example.org/qa#assessment-51b02b72> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-ontolint-conformance-b66c0322> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
@@ -187,7 +187,7 @@
 
 <https://example.org/ontology/clean#> rdfs:label "Clean" .
 
-<https://example.org/qa#measurement-d9d8dba55cc98fd1> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-ontolint-conformance-b66c0322> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/clean#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
     dqv:value 0 ;

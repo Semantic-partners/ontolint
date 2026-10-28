@@ -8,10 +8,10 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-805d02de7e3fb7cc> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-0c821e53ad331a0d>,
-        <https://example.org/qa#measurement-7dc7d06d88de1ad6>,
-        <https://example.org/qa#measurement-8ae7ac009bc3979f> ;
+<https://example.org/qa#assessment-33bd4bce> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-classes-missing-description-adb6ad33>,
+        <https://example.org/qa#measurement-classes-missing-label-d7c95302>,
+        <https://example.org/qa#measurement-ontolint-conformance-adc15ade> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -179,27 +179,27 @@
 
 <https://example.org/ontology/two#> rdfs:label "Two" .
 
-<https://example.org/qa#measurement-0c821e53ad331a0d> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 2 ;
-    olq:conforms false .
-
-<https://example.org/qa#measurement-7dc7d06d88de1ad6> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-4a186bef4455c237> .
-
-<https://example.org/qa#measurement-8ae7ac009bc3979f> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
+<https://example.org/qa#measurement-classes-missing-description-adb6ad33> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/qa#dataset-48b4ad21> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-cd34ba39b8ea989d> .
+    olq:violation <https://example.org/qa#violation-measurement-classes-missing-description--b2316eda> .
+
+<https://example.org/qa#measurement-classes-missing-label-d7c95302> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/qa#dataset-48b4ad21> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-classes-missing-label-d7c953-b9df1075> .
+
+<https://example.org/qa#measurement-ontolint-conformance-adc15ade> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/qa#dataset-48b4ad21> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 2 ;
+    olq:conforms false .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -221,17 +221,17 @@
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> .
 
-<https://example.org/qa#violation-4a186bef4455c237> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/one#Cat> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-cd34ba39b8ea989d> a sh:ValidationResult ;
+<https://example.org/qa#violation-measurement-classes-missing-description--b2316eda> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/one#Cat> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#dataset-48b4ad21227722d4> a dcat:Dataset ;
+<https://example.org/qa#violation-measurement-classes-missing-label-d7c953-b9df1075> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/one#Cat> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#dataset-48b4ad21> a dcat:Dataset ;
     rdfs:label "Merged: One, Two" ;
     dcterms:hasPart <https://example.org/ontology/one#>,
         <https://example.org/ontology/two#> .

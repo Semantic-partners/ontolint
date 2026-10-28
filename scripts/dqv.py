@@ -187,10 +187,20 @@ def _normalise_base(base_uri):
     return base if base.endswith(BASE_SEPARATORS) else base + '/'
 
 
+def mint_id(kind, *parts):
+    """
+    The local name of an instance IRI: a sha256 of the parts that identify it.
+
+    Looked up on the module when a report is built rather than bound into _mint, so a
+    caller with no way to pass one in (the CLI, and the golden tests through it) can
+    replace the naming scheme, as it can the clock and the input paths.
+    """
+    return hashlib.sha256("\x1f".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:16]
+
+
 def _mint(base, kind, *parts):
-    """Deterministic, collision-resistant instance IRI: <base><kind>-<sha256 of parts>."""
-    digest = hashlib.sha256("\x1f".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:16]
-    return rdflib.URIRef(f"{base}{kind}-{digest}")
+    """Deterministic, collision-resistant instance IRI: <base><kind>-<name of parts>."""
+    return rdflib.URIRef(f"{base}{kind}-{mint_id(kind, *parts)}")
 
 
 def _resource_node(base, value, bnode_keys):

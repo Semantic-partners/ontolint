@@ -7,6 +7,8 @@ docstring saying what the file is. Both live here rather than in a script beside
 because a generator that is not in the tree cannot be kept in step with the tests it
 writes about — the names in these headers went stale exactly that way.
 """
+import hashlib
+import re
 from pathlib import Path
 
 from rdflib import BNode, Literal, URIRef
@@ -160,3 +162,43 @@ def write_markdown(case, rendered, inputs):
     path = DATA / f'{case}_markdown.py'
     path.write_text(MARKDOWN_HEADER.format(inputs=_inputs_phrase(inputs)) + body + '"""\n')
     return path
+
+
+# ── naming the nodes in a stored report ───────────────────────────────────────
+
+MINTED = re.compile(r'[#/:](assessment|measurement|violation|dataset|configuration|setting|bnode)-\w{6,}$')
+
+# Which of a node's parts to name it after, per kind. The rest still go into the digest.
+NAMED_AFTER = {'measurement': -1, 'assessment': None}
+
+# A configuration is named from the whole settings list, so adding one check renamed it and
+# with it every olq:setting link — hundreds of lines saying nothing. A report has one
+# configuration per result and the goldens have one result, so a constant name is enough;
+# two differing configurations in one report would collide, which no golden has.
+CONSTANT = {'configuration': 'effective'}
+
+
+def stable_mint_id(kind, *parts):
+    """
+    A node name for the stored reports, in place of dqv.mint_id.
+
+    The real scheme hashes every part that identifies a node, and those parts nest: a
+    violation hashes its measurement, which hashes the assessment, which hashes the
+    effective configuration — which lists every check. So adding one check renamed every
+    node in every stored report, and the diff said nothing about what had changed.
+
+    This drops the parts that are themselves minted IRIs, so a node is named after what it
+    is about rather than after the run it belongs to, and prefixes a readable word. A
+    report's *content* is what these goldens are for; that the real scheme is
+    deterministic, unique per run and sensitive to the configuration is asserted directly
+    in tests/test_dqv.py, which does not use this.
+    """
+    if kind in CONSTANT:
+        return CONSTANT[kind]
+    own = [str(p) for p in parts if p not in (None, '') and not MINTED.search(str(p))]
+    digest = hashlib.sha256("\x1f".join(own).encode("utf-8")).hexdigest()[:8]
+    index = NAMED_AFTER.get(kind, 0)
+    if index is None or not own:
+        return digest
+    word = re.sub(r'[^a-zA-Z0-9]+', '-', own[index].rsplit('/', 1)[-1].rsplit('#', 1)[-1])
+    return f"{word.strip('-')[:40].lower()}-{digest}" if word.strip('-') else digest

@@ -123,6 +123,43 @@ one assessment where its two parts have two, so every measurement IRI differs. M
 run shapes are pinned end-to-end in `tests/dqv/` instead, where `per-file/` and `merged/`
 run the CLI over two inputs each.
 
+### What the stored reports pin, and what they do not
+
+A report carries three things that depend on *where and when it ran* rather than on what
+the checks found, and all three are hashed into the IRIs it mints, so none can be corrected
+after the report is built. Each is pinned at the point it is made, by replacing a
+module-level function in `scripts/dqv.py` that is looked up when the report is built rather
+than bound in — the same device three times over, because `main()` takes no arguments for
+any of them.
+
+| provider | replaced with | otherwise |
+|---|---|---|
+| `dqv.utc_now` | a fixed instant | every minted IRI derives from the timestamp, so no two runs agree |
+| `dqv.file_iri` | an IRI relative to the case directory | a report naming an input names it by absolute path, so a golden matches only the machine that wrote it |
+| `dqv.mint_id` | a name taken from what a node is *about* | a node's name nests: a violation hashes its measurement, which hashes the assessment, which hashes the effective configuration — which lists every check. Adding one check renamed every node in every stored report |
+
+That last one is the difference between a reviewable diff and an unreadable one. Adding a
+check used to move 161 lines of `tests/dqv/mixed/expected.ttl` and 1120 of
+`tests/data/reporters_dqv.ttl`; it now moves 7 and 16, and those are the new metric's own
+definition.
+
+**So the stored reports pin content, not identity.** They say which metrics were emitted,
+on which datasets, with which values, violations and settings. They do not say that the
+real naming scheme is deterministic, unique per run, or sensitive to the configuration —
+with `mint_id` replaced, they cannot. Those properties are asserted directly in
+`tests/test_dqv.py`, which uses the real one: `test_iris_are_deterministic_per_run_and_unique_across_runs`,
+`test_same_inputs_under_different_configurations_get_distinct_assessments`,
+`test_settings_differing_only_in_provenance_get_distinct_iris`,
+`test_same_ontology_iri_in_two_runs_gives_distinct_measurements` and
+`test_aggregate_dataset_iri_is_stable_across_runs`. Change the minting and it is those that
+must fail; the goldens staying green is the point. One e2e test does run the real naming
+through `main()` — `test_a_real_run_mints_hashed_iris` — so the scheme cannot quietly stop
+being wired in, or stay replaced by accident, while every stored report still matches.
+
+One consequence to know about: the substitute names a configuration node by a constant,
+since a report has one per result and the goldens have one result each. Two differing
+configurations in a single stored report would collide into one node.
+
 ### Changing a stored expectation
 
 Every stored expectation regenerates the same way — there is no hand-edited one left:
