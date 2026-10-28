@@ -44,7 +44,7 @@ computed on, and the configuration that ran.
 
 | | granularity | built from | pinned by |
 |---|---|---|---|
-| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_pipeline_lint_to_markdown.py` |
+| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_pipeline_qaresult_to_markdown.py` |
 | **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `<case>_ctrf.json`, via `tests/test_pipeline_qaresult_to_ctrf.py` |
 | **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `<case>_dqv.ttl`, via `tests/test_pipeline_qaresult_to_dqv.py`; run shapes in `tests/dqv/*/expected.ttl` |
 
@@ -69,7 +69,7 @@ handing over a thousand-line diff.
 | suite | input | asserts |
 |---|---|---|
 | `test_pipeline_lint_to_qaresult.py` | the `.ttl` files | lint still produces the stored `QAResult` |
-| `test_pipeline_lint_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
+| `test_pipeline_qaresult_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
 | `test_pipeline_qaresult_to_ctrf.py` | the stored `QAResult`s | the CTRF projection |
 | `test_pipeline_qaresult_to_dqv.py` | the stored `QAResult`s | the DQV projection |
 

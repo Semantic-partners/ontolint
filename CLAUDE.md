@@ -70,11 +70,12 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 - `test_pipeline_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
   only one that runs the checks, and the only one a check change should break. When a
   check changes on purpose, update the stored instance from the diff it prints.
-- `test_pipeline_qaresult_to_ctrf.py` and `test_pipeline_qaresult_to_dqv.py` take the **stored** instance as
-  input, so they test the projection alone — a change to what a check finds cannot break
-  them, and a reporter bug cannot be blamed on the checks.
-- `test_pipeline_lint_to_markdown.py` renders the **stored** instance to Markdown, like the other
-  two reporters, and separately asserts a fresh lint renders the same text. Its other
+- `test_pipeline_qaresult_to_ctrf.py`, `test_pipeline_qaresult_to_dqv.py` and
+  `test_pipeline_qaresult_to_markdown.py` take the **stored** instance as input, so they
+  test the projection alone — a change to what a check finds cannot break them, and a
+  reporter bug cannot be blamed on the checks.
+  `test_pipeline_qaresult_to_markdown.py` also asserts a fresh lint renders the same text,
+  which is what keeps the store and the linter honest about each other. Its other
   assertions are not a second expectation — they say why parts of the text must hold, so a
   failure explains itself instead of handing over a 189-line diff.
 
@@ -99,7 +100,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
 | `test_pipeline_lint_to_qaresult.py` | **Reporter suite 1 of 4.** Linting `reporters.ttl` still produces the stored `QAResult` — the checks that ran, what each decided, profiling, datasets, configuration |
-| `test_pipeline_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
+| `test_pipeline_qaresult_to_markdown.py` | **Suite 2.** The **stored** QAResult projected to Markdown, plus a fresh lint rendering the same text — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
 | `test_pipeline_qaresult_to_ctrf.py` | **Suite 3.** The **stored** QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
 | `test_pipeline_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
 | `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |

@@ -153,7 +153,7 @@ def write_markdown(case, rendered, inputs):
     Stored as the Markdown it is, not as a string in a Python module: it is the artefact a
     reviewer reads when a report changes, and a diff of Markdown is legible where a diff of
     a quoted string literal is not. Nothing explains the file inside it, because anything
-    that did would be part of the expectation — see test_pipeline_lint_to_markdown.py.
+    that did would be part of the expectation — see test_pipeline_qaresult_to_markdown.py.
     """
     path = DATA / f'{case}_report.md'
     path.write_text(rendered)
