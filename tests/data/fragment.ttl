@@ -1,0 +1,25 @@
+# The second input behind the reporter suites, and the only way to see two checks fail:
+# "Ontology without declaration" and "Ontology without description". reporters.ttl cannot
+# show them, because it declares a described ontology and a file cannot do both.
+#
+# It is a fragment — a file of terms with no owl:Ontology header of its own. ontolint's
+# rule is one file, one ontology, so this is reported rather than tolerated. Linted beside
+# reporters.ttl it also gives the three-way split the declaration check actually has: none
+# of the files declared one, some of them did, all of them did.
+@prefix frag: <https://example.org/fragment#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+frag:Tool a owl:Class ;
+    rdfs:label "Tool" ;
+    rdfs:comment "Something used to do work." .
+
+frag:Worker a owl:Class ;
+    rdfs:label "Worker" ;
+    rdfs:comment "Someone who uses a tool." .
+
+frag:usedBy a owl:ObjectProperty ;
+    rdfs:label "used by" ;
+    rdfs:comment "Relates a tool to the worker who uses it." ;
+    rdfs:domain frag:Tool ;
+    rdfs:range frag:Worker .

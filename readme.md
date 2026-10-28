@@ -280,6 +280,30 @@ To generate a markdown report, run the generate report script:
 
 This generates a markdown file from any JSON files in the `ctrf/` directory and saves it to the `out/` directory
 
+## Testing
+
+```bash
+poetry run pytest                      # everything
+poetry run pytest -n auto              # in parallel, as CI does
+poetry run pytest tests/test_labels.py # one file
+```
+
+Most suites build an inline Turtle string, parse it and assert on the `CheckResult`s that
+`run_qa(graph)` returns.
+
+The four *reporter* suites work differently: `tests/data/` holds the whole expected output
+of each reporter — Markdown, CTRF and DQV — written out as data, for each of three fixture
+cases. Changing anything that assembles a report means regenerating those, so read
+[`design.md`](design.md) first. It covers what each reporter is built from, how the cases
+are chosen, how to regenerate a stored expectation and what must never reach one.
+
+```bash
+UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_*.py tests/test_e2e_dqv.py
+```
+
+Reports must be byte-identical between runs over the same inputs, or no expectation can be
+pinned. `design.md` lists the rules that keep them so.
+
 ## New features
 
 The backlog is managed in a [GitHub project](https://github.com/orgs/Semantic-partners/projects/3).

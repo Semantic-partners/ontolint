@@ -195,6 +195,8 @@ def exec_sparql(graph, key, exclude_types=None):
             f"FILTER NOT EXISTS {{ VALUES ?excludedType {{ {values} }} ?c a ?excludedType . }}"
         )
     results = graph.query(sparql_query)
+    if results.type == 'SELECT':
+        return sorted(results, key=lambda row: tuple(str(value) for value in row))
     return results
 
 def get_namespace(uri):
@@ -542,9 +544,16 @@ def print_if_executed(metrics, checks, key):
         output = metrics[key]
     return output
 
-def write_ctrf_report(result: QAResult, file_path, filename):
+def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     """
-    Convert QA metrics to CTRF (Common Test Result Format) JSON.
+    A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
+    check, with the run's summary. Returns the report; writing it is write_ctrf_report's
+    job, so the projection can be built and inspected without touching the filesystem.
+
+    date_time_provider supplies the report's timestamp. It is injected so a caller can fix
+    it — without that the projection is not a pure function of the QAResult, and two
+    reports built over the same result differ. It is also the only way to fix it: a CTRF
+    report written by the CLI carries the wall clock and is not reproducible.
     """
     passed = 0
     failed = 0
@@ -579,11 +588,14 @@ def write_ctrf_report(result: QAResult, file_path, filename):
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": date_time_provider().strftime("%Y-%m-%d %H:%M:%S")
         }
     }
-    
-    # Write to file
+    return ctrf_report
+
+
+def write_ctrf_report(ctrf_report, file_path, filename):
+    """Write a CTRF report (see build_ctrf_report) to a file. Returns the log line."""
     os.makedirs(file_path, exist_ok=True)
     # Fallback CTRF filename
     if not filename:
@@ -591,9 +603,8 @@ def write_ctrf_report(result: QAResult, file_path, filename):
     output_file = os.path.join(file_path, filename)
     with open(output_file, 'w') as f:
         json.dump(ctrf_report, f, indent=2)
-    
-    log = f"\nCTRF report written to: {output_file}\n"
-    return ctrf_report, log
+
+    return f"\nCTRF report written to: {output_file}\n"
 
 def print_profiling_metrics(metrics, elements, verbose):
     log  = "\n## Profiling Details\n\n"
@@ -1442,8 +1453,9 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
         records = []
         log += "| Label | Label Property | Classes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.classes} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.classes};<br> "
+            members = concat_members(row.classes)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.classes))
         
         string = string.removesuffix(";<br> ")
@@ -1494,8 +1506,9 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         records = []
         log += "| Label | Label Property | Properties |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.properties} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.properties};<br> "
+            members = concat_members(row.properties)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.properties))
         string = string.removesuffix(";<br> ")
         violations[check] = string
@@ -1545,8 +1558,9 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         records = []
         log += "| Label | Label Property | NodeShapes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.nsList} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.nsList};<br> "
+            members = concat_members(row.nsList)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.nsList))
         
         string = string.removesuffix(";<br> ")
@@ -1597,8 +1611,9 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         records = []
         log += "| Label | Label Property | PropertyShapes |\n|--|--|--|\n"
         for row in results:
-            log += f"| {row.label} | {row.labelProperty} | {row.psList} |\n"
-            string += f"\"{row.label}, {row.labelProperty}\": {row.psList};<br> "
+            members = concat_members(row.psList)
+            log += f"| {row.label} | {row.labelProperty} | {members} |\n"
+            string += f"\"{row.label}, {row.labelProperty}\": {members};<br> "
             records.extend(_same_label_records(row.label, row.labelProperty, row.psList))
         
         string = string.removesuffix(";<br> ")
@@ -1704,12 +1719,12 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             for row in results:
                 predicate = row.property
                 if row.domain:
-                    domain = row.domain
+                    domain = term_text(row.domain)
                 else:
                     domain = 'None'
                     dCount.append(predicate)
                 if row.range:
-                    range = row.range
+                    range = term_text(row.range)
                 else:
                     range = 'None'
                     rCount.append(predicate)
@@ -1724,16 +1739,16 @@ def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, 
             log += "| Property | Domain | Range |\n|--|--|--|\n"
             for row in results:
                 if row.domain:
-                    domain = row.domain
+                    domain = term_text(row.domain)
                 else:
                     domain = 'None'
                 
                 if row.range:
-                    range = row.range
+                    range = term_text(row.range)
                 else:
                     range = 'None'
                 
-                log += f"| {row.property} | {domain} | {range} |\n"
+                log += f"| {term_text(row.property)} | {domain} | {range} |\n"
             
             log  += "\n"
         
@@ -1828,21 +1843,51 @@ def _same_label_records(label, label_property, members):
         records.append(dqv.Violation(iri, comment=comment, related=others, value=label))
     return records
 
+def term_text(term):
+    """
+    A term as it appears in a text report.
+
+    A blank node's rdflib identifier is invented at parse time and differs on every run, so
+    printing it makes the report vary run to run while telling a reader nothing they can
+    act on or look up. Anything that needs stable identity has it in the DQV report, where
+    blank nodes are skolemized under the report's base.
+    """
+    return "[anonymous]" if isinstance(term, rdflib.BNode) else term
+
+
+def concat_members(value):
+    """
+    The members of a GROUP_CONCAT cell, sorted, as text.
+
+    GROUP_CONCAT has no defined order, so the same inputs render the members of a group in
+    a different order from run to run. exec_sparql() sorts the rows; this sorts within one.
+    The DQV records already sort their own copy (see _same_label_records); this is for the
+    text reports, which carry the concatenation as it came back.
+    """
+    return ", ".join(sorted(m.strip() for m in str(value).split(",") if m.strip()))
+
+
 def violation_formatting(array, unique=False):
     """
     Format a string of elements into a markdown list.
     
+    Elements are always sorted. They arrive in SPARQL result order, which varies between
+    runs, so without this the same inputs produce a different report each time: diffs are
+    unreviewable and the output can't be compared against an expected one.
+
     Args:
         array (list): List of elements to format.
-        unique (bool): Logical flag to sort and remove duplicates.
+        unique (bool): Logical flag to also remove duplicates.
     
     Returns:
         formatted_string (str): String formatted as a markdown list.
     """
     if unique:
-        array = list(set(array))
-        array.sort()
-    
+        array = set(array)
+    # Rendered before sorting: sorting blank nodes by their invented identifiers would be
+    # as unstable as printing them.
+    array = sorted((term_text(element) for element in array), key=str)
+
     formatted_string = ""
     for element in array:
         formatted_string += f"{element},<br> "
@@ -1888,9 +1933,9 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         iri = []
         records = []
         for row in results:
-            log += f"| {row.iri} | {row.declaredAs} |\n"
+            declared = concat_members(row.declaredAs)
+            log += f"| {row.iri} | {declared} |\n"
             iri.append(row.iri)
-            declared = ", ".join(sorted(str(row.declaredAs).split(", ")))  # GROUP_CONCAT order is undefined
             records.append(dqv.Violation(row.iri, comment=f"declared as {declared}"))
 
         violations[check] = violation_formatting(iri)
@@ -3187,7 +3232,8 @@ def main():
             log_output += qa_log
             if result is not None:
                 stem = os.path.splitext(os.path.basename(fp))[0]
-                write_ctrf_report(result, args.ctrf_dir, f"{stem}-qa-report.json")
+                write_ctrf_report(build_ctrf_report(result), args.ctrf_dir,
+                                  f"{stem}-qa-report.json")
                 dqv_results.append(result)
                 if not result.passed:
                     any_violation = True
@@ -3229,7 +3275,7 @@ def main():
     log_output += qa_log
 
     if result is not None:
-        write_ctrf_report(result, args.ctrf_dir, args.ctrf_filename)
+        write_ctrf_report(build_ctrf_report(result), args.ctrf_dir, args.ctrf_filename)
         _write_dqv(args, config, [result], ontology_sources)
 
     qa_terminate(args.output, log_output)

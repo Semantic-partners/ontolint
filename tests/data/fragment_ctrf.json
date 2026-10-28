@@ -1,0 +1,131 @@
+{
+    "results": {
+        "tool": {
+            "name": "Ontology QA",
+            "version": "2025-11-17"
+        },
+        "summary": {
+            "tests": 24,
+            "passed": 20,
+            "failed": 4
+        },
+        "tests": [
+            {
+                "name": "Ontology without declaration",
+                "status": "failed",
+                "failure": {
+                    "violations": 1,
+                    "elements": "**All** processed files missing ontology declaration."
+                }
+            },
+            {
+                "name": "Ontology without description",
+                "status": "failed",
+                "failure": {
+                    "violations": 1,
+                    "elements": "No ontology declared"
+                }
+            },
+            {
+                "name": "Unresolvable imports",
+                "status": "passed"
+            },
+            {
+                "name": "Undefined terms",
+                "status": "failed",
+                "failure": {
+                    "violations": 3,
+                    "elements": "https://example.org/fragment#Tool (fetch failure),<br> https://example.org/fragment#Worker (fetch failure),<br> https://example.org/fragment#usedBy (fetch failure)"
+                }
+            },
+            {
+                "name": "Class without label",
+                "status": "passed"
+            },
+            {
+                "name": "Property without label",
+                "status": "passed"
+            },
+            {
+                "name": "NodeShape without label",
+                "status": "passed"
+            },
+            {
+                "name": "PropertyShape without label",
+                "status": "passed"
+            },
+            {
+                "name": "Class without description",
+                "status": "passed"
+            },
+            {
+                "name": "Property without description",
+                "status": "passed"
+            },
+            {
+                "name": "NodeShape without description",
+                "status": "passed"
+            },
+            {
+                "name": "PropertyShape without description",
+                "status": "passed"
+            },
+            {
+                "name": "Classes with the same label",
+                "status": "passed"
+            },
+            {
+                "name": "Properties with the same label",
+                "status": "passed"
+            },
+            {
+                "name": "NodeShapes with the same label",
+                "status": "passed"
+            },
+            {
+                "name": "PropertyShapes with the same label",
+                "status": "passed"
+            },
+            {
+                "name": "Isolated classes",
+                "status": "passed"
+            },
+            {
+                "name": "Property without domain",
+                "status": "passed"
+            },
+            {
+                "name": "Property without range",
+                "status": "passed"
+            },
+            {
+                "name": "Non-unique identifiers",
+                "status": "passed"
+            },
+            {
+                "name": "Subclass Cycles",
+                "status": "passed"
+            },
+            {
+                "name": "Untyped Classes",
+                "status": "passed"
+            },
+            {
+                "name": "Untyped Properties",
+                "status": "failed",
+                "failure": {
+                    "violations": 5,
+                    "elements": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type,<br> http://www.w3.org/2000/01/rdf-schema#comment,<br> http://www.w3.org/2000/01/rdf-schema#domain,<br> http://www.w3.org/2000/01/rdf-schema#label,<br> http://www.w3.org/2000/01/rdf-schema#range"
+                }
+            },
+            {
+                "name": "Namespace hijacking",
+                "status": "passed"
+            }
+        ],
+        "filesProcessed": [
+            "fragment.ttl"
+        ],
+        "timestamp": "2026-10-15 09:30:00"
+    }
+}

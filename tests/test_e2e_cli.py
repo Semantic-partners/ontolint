@@ -380,3 +380,115 @@ def test_distinct_ontologies_raise_no_duplicate_finding(tmp_path):
     run_main(str(tmp_path), '--per-file', '--ctrf-dir', str(out / 'ctrf'), '--dqv-dir', str(out))
 
     assert _duplicate_sources(out / dqv.DEFAULT_DQV_FILENAME) == {}
+
+
+# --- The flag combinations the two main() paths disagree about ------------------------
+#
+# Each of these is a behavioural difference between the single-run and per-file paths, so
+# collapsing them (#96) has to decide what the combination means. Pinned first, so the
+# collapse is a deliberate change rather than an accident.
+
+DATA_DIR = os.path.join(TESTS_DIR, 'data')
+REPORTERS = os.path.join(DATA_DIR, 'reporters.ttl')
+FRAGMENT = os.path.join(DATA_DIR, 'fragment.ttl')
+
+
+def test_output_option_writes_the_report_to_a_file(tmp_path, capsys):
+    out = tmp_path / 'report.md'
+    run_main(REPORTERS, '-o', str(out), '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    report = out.read_text()
+    assert '## Quality Assurance Checks' in report
+    # Written *instead of* printed, not as well as.
+    assert capsys.readouterr().out == ''
+
+
+def test_output_option_creates_missing_directories(tmp_path):
+    out = tmp_path / 'nested' / 'deeper' / 'report.md'
+    run_main(REPORTERS, '-o', str(out), '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    assert out.exists()
+
+
+def test_output_option_is_ignored_with_per_file(tmp_path, capsys):
+    out = tmp_path / 'report.md'
+    run_main(REPORTERS, FRAGMENT, '--per-file', '-o', str(out),
+             '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    assert not out.exists(), "--per-file is documented as ignoring -o"
+    assert '## Quality Assurance Checks' in capsys.readouterr().out
+
+
+def test_ctrf_filename_is_ignored_with_per_file(tmp_path):
+    ctrf = tmp_path / 'ctrf'
+    run_main(REPORTERS, FRAGMENT, '--per-file', '--ctrf-filename', 'custom.json',
+             '--ctrf-dir', str(ctrf))
+
+    # One report per input, named after it — the single name could not hold two runs.
+    assert sorted(p.name for p in ctrf.glob('*.json')) == [
+        'fragment-qa-report.json', 'reporters-qa-report.json']
+
+
+def test_empty_directory_in_a_single_run_reports_no_rdf_data(tmp_path, capsys):
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+    run_main(str(empty), '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    assert 'ERROR - No RDF data in input files or directories.' in capsys.readouterr().out
+    assert not (tmp_path / 'ctrf').exists() or not list((tmp_path / 'ctrf').glob('*.json'))
+
+
+def test_empty_directory_in_a_single_run_raises_the_exit_status(tmp_path):
+    empty = tmp_path / 'empty'
+    empty.mkdir()
+
+    with pytest.raises(SystemExit) as exit_info:
+        run_main(str(empty), '-e', '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    assert exit_info.value.code == 1
+
+
+def test_profile_only_with_per_file_writes_nothing_and_runs_no_checks(tmp_path, capsys):
+    ctrf = tmp_path / 'ctrf'
+    run_main(REPORTERS, FRAGMENT, '--per-file', '-p', '--ctrf-dir', str(ctrf))
+
+    out = capsys.readouterr().out
+    # Profiling for each input, and no checks: the one combination that produces no CTRF
+    # and no QA report at all.
+    assert out.count('## Profiling Details') == 2
+    assert '## Quality Assurance Checks' not in out
+    assert not ctrf.exists() or not list(ctrf.glob('*.json'))
+
+
+# --- Verbose output -------------------------------------------------------------------
+
+VERBOSE_ONLY = [
+    '**Ontology + Description:**',
+    'PASS - Found 1 ontology with `owl:Ontology` declaration:',
+    'List of deprecated classes:',
+    '| NodeShape | Class count |',
+    '| PropertyShape | Local Property |',
+    '| Ontology | Import URL | Resolves? |',
+]
+
+
+def test_verbose_adds_the_detail_tables(tmp_path, capsys):
+    run_main(REPORTERS, '--ctrf-dir', str(tmp_path / 'ctrf'))
+    plain = capsys.readouterr().out
+    run_main(REPORTERS, '-v', '--ctrf-dir', str(tmp_path / 'ctrf'))
+    verbose = capsys.readouterr().out
+
+    for marker in VERBOSE_ONLY:
+        assert marker in verbose, f"-v should add {marker!r}"
+        assert marker not in plain, f"{marker!r} is not verbose-only after all"
+
+
+def test_verbose_renders_the_same_text_every_time(tmp_path, capsys):
+    run_main(REPORTERS, '-v', '--ctrf-dir', str(tmp_path / 'ctrf'))
+    first = capsys.readouterr().out
+    run_main(REPORTERS, '-v', '--ctrf-dir', str(tmp_path / 'ctrf'))
+
+    # -v was the last mode to become reproducible; nothing it adds may reintroduce a
+    # blank node identifier or an unsorted list.
+    assert capsys.readouterr().out == first
+
