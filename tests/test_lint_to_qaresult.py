@@ -32,6 +32,28 @@ def test_a_lint_produces_the_stored_result(case):
     assert produced.settings == stored.settings
 
 
+def test_no_stored_expectation_embeds_a_checkout_path():
+    """
+    A stored expectation that names where the repo lives matches only the machine that
+    wrote it. It has happened twice — fetchActivity's vocabulary paths, and a violation
+    naming its source file — and both times the suite was green locally and red in CI, so
+    this asserts the class rather than the two instances.
+    """
+    repo = Path(__file__).resolve().parent.parent
+    offenders = []
+    for stored in sorted((repo / 'tests' / 'data').iterdir()):
+        if stored.suffix not in ('.py', '.json', '.ttl'):
+            continue
+        text = stored.read_text()
+        if str(repo) in text:
+            offenders.append(f"{stored.name}: contains the repo root")
+        if 'file:///' in text:
+            # Minted from the working directory, so it is a checkout path by construction.
+            offenders.append(f"{stored.name}: contains a file: IRI")
+
+    assert not offenders, "\n".join(offenders)
+
+
 def test_the_fragment_is_the_only_case_failing_the_metadata_checks():
     """
     The reason the fragment exists. reporters.ttl declares a described ontology, so it

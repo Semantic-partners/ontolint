@@ -25,6 +25,7 @@ EXPECTED = QAResult(
     profiling={
         'filesProcessed': ['reporters_fragment.ttl'],
         'triples': 11,
+        'sourceIRIs': ['https://example.org/input/reporters_fragment.ttl'],
         'classCount': Literal(2),
         'propertyCount': Literal(1),
         'nodeShapes': Literal(0),
@@ -73,7 +74,7 @@ EXPECTED = QAResult(
     checks=[
         CheckResult(name='Ontology without declaration', key='ontologyNotDeclared', passed=False, count=1,
                     elements='**All** processed files missing ontology declaration.',
-                    violations=[Violation('file:///Users/johnplacek/dev/sp/ontolint/reporters_fragment.ttl', comment='no owl:Ontology declaration')]),
+                    violations=[Violation('https://example.org/input/reporters_fragment.ttl', comment='no owl:Ontology declaration')]),
         CheckResult(name='Ontology without description', key='ontologyDescription', passed=False, count=1,
                     elements='No ontology declared',
                     violations=[Violation(None, comment='no ontology declared')]),
@@ -150,7 +151,7 @@ EXPECTED = QAResult(
                     elements='',
                     violations=[]),
     ],
-    datasets=[Dataset(iri='file:///Users/johnplacek/dev/sp/ontolint/reporters_fragment.ttl', label='reporters_fragment.ttl')],
+    datasets=[Dataset(iri='https://example.org/input/reporters_fragment.ttl', label='reporters_fragment.ttl')],
     settings=[
         ConfigSetting('checks', 'ontologyNotDeclared', 'default', reason='Enabled by default', enabled=True, label='Ontology without declaration'),
         ConfigSetting('checks', 'ontologyDescription', 'default', reason='Enabled by default', enabled=True, label='Ontology without description'),

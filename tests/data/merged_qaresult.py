@@ -25,6 +25,7 @@ EXPECTED = QAResult(
     profiling={
         'filesProcessed': ['reporters.ttl', 'reporters_fragment.ttl'],
         'triples': 105,
+        'sourceIRIs': ['https://example.org/input/reporters.ttl', 'https://example.org/input/reporters_fragment.ttl'],
         'classCount': Literal(10),
         'propertyCount': Literal(8),
         'nodeShapes': Literal(3),

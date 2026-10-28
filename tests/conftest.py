@@ -87,10 +87,18 @@ def case_graph(case):
     return graph
 
 
+# What each input is reported as. Without these, a check that names its source mints
+# file:///<cwd>/<name>, so the stored expectation would embed the checkout path and match
+# only the machine that generated it. source_iris exists for exactly this.
+SOURCE_IRI = 'https://example.org/input/'
+
+
 def lint_case(case):
     """The QAResult linting a case produces — what test_lint_to_qaresult.py checks."""
     from scripts.ontology_qa import Config, lint_graph
-    return lint_graph(case_graph(case), list(CASES[case]), Config(uri_parser=_offline))
+    names = list(CASES[case])
+    return lint_graph(case_graph(case), names, Config(uri_parser=_offline),
+                      source_iris=[SOURCE_IRI + name for name in names])
 
 
 def stored_qa_result_for(case):
