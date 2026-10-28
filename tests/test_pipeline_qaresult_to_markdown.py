@@ -1,14 +1,14 @@
 """
-lint -> Markdown: linting `tests/data/reporters.ttl` renders the Markdown stored in
-`tests/data/reporters_markdown.py`.
+QAResult -> Markdown: the stored `QAResult` renders the Markdown stored in
+`tests/data/reporters_report.md`, and a fresh lint renders the same thing.
 
 The stored text is the expectation, exactly as the stored QAResult is for the checks. The
 assertions after it are not a second expectation — they say *why* parts of it must hold, so
 a failure explains itself instead of handing over a 189-line diff.
 
-Markdown is the one reporter that is not a projection of QAResult: the per-check text is
-rendered inside each check as it runs (see design.md). When that moves, the stored text
-stays as it is and only the way it is produced changes — which is how the move gets checked.
+Markdown is a projection of QAResult like the other two reporters (#101). The stored text
+is unchanged by that move but for the inconsistencies it straightened out, which is how the
+move was checked.
 """
 
 import os
@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import CASES, render_case, stored_markdown_for
+from tests.conftest import CASES, render_result, stored_markdown_for, stored_qa_result_for
 from tests.golden import write_markdown
 
 # An rdflib blank node identifier: invented per parse, so it must never reach the report.
@@ -27,9 +27,21 @@ RAW_BNODE = re.compile(r'\bn[0-9a-f]{32}b\d+\b')
 
 
 @pytest.mark.parametrize('case', CASES)
-def test_a_lint_renders_the_stored_markdown(case):
-    """Every case, whole. The assertions below are about the main case's content."""
-    rendered = render_case(case)
+def test_it_renders_the_stored_markdown(case):
+    """
+    The projection, whole, from the **stored** QAResult.
+
+    Like the CTRF and DQV suites, this takes the stored instance rather than a freshly
+    linted one, so it tests the reporter alone: a change to what a check finds cannot break
+    it, and a reporter bug cannot be blamed on the checks.
+
+    Nothing here asserts that a *lint* renders this text, because nothing needs to: linting
+    produces the stored instance (`test_pipeline_lint_to_qaresult.py`) and the stored
+    instance renders this (above), so the composition holds. The tests below use a fresh
+    lint for a different reason — to render twice and compare the renders, which is how
+    instability shows up at all.
+    """
+    rendered = render_result(stored_qa_result_for(case))
     if os.environ.get('UPDATE_GOLDEN'):
         pytest.skip(f"updated {write_markdown(case, rendered, CASES[case]).name}")
 
@@ -60,7 +72,7 @@ def blocked(*args, **kwargs):
 socket.getaddrinfo = blocked
 socket.socket.connect = blocked
 
-from scripts.ontology_qa import main
+from scripts.ontology_qa import CHECKLIST, main
 sys.argv = ['ontology_qa.py', os.path.join(root, 'tests/data/reporters.ttl'),
             '--ctrf-dir', ctrf]
 main()
@@ -94,3 +106,25 @@ def test_no_blank_node_identifier_reaches_the_report(stored_markdown):
     assert not RAW_BNODE.search(stored_markdown), "a raw blank node identifier reached the report"
 
 
+
+
+def test_the_metrics_table_scores_no_check_it_could_not_compute():
+    """
+    A skipped check gets no score, because every number in that row is one.
+
+    It used to get the worst one. `normalise(count, total)` ends with
+    `if count == total: out = 1`, and a check with nothing to measure has 0 of 0 — so
+    *"no NodeShapes exist"* and *"every NodeShape is unlabelled"* rendered identically,
+    while the section above said `WARNING - No NodeShape defined, invalid metric.`
+    """
+    result = stored_qa_result_for('fragment')
+    skipped = {c.key for c in result.checks if c.status == 'skipped'}
+    assert skipped, "the fragment case should skip several checks"
+
+    # The last such row is the QA metrics table; the profiling table above it starts alike.
+    row = [cell.strip() for cell in
+           [line for line in render_result(result).splitlines()
+            if line.startswith('| fragment.ttl |')][-1].strip('|').split('|')]
+    # By count, not by column: print_qa_table writes its columns in its own order, which is
+    # not the checklist's, so there is nothing to pair a cell with.
+    assert row.count('skipped') == len(skipped), f"{len(skipped)} skipped, {row.count('skipped')} cells say so"

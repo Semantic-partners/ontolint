@@ -1,4 +1,4 @@
-from scripts.ontology_qa import run_qa
+from scripts.ontology_qa import CHECKLIST, render_markdown, run_qa
 
 
 # ── Classes ───────────────────────────────────────────────────────────────────
@@ -48,8 +48,8 @@ def test_class_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :Cat a owl:Class ; rdfs:comment "The class of all cats." .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("The class of all cats." in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "The class of all cats." in rendered
 
 
 # ── Properties ────────────────────────────────────────────────────────────────
@@ -75,8 +75,8 @@ def test_property_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFur a owl:ObjectProperty ; rdfs:comment "Connects to fur." .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Connects to fur." in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Connects to fur." in rendered
 
 
 # ── NodeShapes ────────────────────────────────────────────────────────────────
@@ -101,8 +101,8 @@ def test_node_shape_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :CatShape a sh:NodeShape ; rdfs:comment "Validates cat entities." .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Validates cat entities." in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Validates cat entities." in rendered
 
 
 # ── PropertyShapes ────────────────────────────────────────────────────────────
@@ -127,5 +127,5 @@ def test_property_shape_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFurShape a sh:PropertyShape ; rdfs:comment "Validates fur property." .
     """)
-    logs = run_qa(g, verbose=True).logs
-    assert any("Validates fur property." in log for log in logs)
+    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    assert "Validates fur property." in rendered

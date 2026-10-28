@@ -30,10 +30,9 @@ input still produces this. Regenerate with:
 
 and read the diff: a new check should be a deliberate addition to the expectation.
 
-`logs` and `elements` are left empty. They are the Markdown's raw material — rendered text
-and profiling detail — consumed by no other reporter, and they leave QAResult entirely once
-Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers
-them.
+`elements` is the profiling detail a verbose report lists — which vocabularies were used,
+what was deprecated — and it is stored like the rest, because the Markdown reporter is a
+projection of this instance and needs it (#101).
 """
 
 {imports}from scripts.dqv import ConfigSetting, Dataset, Violation
@@ -41,28 +40,6 @@ from scripts.ontology_qa import CheckResult, QAResult
 
 EXPECTED = QAResult(
 '''
-
-MARKDOWN_HEADER = '''"""
-The Markdown that linting {inputs} produces, written out as data.
-
-`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. Regenerate
-with:
-
-    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_markdown.py
-
-Markdown is not a projection of QAResult yet — the per-check text is rendered inside each
-check as it runs — so this is the output of the lint, not of a reporter (see design.md).
-When it does become a projection, this file stays as it is and only the way it is produced
-changes, which is how the move will be checked.
-
-The report assembled by `main()` wraps this with the heading, the load log and the config
-log. Those are run context rather than anything the checks produced, and they carry input
-paths, so they are covered by `test_e2e_cli.py` instead.
-"""
-
-EXPECTED = """
-'''
-
 
 def _term(value):
     if isinstance(value, URIRef):
@@ -106,6 +83,11 @@ def _profiling_value(key, value, repo):
     if isinstance(value, list):
         return "[" + ", ".join(
             _term(v) if isinstance(v, (URIRef, BNode, Literal)) else repr(v) for v in value) + "]"
+    if isinstance(value, dict):
+        # profiling detail: a column name to the terms under it. repr() would render each
+        # as rdflib.term.URIRef(...), which the stored module does not import.
+        return "{" + ", ".join(
+            f"{k!r}: {_profiling_value(k, v, repo)}" for k, v in sorted(value.items())) + "}"
     if isinstance(value, (URIRef, BNode, Literal)):
         return _term(value)
     return repr(value)
@@ -122,6 +104,10 @@ def write_qaresult(case, result, inputs):
     for key, value in result.profiling.items():
         body.append(f"        {key!r}: {_profiling_value(key, value, repo)},")
     body.append("    },")
+    body.append("    elements={")
+    for key, value in sorted(result.elements.items()):
+        body.append(f"        {key!r}: {_profiling_value(key, value, repo)},")
+    body.append("    },")
     body.append("    checks=[")
     for check in result.checks:
         body.append(f"        CheckResult(name={check.name!r}, key={check.key!r}, "
@@ -129,6 +115,10 @@ def write_qaresult(case, result, inputs):
         body.append(f"                    elements={check.elements!r},")
         if check.reason:
             body.append(f"                    reason={check.reason!r},")
+        if check.outcome:
+            body.append(f"                    outcome={check.outcome!r},")
+        if check.body:
+            body.append(f"                    body={check.body!r},")
         if not check.violations:
             body.append("                    violations=[]),")
         else:
@@ -157,12 +147,16 @@ def write_qaresult(case, result, inputs):
 
 
 def write_markdown(case, rendered, inputs):
-    """Write tests/data/<case>_markdown.py from a freshly rendered report."""
-    # EXPECTED = """ already supplies the opening newline.
-    body = rendered[1:] if rendered.startswith("\n") else rendered
-    assert '"""' not in body, "the rendered report cannot be stored as a triple-quoted string"
-    path = DATA / f'{case}_markdown.py'
-    path.write_text(MARKDOWN_HEADER.format(inputs=_inputs_phrase(inputs)) + body + '"""\n')
+    """
+    Write tests/data/<case>_report.md from a freshly rendered report.
+
+    Stored as the Markdown it is, not as a string in a Python module: it is the artefact a
+    reviewer reads when a report changes, and a diff of Markdown is legible where a diff of
+    a quoted string literal is not. Nothing explains the file inside it, because anything
+    that did would be part of the expectation — see test_pipeline_qaresult_to_markdown.py.
+    """
+    path = DATA / f'{case}_report.md'
+    path.write_text(rendered)
     return path
 
 

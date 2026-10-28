@@ -1,22 +1,4 @@
-"""
-The Markdown that linting `reporters.ttl` and `fragment.ttl` together produces, written out as data.
 
-`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. Regenerate
-with:
-
-    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_markdown.py
-
-Markdown is not a projection of QAResult yet — the per-check text is rendered inside each
-check as it runs — so this is the output of the lint, not of a reporter (see design.md).
-When it does become a projection, this file stays as it is and only the way it is produced
-changes, which is how the move will be checked.
-
-The report assembled by `main()` wraps this with the heading, the load log and the config
-log. Those are run context rather than anything the checks produced, and they carry input
-paths, so they are covered by `test_e2e_cli.py` instead.
-"""
-
-EXPECTED = """
 ## Profiling Details
 
 RDF/OWL classes: 11
@@ -192,7 +174,7 @@ VIOLATION - Found 1 isolated classes:
 
 --------------------
 
-Check 19: Missing Domain in Properties.
+Check 19: Property without domain.
 WARNING - Found 2 properties without `rdfs:domain` or `rdfs:range` declaration:
 
 | Property | Domain | Range |
@@ -205,7 +187,7 @@ VIOLATION - Found 1 properties without `rdfs:domain` declaration:
 
 --------------------
 
-Check 20: Missing Range in Properties.
+Check 20: Property without range.
 VIOLATION - Found 1 properties without `rdfs:range` declaration:
  - https://example.org/reporters#withoutRange
 
@@ -235,7 +217,7 @@ WARNING - Some ontology namespaces are not defined. The reported violations may 
 
 Check 24: Untyped Properties.
 VIOLATION - Found 1 property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:
-https://example.org/reporters#curatedBy
+ - https://example.org/reporters#curatedBy
 WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.
 
 --------------------
@@ -258,5 +240,4 @@ WARNING - Some ontology namespaces are not defined. The reported violations may 
 ## Quality Assurance Metrics
 | Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| https://example.org/reporters#,<br> 1 URIs not found. | 0.500 | 0 | 0 | 1 | 5 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.083 | 1 | 2 | 1 | 1 | 4 |
-"""
+| https://example.org/reporters#,<br> 1 URIs not found. | 0.500 | skipped | 0 | 1 | 5 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.083 | 1 | 2 | 1 | 1 | 4 |

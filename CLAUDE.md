@@ -65,21 +65,23 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 
 **The four reporter suites** turn on three files in `tests/data/`: the input
 `reporters.ttl`, and two expectations written out as data — `reporters_qaresult.py`, the
-`QAResult` that linting it produces, and `reporters_markdown.py`, the Markdown it renders.
+`QAResult` that linting it produces, and `reporters_report.md`, the Markdown it renders.
 
-- `test_pipeline_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
-  only one that runs the checks, and the only one a check change should break. When a
-  check changes on purpose, update the stored instance from the diff it prints.
-- `test_pipeline_qaresult_to_ctrf.py` and `test_pipeline_qaresult_to_dqv.py` take the **stored** instance as
-  input, so they test the projection alone — a change to what a check finds cannot break
-  them, and a reporter bug cannot be blamed on the checks.
-- `test_pipeline_lint_to_markdown.py` asserts a lint still renders the stored Markdown. It has to
-  run the linter, because Markdown is not a projection of `QAResult` yet (see design.md).
-  Its other assertions are not a second expectation — they say why parts of the text must
-  hold, so a failure explains itself instead of handing over a 189-line diff.
+- `test_pipeline_lint_to_qaresult.py` asserts lint still produces the stored instance. A
+  check change should break it and nothing else. When a check changes on purpose, update
+  the stored instance from the diff it prints.
+- `test_pipeline_qaresult_to_ctrf.py`, `test_pipeline_qaresult_to_dqv.py` and
+  `test_pipeline_qaresult_to_markdown.py` take the **stored** instance as input, so they
+  test the projection alone — a change to what a check finds cannot break them, and a
+  reporter bug cannot be blamed on the checks.
+  `test_pipeline_qaresult_to_markdown.py`'s other assertions are not a second expectation —
+  they say why parts of the text must hold, so a failure explains itself instead of handing
+  over a 189-line diff. It renders a *fresh* lint only to render twice and compare the two,
+  which is how an unstable rendering shows up at all.
 
-Verified by sabotage: breaking a check fails only suite 1, breaking the DQV reporter fails
-only suite 4, and changing a line of report wording fails only suite 2. Add to `reporters.ttl` rather than starting another fixture — it is
+Verified by sabotage: breaking a check fails only suite 1 (and the end-to-end tests),
+breaking the DQV reporter fails only suite 4, and changing how the Markdown reporter lays
+out a list fails only suite 2. Add to `reporters.ttl` rather than starting another fixture — it is
 deliberately mixed (passing and failing checks, a blank node as a domain, a duplicate
 label, a deprecated class, an isolated class) and needs no network.
 
@@ -99,7 +101,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
 | `test_pipeline_lint_to_qaresult.py` | **Reporter suite 1 of 4.** Linting `reporters.ttl` still produces the stored `QAResult` — the checks that ran, what each decided, profiling, datasets, configuration |
-| `test_pipeline_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
+| `test_pipeline_qaresult_to_markdown.py` | **Suite 2.** The **stored** QAResult projected to Markdown — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs and across hash seeds |
 | `test_pipeline_qaresult_to_ctrf.py` | **Suite 3.** The **stored** QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
 | `test_pipeline_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
 | `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
@@ -135,13 +137,14 @@ All `.sparql` files in `./sparql/` are loaded at **module import time** into the
 
 Every check function follows the same pattern:
 ```python
-def check_*(in_metrics, graph, name, check, c, status, verbose) -> (metrics, violations, log, c, status)
+def check_*(in_metrics, graph, check, status, verbose) -> (metrics, violations, status)
 ```
 - `in_metrics` — profiling metrics dict (read-only context, e.g. class count for normalisation)
 - `check` — dictionary key of the QA check being run, e.g. `missing_class_labels` (used for CTRF test results)
-- `c` — running QA check counter (incremented and returned)
 - `status` — running violation count (incremented on failure and returned)
 - Returns separate dicts so `main()` can merge them with `update()`
+- A check records what it found through `decided()`, `note()` and `tabulate()`, and renders
+  nothing: `render_markdown()` lays out the section, including its number and heading (#101)
 
 QA metrics are normalised (0–1) against their totals in `print_qa_table()`; raw counts appear in verbose/detailed output.
 

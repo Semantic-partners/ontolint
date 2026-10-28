@@ -1,4 +1,4 @@
-from scripts.ontology_qa import exec_sparql, run_qa
+from scripts.ontology_qa import CHECKLIST, exec_sparql, render_markdown, run_qa
 
 
 # ── Isolated Classes ──────────────────────────────────────────────────────────
@@ -82,15 +82,17 @@ def test_property_missing_both_domain_and_range_fails(make_graph):
     assert not result.get("Property without domain").passed
     assert not result.get("Property without range").passed
 
-def test_property_with_domain_and_range_markdown(make_graph):
+def test_domain_and_range_are_reported_as_two_checks(make_graph):
+    # One function serves both checks, so the report has to show a section for each — and
+    # under the same names the CTRF and DQV reports use, which it did not until #101.
     g = make_graph("""
     :hasFur a owl:ObjectProperty ;
         rdfs:domain :Cat ;
         rdfs:range :Fur .
     """)
-    result = run_qa(g)
-    assert any("Missing Domain in Properties" in log for log in result.logs)
-    assert any("Missing Range in Properties" in log for log in result.logs)
+    rendered = render_markdown(run_qa(g), CHECKLIST)
+    assert "Check 19: Property without domain." in rendered
+    assert "Check 20: Property without range." in rendered
 
 
 # ── Non-Unique Identifiers ────────────────────────────────────────────────────
@@ -235,11 +237,11 @@ def test_untyped_checks_say_the_metric_is_invalid_rather_than_passing(make_graph
     # Reporting nothing must not read as PASS: nothing was looked at. Each check says so
     # in its own log, so a reader is not told the file is clean on this point.
     g = make_graph(""":DeclaredClass a owl:Class . :Dog :chases :Cat .""")
-    logs = run_qa(g).logs
+    rendered = render_markdown(run_qa(g), CHECKLIST)
     for word in ("class", "property"):
         expected = (f"WARNING - Ontology namespace undefined, invalid metric. No way to confirm "
                     f"if a {word} is defined in the ontology or an external vocabulary.")
-        assert any(expected in log for log in logs), word
+        assert expected in rendered, word
 
 
 def test_untyped_class_pass_class_from_external_ontology(make_graph):

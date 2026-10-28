@@ -44,7 +44,7 @@ computed on, and the configuration that ran.
 
 | | granularity | built from | pinned by |
 |---|---|---|---|
-| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_pipeline_lint_to_markdown.py` |
+| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_pipeline_qaresult_to_markdown.py` |
 | **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `<case>_ctrf.json`, via `tests/test_pipeline_qaresult_to_ctrf.py` |
 | **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `<case>_dqv.ttl`, via `tests/test_pipeline_qaresult_to_dqv.py`; run shapes in `tests/dqv/*/expected.ttl` |
 
@@ -69,7 +69,7 @@ handing over a thousand-line diff.
 | suite | input | asserts |
 |---|---|---|
 | `test_pipeline_lint_to_qaresult.py` | the `.ttl` files | lint still produces the stored `QAResult` |
-| `test_pipeline_lint_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
+| `test_pipeline_qaresult_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
 | `test_pipeline_qaresult_to_ctrf.py` | the stored `QAResult`s | the CTRF projection |
 | `test_pipeline_qaresult_to_dqv.py` | the stored `QAResult`s | the DQV projection |
 
@@ -200,43 +200,66 @@ Two rules for anything that reaches a stored expectation:
 Running the whole suite from a second checkout at a different path is the cheapest way to
 catch the first before CI does.
 
-## Markdown is not a projection of QAResult (yet)
+## The three reporters are projections of QAResult
 
-Worth stating plainly, because it is the thing most likely to be assumed otherwise: **you
-cannot write a `QAResult → Markdown` test today.** Markdown is assembled from three
-different kinds of source:
+`build_ctrf_report()`, `dqv.build_dqv_graph()` and `render_markdown()` each take a finished
+`QAResult` and render it. None of them runs a check, and each is tested at its own boundary
+against the stored instance under `tests/data/`.
 
-1. **Projections of `QAResult`** — `print_profiling_metrics()`, `print_profiling_table()`
-   and `print_qa_table()` render from `result.profiling`, `result.elements` and the
-   checklist. These *are* projections.
-2. **Text the checks already rendered.** Each `check_*` builds a `log` string as it runs
-   and `run_qa()` collects them into `result.logs`. The Markdown for every check is
-   therefore produced *inside* the check, as a side effect of running it, and the reporter
-   only concatenates. A test at this boundary would assert that concatenation concatenates.
-3. **Run context that never reaches `QAResult`** — the load log (which files parsed, which
-   failed) and the config log (what `.rdf-lint.yml` changed), both assembled in `main()`.
+Markdown was the exception until #101: each check built its own text as it ran, `run_qa()`
+collected the strings into `result.logs`, and the "reporter" concatenated them. So the only
+boundary that existed was argv → stdout, and a `QAResult → Markdown` test would have
+asserted that concatenation concatenates.
 
-So the only boundary that exists for Markdown is **argv → stdout**, and that is what the
-end-to-end goldens pin.
+**What a check records now.** `CheckResult.body` is the parts of its section in the order
+the check recorded them, through three calls:
 
-The reporter suites are built around that split. `tests/data/reporters_qaresult.py` holds
-a `QAResult` as data; `test_pipeline_qaresult_to_ctrf.py` and `test_pipeline_qaresult_to_dqv.py` take **that
-instance** and assert the projection, so they never run a check.
-`test_pipeline_lint_to_qaresult.py` keeps the stored instance honest by asserting lint still
-produces it — normalising the vocabulary paths in `fetchActivity` to the repo root first,
-since a stored expectation that embeds the checkout path matches only the machine that
-wrote it — and `test_pipeline_lint_to_markdown.py` does the same for `reporters_markdown.py`, the
-rendered text stored beside it. Markdown is the odd one out only in *how* it is produced:
-it has to run the linter, because the per-check text is rendered inside the checks. Once it
-is a projection, the stored text stays exactly as it is and only the way it is produced
-changes — which is how the move gets checked.
+| | |
+|---|---|
+| `decided(violations, check, sentence, detail)` | the verdict, and whether its elements are listed under it. Also kept apart on `CheckResult.outcome`, as the one part a consumer other than a reporter might want |
+| `note(violations, check, line)` | a line of its own — a caveat, an aside, a heading for what follows |
+| `tabulate(violations, check, headers, rows)` | a table as data: column headings and rows of cells, `verbose_only=True` for the ones only a verbose run shows |
 
-**The target** is for Markdown to become a projection like the other two: checks return
-data only, a renderer turns a `QAResult` into Markdown, and run context is carried on the
-result rather than accumulated alongside it. Then all three reporters are projections of
-the same data, each testable at its own boundary, and the reporters stop constraining how
-the insides are organised. That is a change to make deliberately, not a prerequisite for
-the ones in flight.
+An ordered list rather than a verdict plus trailing notes, because several checks compose a
+narrative: owl-imports says *"2 import(s) resolved from local file(s)"* **before** its
+verdict, and undefined-terms lists its remote namespace activity after.
+
+**What the reporter decides.** The number, heading and rule of each section; how a list of
+elements is laid out; how a table is drawn; whether a verbose-only table is drawn at all.
+`check_owl_declaration` used to trim the full stop off a sentence it had already written so
+that a list could follow — something only a check that writes its own report can do. It now
+settles how its verdict ends before saying it.
+
+**Thirteen checks run a second query purely for the verbose table** — every property's
+domain and range, every class's label. Those rows are data on the result, so the reporter
+needs nothing but the result; handing it the graph instead would have defeated the point.
+
+**The boundary this buys.** Breaking a check now fails `test_pipeline_lint_to_qaresult.py`
+and the end-to-end tests, and leaves the Markdown suite alone; breaking the reporter fails
+only the Markdown suite. Nothing asserts that a *lint* renders the stored text any more,
+because nothing needs to: linting produces the stored instance and the stored instance
+renders the stored text, so the composition holds. Both directions verified by sabotage.
+
+**A skipped check gets no score.** Every number in the QA metrics table is one, and
+`normalise(count, total)` ends with `if count == total: out = 1` — so a check with nothing
+to measure, 0 of 0, scored **1**, the same as one where every single element failed.
+*"No NodeShapes exist"* and *"every NodeShape is unlabelled"* rendered identically, while
+the section above said `WARNING - No NodeShape defined, invalid metric.` The table now reads
+`CheckResult.status` rather than re-deriving a verdict from counts: `N/A` for a check that
+was not selected, `skipped` for one that ran and could not measure.
+
+The same split had been in the aggregated CTRF report, where
+`{{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}}` rendered a skipped check as a
+**failure**. Its summary now carries a Skipped column, and each row's status cell is worked
+out in `generate_custom_report.describe_status()` rather than in the template — the
+hand-rolled renderer has no nested conditionals, and a three-way status needs one.
+
+**How the move was checked.** The stored Markdown under `tests/data/*_report.md` was the
+expectation throughout, and the conversion went check by check with it green. It moved four
+times, each an inconsistency straightened rather than a change of substance: two checks were
+titled differently in Markdown than in CTRF and DQV, table headings had a stray double
+space, some verbose tables had a blank line before them and others did not, and one
+violation list omitted the `-` bullet every other list has.
 
 ## per-file
 

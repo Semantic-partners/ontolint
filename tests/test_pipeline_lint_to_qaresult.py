@@ -7,7 +7,7 @@ honest. When a check changes on purpose, this fails and the stored instance is e
 match — deliberately, in a diff a reviewer can read.
 
 `logs` and `elements` are not compared: they are the Markdown's raw material and are left
-empty in the stored instance (see its docstring). `test_pipeline_lint_to_markdown.py` covers them.
+empty in the stored instance (see its docstring). `test_pipeline_qaresult_to_markdown.py` covers them.
 """
 
 import os

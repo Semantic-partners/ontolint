@@ -1,22 +1,4 @@
-"""
-The Markdown that linting `fragment.ttl` produces, written out as data.
 
-`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. Regenerate
-with:
-
-    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_markdown.py
-
-Markdown is not a projection of QAResult yet — the per-check text is rendered inside each
-check as it runs — so this is the output of the lint, not of a reporter (see design.md).
-When it does become a projection, this file stays as it is and only the way it is produced
-changes, which is how the move will be checked.
-
-The report assembled by `main()` wraps this with the heading, the load log and the config
-log. Those are run context rather than anything the checks produced, and they carry input
-paths, so they are covered by `test_e2e_cli.py` instead.
-"""
-
-EXPECTED = """
 ## Profiling Details
 
 RDF/OWL classes: 2
@@ -153,13 +135,13 @@ PASS - All classes are connected to another class through a subclass or property
 
 --------------------
 
-Check 19: Missing Domain in Properties.
+Check 19: Property without domain.
 INFO - All properties have domain and range defined.
 PASS - All properties have domain defined.
 
 --------------------
 
-Check 20: Missing Range in Properties.
+Check 20: Property without range.
 PASS - All properties have range defined.
 
 --------------------
@@ -198,5 +180,4 @@ WARNING - Ontology namespace undefined. The reported violations may be incorrect
 ## Quality Assurance Metrics
 | Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| fragment.ttl | 1 | 0 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-"""
+| fragment.ttl | 1 | 0 | skipped | 0 | 3 | 0 | 0 | skipped | skipped | 0 | 0 | skipped | skipped | 0 | 0 | skipped | skipped | 0 | 0 | 0 | 0 | 0 | skipped | skipped | 0 |
