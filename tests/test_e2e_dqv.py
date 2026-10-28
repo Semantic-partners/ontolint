@@ -15,7 +15,8 @@ exercises each kind of setting. The other reports show only the results.
 
 The test runs ontolint's CLI (main()) from inside the case directory, so input paths and
 config resolution match a real run, and compares the report with expected.ttl as RDF graphs.
-The report timestamp is pinned with SOURCE_DATE_EPOCH, so minted IRIs are reproducible.
+main() takes no clock, so dqv.utc_now is patched to pin the report timestamp, and with it
+every minted IRI.
 
 After an intentional change to the report, regenerate the expected files and review the diff:
 
@@ -23,18 +24,20 @@ After an intentional change to the report, regenerate the expected files and rev
 """
 import os
 import shlex
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import rdflib
 
+from scripts import dqv
 from scripts.ontology_qa import main
 
 CASES_DIR = Path(__file__).parent / 'dqv'
 CASES = sorted(p.name for p in CASES_DIR.iterdir() if p.is_dir())
 BASE_URI = 'https://example.org/qa#'
-EPOCH = '1790000000'  # 2026-09-21T14:13:20Z
+AT = datetime(2026, 9, 21, 14, 13, 20, tzinfo=timezone.utc)
 CONFIG_CASE = 'configuration'
 OLQ = rdflib.Namespace('https://ontolint.org/ns#')
 
@@ -58,7 +61,7 @@ def _run_case(case_dir, out_dir):
     cwd = os.getcwd()
     os.chdir(case_dir)
     try:
-        with patch('sys.argv', argv), patch.dict(os.environ, {'SOURCE_DATE_EPOCH': EPOCH}):
+        with patch('sys.argv', argv), patch.object(dqv, 'utc_now', lambda: AT):
             main()
     finally:
         os.chdir(cwd)

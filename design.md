@@ -218,8 +218,9 @@ expected output can be pinned. Two things are needed and are in place:
   Anything needing stable identity has it in the DQV report, where blank nodes are
   skolemized under the report's base.
 
-`SOURCE_DATE_EPOCH` pins the report timestamp, so with the same inputs and base URI the DQV
-report — including every minted IRI — is reproducible.
+The DQV report's clock is injected — `build_dqv_graph(results, date_time_provider=…)` —
+and pinning it makes the report, every minted IRI included, reproducible for the same
+inputs and base URI.
 
 **Rendering twice in one process is not enough to prove it.** `PYTHONHASHSEED` is fixed
 for a process's lifetime, so anything ordered by a hash renders identically both times
@@ -234,10 +235,12 @@ over identical inputs differ by that one field. The clock is injected —
 Nothing else in the report varies, so a caller that supplies a clock gets a byte-identical
 file, which is what `tests/data/reporters_ctrf.json` is compared against.
 
-The two reporters pin their clocks differently on purpose. DQV reads `SOURCE_DATE_EPOCH`
-because its *minted IRIs* derive from the timestamp, so a whole run has to agree on one
-instant even across processes. CTRF has no such dependency — only the one field — so the
-clock is a parameter, and the published format keeps the wall clock it has always carried.
+Both reporters pin their clocks the same way, through an injected `date_time_provider`.
+The stakes differ: CTRF's timestamp is one field, while DQV's *minted IRIs* derive from
+it, so an unpinned DQV run names every measurement differently. DQV's default is looked
+up as `dqv.utc_now` when the report is built rather than bound as the parameter's
+default, so the CLI — which has no caller to inject one — can still have its clock
+replaced, which is how `tests/test_e2e_dqv.py` compares against committed reports.
 
 ## Todo
 

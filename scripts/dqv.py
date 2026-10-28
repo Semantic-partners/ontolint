@@ -230,11 +230,8 @@ def _add_metric(g, base, slug, label, definition, dimension, severity=None):
     return m
 
 
-def _report_timestamp():
-    """Now, or SOURCE_DATE_EPOCH (reproducible-builds convention) if set, in UTC."""
-    epoch = os.environ.get("SOURCE_DATE_EPOCH")
-    if epoch:
-        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+def utc_now():
+    """The default clock for a report. Injected as date_time_provider so a caller can fix it."""
     return datetime.now(timezone.utc)
 
 
@@ -337,7 +334,7 @@ def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies):
     return g
 
 
-def build_dqv_graph(results, base_uri=None, timestamp=None, duplicate_ontologies=None):
+def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_ontologies=None):
     """
     Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
 
@@ -356,10 +353,14 @@ def build_dqv_graph(results, base_uri=None, timestamp=None, duplicate_ontologies
       since merging two identical declarations leaves one triple.
     No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
     under base_uri. The olq: namespace is used only for vocabulary terms.
+
+    date_time_provider supplies the report's timestamp, and every minted IRI derives from
+    it, so a caller that fixes it gets a byte-for-byte reproducible report. It defaults to
+    utc_now, looked up when the report is built rather than bound here, so a run with no
+    caller to inject one (the CLI) can still have its clock replaced.
     """
     base = _normalise_base(base_uri)
-    timestamp = timestamp or _report_timestamp()
-    stamp = timestamp.isoformat()
+    stamp = (date_time_provider or utc_now)().isoformat()
 
     g = graphutil.bound_graph(REPORT_PREFIXES)
 
@@ -461,12 +462,12 @@ def check_dqv_filename(filename):
         raise ValueError(f"--dqv-filename must be a file name without directories or control characters, got {filename!r}; use --dqv-dir for the location")
 
 
-def write_dqv_report(results, file_path, filename=None, base_uri=None, timestamp=None,
-                     duplicate_ontologies=None):
+def write_dqv_report(results, file_path, filename=None, base_uri=None,
+                     date_time_provider=None, duplicate_ontologies=None):
     """Serialise the DQV graph for the given QAResults to Turtle. Returns (graph, log)."""
     filename = filename or DEFAULT_DQV_FILENAME
     check_dqv_filename(filename)
-    g = build_dqv_graph(results, base_uri=base_uri, timestamp=timestamp,
+    g = build_dqv_graph(results, base_uri=base_uri, date_time_provider=date_time_provider,
                         duplicate_ontologies=duplicate_ontologies)
     os.makedirs(file_path, exist_ok=True)
     output_file = os.path.join(file_path, filename)

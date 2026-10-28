@@ -131,7 +131,7 @@ What gets emitted:
       olq:origin olq:OntolintRule ;
       rdfs:comment "Enabled because the ontology-description check was selected and depends on it." .
   ```
-- **Reproducible output:** set `SOURCE_DATE_EPOCH` (seconds since the Unix epoch) to pin the report timestamp. With the same inputs and base URI, the report, including every minted IRI, is then byte-for-byte reproducible.
+- **Reproducible output:** every minted IRI derives from the report timestamp, so a CLI run carries the wall clock. Pin it — `dqv.build_dqv_graph(results, date_time_provider=…)` — and the report, including every minted IRI, is byte-for-byte reproducible for the same inputs and base URI.
 
 ## Python API
 

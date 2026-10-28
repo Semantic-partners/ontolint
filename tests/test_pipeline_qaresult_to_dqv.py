@@ -55,7 +55,7 @@ def test_it_builds_the_stored_report(case):
     so multi-result runs are pinned end-to-end in tests/dqv/, where `per-file/` and
     `merged/` cover both shapes against the CLI.
     """
-    graph = build_dqv_graph([stored_qa_result_for(case)], timestamp=AT)
+    graph = build_dqv_graph([stored_qa_result_for(case)], date_time_provider=lambda: AT)
     stored_path = DATA / f'{case}_dqv.ttl'
     if os.environ.get('UPDATE_GOLDEN'):
         stored_path.write_text(graph.serialize(format='turtle'), encoding='utf-8')

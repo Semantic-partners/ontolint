@@ -56,7 +56,7 @@ def test_metric_slugs_are_unique():
 
 
 def test_metrics_and_dimensions_are_declared(make_graph):
-    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology . :Dog a owl:Class .")), ], timestamp=TS)
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology . :Dog a owl:Class .")), ], date_time_provider=lambda: TS)
     m = _metric("properties-same-label")
     assert (m, RDF.type, DQV.Metric) in g
     assert g.value(m, SKOS.prefLabel) == Literal("Properties with the same label")
@@ -79,7 +79,7 @@ def test_violations_attributed_to_check_and_dataset(make_graph):
     :delegatedTo a owl:ObjectProperty ; rdfs:label "assigned to" .
     """)
     result = _qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})
-    dqv = build_dqv_graph([result], timestamp=TS)
+    dqv = build_dqv_graph([result], date_time_provider=lambda: TS)
 
     same_label = _measurement(dqv, "properties-same-label", "http://example.org#")
     assert (same_label, RDF.type, DQV.QualityMeasurement) in dqv
@@ -99,7 +99,7 @@ def test_same_label_violations_are_structured(make_graph):
     :assignedTo a owl:ObjectProperty ; rdfs:label "assigned to"@en .
     :delegatedTo a owl:ObjectProperty ; rdfs:label "assigned to"@en .
     """)
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     m = _measurement(dqv, "properties-same-label")
     node = next(v for v in dqv.objects(m, OLQ.violation) if dqv.value(v, SH.focusNode) == EX.assignedTo)
     assert (node, RDF.type, SH.ValidationResult) in dqv
@@ -118,7 +118,7 @@ def test_same_label_in_two_languages_gives_distinct_violations(make_graph):
     :a a owl:ObjectProperty ; rdfs:label "x"@en, "x"@fr .
     :b a owl:ObjectProperty ; rdfs:label "x"@en, "x"@fr .
     """)
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     nodes = list(dqv.objects(_measurement(dqv, "properties-same-label"), OLQ.violation))
     assert len(nodes) == 4
     for node in nodes:
@@ -133,7 +133,7 @@ def test_same_label_with_different_datatypes_gives_distinct_violations(make_grap
     :a a owl:ObjectProperty ; rdfs:label "1", "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
     :b a owl:ObjectProperty ; rdfs:label "1", "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
     """)
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     nodes = list(dqv.objects(_measurement(dqv, "properties-same-label"), OLQ.violation))
     assert len(nodes) == 4
     assert all(len(list(dqv.objects(n, SH.value))) == 1 for n in nodes)
@@ -141,14 +141,14 @@ def test_same_label_with_different_datatypes_gives_distinct_violations(make_grap
 
 def test_import_violation_related_to_importing_ontology(make_graph):
     g = make_graph(f": a owl:Ontology ; owl:imports <{MISSING_IMPORT}> . :Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})], date_time_provider=lambda: TS)
     node = dqv.value(_measurement(dqv, "unresolvable-imports"), OLQ.violation)
     assert dqv.value(node, OLQ.relatedResource) == URIRef("http://example.org#")
 
 
 def test_warning_severity_uses_shacl_warning(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class ; rdfs:label \"Dog\" .")
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     m = _measurement(dqv, "classes-missing-description")
     assert dqv.value(m, OLQ.severity) == SH.Warning
     assert dqv.value(dqv.value(m, OLQ.violation), SH.resultSeverity) == SH.Warning
@@ -161,7 +161,7 @@ def test_same_failing_import_from_two_ontologies_gives_two_violations(make_graph
     """)
     result = _qa(g, local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"})
     assert result.get("Unresolvable imports").count == 2
-    dqv = build_dqv_graph([result], timestamp=TS)
+    dqv = build_dqv_graph([result], date_time_provider=lambda: TS)
     nodes = list(dqv.objects(_measurement(dqv, "unresolvable-imports"), OLQ.violation))
     assert len(nodes) == 2
     assert {dqv.value(n, SH.focusNode) for n in nodes} == {URIRef(MISSING_IMPORT)}
@@ -171,7 +171,7 @@ def test_same_failing_import_from_two_ontologies_gives_two_violations(make_graph
 
 def test_passing_checks_have_no_measurement(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     assert not list(dqv.subjects(DQV.isMeasurementOf, _metric("properties-same-label")))
 
 
@@ -181,7 +181,7 @@ def test_rollup_measurement_for_clean_dataset(make_graph):
     """)
     result = _qa(g)
     assert result.passed, [c.name for c in result.failures]
-    dqv = build_dqv_graph([result], timestamp=TS)
+    dqv = build_dqv_graph([result], date_time_provider=lambda: TS)
     rollup = _measurement(dqv, "ontolint-conformance", "http://example.org#")
     assert dqv.value(rollup, DQV.value) == Literal(0)
     assert dqv.value(rollup, OLQ.conforms) == Literal(True)
@@ -196,7 +196,7 @@ def test_rollup_counts_failed_checks(make_graph):
     """)
     result = _qa(g)
     assert result.failures
-    dqv = build_dqv_graph([result], timestamp=TS)
+    dqv = build_dqv_graph([result], date_time_provider=lambda: TS)
     rollup = _measurement(dqv, "ontolint-conformance")
     assert dqv.value(rollup, DQV.value) == Literal(len(result.failures))
     assert dqv.value(rollup, OLQ.conforms) == Literal(False)
@@ -206,14 +206,14 @@ def test_rollup_counts_failed_checks(make_graph):
 
 def test_dataset_labelled_from_ontology(make_graph):
     g = make_graph(': a owl:Ontology ; rdfs:label "Activities" .')
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     assert dqv.value(URIRef("http://example.org#"), RDFS.label) == Literal("Activities")
 
 
 def test_dataset_falls_back_to_file_iri_without_ontology(make_graph, tmp_path):
     path = str(tmp_path / "no-ontology.ttl")
     g = make_graph(":Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g, files_processed=[path])], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g, files_processed=[path])], date_time_provider=lambda: TS)
     rollup = _measurement(dqv, "ontolint-conformance")
     assert dqv.value(rollup, DQV.computedOn) == URIRef(file_iri(path))
     assert file_iri(path).startswith("file://")
@@ -223,7 +223,7 @@ def test_same_ontology_iri_in_two_runs_gives_distinct_measurements(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
     r1 = _qa(g, files_processed=["a.ttl"])
     r2 = _qa(g, files_processed=["b.ttl"])
-    dqv = build_dqv_graph([r1, r2], timestamp=TS)
+    dqv = build_dqv_graph([r1, r2], date_time_provider=lambda: TS)
     assert len(list(dqv.subjects(DQV.isMeasurementOf, _metric("ontolint-conformance")))) == 2
 
 
@@ -235,7 +235,7 @@ def test_merged_run_uses_aggregate_dataset(make_graph):
     <http://example.org/two#> a owl:Ontology ; rdfs:label "Two" .
     :Dog a owl:Class .
     """)
-    dqv = build_dqv_graph([_qa(g, files_processed=["one.ttl", "two.ttl"])], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g, files_processed=["one.ttl", "two.ttl"])], date_time_provider=lambda: TS)
     computed_on = set(dqv.objects(None, DQV.computedOn))
     assert len(computed_on) == 1
     aggregate = computed_on.pop()
@@ -249,14 +249,14 @@ def test_merged_run_uses_aggregate_dataset(make_graph):
 def test_aggregate_dataset_iri_is_stable_across_runs(make_graph):
     g = make_graph(": a owl:Ontology . <http://example.org/two#> a owl:Ontology .")
     result = _qa(g, files_processed=["one.ttl", "two.ttl"])
-    first = set(build_dqv_graph([result], timestamp=TS).objects(None, DQV.computedOn))
-    later = set(build_dqv_graph([result], timestamp=TS.replace(hour=11)).objects(None, DQV.computedOn))
+    first = set(build_dqv_graph([result], date_time_provider=lambda: TS).objects(None, DQV.computedOn))
+    later = set(build_dqv_graph([result], date_time_provider=lambda: TS.replace(hour=11)).objects(None, DQV.computedOn))
     assert first == later
 
 
 def test_single_ontology_is_computed_on_directly(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     assert set(dqv.objects(None, DQV.computedOn)) == {URIRef("http://example.org#")}
     assert not list(dqv.subjects(RDF.type, rdflib.DCAT.Dataset))
 
@@ -273,7 +273,7 @@ SHAPES = """
 
 
 def _shape_report(make_graph):
-    return build_dqv_graph([_qa(make_graph(SHAPES))], base_uri="https://kh.example/qa#", timestamp=TS)
+    return build_dqv_graph([_qa(make_graph(SHAPES))], base_uri="https://kh.example/qa#", date_time_provider=lambda: TS)
 
 
 def test_blank_node_resources_are_skolemized_under_base(make_graph):
@@ -299,7 +299,7 @@ def test_identical_blank_nodes_get_distinct_skolem_iris(make_graph):
     :DogShape a sh:NodeShape ; rdfs:label "Dog shape" ; rdfs:comment "Dogs." ;
         sh:property [ a sh:PropertyShape ] , [ a sh:PropertyShape ] .
     """
-    reports = [build_dqv_graph([_qa(make_graph(ttl))], timestamp=TS) for _ in range(2)]
+    reports = [build_dqv_graph([_qa(make_graph(ttl))], date_time_provider=lambda: TS) for _ in range(2)]
     m = _measurement(reports[0], "property-shapes-missing-label")
     assert reports[0].value(m, DQV.value) == Literal(2)
     nodes = list(reports[0].objects(m, OLQ.violation))
@@ -328,7 +328,7 @@ def test_no_blank_nodes_and_turtle_round_trips(make_graph):
     :b a owl:ObjectProperty ; rdfs:label "x" .
     :Dog rdfs:subClassOf :Undeclared .
     """)
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     assert not any(isinstance(t, rdflib.BNode) for triple in dqv for t in triple)
     reparsed = rdflib.Graph().parse(data=dqv.serialize(format="turtle"), format="turtle")
     assert len(reparsed) == len(dqv)
@@ -336,7 +336,7 @@ def test_no_blank_nodes_and_turtle_round_trips(make_graph):
 
 def test_instance_iris_minted_under_base_uri(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa/", timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa/", date_time_provider=lambda: TS)
     assessment = dqv.value(predicate=RDF.type, object=DQV.QualityMetadata, any=False)
     assert str(assessment).startswith("https://kh.example/qa/assessment-")
     for m in dqv.subjects(RDF.type, DQV.QualityMeasurement):
@@ -351,14 +351,14 @@ def test_instance_iris_minted_under_base_uri(make_graph):
 
 def test_olq_namespace_holds_no_instance_data(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa/", timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa/", date_time_provider=lambda: TS)
     subjects = {str(s) for s in dqv.subjects()}
     assert not any(s.startswith(str(OLQ)) for s in subjects)
 
 
 def test_default_base_uri(make_graph):
     g = make_graph(": a owl:Ontology .")
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     assessment = dqv.value(predicate=RDF.type, object=DQV.QualityMetadata, any=False)
     assert str(assessment).startswith(DEFAULT_BASE_URI)
 
@@ -368,18 +368,18 @@ def test_default_base_uri(make_graph):
 def test_relative_or_malformed_base_uri_rejected(make_graph, bad):
     g = make_graph(": a owl:Ontology .")
     with pytest.raises(ValueError):
-        build_dqv_graph([_qa(g)], base_uri=bad, timestamp=TS)
+        build_dqv_graph([_qa(g)], base_uri=bad, date_time_provider=lambda: TS)
 
 
 @pytest.mark.parametrize("good", ["https://example.org/qa#", "urn:ontolint:", "http://x", "tag:example.org,2026:qa/"])
 def test_absolute_base_uri_accepted(make_graph, good):
     g = make_graph(": a owl:Ontology .")
-    build_dqv_graph([_qa(g)], base_uri=good, timestamp=TS)
+    build_dqv_graph([_qa(g)], base_uri=good, date_time_provider=lambda: TS)
 
 
 def test_base_uri_without_separator_gets_slash(make_graph):
     g = make_graph(": a owl:Ontology .")
-    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa", timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], base_uri="https://kh.example/qa", date_time_provider=lambda: TS)
     assessment = dqv.value(predicate=RDF.type, object=DQV.QualityMetadata, any=False)
     assert str(assessment).startswith("https://kh.example/qa/assessment-")
 
@@ -387,16 +387,16 @@ def test_base_uri_without_separator_gets_slash(make_graph):
 def test_iris_are_deterministic_per_run_and_unique_across_runs(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
     result = _qa(g)
-    first = set(build_dqv_graph([result], timestamp=TS).subjects(RDF.type, DQV.QualityMeasurement))
-    again = set(build_dqv_graph([result], timestamp=TS).subjects(RDF.type, DQV.QualityMeasurement))
-    later = set(build_dqv_graph([result], timestamp=TS.replace(hour=11)).subjects(RDF.type, DQV.QualityMeasurement))
+    first = set(build_dqv_graph([result], date_time_provider=lambda: TS).subjects(RDF.type, DQV.QualityMeasurement))
+    again = set(build_dqv_graph([result], date_time_provider=lambda: TS).subjects(RDF.type, DQV.QualityMeasurement))
+    later = set(build_dqv_graph([result], date_time_provider=lambda: TS.replace(hour=11)).subjects(RDF.type, DQV.QualityMeasurement))
     assert first == again
     assert first.isdisjoint(later)
 
 
 def test_assessment_links_all_measurements(make_graph):
     g = make_graph(": a owl:Ontology . :Dog a owl:Class .")
-    dqv = build_dqv_graph([_qa(g)], timestamp=TS)
+    dqv = build_dqv_graph([_qa(g)], date_time_provider=lambda: TS)
     assessment = dqv.value(predicate=RDF.type, object=DQV.QualityMetadata, any=False)
     assert dqv.value(assessment, PROV.generatedAtTime).toPython() == TS
     linked = set(dqv.objects(assessment, DQV.hasQualityMeasurement))
@@ -405,7 +405,7 @@ def test_assessment_links_all_measurements(make_graph):
 
 def test_write_dqv_report(make_graph, tmp_path):
     g = make_graph(": a owl:Ontology .")
-    _, log = write_dqv_report([_qa(g)], str(tmp_path), "out.ttl", timestamp=TS)
+    _, log = write_dqv_report([_qa(g)], str(tmp_path), "out.ttl", date_time_provider=lambda: TS)
     out = tmp_path / "out.ttl"
     assert out.exists()
     assert str(out) in log
@@ -422,7 +422,7 @@ def test_dqv_filename_must_be_plain_name(bad):
 def test_write_dqv_report_does_not_escape_directory(make_graph, tmp_path):
     g = make_graph(": a owl:Ontology .")
     with pytest.raises(ValueError):
-        write_dqv_report([_qa(g)], str(tmp_path / "out"), "../escape.ttl", timestamp=TS)
+        write_dqv_report([_qa(g)], str(tmp_path / "out"), "../escape.ttl", date_time_provider=lambda: TS)
     assert not (tmp_path / "escape.ttl").exists()
 
 
@@ -468,7 +468,7 @@ def _check_setting(g, check_key):
 
 
 def test_caller_supplied_settings_are_not_attributed_to_a_config_file(make_graph):
-    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), ignore_imports=["http://example.org/vendor/ns#"])], timestamp=TS)
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), ignore_imports=["http://example.org/vendor/ns#"])], date_time_provider=lambda: TS)
     [ignored] = _settings(g, 'imports.ignore')
     assert g.value(ignored, OLQ.origin) == OLQ.CallerArgument
     assert not list(g.subjects(OLQ.origin, OLQ.ConfigFile))
@@ -477,7 +477,7 @@ def test_caller_supplied_settings_are_not_attributed_to_a_config_file(make_graph
 
 def test_check_disabled_by_the_caller_is_not_enabled_by_default(make_graph):
     checklist = [[False if key == 'hijacking' else on, f, n, key] for on, f, n, key in CHECKLIST]
-    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist)], timestamp=TS)
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist)], date_time_provider=lambda: TS)
     setting = _check_setting(g, 'hijacking')
     assert g.value(setting, OLQ.origin) == OLQ.CallerArgument
     assert g.value(setting, OLQ.enabled) == Literal(False)
@@ -487,7 +487,7 @@ def test_check_disabled_by_the_caller_is_not_enabled_by_default(make_graph):
 def test_check_disabled_in_a_config_file_comes_from_the_file(make_graph):
     checklist = [[False if key == 'hijacking' else on, f, n, key] for on, f, n, key in CHECKLIST]
     g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), checklist=checklist,
-                             lint_config={'disable': ['check_hijacking']}, config_file='.rdf-lint.yml')], timestamp=TS)
+                             lint_config={'disable': ['check_hijacking']}, config_file='.rdf-lint.yml')], date_time_provider=lambda: TS)
     setting = _check_setting(g, 'hijacking')
     assert g.value(setting, OLQ.origin) == OLQ.ConfigFile
     assert g.value(setting, RDFS.comment) == Literal("Listed under disable:")
@@ -512,8 +512,8 @@ def _measurements(g):
 
 def test_same_inputs_under_different_configurations_get_distinct_assessments(make_graph):
     graph = make_graph(": a owl:Ontology . :A a owl:Class .")
-    plain = build_dqv_graph([_qa(graph, files_processed=['a.ttl'])], timestamp=TS)
-    configured = build_dqv_graph([_qa(graph, files_processed=['a.ttl'], exclude_types=[str(EX.Placeholder)])], timestamp=TS)
+    plain = build_dqv_graph([_qa(graph, files_processed=['a.ttl'])], date_time_provider=lambda: TS)
+    configured = build_dqv_graph([_qa(graph, files_processed=['a.ttl'], exclude_types=[str(EX.Placeholder)])], date_time_provider=lambda: TS)
     [a] = plain.subjects(RDF.type, DQV.QualityMetadata)
     [b] = configured.subjects(RDF.type, DQV.QualityMetadata)
     assert a != b
@@ -521,7 +521,7 @@ def test_same_inputs_under_different_configurations_get_distinct_assessments(mak
 
 
 def test_without_skip_object_of_the_defaults_are_recorded(make_graph):
-    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."))], timestamp=TS)
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."))], date_time_provider=lambda: TS)
     skips = _settings(g, 'undefined-terms.skip-object-of')
     assert {g.value(s, OLQ.value) for s in skips} == {URIRef(expand_curie(p, allow_wildcard=True)) for p in DEFAULT_SKIP_OBJECT_OF}
     assert {g.value(s, OLQ.origin) for s in skips} == {OLQ.OntolintDefault}
@@ -531,7 +531,7 @@ def test_without_skip_object_of_the_defaults_are_recorded(make_graph):
 
 def test_empty_skip_object_of_records_no_skips(make_graph):
     # An explicit empty list checks every object; unlike an absent key, it adds no defaults.
-    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), skip_object_of=[], config_file='.rdf-lint.yml')], timestamp=TS)
+    g = build_dqv_graph([_qa(make_graph(": a owl:Ontology ."), skip_object_of=[], config_file='.rdf-lint.yml')], date_time_provider=lambda: TS)
     assert _settings(g, 'undefined-terms.skip-object-of') == []
     assert list(g.objects(None, OLQ.configurationFile)) == [Literal('.rdf-lint.yml')]
 
