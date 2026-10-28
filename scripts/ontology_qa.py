@@ -74,9 +74,7 @@ class CheckResult:
     violations: list = field(default_factory=list)
     reason: str | None = None         # why a 'skipped' check could not be computed
     outcome: tuple | None = None      # (sentence, detail) a reporter renders; see decided()
-    notes: list = field(default_factory=list)   # remarks that follow the sentence
-    table: tuple | None = None        # (headers, rows) the check produced
-    verbose_table: tuple | None = None          # the same, shown only on a verbose run
+    body: list = field(default_factory=list)    # the parts of its section, in order
 
     @property
     def passed(self):
@@ -189,29 +187,32 @@ AS_LIST = 'list'      # one per line, under the sentence
 AS_TABLE = 'table'    # the check built a Markdown table
 
 
-def notes_key(check):
-    """Key under which a check records remarks that follow its sentence."""
-    return (check, 'notes')
+def body_key(check):
+    """Key under which a check records the parts of its section, in order."""
+    return (check, 'body')
 
 
-def table_key(check, verbose_only=False):
-    """Key under which a check records a table of its own, for a reporter to lay out."""
-    return (check, 'verbose-table' if verbose_only else 'table')
+def _part(violations, check, kind, *payload):
+    """Append one part to a check's section. Order is the order they are recorded in."""
+    violations.setdefault(body_key(check), []).append((kind, *payload))
 
 
 def decided(violations, check, sentence, detail=None):
     """
-    Record what a check decided, as a sentence and how its elements follow it.
+    Record what a check decided: a sentence, and whether its elements are listed under it.
 
-    The sentence says what was found; the reporter lays it out. A check that writes its own
-    report cannot be rendered any other way, which is what #101 is about.
+    The verdict is kept apart from the rest of the section as well as placed in it, because
+    it is the one part a consumer other than a reporter might want.
     """
     violations[outcome_key(check)] = (sentence, detail)
+    _part(violations, check, 'text', sentence)
+    if detail == AS_LIST:
+        _part(violations, check, 'elements')
 
 
 def note(violations, check, line):
-    """Add a remark after a check's sentence — a caveat on what it could see."""
-    violations.setdefault(notes_key(check), []).append(line)
+    """Add a line to a check's section — a caveat, an aside, a heading for what follows."""
+    _part(violations, check, 'text', line)
 
 
 def tabulate(violations, check, headers, rows, verbose_only=False):
@@ -221,8 +222,8 @@ def tabulate(violations, check, headers, rows, verbose_only=False):
     The rows are data, not Markdown, so a reporter lays them out — including the ones only
     a verbose run shows, which are a second query's worth of detail rather than a finding.
     """
-    violations[table_key(check, verbose_only)] = (
-        tuple(headers), [tuple(str(cell) for cell in row) for row in rows])
+    _part(violations, check, 'verbose-table' if verbose_only else 'table',
+          tuple(headers), [tuple(str(cell) for cell in row) for row in rows])
 
 
 # Why a check could not be computed. Either of these, or the key of a check whose condition
@@ -3059,9 +3060,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 violations=qa_violations.get(records_key(key), []) if count else [],
                 reason=reason,
                 outcome=qa_violations.get(outcome_key(key)),
-                notes=qa_violations.get(notes_key(key), []),
-                table=qa_violations.get(table_key(key)),
-                verbose_table=qa_violations.get(table_key(key, verbose_only=True)),
+                body=qa_violations.get(body_key(key), []),
             ))
     
     # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
@@ -3252,23 +3251,22 @@ def render_table(headers, rows):
 
 def render_outcome(check, verbose=False):
     """
-    A check's section body, from what it decided.
+    A check's section, from the parts it recorded.
 
     Empty for a check that has not been converted yet and still renders its own text (see
     #101); the reporter falls back to that while the move is in progress.
     """
-    if not check.outcome:
-        return ""
-    sentence, detail = check.outcome
-    body = f"{sentence}\n"
-    if detail == AS_LIST and check.elements:
-        body = f"{sentence}\n - " + check.elements.replace(",<br> ", "\n - ") + "\n"
-    if check.table:
-        body += render_table(*check.table)
-    if verbose and check.verbose_table:
-        body += "\n" + render_table(*check.verbose_table)
-    body += "".join(f"{line}\n" for line in check.notes)
-    return body
+    out = ""
+    for kind, *payload in check.body:
+        if kind == 'text':
+            out += f"{payload[0]}\n"
+        elif kind == 'elements' and check.elements:
+            out += " - " + check.elements.replace(",<br> ", "\n - ") + "\n"
+        elif kind == 'table':
+            out += render_table(*payload)
+        elif kind == 'verbose-table' and verbose:
+            out += "\n" + render_table(*payload)
+    return out
 
 
 def render_markdown(result, checklist, verbose=False):

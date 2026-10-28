@@ -109,12 +109,8 @@ def write_qaresult(case, result, inputs):
             body.append(f"                    reason={check.reason!r},")
         if check.outcome:
             body.append(f"                    outcome={check.outcome!r},")
-        if check.notes:
-            body.append(f"                    notes={check.notes!r},")
-        for field_name in ('table', 'verbose_table'):
-            value = getattr(check, field_name)
-            if value:
-                body.append(f"                    {field_name}={value!r},")
+        if check.body:
+            body.append(f"                    body={check.body!r},")
         if not check.violations:
             body.append("                    violations=[]),")
         else:
