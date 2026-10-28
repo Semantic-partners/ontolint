@@ -215,12 +215,15 @@ clock is a parameter, and the published format keeps the wall clock it has alway
 
 ## Todo
 
-- **Cover verbose output with tests.** `-v` adds tables the default run doesn't emit, and
-  nothing exercises them. It is reproducible now, so it can be pinned; it just isn't yet.
 - **Make Markdown a projection of `QAResult`** — see above. Tracked as its own change,
   since it moves where every check's text is produced.
 - **Collapse the two `main()` paths**, so `--per-file` only decides what the checks run
-  over and nothing else differs between the modes.
+  over and nothing else differs between the modes. What differs today is pinned in
+  `test_e2e_cli.py`: `-o` writes a file in a single run and is ignored per-file,
+  `--ctrf-filename` likewise, an empty directory reports differently in each, and
+  `--profile-only --per-file` is the one combination producing no CTRF and no report. The
+  collapse has to decide what each of those means, and these tests are what make that a
+  decision rather than an accident.
 
 ## In flight
 
