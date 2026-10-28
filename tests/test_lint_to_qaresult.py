@@ -10,6 +10,8 @@ match — deliberately, in a diff a reviewer can read.
 empty in the stored instance (see its docstring). `test_lint_to_markdown.py` covers them.
 """
 
+from pathlib import Path, PurePath
+
 
 def test_the_same_checks_ran(reporters_result, stored_result):
     assert [c.key for c in reporters_result.checks] == [c.key for c in stored_result.checks]
@@ -31,7 +33,36 @@ def test_the_same_checks_failed(reporters_result, stored_result):
 
 
 def test_the_profiling_metrics_match(reporters_result, stored_result):
-    assert reporters_result.profiling == stored_result.profiling
+    assert _repo_relative(reporters_result.profiling) == stored_result.profiling
+
+
+def _repo_relative(profiling):
+    """
+    `profiling` with fetchActivity's vocabulary paths relative to the repo root.
+
+    fetchActivity records where each namespace was resolved from, and a bundled vocabulary
+    resolves to an absolute path under VOCAB_DIR — so the raw value names the checkout, not
+    the run. Stored absolute, the expectation matched only the machine that generated it and
+    failed everywhere else, CI included. Relative, it still pins which vocabulary resolved
+    which namespace, which is the part worth pinning.
+    """
+    activity = profiling.get('fetchActivity')
+    if not activity or not activity.get('local'):
+        return profiling
+    root = Path(__file__).resolve().parent.parent
+    local = {ns: _relative_to(path, root) for ns, path in activity['local'].items()}
+    return {**profiling, 'fetchActivity': {**activity, 'local': local}}
+
+
+def _relative_to(path, root):
+    # A caller-supplied graph has no path, and a vocabulary outside the checkout keeps its
+    # own, so neither is rewritten into something misleading.
+    if not isinstance(path, (str, PurePath)):
+        return path
+    try:
+        return Path(path).resolve().relative_to(root).as_posix()
+    except ValueError:
+        return path
 
 
 def test_the_datasets_match(reporters_result, stored_result):

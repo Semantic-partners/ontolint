@@ -43,7 +43,10 @@ EXPECTED = QAResult(
         'ontologyDescription': 0,
         'unresolvedImports': 0,
         'undefinedTerms': 0,
-        'fetchActivity': {'local': {'http://www.w3.org/1999/02/22-rdf-syntax-ns#': '/Users/johnplacek/dev/sp/ontolint/vocabularies/rdf.ttl', 'http://www.w3.org/2004/02/skos/core#': '/Users/johnplacek/dev/sp/ontolint/vocabularies/skos.ttl', 'http://purl.org/dc/terms/': '/Users/johnplacek/dev/sp/ontolint/vocabularies/dcterms.ttl', 'http://www.w3.org/2002/07/owl#': '/Users/johnplacek/dev/sp/ontolint/vocabularies/owl.ttl', 'http://www.w3.org/2000/01/rdf-schema#': '/Users/johnplacek/dev/sp/ontolint/vocabularies/rdfs.ttl'}, 'fetched': {}, 'failed': []},
+        # Paths are relative to the repo root: fetchActivity records where each
+        # vocabulary was read from, and the absolute path is the checkout's, not the
+        # run's. test_lint_to_qaresult normalises the produced result to match.
+        'fetchActivity': {'local': {'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'vocabularies/rdf.ttl', 'http://www.w3.org/2004/02/skos/core#': 'vocabularies/skos.ttl', 'http://purl.org/dc/terms/': 'vocabularies/dcterms.ttl', 'http://www.w3.org/2002/07/owl#': 'vocabularies/owl.ttl', 'http://www.w3.org/2000/01/rdf-schema#': 'vocabularies/rdfs.ttl'}, 'fetched': {}, 'failed': []},
         'missingClassLabel': 1,
         'missingPropertyLabel': 0,
         'missingNSLabel': 0,

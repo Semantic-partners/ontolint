@@ -71,7 +71,9 @@ The reporter suites are built around that split. `tests/data/reporters_qaresult.
 a `QAResult` as data; `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take **that
 instance** and assert the projection, so they never run a check.
 `test_lint_to_qaresult.py` keeps the stored instance honest by asserting lint still
-produces it, and `test_lint_to_markdown.py` does the same for `reporters_markdown.py`, the
+produces it — normalising the vocabulary paths in `fetchActivity` to the repo root first,
+since a stored expectation that embeds the checkout path matches only the machine that
+wrote it — and `test_lint_to_markdown.py` does the same for `reporters_markdown.py`, the
 rendered text stored beside it. Markdown is the odd one out only in *how* it is produced:
 it has to run the linter, because the per-check text is rendered inside the checks. Once it
 is a projection, the stored text stays exactly as it is and only the way it is produced
