@@ -87,7 +87,6 @@ class QAResult:
     profiling: dict
     checks: list
     elements: dict = field(default_factory=dict)
-    logs: list = field(default_factory=list)
     datasets: list = field(default_factory=list)
     bnode_keys: dict = field(default_factory=dict)  # BNode -> canonical label, for skolemizing
     settings: list = field(default_factory=list)    # dqv.ConfigSetting: the configuration that ran
@@ -551,7 +550,6 @@ def qa_terminate(file, log):
 
     Args:
         file (str): Name of the output file. If undefined, print to the STDOUT.
-        log (str): Results of the Quality Assurance tests, formatted in markdown.
     """
     # Print output to file or STDOUT.
     if file:
@@ -570,7 +568,6 @@ def print_profiling_table(metrics):
         in_metrics (dict): Number of violations for various ontology metrics.
     
     Returns:
-        log (str): Pretty table with results.
     """
 
     name = get_ontology_name(metrics)
@@ -597,7 +594,6 @@ def print_qa_table(metrics, checks):
         checks (dict): Number of violations for various ontology metrics.
     
     Returns:
-        log (str): Pretty table with results.
     """
     name = get_ontology_name(metrics)
     log = "\n## Quality Assurance Metrics\n"
@@ -978,7 +974,6 @@ def infer_subclass_relations(graph):
     
     Returns:
         graph (rdflib.Graph): The RDF graph, after inference applied.
-        log (str): Result of inferencing.
     """
     
     log = f"\n## Simulate Inference\n\nInitial graph size: {len(graph)} triples.\nApplying Subclass inference rule iteratively...\n"
@@ -1022,7 +1017,6 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
@@ -1030,7 +1024,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     violations = {}
     num_files = max(len(in_metrics['filesProcessed']), 1)
     metrics['ontologyURI'] = [ ]
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'owl_declaration')
 
     declared = ontologies_by_source(graph, in_metrics)
@@ -1083,7 +1077,7 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
         for iri in metrics['ontologyURI']:
             note(violations, check, f" - {iri}")
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1105,13 +1099,12 @@ def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbo
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     declared = ontologies_by_source(graph, in_metrics)
     offenders = {} if declared is None else {
         source: iris for source, iris in sorted(declared.items()) if len(iris) > 1}
@@ -1135,7 +1128,7 @@ def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbo
             for source, iris in offenders.items()
         ]
 
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 
 def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
@@ -1154,14 +1147,13 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
     num_files = max(len(in_metrics['filesProcessed']), 1)
-    c, log = c + 1, ''
+    c += 1
 
     if in_metrics['ontologyNotDeclared'] == num_files:
         decided(violations, check, "WARNING - No ontology declared, invalid metric.")
@@ -1189,7 +1181,7 @@ def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
             violations[check] = string
             decided(violations, check, f"VIOLATION - Found {metrics[check]} ontologies without description:", AS_LIST)
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
@@ -1208,13 +1200,12 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'class_missing_label', exclude_types)
     metrics[check] = 0 # 'missingClassLabel'
     violations[check] = ""
@@ -1237,7 +1228,7 @@ def check_class_missing_label(in_metrics, graph, name, check, c, status, verbose
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_property_missing_label(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1255,13 +1246,12 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'property_missing_label')
     metrics[check] = 0 # 'missingPropertyLabel'
     violations[check] = ""
@@ -1284,7 +1274,7 @@ def check_property_missing_label(in_metrics, graph, name, check, c, status, verb
         violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1302,13 +1292,12 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'node_shape_missing_label')
     metrics[check] = 0 # 'missingNSLabel'
     violations[check] = ""
@@ -1331,7 +1320,7 @@ def check_node_shape_missing_label(in_metrics, graph, name, check, c, status, ve
         violations[records_key(check)] = [dqv.Violation(row.ns) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_property_shape_missing_label(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1349,13 +1338,12 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'property_shape_missing_label')
     metrics[check] = 0 # 'missingPSLabel'
     violations[check] = ""
@@ -1378,7 +1366,7 @@ def check_property_shape_missing_label(in_metrics, graph, name, check, c, status
         violations[records_key(check)] = [dqv.Violation(row.ps) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
@@ -1397,13 +1385,12 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'class_missing_comment', exclude_types)
     metrics[check] = 0 # 'missingClassDescription'
     violations[check] = ""
@@ -1426,7 +1413,7 @@ def check_class_missing_comment(in_metrics, graph, name, check, c, status, verbo
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_property_missing_comment(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1444,13 +1431,12 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'property_missing_comment')
     metrics[check] = 0 # 'missingPropertyDescription'
     violations[check] = ""
@@ -1473,7 +1459,7 @@ def check_property_missing_comment(in_metrics, graph, name, check, c, status, ve
         violations[records_key(check)] = [dqv.Violation(row.property) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1491,13 +1477,12 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'node_shape_missing_comment')
     metrics[check] = 0 # 'missingNSDescription'
     violations[check] = ""
@@ -1520,7 +1505,7 @@ def check_node_shape_missing_comment(in_metrics, graph, name, check, c, status, 
         violations[records_key(check)] = [dqv.Violation(row.ns) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_property_shape_missing_comment(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1538,13 +1523,12 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'property_shape_missing_comment')
     metrics[check] = 0 # 'missingPSDescription'
     violations[check] = ""
@@ -1568,7 +1552,7 @@ def check_property_shape_missing_comment(in_metrics, graph, name, check, c, stat
         violations[records_key(check)] = [dqv.Violation(row.ps) for row in results]
         violations[check] = string
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
@@ -1587,13 +1571,12 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'class_same_label', exclude_types)
     metrics[check] = 0 # 'nonUniqueClassLabels'
     violations[check] = ""
@@ -1622,7 +1605,7 @@ def check_class_same_label(in_metrics, graph, name, check, c, status, verbose, e
         violations[check] = string
         violations[records_key(check)] = records
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_property_same_label(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1640,13 +1623,12 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'property_same_label')
     metrics[check] = 0 # 'nonUniquePropertyLabels'
     violations[check] = ""
@@ -1675,7 +1657,7 @@ def check_property_same_label(in_metrics, graph, name, check, c, status, verbose
         violations[check] = string
         violations[records_key(check)] = records
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1693,13 +1675,12 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'node_shape_same_label')
     metrics[check] = 0 # 'nonUniqueNSLabels'
     violations[check] = ""
@@ -1728,7 +1709,7 @@ def check_node_shape_same_label(in_metrics, graph, name, check, c, status, verbo
         violations[check] = string
         violations[records_key(check)] = records
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_property_shape_same_label(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -1746,13 +1727,12 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'property_shape_same_label')
     metrics[check] = 0 # 'nonUniquePSLabels'
     violations[check] = ""
@@ -1781,7 +1761,7 @@ def check_property_shape_same_label(in_metrics, graph, name, check, c, status, v
         violations[check] = string
         violations[records_key(check)] = records
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
@@ -1800,13 +1780,12 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'isolated_classes', exclude_types)
     metrics[check] = 0 # 'isolatedClasses'
     violations[check] = ""
@@ -1824,7 +1803,7 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = violation_formatting([row.c for row in results])
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def _domain_range_rows(graph):
     """
@@ -1885,13 +1864,12 @@ def check_property_missing_domain(in_metrics, graph, name, check, c, status, ver
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Unused; the reporter renders what the check recorded.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c = c + 1
+    c += 1
     rows, without_domain, _ = _domain_range_rows(graph)
     properties = int(in_metrics['propertyCount'])
     metrics['missingDomainRange'] = len(rows)
@@ -1918,7 +1896,7 @@ def check_property_missing_domain(in_metrics, graph, name, check, c, status, ver
 
     metrics[check] = len(without_domain)
     status = _missing_declaration(in_metrics, violations, check, status, without_domain, 'domain')
-    return metrics, violations, '', c, status
+    return metrics, violations, c, status
 
 
 def check_property_missing_range(in_metrics, graph, name, check, c, status, verbose):
@@ -1937,17 +1915,16 @@ def check_property_missing_range(in_metrics, graph, name, check, c, status, verb
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Unused; the reporter renders what the check recorded.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c = c + 1
+    c += 1
     _, _, without_range = _domain_range_rows(graph)
     metrics[check] = len(without_range)
     status = _missing_declaration(in_metrics, violations, check, status, without_range, 'range')
-    return metrics, violations, '', c, status
+    return metrics, violations, c, status
 
 def _term_from_string(value):
     """An absolute IRI string as a URIRef; anything else is an rdflib blank-node id."""
@@ -2039,13 +2016,12 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'unique_identifiers')
     metrics[check] = 0 # 'nonUniqueIdentifiers'
     violations[check] = ""
@@ -2070,7 +2046,7 @@ def check_unique_identifiers(in_metrics, graph, name, check, c, status, verbose)
         violations[check] = violation_formatting(iri)
         violations[records_key(check)] = records
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -2088,13 +2064,12 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'subclass_cycles')
     metrics[check] = 0 # 'subclassCycles'
     violations[check] = ""
@@ -2113,7 +2088,7 @@ def check_subclass_cycles(in_metrics, graph, name, check, c, status, verbose):
         violations[records_key(check)] = [dqv.Violation(row.c) for row in results]
         violations[check] = violation_formatting([row.c for row in results])
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, exclude_types=None):
     """
@@ -2132,13 +2107,12 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'untyped_class', exclude_types)
     metrics[check] = 0 # 'untypedClasses'
     violations[check] = ""
@@ -2169,7 +2143,7 @@ def check_untyped_class(in_metrics, graph, name, check, c, status, verbose, excl
             and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
         note(violations, check, "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.")
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -2187,13 +2161,12 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'untyped_property')
     metrics[check] = 0 # 'untypedProperties'
     violations[check] = ""
@@ -2224,7 +2197,7 @@ def check_untyped_property(in_metrics, graph, name, check, c, status, verbose):
             and 0 < in_metrics['ontologyNotDeclared'] < num_files and metrics[check] > 0):
         note(violations, check, "WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.")
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -2242,14 +2215,13 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
     num_files = len(in_metrics['filesProcessed'])
-    c, log = c + 1, ''
+    c += 1
     fallback = False
     ontology_check = False
     if 'ontologyNotDeclared' in in_metrics:
@@ -2283,7 +2255,7 @@ def check_hijacking(in_metrics, graph, name, check, c, status, verbose):
     else:
         note(violations, check, "WARNING - Ontology namespace not checked. The reported violations may be incorrect.")
     
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore_imports=None, local_imports=None):
     """
@@ -2301,13 +2273,12 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     results = exec_sparql(graph, 'owl_imports')
     metrics[check] = 0  # 'unresolvedImports'
     violations[check] = ""
@@ -2326,7 +2297,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
             decided(violations, check, "WARNING - All owl:imports URLs are ignored by configuration.")
         else:
             decided(violations, check, "WARNING - No owl:imports statements found.")
-        return metrics, violations, log, c, status
+        return metrics, violations, c, status
 
     failed_imports = []
     failed_pairs = []   # (importing ontology, url), one per failed owl:imports statement
@@ -2373,7 +2344,7 @@ def check_owl_imports(in_metrics, graph, name, check, c, status, verbose, ignore
                  [(ontology, url, _check(url)) for ontology, url in import_urls],
                  verbose_only=True)
 
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 
 def _reference_predicate_matcher(predicates):
@@ -2413,13 +2384,12 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    c, log = c + 1, ''
+    c += 1
     metrics[check] = 0  # 'undefinedTerms'
     violations[check] = ""
     
@@ -2450,7 +2420,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
 
     if not used_terms:
         decided(violations, check, "WARNING - No terms to check.")
-        return metrics, violations, log, c, status
+        return metrics, violations, c, status
 
     # Collect every HTTP namespace used that falls outside the local namespace(s) and isn't
     # ignored (trusted) by configuration. Bundled vocabularies resolve from imports.local.
@@ -2550,7 +2520,7 @@ def check_undefined_terms(in_metrics, graph, name, check, c, status, verbose,
     if not local_namespaces:
         note(violations, check, "\nWARNING - No owl:Ontology declared; local namespace is unknown. Local dangling references may not be detected.")
 
-    return metrics, violations, log, c, status
+    return metrics, violations, c, status
 
 
 def load_rdf_file(file):
@@ -2563,7 +2533,6 @@ def load_rdf_file(file):
     Returns:
         bool: True if the file was successfully loaded, False otherwise.
         graph (rdflib.Graph): The RDF graph object to parse into.
-        log (str): Parsing result.
     """
     log = f"Loading data from: {file}\n"
     graph = rdflib.Graph()
@@ -2966,7 +2935,6 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     if (len(exclusions) > 0):
         graph -= exclusions
 
-    logs = []
     checks = []
     test_counter = 1
     num_violations = 0
@@ -2987,12 +2955,11 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                     kwargs["skip_object_of"] = skip_object_of
             if func in TYPE_EXCLUDABLE_CHECKS and exclude_types:
                 kwargs["exclude_types"] = exclude_types
-            metrics, violations, log_results, test_counter, num_violations = func(
+            metrics, violations, test_counter, num_violations = func(
                 qa_metrics, graph, display_name, key, test_counter, num_violations, verbose, **kwargs
             )
             qa_metrics.update(metrics)
             qa_violations.update(violations)
-            logs.append(log_results)
             count = int(qa_metrics.get(key, 0))
             raw = qa_violations.get(key, '')
             # A check that could not be computed says so, rather than reporting the 0 it
@@ -3013,14 +2980,13 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
     
     # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
     if 'ontologyURI' not in qa_metrics:
-        metrics, _, _, _, _ = check_owl_declaration(qa_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
+        metrics, _, _, _ = check_owl_declaration(qa_metrics, graph, "", 'ontologyNotDeclared', 1, 0, verbose)
         qa_metrics.update(metrics)
     
     return QAResult(
         profiling=qa_metrics,
         checks=checks,
         elements=profiling_elements,
-        logs=logs,
         datasets=dqv.datasets_for(graph, qa_metrics),
         bnode_keys=dqv.canonical_bnode_labels(graph, dqv.violation_bnodes(checks)),
         settings=settings,
@@ -3201,8 +3167,6 @@ def render_outcome(check, verbose=False):
     """
     A check's section, from the parts it recorded.
 
-    Empty for a check that has not been converted yet and still renders its own text (see
-    #101); the reporter falls back to that while the move is in progress.
     """
     out = ""
     for kind, *payload in check.body:
@@ -3222,9 +3186,8 @@ def render_markdown(result, checklist, verbose=False):
     The Markdown body of a report, from a QAResult.
 
     The counterpart of build_ctrf_report() and dqv.build_dqv_graph(): one reporter, one
-    seam. It is not yet a projection of the result alone — the per-check text is still
-    rendered inside each check as it runs and carried on `logs` — so this assembles what
-    is already text rather than producing it. See design.md and #101.
+    seam, and a projection of the result alone. A check records what it found; how a
+    report says it is decided here.
 
     `main()` wraps the result of this with the heading, the load log and the config log,
     which are run context rather than anything the checks produced.
@@ -3235,8 +3198,8 @@ def render_markdown(result, checklist, verbose=False):
     log += "\n## Quality Assurance Checks\n"
     # Numbering, titling and separating a check's section is the reporter's job: the check
     # says what it found, not how a report lays it out.
-    for index, (check, body) in enumerate(zip(result.checks, result.logs), start=1):
-        log += f"\nCheck {index}: {check.name}.\n{render_outcome(check, verbose) or body}{sep()}"
+    for index, check in enumerate(result.checks, start=1):
+        log += f"\nCheck {index}: {check.name}.\n{render_outcome(check, verbose)}{sep()}"
     log += print_profiling_table(result.profiling)
     log += print_qa_table(result.profiling, tests)
     return log
@@ -3261,7 +3224,7 @@ def _process_loaded_graph(g, files_processed, args, config, checklist, provenanc
         qa_elements.update(elements)
         log += "> Profile-only mode enabled. Skipping additional QA checks.\n\n"
         log += inference_log
-        metrics, violations, _, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
+        metrics, violations, _, _ = check_owl_declaration(qa_metrics, g, "", 'ontologyNotDeclared', 1, 0, args.verbose)
         qa_metrics.update(metrics)
         qa_elements.update(violations)
         log += print_profiling_metrics(qa_metrics, qa_elements, args.verbose)

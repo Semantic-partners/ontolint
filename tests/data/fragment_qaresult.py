@@ -13,10 +13,9 @@ input still produces this. Regenerate with:
 
 and read the diff: a new check should be a deliberate addition to the expectation.
 
-`logs` and `elements` are left empty. They are the Markdown's raw material — rendered text
-and profiling detail — consumed by no other reporter, and they leave QAResult entirely once
-Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers
-them.
+`elements` is the profiling detail a verbose report lists — which vocabularies were used,
+what was deprecated — and it is stored like the rest, because the Markdown reporter is a
+projection of this instance and needs it (#101).
 """
 
 from rdflib import Literal
@@ -71,6 +70,10 @@ EXPECTED = QAResult(
         'untypedClasses': 0,
         'untypedProperties': 0,
         'hijacking': 0,
+    },
+    elements={
+        'imports': {},
+        'vocabulariesUsed': {'prefix': ['frag', 'owl', 'rdf', 'rdfs'], 'uri': ['https://example.org/fragment#', 'http://www.w3.org/2002/07/owl#', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', 'http://www.w3.org/2000/01/rdf-schema#']},
     },
     checks=[
         CheckResult(name='Ontology without declaration', key='ontologyNotDeclared', status='failed', count=1,

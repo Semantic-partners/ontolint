@@ -13,10 +13,9 @@ input still produces this. Regenerate with:
 
 and read the diff: a new check should be a deliberate addition to the expectation.
 
-`logs` and `elements` are left empty. They are the Markdown's raw material — rendered text
-and profiling detail — consumed by no other reporter, and they leave QAResult entirely once
-Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers
-them.
+`elements` is the profiling detail a verbose report lists — which vocabularies were used,
+what was deprecated — and it is stored like the rest, because the Markdown reporter is a
+projection of this instance and needs it (#101).
 """
 
 from rdflib import XSD, Literal, URIRef
@@ -71,6 +70,13 @@ EXPECTED = QAResult(
         'untypedClasses': 1,
         'untypedProperties': 1,
         'hijacking': 1,
+    },
+    elements={
+        'classesInNodeShapes': {'classCount': [Literal(1), Literal(1), Literal(1), Literal(1)], 'ns': [URIRef('https://example.org/reporters#AnimalShape'), URIRef('https://example.org/reporters#CreatureShape'), URIRef('https://example.org/reporters#UndescribedShape'), URIRef('https://example.org/reporters#UnlabelledShape')]},
+        'deprecatedClasses': [URIRef('https://example.org/reporters#Beast')],
+        'imports': {'https://example.org/reporters#': ['https://example.invalid/upstream']},
+        'propertiesInPropertyShapes': {'propCount': [URIRef('https://example.org/reporters#hasName'), URIRef('https://example.org/reporters#hasName'), URIRef('https://example.org/reporters#hasName'), URIRef('https://example.org/reporters#hasName')], 'ps': [URIRef('https://example.org/reporters#animalNameShape'), URIRef('https://example.org/reporters#creatureNameShape'), URIRef('https://example.org/reporters#undescribedNameShape'), URIRef('https://example.org/reporters#unlabelledNameShape')]},
+        'vocabulariesUsed': {'prefix': ['dcterms', 'owl', 'rdf', 'rdfs', 'sh', 'skos'], 'uri': ['http://purl.org/dc/terms/', 'http://www.w3.org/2002/07/owl#', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', 'http://www.w3.org/2000/01/rdf-schema#', 'http://www.w3.org/ns/shacl#', 'http://www.w3.org/2004/02/skos/core#']},
     },
     checks=[
         CheckResult(name='Ontology without declaration', key='ontologyNotDeclared', status='passed', count=0,

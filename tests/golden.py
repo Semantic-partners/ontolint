@@ -30,10 +30,9 @@ input still produces this. Regenerate with:
 
 and read the diff: a new check should be a deliberate addition to the expectation.
 
-`logs` and `elements` are left empty. They are the Markdown's raw material — rendered text
-and profiling detail — consumed by no other reporter, and they leave QAResult entirely once
-Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers
-them.
+`elements` is the profiling detail a verbose report lists — which vocabularies were used,
+what was deprecated — and it is stored like the rest, because the Markdown reporter is a
+projection of this instance and needs it (#101).
 """
 
 {imports}from scripts.dqv import ConfigSetting, Dataset, Violation
@@ -84,6 +83,11 @@ def _profiling_value(key, value, repo):
     if isinstance(value, list):
         return "[" + ", ".join(
             _term(v) if isinstance(v, (URIRef, BNode, Literal)) else repr(v) for v in value) + "]"
+    if isinstance(value, dict):
+        # profiling detail: a column name to the terms under it. repr() would render each
+        # as rdflib.term.URIRef(...), which the stored module does not import.
+        return "{" + ", ".join(
+            f"{k!r}: {_profiling_value(k, v, repo)}" for k, v in sorted(value.items())) + "}"
     if isinstance(value, (URIRef, BNode, Literal)):
         return _term(value)
     return repr(value)
@@ -98,6 +102,10 @@ def write_qaresult(case, result, inputs):
     repo = Path(__file__).resolve().parent.parent
     body = ["    profiling={"]
     for key, value in result.profiling.items():
+        body.append(f"        {key!r}: {_profiling_value(key, value, repo)},")
+    body.append("    },")
+    body.append("    elements={")
+    for key, value in sorted(result.elements.items()):
         body.append(f"        {key!r}: {_profiling_value(key, value, repo)},")
     body.append("    },")
     body.append("    checks=[")

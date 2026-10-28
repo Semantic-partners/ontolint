@@ -1,14 +1,14 @@
 """
-lint -> Markdown: linting `tests/data/reporters.ttl` renders the Markdown stored in
-`tests/data/reporters_report.md`.
+QAResult -> Markdown: the stored `QAResult` renders the Markdown stored in
+`tests/data/reporters_report.md`, and a fresh lint renders the same thing.
 
 The stored text is the expectation, exactly as the stored QAResult is for the checks. The
 assertions after it are not a second expectation — they say *why* parts of it must hold, so
 a failure explains itself instead of handing over a 189-line diff.
 
-Markdown is the one reporter that is not a projection of QAResult: the per-check text is
-rendered inside each check as it runs (see design.md). When that moves, the stored text
-stays as it is and only the way it is produced changes — which is how the move gets checked.
+Markdown is a projection of QAResult like the other two reporters (#101). The stored text
+is unchanged by that move but for the inconsistencies it straightened out, which is how the
+move was checked.
 """
 
 import os
@@ -19,7 +19,8 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import CASES, render_case, stored_markdown_for
+from tests.conftest import (CASES, render_case, render_result, stored_markdown_for,
+                            stored_qa_result_for)
 from tests.golden import write_markdown
 
 # An rdflib blank node identifier: invented per parse, so it must never reach the report.
@@ -27,13 +28,30 @@ RAW_BNODE = re.compile(r'\bn[0-9a-f]{32}b\d+\b')
 
 
 @pytest.mark.parametrize('case', CASES)
-def test_a_lint_renders_the_stored_markdown(case):
-    """Every case, whole. The assertions below are about the main case's content."""
-    rendered = render_case(case)
+def test_it_renders_the_stored_markdown(case):
+    """
+    The projection, whole, from the **stored** QAResult.
+
+    Like the CTRF and DQV suites, this takes the stored instance rather than a freshly
+    linted one, so it tests the reporter alone: a change to what a check finds cannot break
+    it, and a reporter bug cannot be blamed on the checks.
+    """
+    rendered = render_result(stored_qa_result_for(case))
     if os.environ.get('UPDATE_GOLDEN'):
         pytest.skip(f"updated {write_markdown(case, rendered, CASES[case]).name}")
 
     assert rendered == stored_markdown_for(case)
+
+
+@pytest.mark.parametrize('case', CASES)
+def test_a_lint_renders_the_stored_markdown(case):
+    """
+    And a lint still renders it — the same text, from a run rather than from the store.
+
+    What keeps the two honest about each other: the suite above could agree with the store
+    while the linter had stopped producing it.
+    """
+    assert render_case(case) == stored_markdown_for(case)
 
 
 def test_it_renders_the_same_text_every_time(render_markdown):

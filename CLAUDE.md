@@ -73,10 +73,10 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 - `test_pipeline_qaresult_to_ctrf.py` and `test_pipeline_qaresult_to_dqv.py` take the **stored** instance as
   input, so they test the projection alone — a change to what a check finds cannot break
   them, and a reporter bug cannot be blamed on the checks.
-- `test_pipeline_lint_to_markdown.py` asserts a lint still renders the stored Markdown. It has to
-  run the linter, because Markdown is not a projection of `QAResult` yet (see design.md).
-  Its other assertions are not a second expectation — they say why parts of the text must
-  hold, so a failure explains itself instead of handing over a 189-line diff.
+- `test_pipeline_lint_to_markdown.py` renders the **stored** instance to Markdown, like the other
+  two reporters, and separately asserts a fresh lint renders the same text. Its other
+  assertions are not a second expectation — they say why parts of the text must hold, so a
+  failure explains itself instead of handing over a 189-line diff.
 
 Verified by sabotage: breaking a check fails only suite 1, breaking the DQV reporter fails
 only suite 4, and changing a line of report wording fails only suite 2. Add to `reporters.ttl` rather than starting another fixture — it is

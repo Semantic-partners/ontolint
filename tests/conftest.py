@@ -169,19 +169,22 @@ def render_case(case):
     """
     Render the Markdown for a fresh lint of a case.
 
-    Taken from `_process_loaded_graph`, the seam that turns a run into report text. `main()`
-    wraps it with the heading, the load log and the config log — run context rather than
-    anything the checks produced, and carrying input paths, so test_e2e_cli.py covers
-    those. Each call reparses, because blank node identifiers and SPARQL row order both
-    differ between parses and that is what makes a rendering unstable.
+    Each call reparses, because blank node identifiers and SPARQL row order both differ
+    between parses and that is what makes a rendering unstable.
     """
-    from types import SimpleNamespace
-    from scripts.ontology_qa import CHECKLIST, Config, _process_loaded_graph, deepcopy_list
-    log, _ = _process_loaded_graph(
-        case_graph(case), list(CASES[case]),
-        SimpleNamespace(verbose=False, profile_only=False),
-        Config(uri_parser=_offline), deepcopy_list(CHECKLIST), None)
-    return log
+    return render_result(lint_case(case))
+
+
+def render_result(result):
+    """
+    The Markdown a QAResult renders to — the reporter, with nothing else in the way.
+
+    `main()` wraps this with the heading, the load log and the config log: run context
+    rather than anything the checks produced, and carrying input paths, so test_e2e_cli.py
+    covers those.
+    """
+    from scripts.ontology_qa import CHECKLIST, deepcopy_list, render_markdown
+    return render_markdown(result, deepcopy_list(CHECKLIST))
 
 
 @pytest.fixture
