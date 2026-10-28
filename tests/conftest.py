@@ -85,7 +85,7 @@ SOURCE_IRI = 'https://example.org/input/'
 
 
 def lint_case(case):
-    """The QAResult linting a case produces — what test_lint_to_qaresult.py checks."""
+    """The QAResult linting a case produces — what test_pipeline_lint_to_qaresult.py checks."""
     from scripts.ontology_qa import Config, lint_graph
     names = list(CASES[case])
     return lint_graph(case_graph(case), names, Config(uri_parser=_offline),
@@ -98,7 +98,7 @@ def stored_qa_result_for(case):
 
     They take the stored instance rather than a freshly linted one, so they test the
     projection alone: a change to what a check finds cannot break them, and a change to a
-    reporter cannot be blamed on the checks. test_lint_to_qaresult.py is what keeps the
+    reporter cannot be blamed on the checks. test_pipeline_lint_to_qaresult.py is what keeps the
     stored instance honest — it asserts linting the input still produces it.
     """
     import importlib
@@ -172,7 +172,7 @@ def render_case(case):
 
     Taken from `_process_loaded_graph`, the seam that turns a run into report text. `main()`
     wraps it with the heading, the load log and the config log — run context rather than
-    anything the checks produced, and carrying input paths, so test_integration.py covers
+    anything the checks produced, and carrying input paths, so test_e2e_cli.py covers
     those. Each call reparses, because blank node identifiers and SPARQL row order both
     differ between parses and that is what makes a rendering unstable.
     """

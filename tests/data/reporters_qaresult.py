@@ -1,18 +1,18 @@
 """
 The QAResult that linting the `reporters.ttl` produces, written out as data.
 
-This is the input to the reporter suites — `test_qaresult_to_ctrf.py` and
-`test_qaresult_to_dqv.py` take *these* instances, not ones produced by running the linter,
+This is the input to the reporter suites — `test_pipeline_qaresult_to_ctrf.py` and
+`test_pipeline_qaresult_to_dqv.py` take *these* instances, not ones produced by running the linter,
 so they test the projection alone: a change to what a check finds cannot break them, and a
 change to a reporter cannot be blamed on the checks.
 
-`test_lint_to_qaresult.py` is what keeps it honest — it asserts that linting the input
+`test_pipeline_lint_to_qaresult.py` is what keeps it honest — it asserts that linting the input
 still produces this. When a check changes on purpose that test fails, and this file is
 updated to match, deliberately and in a reviewable diff.
 
 `logs` and `elements` are left empty. They are the Markdown's raw material — rendered text
 and profiling detail — consumed by no other reporter, and they leave QAResult entirely once
-Markdown becomes a projection (see design.md). `test_lint_to_markdown.py` covers them.
+Markdown becomes a projection (see design.md). `test_pipeline_lint_to_markdown.py` covers them.
 """
 
 from rdflib import XSD, Literal, URIRef

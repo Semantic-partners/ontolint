@@ -33,9 +33,9 @@ computed on, and the configuration that ran.
 
 | | granularity | built from | pinned by |
 |---|---|---|---|
-| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_lint_to_markdown.py` |
-| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `<case>_ctrf.json`, via `tests/test_qaresult_to_ctrf.py` |
-| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `<case>_dqv.ttl`, via `tests/test_qaresult_to_dqv.py`; run shapes in `tests/dqv/*/expected.ttl` |
+| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_pipeline_lint_to_markdown.py` |
+| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `<case>_ctrf.json`, via `tests/test_pipeline_qaresult_to_ctrf.py` |
+| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `<case>_dqv.ttl`, via `tests/test_pipeline_qaresult_to_dqv.py`; run shapes in `tests/dqv/*/expected.ttl` |
 
 Each reporter splits building from writing: `build_ctrf_report()` / `write_ctrf_report()`
 and `build_dqv_graph()` / `write_dqv_report()`. The build half is a pure projection of a
@@ -57,10 +57,10 @@ handing over a thousand-line diff.
 
 | suite | input | asserts |
 |---|---|---|
-| `test_lint_to_qaresult.py` | the `.ttl` files | lint still produces the stored `QAResult` |
-| `test_lint_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
-| `test_qaresult_to_ctrf.py` | the stored `QAResult`s | the CTRF projection |
-| `test_qaresult_to_dqv.py` | the stored `QAResult`s | the DQV projection |
+| `test_pipeline_lint_to_qaresult.py` | the `.ttl` files | lint still produces the stored `QAResult` |
+| `test_pipeline_lint_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
+| `test_pipeline_qaresult_to_ctrf.py` | the stored `QAResult`s | the CTRF projection |
+| `test_pipeline_qaresult_to_dqv.py` | the stored `QAResult`s | the DQV projection |
 
 The last two take the *stored* instance, never one they produced, so they never run a
 check: a change to what a check finds cannot break them, and a reporter bug cannot be
@@ -101,8 +101,8 @@ run the CLI over two inputs each.
 ### Changing a stored expectation
 
 ```
-UPDATE_GOLDEN=1 poetry run pytest tests/test_qaresult_to_ctrf.py tests/test_qaresult_to_dqv.py
-UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py
+UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_qaresult_to_ctrf.py tests/test_pipeline_qaresult_to_dqv.py
+UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
 ```
 
 The stored `QAResult` and Markdown are still edited by hand from the failing diff. For the
@@ -144,12 +144,12 @@ So the only boundary that exists for Markdown is **argv → stdout**, and that i
 end-to-end goldens pin.
 
 The reporter suites are built around that split. `tests/data/reporters_qaresult.py` holds
-a `QAResult` as data; `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take **that
+a `QAResult` as data; `test_pipeline_qaresult_to_ctrf.py` and `test_pipeline_qaresult_to_dqv.py` take **that
 instance** and assert the projection, so they never run a check.
-`test_lint_to_qaresult.py` keeps the stored instance honest by asserting lint still
+`test_pipeline_lint_to_qaresult.py` keeps the stored instance honest by asserting lint still
 produces it — normalising the vocabulary paths in `fetchActivity` to the repo root first,
 since a stored expectation that embeds the checkout path matches only the machine that
-wrote it — and `test_lint_to_markdown.py` does the same for `reporters_markdown.py`, the
+wrote it — and `test_pipeline_lint_to_markdown.py` does the same for `reporters_markdown.py`, the
 rendered text stored beside it. Markdown is the odd one out only in *how* it is produced:
 it has to run the linter, because the per-check text is rendered inside the checks. Once it
 is a projection, the stored text stays exactly as it is and only the way it is produced

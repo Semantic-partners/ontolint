@@ -19,7 +19,7 @@ The report timestamp is pinned with SOURCE_DATE_EPOCH, so minted IRIs are reprod
 
 After an intentional change to the report, regenerate the expected files and review the diff:
 
-    UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py
+    UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
 """
 import os
 import shlex
@@ -99,7 +99,7 @@ def test_dqv_report_matches_expected(case, tmp_path):
         pytest.skip(f"updated {expected_path.relative_to(CASES_DIR.parent.parent)}")
 
     assert expected_path.exists(), (
-        f"missing {expected_path}; run UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py")
+        f"missing {expected_path}; run UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py")
     expected = rdflib.Graph().parse(expected_path, format='turtle')
     missing = sorted(set(_ntriples(expected)) - set(_ntriples(actual)))
     unexpected = sorted(set(_ntriples(actual)) - set(_ntriples(expected)))
@@ -107,4 +107,4 @@ def test_dqv_report_matches_expected(case, tmp_path):
         f"DQV report for '{case}' differs from expected.ttl\n"
         + "".join(f"- {t}\n" for t in missing)
         + "".join(f"+ {t}\n" for t in unexpected)
-        + "If the change is intended: UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py")
+        + "If the change is intended: UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py")

@@ -1,7 +1,7 @@
 """
 The Markdown that linting the `reporters_fragment.ttl` produces, written out as data.
 
-`test_lint_to_markdown.py` asserts a lint still renders exactly this. It is stored the same
+`test_pipeline_lint_to_markdown.py` asserts a lint still renders exactly this. It is stored the same
 way as the QAResult beside it, for the same reason: when the rendering changes on purpose
 the diff is reviewable, and when it changes by accident the test says so.
 
@@ -12,7 +12,7 @@ changes, which is how the move will be checked.
 
 The report assembled by `main()` wraps this with the heading, the load log and the config
 log. Those are run context rather than anything the checks produced, and they carry input
-paths, so they are covered by `test_integration.py` instead.
+paths, so they are covered by `test_e2e_cli.py` instead.
 """
 
 EXPECTED = """

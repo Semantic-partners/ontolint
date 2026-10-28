@@ -52,7 +52,7 @@ poetry run pytest tests/test_labels.py
 poetry run pytest tests/test_labels.py::test_class_without_label_fails
 
 # Regenerate golden DQV reports in tests/dqv/*/expected.ttl after an intended change
-UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py
+UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
 
 # Run with coverage (HTML report in htmlcov/)
 poetry run pytest --cov=scripts --cov-report=html
@@ -67,13 +67,13 @@ poetry run pytest --cov=scripts --cov-report=term-missing
 `reporters.ttl`, and two expectations written out as data — `reporters_qaresult.py`, the
 `QAResult` that linting it produces, and `reporters_markdown.py`, the Markdown it renders.
 
-- `test_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
+- `test_pipeline_lint_to_qaresult.py` asserts lint still produces the stored instance. It is the
   only one that runs the checks, and the only one a check change should break. When a
   check changes on purpose, update the stored instance from the diff it prints.
-- `test_qaresult_to_ctrf.py` and `test_qaresult_to_dqv.py` take the **stored** instance as
+- `test_pipeline_qaresult_to_ctrf.py` and `test_pipeline_qaresult_to_dqv.py` take the **stored** instance as
   input, so they test the projection alone — a change to what a check finds cannot break
   them, and a reporter bug cannot be blamed on the checks.
-- `test_lint_to_markdown.py` asserts a lint still renders the stored Markdown. It has to
+- `test_pipeline_lint_to_markdown.py` asserts a lint still renders the stored Markdown. It has to
   run the linter, because Markdown is not a projection of `QAResult` yet (see design.md).
   Its other assertions are not a second expectation — they say why parts of the text must
   hold, so a failure explains itself instead of handing over a 189-line diff.
@@ -95,15 +95,15 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_structural.py` | Isolated classes, domain/range, unique identifiers, subclass cycles, untyped classes/properties, namespace hijacking |
 | `test_dqv.py` | DQV Turtle report — metrics/dimensions, per-check measurements and violations, roll-up, dataset IRIs, minted IRIs |
 | `test_olq_vocabulary.py` | `ontology/olq.ttl` defines exactly the `olq:` terms the DQV report emits, each labelled and described, and passes ontolint |
-| `test_dqv_e2e.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_dqv_e2e.py` and review the diff |
+| `test_e2e_dqv.py` | Golden-file DQV tests: each `tests/dqv/<case>/` has input `.ttl` files (plus optional `.rdf-lint.yml`, `args.txt`) and the `expected.ttl` report; regenerate with `UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py` and review the diff |
 | `test_vocabularies.py` | Bundled vocabularies: DCAT catalog/README integrity, coverage of rdflib's term lists, offline validation of core terms, `imports.local` override, `imports.ignore` in either key form |
 | `rdf-lint-config/*.mustrd.ttl` | [mustrd](https://github.com/Semantic-partners/mustrd) Given-When-Then specs for SPARQL (e.g. `rdf-lint-to-model.rq`), listed in `tests/mustrd_configuration.ttl` and run by `poetry run pytest` (the plugin is enabled in pyproject's `addopts`) against embedded RDFLib |
-| `test_lint_to_qaresult.py` | **Reporter suite 1 of 4.** Linting `reporters.ttl` still produces the stored `QAResult` — the checks that ran, what each decided, profiling, datasets, configuration |
-| `test_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
-| `test_qaresult_to_ctrf.py` | **Suite 3.** The **stored** QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
-| `test_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
+| `test_pipeline_lint_to_qaresult.py` | **Reporter suite 1 of 4.** Linting `reporters.ttl` still produces the stored `QAResult` — the checks that ran, what each decided, profiling, datasets, configuration |
+| `test_pipeline_lint_to_markdown.py` | **Suite 2.** The same input through to stdout — sections, violations, counts agreeing with the result, no blank-node identifiers, byte-identical between runs |
+| `test_pipeline_qaresult_to_ctrf.py` | **Suite 3.** The **stored** QAResult projected to CTRF: an entry per check, statuses, summary counts, elements |
+| `test_pipeline_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
 | `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
-| `test_integration.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
+| `test_e2e_cli.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 `test_structural.py::test_property_used_without_declaration_fails` is marked `xfail` — it documents a known bug in `sparql/untyped_property.sparql` where `?c` is used in the namespace filter instead of `?p`, causing the check to always return 0 violations.
 

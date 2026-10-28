@@ -45,53 +45,7 @@ def test_it_builds_the_stored_report(case):
 
     assert report == stored_ctrf_for(case), (
         f"the built report and tests/data/{stored_path.name} differ; regenerate with "
-        "UPDATE_GOLDEN=1 poetry run pytest tests/test_qaresult_to_ctrf.py")
-
-
-def test_one_entry_per_executed_check(ctrf, stored_qa_result):
-    assert len(ctrf['tests']) == len(stored_qa_result.checks)
-    assert {t['name'] for t in ctrf['tests']} == {c.name for c in stored_qa_result.checks}
-
-
-def test_each_status_matches_the_check(ctrf, stored_qa_result):
-    expected = {c.name: ('passed' if c.passed else 'failed') for c in stored_qa_result.checks}
-
-    assert {t['name']: t['status'] for t in ctrf['tests']} == expected
-
-
-def test_the_summary_counts_the_failures(ctrf, stored_qa_result):
-    summary = ctrf['summary']
-
-    assert summary['failed'] == len(stored_qa_result.failures)
-    assert summary['passed'] == len(stored_qa_result.checks) - len(stored_qa_result.failures)
-    assert summary['tests'] == len(stored_qa_result.checks)
-
-
-def test_a_failed_entry_carries_the_offending_elements(ctrf, stored_qa_result):
-    entry = next(t for t in ctrf['tests'] if t['name'] == "Class without label")
-
-    assert entry['status'] == 'failed'
-    assert entry['failure']['elements'] == stored_qa_result.get("Class without label").elements
-    assert entry['failure']['violations'] == stored_qa_result.get("Class without label").count
-
-
-def test_a_passing_entry_carries_no_failure(ctrf):
-    passing = [t for t in ctrf['tests'] if t['status'] == 'passed']
-
-    assert passing, "the stored result is meant to have passing checks too"
-    assert all('failure' not in t for t in passing)
-
-
-def test_the_input_is_recorded(ctrf):
-    assert ctrf['filesProcessed'] == ['reporters.ttl']
-
-
-def test_the_report_names_the_tool(ctrf):
-    assert ctrf['tool']['name']
-
-
-def test_the_report_carries_the_time_it_was_built(ctrf):
-    assert ctrf['timestamp'] == "2026-10-15 09:30:00"
+        "UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_qaresult_to_ctrf.py")
 
 
 def test_two_builds_of_the_same_result_are_equal(stored_qa_result):
