@@ -213,13 +213,21 @@ What remains open is the deeper question of scope, tracked in #96: a check compu
 their files, which is why uniqueness can be reported for two independent ontologies that
 merely share a label.
 
-**Where this is going: the unit.** One concept replaces the two modes. A **unit** is one
-ontology — one to many files, with exactly one `owl:Ontology` declaration across the whole
-unit. A **run** is a set of units. **Context** is every unit in the run, available to
-*resolve* references but never to widen what a check is computed over. `--per-file` then
-means "each file is a unit", a merged run means "all the files are one unit", and a run may
-hold both shapes at once, which is how a family of ontologies is actually laid out and
-which nothing in the tool can express today.
+**Where this is going: the unit.** A **unit** is one ontology — the files belonging to one
+declared `owl:Ontology`, *derived from the declaration rather than from a flag*. A **run**
+is a set of units. **Context** is every unit in the run, available for resolution and for
+inference, but not for widening what a per-ontology check is computed over. A directory of
+N ontologies is then N units: no flag, and no invalid input.
+
+A third category is needed beside those two. **Cross-unit checks** — subclass cycles that
+span ontologies, one IRI declared as different things in two units, two units declaring the
+same ontology IRI — are computed over the run and reported on the terms involved, the way
+`dqv.duplicate_ontology_graph()` already does. Measured on two ontologies that reference
+each other, merged and `--per-file` find *disjoint* sets of real problems: merged alone
+catches the cross-ontology cycle, per-file alone catches the isolated class and the
+unresolved references. Scoping everything to the unit would drop the first set silently.
+
+`--per-file` is then report granularity only.
 
 `main()` already builds `runs` as `list[list[path]]` and produces one report, one CTRF and
 one `QAResult` per entry, so a unit is already the internal shape. What is missing is
@@ -301,13 +309,18 @@ replaced, which is how `tests/test_e2e_dqv.py` compares against committed report
   accepted and papered over with the synthetic `Merged: …` dataset; and one boolean flag
   cannot describe a run whose units have different shapes.
 
-**What the unit model deletes.** Per-ontology attribution of measurements was the plan here
-until the model settled it away: a unit yields one result on one ontology, so a check's
-violations never split across ontologies, and the aggregate `Merged: …` dataset exists only
-to paper over a run the model makes invalid. It also reverses #96's answered question 4 —
-inside a unit of five files, one header and four files without it is **correct**, where
-today `check_owl_declaration` reports that as a violation and `tests/data/fragment.ttl`
-exists on the premise that it is a defect.
+**What the unit model changes.** Per-ontology attribution of measurements narrows: a
+per-ontology check is computed on its unit, so its violations never split across
+ontologies. It does not disappear, because cross-unit findings remain a category and need
+somewhere to hang — on the terms involved, not on a synthetic `Merged: …` dataset. The
+model also reverses #96's answered question 4: inside a unit of several files, one header
+and the rest without it is **correct**, where today `check_owl_declaration` counts files
+and reports that as a violation, and `tests/data/fragment.ttl` exists on the premise that
+it is a defect.
+
+**Sequencing:** #108 lands before any "one declaration per unit" rule. Until it does,
+merging is the only working way to cross-reference, so enforcing the rule first would take
+that away with nothing in its place.
 
 ## In flight
 
