@@ -1826,153 +1826,128 @@ def check_isolated_classes(in_metrics, graph, name, check, c, status, verbose, e
     
     return metrics, violations, log, c, status
 
-def check_property_missing_domain_range(in_metrics, graph, _, check, c, status, verbose):
+def _domain_range_rows(graph):
     """
-    QA test checking properties for rdfs:domain or rdfs:range declaration.
-    
+    Every property the domain/range query returns, and which declaration each one lacks.
+
+    One query, read three ways: the rows as they are reported, the properties without a
+    domain, and those without a range. Both checks need it, and it is cheap enough to run
+    per check — which is what lets them be two functions rather than one that remembers
+    whether it has already run.
+    """
+    rows, without_domain, without_range = [], [], []
+    for row in exec_sparql(graph, 'missing_dr_property'):
+        domain = term_text(row.domain) if row.domain else 'None'
+        range_ = term_text(row.range) if row.range else 'None'
+        if not row.domain:
+            without_domain.append(row.property)
+        if not row.range:
+            without_range.append(row.property)
+        rows.append((row.property, domain, range_))
+    return rows, sorted(set(without_domain)), sorted(set(without_range))
+
+
+def _missing_declaration(in_metrics, violations, check, status, missing, word):
+    """The verdict of one of the two checks: the properties lacking that declaration."""
+    if int(in_metrics['propertyCount']) == 0:
+        violations[check] = ""
+        decided(violations, check, "WARNING - No properties defined, invalid metric.")
+        not_assessed(violations, check, EMPTY_POPULATION)
+    elif missing:
+        status += 1
+        violations[records_key(check)] = [dqv.Violation(p) for p in missing]
+        violations[check] = violation_formatting(missing)
+        decided(violations, check,
+                f"VIOLATION - Found {len(missing)} properties without `rdfs:{word}` declaration:", AS_LIST)
+    else:
+        violations[check] = ""
+        decided(violations, check, f"PASS - All properties have {word} defined.")
+    return status
+
+
+def check_property_missing_domain(in_metrics, graph, name, check, c, status, verbose):
+    """
+    QA test counting properties without an rdfs:domain declaration.
+
+    It carries the preamble both checks share — how many properties lack either
+    declaration, and, on a verbose run, the domain and range of every property — because
+    that is where the report has always shown it.
+
     Args:
         in_metrics (dict): Number of violations for various ontology metrics.
         graph (rdflib.Graph): The RDF graph object to parse into.
-        _ (str): Not used. The reporter titles the check (see MARKDOWN_HEADINGS)
+        name (str): Name of the QA check being carried out.
         check (str): Dictionary key of the QA check being carried out.
         c (int): Counter for the QA checks selected.
         status (int): Number of violations before the check.
         verbose (bool): Logical flag for printing additional information.
-    
+
     Returns:
         metrics (dict): Number of violations for various ontology metrics.
         violations (dict): List of elements violating the ontology metrics.
-        log (str): Result of the QA test, formatted in markdown.
+        log (str): Unused; the reporter renders what the check recorded.
         c (int): Incremented counter, tracking QA tests selected.
         status (int): Incremental number of violations.
     """
     metrics = {}
     violations = {}
-    results = exec_sparql(graph, 'missing_dr_property')
+    c = c + 1
+    rows, without_domain, _ = _domain_range_rows(graph)
+    properties = int(in_metrics['propertyCount'])
+    metrics['missingDomainRange'] = len(rows)
 
-    # Check if the test has been run already.
-    if 'missingDomainRange' not in in_metrics:
-        metrics['missingDomainRange'] = 0
-        c, log = c + 1, ''
-        dCount = []
-        rCount = []
+    if not rows and properties > 0:
+        note(violations, check, "INFO - All properties have domain and range defined.")
+        if verbose:
+            note(violations, check, "")
+    elif rows:
+        note(violations, check,
+             f"WARNING - Found {len(rows)} properties without `rdfs:domain` or `rdfs:range` declaration:\n")
+        if not verbose:
+            tabulate(violations, check, ("Property", "Domain", "Range"), rows)
+            note(violations, check, "")
 
-        # Print the output of the check only once.
-        if not results and int(in_metrics['propertyCount']) > 0:
-            log += "INFO - All properties have domain and range defined.\n"
-            if verbose: log += "\n"
+    # A verbose run shows every property's domain and range, not only the incomplete ones.
+    if verbose and properties > 0:
+        tabulate(violations, check, ("Property", "Domain", "Range"),
+                 [(term_text(row.property),
+                   term_text(row.domain) if row.domain else 'None',
+                   term_text(row.range) if row.range else 'None')
+                  for row in exec_sparql(graph, 'dr_property')], verbose_only=True)
+        note(violations, check, "")
 
-        elif int(in_metrics['propertyCount']) == 0:
-            log += "WARNING - No properties defined, invalid metric.\n"
-            not_assessed(violations, check, EMPTY_POPULATION)
+    metrics[check] = len(without_domain)
+    status = _missing_declaration(in_metrics, violations, check, status, without_domain, 'domain')
+    return metrics, violations, '', c, status
 
-        elif results:
-            metrics['missingDomainRange'] = len(results)
-            log += f"WARNING - Found {metrics['missingDomainRange']} properties without `rdfs:domain` or `rdfs:range` declaration:\n\n"
-            if not verbose: log += "| Property | Domain | Range |\n|--|--|--|\n"
-            status += 1
-            for row in results:
-                predicate = row.property
-                if row.domain:
-                    domain = term_text(row.domain)
-                else:
-                    domain = 'None'
-                    dCount.append(predicate)
-                if row.range:
-                    range = term_text(row.range)
-                else:
-                    range = 'None'
-                    rCount.append(predicate)
-                if not verbose: log += f"| {predicate} | {domain} | {range} |\n"
 
-            if not verbose: log  += "\n"
+def check_property_missing_range(in_metrics, graph, name, check, c, status, verbose):
+    """
+    QA test counting properties without an rdfs:range declaration.
 
-        # If verbose, print a table with domain and range for all properties.
-        if verbose and int(in_metrics['propertyCount']) > 0:
-            # Show all properties in the results.
-            results = exec_sparql(graph, 'dr_property')
-            log += "| Property | Domain | Range |\n|--|--|--|\n"
-            for row in results:
-                if row.domain:
-                    domain = term_text(row.domain)
-                else:
-                    domain = 'None'
-                
-                if row.range:
-                    range = term_text(row.range)
-                else:
-                    range = 'None'
-                
-                log += f"| {term_text(row.property)} | {domain} | {range} |\n"
-            
-            log  += "\n"
-        
-        # Control which check triggered the first execution.
-        if check == 'missingDomain':
-            # remove duplicates from dCount list.
-            dCount = list(set(dCount))
-            dCount.sort()
-            metrics[check] = len(dCount)
-            if metrics[check] > 0:
-                string = violation_formatting(dCount)
-                violations[records_key(check)] = [dqv.Violation(p) for p in dCount]
-                violations[check] = string
-                string = string.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:domain` declaration:\n - {string}\n"
-            else:
-                violations[check] = ""
-                if int(in_metrics['propertyCount']) > 0: log += "PASS - All properties have domain defined.\n"
+    Args:
+        in_metrics (dict): Number of violations for various ontology metrics.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        check (str): Dictionary key of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
+        status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
 
-        elif check == 'missingRange':
-            # remove duplicates from rCount list.
-            rCount = list(set(rCount))
-            rCount.sort()
-            metrics[check]  = len(rCount)
-            if metrics[check] > 0:
-                string = violation_formatting(rCount)
-                violations[records_key(check)] = [dqv.Violation(p) for p in rCount]
-                violations[check] = string
-                string = string.replace(',<br> ', '\n - ')
-                log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
-            else:
-                violations[check] = ""
-                if int(in_metrics['propertyCount']) > 0: log += "PASS - All properties have range defined.\n"
-        
-
-    else:
-        # This condition is satisfied only for range violations.
-        # It relies on the fact that the array test_checklist is ordered,
-        # with missingDomain defined before missingRange.
-        c, log = c + 1, ''
-        rCount = []
-
-        # Analyse the results
-        if results:
-            for row in results:
-                predicate = row.property
-                if not row.range:
-                    rCount.append(predicate)
-        
-        # Report
-        rCount = list(set(rCount))
-        rCount.sort()
-        metrics[check]  = len(rCount)
-        if int(in_metrics['propertyCount']) == 0:
-            violations[check] = ""
-            log += "WARNING - No properties defined, invalid metric.\n"
-            not_assessed(violations, check, EMPTY_POPULATION)
-        elif metrics[check] > 0:
-            string = violation_formatting(rCount)
-            violations[records_key(check)] = [dqv.Violation(p) for p in rCount]
-            violations[check] = string
-            string = string.replace(',<br> ', '\n - ')
-            log += f"VIOLATION - Found {metrics[check]} properties without `rdfs:range` declaration:\n - {string}\n"
-        else:
-            violations[check] = ""
-            log += "PASS - All properties have range defined.\n"
-        
-
-    return metrics, violations, log, c, status
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        log (str): Unused; the reporter renders what the check recorded.
+        c (int): Incremented counter, tracking QA tests selected.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    c = c + 1
+    _, _, without_range = _domain_range_rows(graph)
+    metrics[check] = len(without_range)
+    status = _missing_declaration(in_metrics, violations, check, status, without_range, 'range')
+    return metrics, violations, '', c, status
 
 def _term_from_string(value):
     """An absolute IRI string as a URIRef; anything else is an rdflib blank-node id."""
@@ -2799,28 +2774,10 @@ def lint_selection(selection, checklist, rule_reasons=None):
         if 'enable' in selection and isinstance(selection['enable'], list):
             for i, item in enumerate(checklist):
                 if item[1].__name__ not in selection['enable']: checklist[i][0] = False
-
-            # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
-            if 'check_property_missing_domain' in selection['enable']:
-                index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index][0] = True
-            
-            if 'check_property_missing_range' in selection['enable']:
-                index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index][0] = True
         
         elif 'disable' in selection and isinstance(selection['disable'], list):
             for i, item in enumerate(checklist):
                 if item[1].__name__ in selection['disable']: checklist[i][0] = False
-            
-            # Special case for the check_property_missing_domain_range test, which is triggered by both missingDomain and missingRange checks.
-            if 'check_property_missing_domain' in selection['disable']:
-                index = [i for i, item in enumerate(checklist) if item[3] == 'missingDomain'][0]
-                checklist[index][0] = False
-
-            if 'check_property_missing_range' in selection['disable']:
-                index = [i for i, item in enumerate(checklist) if item[3] == 'missingRange'][0]
-                checklist[index][0] = False
         
         elif selection:
             # Non-empty dict with no recognised top-level key
@@ -2863,8 +2820,8 @@ CHECKLIST = [
     [True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ],
     [True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ],
     [True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ],
-    [True, check_property_missing_domain_range,  "Property without domain",            'missingDomain'             ],
-    [True, check_property_missing_domain_range,  "Property without range",             'missingRange'              ],
+    [True, check_property_missing_domain,        "Property without domain",            'missingDomain'             ],
+    [True, check_property_missing_range,         "Property without range",             'missingRange'              ],
     [True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ],
     [True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ],
     [True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ],
@@ -2895,10 +2852,6 @@ TYPE_EXCLUDABLE_CHECKS = (
 
 def config_check_name(func, key):
     """The name a check has in .rdf-lint.yml enable/disable lists (e.g. 'class-missing-label')."""
-    if key == 'missingDomain':
-        return 'property-missing-domain'
-    if key == 'missingRange':
-        return 'property-missing-range'
     return func.__name__.removeprefix('check_').replace('_', '-')
 
 
