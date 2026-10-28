@@ -69,6 +69,68 @@ olq:relatedResource a owl:ObjectProperty ;
 # The configuration a QA run actually used: the project's .rdf-lint.yml plus everything
 # ontolint added (defaults, bundled vocabularies, rules), each setting with its origin.
 
+olq:Dependency a owl:Class ;
+    rdfs:label "dependency"@en ;
+    rdfs:comment "One metric's need of another, and why: the dependent metric can only be computed where the prerequisite metric's condition holds. The relation between the two metrics is stated with dcterms:requires; this explains it. Declared once and used twice — to enable the prerequisite check when a dependent one is selected, and to say why a dependent metric was not assessed."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:dependent a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "dependent"@en ;
+    rdfs:comment "The metric that cannot be computed unless the dependency is met."@en ;
+    rdfs:domain olq:Dependency ;
+    rdfs:range dqv:Metric ;
+    rdfs:isDefinedBy olq: .
+
+olq:prerequisite a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "prerequisite"@en ;
+    rdfs:comment "The metric whose condition must hold for the dependent metric to be computed. The relation itself is stated with dcterms:requires; this names the far end of the olq:Dependency that explains it."@en ;
+    rdfs:domain olq:Dependency ;
+    rdfs:range dqv:Metric ;
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso dcterms:requires .
+
+olq:Reason a owl:Class ;
+    rdfs:label "reason"@en ;
+    rdfs:comment "Why a metric was not assessed: either a shared reason individual, or the olq:Dependency that was not met."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:EmptyPopulation a olq:Reason, owl:NamedIndividual ;
+    rdfs:label "empty population"@en ;
+    rdfs:comment "Nothing of the kind the metric measures is present, so there was nothing to assess — no classes, no properties, no shapes."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:SourcesNotRecorded a olq:Reason, owl:NamedIndividual ;
+    rdfs:label "sources not recorded"@en ;
+    rdfs:comment "The metric is computed per input, and the graph it was given does not record which input a triple came from, so there was nothing to compute it over."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:NotAssessed a owl:Class ;
+    rdfs:label "not assessed"@en ;
+    rdfs:comment "A metric that could not be computed for a dataset. Distinct from a measurement of zero violations, which means the check ran and found nothing."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:notAssessed a owl:ObjectProperty ;
+    rdfs:label "not assessed"@en ;
+    rdfs:comment "Links a quality assessment to one record per metric it could not compute, so a consumer can tell a clean result from one that was never looked at."@en ;
+    rdfs:domain dqv:QualityMetadata ;
+    rdfs:range olq:NotAssessed ;
+    rdfs:isDefinedBy olq: .
+
+olq:metric a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "metric"@en ;
+    rdfs:comment "The metric a not-assessed record is about. Used instead of dqv:isMeasurementOf, whose domain is dqv:QualityMeasurement: nothing was measured, which is the point of the record."@en ;
+    rdfs:domain olq:NotAssessed ;
+    rdfs:range dqv:Metric ;
+    rdfs:isDefinedBy olq: ;
+    rdfs:seeAlso dqv:isMeasurementOf .
+
+olq:reason a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "reason"@en ;
+    rdfs:comment "Why a metric was not assessed: an olq:Reason individual, or the olq:Dependency that was not met."@en ;
+    rdfs:domain olq:NotAssessed ;
+    rdfs:range olq:Reason ;
+    rdfs:isDefinedBy olq: .
+
 olq:Configuration a owl:Class ;
     rdfs:label "configuration"@en ;
     rdfs:comment "The configuration a QA run actually used: the project's .rdf-lint.yml settings together with the defaults, bundled vocabularies and rule-based changes ontolint applied."@en ;

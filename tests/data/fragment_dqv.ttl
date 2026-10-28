@@ -21,12 +21,24 @@
 
 <urn:ontolint:assessment-e80fd597> a dqv:QualityMetadata ;
     dqv:hasQualityMeasurement <urn:ontolint:measurement-ontolint-conformance-e3b7f34d>,
-        <urn:ontolint:measurement-ontology-missing-description-863e4304>,
         <urn:ontolint:measurement-ontology-not-declared-469e57ac>,
-        <urn:ontolint:measurement-undefined-terms-907063c4>,
-        <urn:ontolint:measurement-untyped-properties-13a3d4a1> ;
+        <urn:ontolint:measurement-undefined-terms-907063c4> ;
     prov:generatedAtTime "2026-10-15T09:30:00+00:00"^^xsd:dateTime ;
-    olq:configuration <urn:ontolint:configuration-effective> .
+    olq:configuration <urn:ontolint:configuration-effective> ;
+    olq:notAssessed <urn:ontolint:not-assessed-fragment-ttl-0fae89be>,
+        <urn:ontolint:not-assessed-fragment-ttl-13a3d4a1>,
+        <urn:ontolint:not-assessed-fragment-ttl-1a83edbd>,
+        <urn:ontolint:not-assessed-fragment-ttl-387599ed>,
+        <urn:ontolint:not-assessed-fragment-ttl-4374b7d6>,
+        <urn:ontolint:not-assessed-fragment-ttl-5a6d5583>,
+        <urn:ontolint:not-assessed-fragment-ttl-623e63c4>,
+        <urn:ontolint:not-assessed-fragment-ttl-863e4304>,
+        <urn:ontolint:not-assessed-fragment-ttl-b9316892> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-unresolvable-imports-6c2035de> a olq:Dependency ;
+    rdfs:comment "owl:imports statements are read off the declared owl:Ontology." ;
+    olq:dependent <urn:ontolint:metric-unresolvable-imports> ;
+    olq:prerequisite <urn:ontolint:metric-ontology-not-declared> .
 
 <urn:ontolint:configuration-effective> a olq:Configuration ;
     rdfs:label "Effective ontolint configuration" ;
@@ -92,19 +104,26 @@
         <urn:ontolint:setting-undefined-terms-skip-object-of-e4c6c3d2>,
         <urn:ontolint:setting-undefined-terms-skip-object-of-fe961346> .
 
+<urn:ontolint:dependency-urn-ontolint-metric-ontology-missing-des-a63e2dc0> a olq:Dependency ;
+    rdfs:comment "A description is read off the declared owl:Ontology, so there is none to read without one." ;
+    olq:dependent <urn:ontolint:metric-ontology-missing-description> ;
+    olq:prerequisite <urn:ontolint:metric-ontology-not-declared> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-untyped-classes-503e08e4> a olq:Dependency ;
+    rdfs:comment "Without a declared namespace, a class of the ontology's own cannot be told from an external vocabulary's." ;
+    olq:dependent <urn:ontolint:metric-untyped-classes> ;
+    olq:prerequisite <urn:ontolint:metric-ontology-not-declared> .
+
+<urn:ontolint:dependency-urn-ontolint-metric-untyped-properties-c188c85a> a olq:Dependency ;
+    rdfs:comment "Without a declared namespace, a property of the ontology's own cannot be told from an external vocabulary's." ;
+    olq:dependent <urn:ontolint:metric-untyped-properties> ;
+    olq:prerequisite <urn:ontolint:metric-ontology-not-declared> .
+
 <urn:ontolint:measurement-ontolint-conformance-e3b7f34d> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/input/fragment.ttl> ;
     dqv:isMeasurementOf <urn:ontolint:metric-ontolint-conformance> ;
-    dqv:value 4 ;
+    dqv:value 2 ;
     olq:conforms false .
-
-<urn:ontolint:measurement-ontology-missing-description-863e4304> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/fragment.ttl> ;
-    dqv:isMeasurementOf <urn:ontolint:metric-ontology-missing-description> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-urn-ontolint-measurement-ontology-missin-93294881> .
 
 <urn:ontolint:measurement-ontology-not-declared-469e57ac> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/input/fragment.ttl> ;
@@ -123,18 +142,6 @@
     olq:violation <urn:ontolint:violation-urn-ontolint-measurement-undefined-terms-5a8dbe00>,
         <urn:ontolint:violation-urn-ontolint-measurement-undefined-terms-6e10e77f>,
         <urn:ontolint:violation-urn-ontolint-measurement-undefined-terms-e7b72890> .
-
-<urn:ontolint:measurement-untyped-properties-13a3d4a1> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/input/fragment.ttl> ;
-    dqv:isMeasurementOf <urn:ontolint:metric-untyped-properties> ;
-    dqv:value 5 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-af1c75d1>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-b18dc2f5>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-c9335ac3>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-e2c30284>,
-        <urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-fd293632> .
 
 <urn:ontolint:metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -176,27 +183,6 @@
     skos:definition "A resource is defined using an external vocabulary's namespace." ;
     skos:prefLabel "Namespace hijacking" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
-    olq:severity sh:Violation .
-
-<urn:ontolint:metric-node-shapes-missing-description> a dqv:Metric ;
-    rdfs:label "NodeShape without description" ;
-    skos:definition "A SHACL NodeShape has no description annotation." ;
-    skos:prefLabel "NodeShape without description" ;
-    dqv:inDimension <urn:ontolint:dimension-documentation> ;
-    olq:severity sh:Warning .
-
-<urn:ontolint:metric-node-shapes-missing-label> a dqv:Metric ;
-    rdfs:label "NodeShape without label" ;
-    skos:definition "A SHACL NodeShape has no label annotation." ;
-    skos:prefLabel "NodeShape without label" ;
-    dqv:inDimension <urn:ontolint:dimension-documentation> ;
-    olq:severity sh:Violation .
-
-<urn:ontolint:metric-node-shapes-same-label> a dqv:Metric ;
-    rdfs:label "NodeShapes with the same label" ;
-    skos:definition "Two or more SHACL NodeShapes share a label in the same language and with the same predicate." ;
-    skos:prefLabel "NodeShapes with the same label" ;
-    dqv:inDimension <urn:ontolint:dimension-uniqueness> ;
     olq:severity sh:Violation .
 
 <urn:ontolint:metric-non-unique-identifiers> a dqv:Metric ;
@@ -247,27 +233,6 @@
     dqv:inDimension <urn:ontolint:dimension-uniqueness> ;
     olq:severity sh:Violation .
 
-<urn:ontolint:metric-property-shapes-missing-description> a dqv:Metric ;
-    rdfs:label "PropertyShape without description" ;
-    skos:definition "A SHACL PropertyShape has no description annotation." ;
-    skos:prefLabel "PropertyShape without description" ;
-    dqv:inDimension <urn:ontolint:dimension-documentation> ;
-    olq:severity sh:Warning .
-
-<urn:ontolint:metric-property-shapes-missing-label> a dqv:Metric ;
-    rdfs:label "PropertyShape without label" ;
-    skos:definition "A SHACL PropertyShape has no label annotation." ;
-    skos:prefLabel "PropertyShape without label" ;
-    dqv:inDimension <urn:ontolint:dimension-documentation> ;
-    olq:severity sh:Violation .
-
-<urn:ontolint:metric-property-shapes-same-label> a dqv:Metric ;
-    rdfs:label "PropertyShapes with the same label" ;
-    skos:definition "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate." ;
-    skos:prefLabel "PropertyShapes with the same label" ;
-    dqv:inDimension <urn:ontolint:dimension-uniqueness> ;
-    olq:severity sh:Violation .
-
 <urn:ontolint:metric-subclass-cycles> a dqv:Metric ;
     rdfs:label "Subclass Cycles" ;
     skos:definition "A class is involved in an rdfs:subClassOf cycle." ;
@@ -275,19 +240,50 @@
     dqv:inDimension <urn:ontolint:dimension-structure> ;
     olq:severity sh:Violation .
 
-<urn:ontolint:metric-unresolvable-imports> a dqv:Metric ;
-    rdfs:label "Unresolvable imports" ;
-    skos:definition "An owl:imports target could not be resolved or contains no triples." ;
-    skos:prefLabel "Unresolvable imports" ;
-    dqv:inDimension <urn:ontolint:dimension-conformance> ;
-    olq:severity sh:Violation .
+<urn:ontolint:not-assessed-fragment-ttl-0fae89be> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-node-shapes-missing-description> ;
+    olq:reason olq:EmptyPopulation .
 
-<urn:ontolint:metric-untyped-classes> a dqv:Metric ;
-    rdfs:label "Untyped Classes" ;
-    skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
-    skos:prefLabel "Untyped Classes" ;
-    dqv:inDimension <urn:ontolint:dimension-conformance> ;
-    olq:severity sh:Violation .
+<urn:ontolint:not-assessed-fragment-ttl-13a3d4a1> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-untyped-properties> ;
+    olq:reason <urn:ontolint:dependency-urn-ontolint-metric-untyped-properties-c188c85a> .
+
+<urn:ontolint:not-assessed-fragment-ttl-1a83edbd> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-untyped-classes> ;
+    olq:reason <urn:ontolint:dependency-urn-ontolint-metric-untyped-classes-503e08e4> .
+
+<urn:ontolint:not-assessed-fragment-ttl-387599ed> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-property-shapes-missing-description> ;
+    olq:reason olq:EmptyPopulation .
+
+<urn:ontolint:not-assessed-fragment-ttl-4374b7d6> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-property-shapes-same-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<urn:ontolint:not-assessed-fragment-ttl-5a6d5583> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-property-shapes-missing-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<urn:ontolint:not-assessed-fragment-ttl-623e63c4> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-node-shapes-missing-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<urn:ontolint:not-assessed-fragment-ttl-863e4304> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-ontology-missing-description> ;
+    olq:reason <urn:ontolint:dependency-urn-ontolint-metric-ontology-missing-des-a63e2dc0> .
+
+<urn:ontolint:not-assessed-fragment-ttl-b9316892> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/input/fragment.ttl> ;
+    olq:metric <urn:ontolint:metric-node-shapes-same-label> ;
+    olq:reason olq:EmptyPopulation .
 
 <urn:ontolint:setting-checks-037ff9a7> a olq:Setting ;
     rdfs:label "checks: Properties with the same label (enabled)" ;
@@ -787,11 +783,6 @@
     olq:origin olq:OntolintDefault ;
     olq:value rdfs:isDefinedBy .
 
-<urn:ontolint:violation-urn-ontolint-measurement-ontology-missin-93294881> a sh:ValidationResult ;
-    sh:resultMessage "no ontology declared" ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
 <urn:ontolint:violation-urn-ontolint-measurement-ontology-not-de-cdecad0f> a sh:ValidationResult ;
     sh:focusNode <https://example.org/input/fragment.ttl> ;
     sh:resultMessage "no owl:Ontology declaration" ;
@@ -816,43 +807,46 @@
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-af1c75d1> a sh:ValidationResult ;
-    sh:focusNode rdfs:domain ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+<urn:ontolint:metric-node-shapes-missing-description> a dqv:Metric ;
+    rdfs:label "NodeShape without description" ;
+    skos:definition "A SHACL NodeShape has no description annotation." ;
+    skos:prefLabel "NodeShape without description" ;
+    dqv:inDimension <urn:ontolint:dimension-documentation> ;
+    olq:severity sh:Warning .
 
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-b18dc2f5> a sh:ValidationResult ;
-    sh:focusNode rdfs:comment ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-c9335ac3> a sh:ValidationResult ;
-    sh:focusNode rdfs:range ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-e2c30284> a sh:ValidationResult ;
-    sh:focusNode rdf:type ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:violation-urn-ontolint-measurement-untyped-propert-fd293632> a sh:ValidationResult ;
-    sh:focusNode rdfs:label ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<urn:ontolint:metric-ontology-missing-description> a dqv:Metric ;
-    rdfs:label "Ontology without description" ;
-    skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
-    skos:prefLabel "Ontology without description" ;
-    dqv:inDimension <urn:ontolint:dimension-metadata> ;
+<urn:ontolint:metric-node-shapes-missing-label> a dqv:Metric ;
+    rdfs:label "NodeShape without label" ;
+    skos:definition "A SHACL NodeShape has no label annotation." ;
+    skos:prefLabel "NodeShape without label" ;
+    dqv:inDimension <urn:ontolint:dimension-documentation> ;
     olq:severity sh:Violation .
 
-<urn:ontolint:metric-ontology-not-declared> a dqv:Metric ;
-    rdfs:label "Ontology without declaration" ;
-    skos:definition "A processed file has no owl:Ontology declaration." ;
-    skos:prefLabel "Ontology without declaration" ;
-    dqv:inDimension <urn:ontolint:dimension-metadata> ;
+<urn:ontolint:metric-node-shapes-same-label> a dqv:Metric ;
+    rdfs:label "NodeShapes with the same label" ;
+    skos:definition "Two or more SHACL NodeShapes share a label in the same language and with the same predicate." ;
+    skos:prefLabel "NodeShapes with the same label" ;
+    dqv:inDimension <urn:ontolint:dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<urn:ontolint:metric-property-shapes-missing-description> a dqv:Metric ;
+    rdfs:label "PropertyShape without description" ;
+    skos:definition "A SHACL PropertyShape has no description annotation." ;
+    skos:prefLabel "PropertyShape without description" ;
+    dqv:inDimension <urn:ontolint:dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<urn:ontolint:metric-property-shapes-missing-label> a dqv:Metric ;
+    rdfs:label "PropertyShape without label" ;
+    skos:definition "A SHACL PropertyShape has no label annotation." ;
+    skos:prefLabel "PropertyShape without label" ;
+    dqv:inDimension <urn:ontolint:dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<urn:ontolint:metric-property-shapes-same-label> a dqv:Metric ;
+    rdfs:label "PropertyShapes with the same label" ;
+    skos:definition "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate." ;
+    skos:prefLabel "PropertyShapes with the same label" ;
+    dqv:inDimension <urn:ontolint:dimension-uniqueness> ;
     olq:severity sh:Violation .
 
 <urn:ontolint:metric-undefined-terms> a dqv:Metric ;
@@ -862,10 +856,11 @@
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
     olq:severity sh:Violation .
 
-<urn:ontolint:metric-untyped-properties> a dqv:Metric ;
-    rdfs:label "Untyped Properties" ;
-    skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
-    skos:prefLabel "Untyped Properties" ;
+<urn:ontolint:metric-unresolvable-imports> a dqv:Metric ;
+    rdfs:label "Unresolvable imports" ;
+    dcterms:requires <urn:ontolint:metric-ontology-not-declared> ;
+    skos:definition "An owl:imports target could not be resolved or contains no triples." ;
+    skos:prefLabel "Unresolvable imports" ;
     dqv:inDimension <urn:ontolint:dimension-conformance> ;
     olq:severity sh:Violation .
 
@@ -873,6 +868,30 @@
     rdfs:label "Metadata" ;
     skos:definition "The ontology declares itself and describes its purpose." ;
     skos:prefLabel "Metadata" .
+
+<urn:ontolint:metric-ontology-missing-description> a dqv:Metric ;
+    rdfs:label "Ontology without description" ;
+    dcterms:requires <urn:ontolint:metric-ontology-not-declared> ;
+    skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
+    skos:prefLabel "Ontology without description" ;
+    dqv:inDimension <urn:ontolint:dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<urn:ontolint:metric-untyped-classes> a dqv:Metric ;
+    rdfs:label "Untyped Classes" ;
+    dcterms:requires <urn:ontolint:metric-ontology-not-declared> ;
+    skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
+    skos:prefLabel "Untyped Classes" ;
+    dqv:inDimension <urn:ontolint:dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<urn:ontolint:metric-untyped-properties> a dqv:Metric ;
+    rdfs:label "Untyped Properties" ;
+    dcterms:requires <urn:ontolint:metric-ontology-not-declared> ;
+    skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
+    skos:prefLabel "Untyped Properties" ;
+    dqv:inDimension <urn:ontolint:dimension-conformance> ;
+    olq:severity sh:Violation .
 
 <urn:ontolint:dimension-structure> a dqv:Dimension ;
     rdfs:label "Structure" ;
@@ -884,8 +903,6 @@
     skos:definition "Labels and identifiers unambiguously denote a single term." ;
     skos:prefLabel "Uniqueness" .
 
-<https://example.org/input/fragment.ttl> rdfs:label "fragment.ttl" .
-
 <urn:ontolint:dimension-conformance> a dqv:Dimension ;
     rdfs:label "Conformance" ;
     skos:definition "Terms are declared, resolvable and minted in the ontology's own namespace." ;
@@ -895,4 +912,13 @@
     rdfs:label "Documentation" ;
     skos:definition "Terms carry human-readable labels and descriptions." ;
     skos:prefLabel "Documentation" .
+
+<urn:ontolint:metric-ontology-not-declared> a dqv:Metric ;
+    rdfs:label "Ontology without declaration" ;
+    skos:definition "A processed file has no owl:Ontology declaration." ;
+    skos:prefLabel "Ontology without declaration" ;
+    dqv:inDimension <urn:ontolint:dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<https://example.org/input/fragment.ttl> rdfs:label "fragment.ttl" .
 

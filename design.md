@@ -286,6 +286,84 @@ would make `a:borrowed` ontology a's defect, which lets one input degrade anothe
 score from outside. Ownership follows the file; minting into someone else's namespace is the
 finding, not the attribution rule.
 
+## A check that cannot answer says so
+
+A check reports one of three outcomes, not two. `CheckResult.status` is `passed`, `failed`
+or **`skipped`** — the last meaning it could not be computed at all. A skipped check is not
+a failure, so `passed` stays a derived property and the exit code does not change; but it
+is not a pass either, and saying so is the point.
+
+It had been saying so only in prose. All 22 places a check cannot compute its metric
+already logged `WARNING - … invalid metric`, while the metric, the CTRF entry and the DQV
+report carried the 0 it never measured. A two-class ontology with no properties reported
+**25 passed, 0 failed**, of which 12 had never looked at anything. It now reports
+**13 passed, 0 failed, 12 skipped**.
+
+Each check says so explicitly, through `not_assessed(violations, check, reason)`, rather
+than a reporter inferring it from the log text — behaviour in prose is what this is fixing.
+
+**Why it could not run** is carried too. The reasons are `olq:EmptyPopulation` (nothing of
+the kind measured exists), `olq:SourcesNotRecorded` (a per-input check given a graph that
+does not record its inputs), or **the dependency that was not met**.
+
+### Dependencies between checks are declared, not coded
+
+Four checks need another check's condition to hold: the description and imports checks, and
+both untyped checks, all need a declared `owl:Ontology`. Two of those lived as `if` blocks
+in `lint_selection` plus an English sentence; the other two lived nowhere at all, implicit
+in the check.
+
+They are now data — `dqv.DQV_DEPENDENCIES` — used three times from one statement:
+
+- `lint_selection` enables the required check when a dependent one is selected;
+- the report publishes each as an `olq:Dependency`, carrying *why* it exists, plus a
+  `dcterms:requires` shortcut for querying. The relation itself is Dublin Core's — *"a
+  related resource that is required by the described resource to support its function,
+  delivery, or coherence"* is exactly this — so only the explanation needs a term of ours;
+- a skipped check's `olq:reason` points at the dependency it could not meet, so a consumer
+  reading *"untyped properties: not assessed"* can follow it to *"because no ontology was
+  declared"* and on to the measurement that says so.
+
+This is why a headerless file no longer reports a missing ontology **description** as a
+failure: there is nothing to describe, so the check is skipped against its dependency, and
+the declaration check alone names the defect. One term, one failure, applied to checks.
+
+`olq:metric` links a not-assessed record to its metric rather than `dqv:isMeasurementOf`,
+whose domain is `dqv:QualityMeasurement` — nothing was measured, which is the whole point.
+
+A skip caused by a failure elsewhere must not read like the benign kind, so the CTRF message
+names the check it needed and what became of it — `not assessed: requires 'Ontology without
+declaration', which failed` — rather than the internal reason key. The status stays
+`skipped` for both: CTRF's vocabulary is `passed | failed | skipped | pending | other`, and
+`other` would say less, not more. A prerequisite skip is never silently green in any case —
+the check it needs is itself failing, and the dependency rule guarantees that check runs.
+
+
+
+### The case that started it
+
+The untyped-class and untyped-property checks judge a term by whether it is in the
+ontology's own namespace. With no `owl:Ontology` declared there is no such namespace, and
+the guard used to read *"keep it if it is mine, **or if I do not know what mine is**"* —
+so a headerless file had every term it touched reported, `rdf:type` and `rdfs:label`
+included, and the build failed on a list of other people's vocabulary (#102).
+
+The guard now requires a declared namespace, in the queries *and* in the checks: the
+queries return nothing, and the checks say `invalid metric` rather than `PASS`, because
+reporting nothing and finding nothing are different things and only one of them is a
+clean bill of health. It is the same shape as `WARNING - No classes defined, invalid
+metric` elsewhere.
+
+What this gives up is deliberate. A term in the file's own namespace, used and never
+typed, really is a defect and is no longer named — there is no way to tell it from a
+third party's term without a namespace to judge by. Excluding only the vocabularies we
+already know offline would keep it, and is worth revisiting; it is not what this change
+does.
+
+Each half has its own failing test, because they can hide each other: the checks
+short-circuit on the declaration before looking at their results, so a query that went
+back to passing everything would be invisible through `run_qa`.
+
 ## Determinism
 
 Reports must be byte-identical for the same inputs, or diffs are unreviewable and no

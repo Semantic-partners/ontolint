@@ -175,19 +175,12 @@ PASS - No violations found.
 --------------------
 
 Check 23: Untyped Classes.
-PASS - No violations found.
-WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.
+WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a class is defined in the ontology or an external vocabulary.
 
 --------------------
 
 Check 24: Untyped Properties.
-VIOLATION - Found 5 property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:
-http://www.w3.org/1999/02/22-rdf-syntax-ns#type
- - http://www.w3.org/2000/01/rdf-schema#comment
- - http://www.w3.org/2000/01/rdf-schema#domain
- - http://www.w3.org/2000/01/rdf-schema#label
- - http://www.w3.org/2000/01/rdf-schema#range
-WARNING - Ontology namespace undefined. No way to confirm if a property is defined in the ontology or an external vocabulary.
+WARNING - Ontology namespace undefined, invalid metric. No way to confirm if a property is defined in the ontology or an external vocabulary.
 
 --------------------
 
@@ -205,5 +198,5 @@ WARNING - Ontology namespace undefined. The reported violations may be incorrect
 ## Quality Assurance Metrics
 | Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
 |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| fragment.ttl | 1 | 0 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
+| fragment.ttl | 1 | 0 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 """

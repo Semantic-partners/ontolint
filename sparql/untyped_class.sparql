@@ -33,7 +33,9 @@ WHERE {
 	BIND(STR(?ontology) AS ?ns)
   }
   BIND(REPLACE(STR(?c), "[^#/]*$", "") AS ?cns)
-  FILTER (!BOUND(?ns) || ?cns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
+  # An unbound ?ns means no owl:Ontology was declared, so there is no namespace to
+  # judge against: require it, and report nothing rather than everything.
+  FILTER (BOUND(?ns) && ?cns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
   MINUS {
     VALUES ?type { owl:Class rdfs:Class rdfs:Datatype }
     ?c a ?type .
