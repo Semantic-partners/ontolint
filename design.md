@@ -105,11 +105,16 @@ the same way online or off.
 **One term, one failure.** Every term in `reporters.ttl` is complete except for the single
 thing the comment beside it names, so a check that changes moves one line of the stored
 expectations rather than several, and a term appearing twice in a report is a signal rather
-than noise. Two exceptions, both in the checks rather than the fixture: an `owl:imports`
-that cannot be resolved is by construction a namespace whose terms cannot be checked, so it
-fails both; and `fragment.ttl`, having no declared namespace to compare against, trips the
-undefined-terms and untyped-property checks on its own terms and on `rdfs:label` alike,
-which is #102. The same rule applies to the golden cases under `tests/dqv/`.
+than noise. One exception, and it is in the checks rather than the fixture: an
+`owl:imports` that cannot be resolved is by construction a namespace whose terms cannot be
+checked, so it fails both. The same rule applies to `fragment.ttl` and to the golden cases
+under `tests/dqv/`.
+
+`fragment.ttl` carries the other direction of the same noise, which it cannot avoid: with
+no declared namespace to compare against, the undefined-terms check reports its own three
+terms and the untyped-property check reports `rdf:type`, `rdfs:label` and friends — terms
+the file never put under test. Those are false positives rather than fixture content, and
+pinning them is part of what the file is for, since they are #102.
 
 Each DQV golden covers a **single** result, unlike the run-level report the reporter
 builds in anger. A report over several results is not the union of their individual ones:
