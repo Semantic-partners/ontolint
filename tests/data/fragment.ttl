@@ -6,6 +6,11 @@
 # rule is one file, one ontology, so this is reported rather than tolerated. Linted beside
 # reporters.ttl it also gives the three-way split the declaration check actually has: none
 # of the files declared one, some of them did, all of them did.
+#
+# Unlike reporters.ttl, this file does not hold to one term, one failure, and cannot: with
+# no declared namespace to compare against, the undefined-terms check reports its own three
+# terms and the untyped-property check reports rdf:type, rdfs:label and friends. That is
+# #102, and pinning it is part of what this file is for.
 @prefix frag: <https://example.org/fragment#> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
