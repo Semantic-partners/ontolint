@@ -73,6 +73,7 @@ class CheckResult:
     key: str = ''
     violations: list = field(default_factory=list)
     reason: str | None = None         # why a 'skipped' check could not be computed
+    outcome: tuple | None = None      # (sentence, detail) a reporter renders; see decided()
 
     @property
     def passed(self):
@@ -173,6 +174,26 @@ def records_key(check):
 def skipped_key(check):
     """Key under which a check records that it could not be computed, and why."""
     return (check, 'skipped')
+
+
+def outcome_key(check):
+    """Key under which a check records what it decided, for a reporter to render."""
+    return (check, 'outcome')
+
+
+# How a check's elements follow its sentence, when it has any.
+AS_LIST = 'list'      # one per line, under the sentence
+AS_TABLE = 'table'    # the check built a Markdown table
+
+
+def decided(violations, check, sentence, detail=None):
+    """
+    Record what a check decided, as a sentence and how its elements follow it.
+
+    The sentence says what was found; the reporter lays it out. A check that writes its own
+    report cannot be rendered any other way, which is what #101 is about.
+    """
+    violations[outcome_key(check)] = (sentence, detail)
 
 
 # Why a check could not be computed. Either of these, or the key of a check whose condition
@@ -3037,6 +3058,7 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
                 key=key,
                 violations=qa_violations.get(records_key(key), []) if count else [],
                 reason=reason,
+                outcome=qa_violations.get(outcome_key(key)),
             ))
     
     # Fallback to add profiling elements from OWL declaration, which could have been disabled in the QA checks.
@@ -3217,6 +3239,23 @@ def _display_path(path):
     return _relative_path(path) or path
 
 
+def render_outcome(check):
+    """
+    A check's section body, from what it decided.
+
+    Empty for a check that has not been converted yet and still renders its own text (see
+    #101); the reporter falls back to that while the move is in progress.
+    """
+    if not check.outcome:
+        return ""
+    sentence, detail = check.outcome
+    if detail == AS_LIST and check.elements:
+        return f"{sentence}\n - " + check.elements.replace(",<br> ", "\n - ") + "\n"
+    if detail == AS_TABLE and check.elements:
+        return f"{sentence}\n{check.elements}\n"
+    return f"{sentence}\n"
+
+
 def render_markdown(result, checklist, verbose=False):
     """
     The Markdown body of a report, from a QAResult.
@@ -3236,7 +3275,7 @@ def render_markdown(result, checklist, verbose=False):
     # Numbering, titling and separating a check's section is the reporter's job: the check
     # says what it found, not how a report lays it out.
     for index, (check, body) in enumerate(zip(result.checks, result.logs), start=1):
-        log += f"\nCheck {index}: {check.name}.\n{body}{sep()}"
+        log += f"\nCheck {index}: {check.name}.\n{render_outcome(check) or body}{sep()}"
     log += print_profiling_table(result.profiling)
     log += print_qa_table(result.profiling, tests)
     return log
