@@ -20,7 +20,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import url2pathname
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import TypeAlias
@@ -196,10 +196,6 @@ def exec_sparql(graph, key, exclude_types=None):
         )
     results = graph.query(sparql_query)
     if results.type == 'SELECT':
-        # Rows come back in store order, which varies between runs: the same inputs would
-        # otherwise produce a differently ordered report each time, so diffs are
-        # unreviewable and the output can't be compared against an expected one. CONSTRUCT
-        # results are graphs and are left alone.
         return sorted(results, key=lambda row: tuple(str(value) for value in row))
     return results
 
@@ -548,15 +544,34 @@ def print_if_executed(metrics, checks, key):
         output = metrics[key]
     return output
 
-def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
+def ctrf_timestamp():
+    """
+    Now, or SOURCE_DATE_EPOCH if that is set (the reproducible-builds convention).
+
+    Honouring it is what makes a CTRF report reproducible: nothing else in it varies
+    between two runs over the same inputs, so with the clock pinned the file is
+    byte-identical — as the DQV report already was (dqv._report_timestamp).
+
+    Only the pinned branch is UTC. An unpinned report keeps the local clock it has always
+    rendered, so turning this on adds reproducibility to a published format without
+    restating every existing report's timestamp in another zone.
+    """
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if epoch:
+        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+    return datetime.now()
+
+
+def build_ctrf_report(result: QAResult, date_time_provider=ctrf_timestamp):
     """
     A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
     check, with the run's summary. Returns the report; writing it is write_ctrf_report's
     job, so the projection can be built and inspected without touching the filesystem.
 
-    date_time_provider supplies the report's timestamp. It is injected so a caller can fix
-    it — without that the projection is not a pure function of the QAResult, and two
-    reports built over the same result differ.
+    date_time_provider supplies the report's timestamp, and defaults to ctrf_timestamp,
+    which honours SOURCE_DATE_EPOCH. It stays injectable so a test can fix the clock
+    without touching the environment — without that the projection is not a pure function
+    of the QAResult, and two reports built over the same result differ.
     """
     passed = 0
     failed = 0

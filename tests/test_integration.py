@@ -60,6 +60,22 @@ def test_ctrf_filename_option(tmp_path):
     assert (tmp_path / 'my-report.json').exists()
 
 
+def test_ctrf_is_byte_identical_under_source_date_epoch(tmp_path, monkeypatch):
+    # The CTRF report's timestamp was the only thing in it that varied between two runs
+    # over the same inputs, so the file could not be compared against an expected one at
+    # all. With the clock pinned the whole file is stable, as the DQV report already was.
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1792056600")
+    ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
+
+    run_main(ttl, '--ctrf-dir', str(tmp_path / 'first'))
+    run_main(ttl, '--ctrf-dir', str(tmp_path / 'second'))
+
+    first = list((tmp_path / 'first').glob('*.json'))[0].read_text()
+    second = list((tmp_path / 'second').glob('*.json'))[0].read_text()
+    assert first == second
+    assert json.loads(first)['results']['timestamp'] == "2026-10-15 09:30:00"
+
+
 def test_ctrf_report_structure(tmp_path):
     ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     run_main(ttl, '--ctrf-dir', str(tmp_path))

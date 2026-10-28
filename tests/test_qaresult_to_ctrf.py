@@ -78,10 +78,30 @@ def test_two_builds_of_the_same_result_are_equal(stored_result):
     assert _build(stored_result) == _build(stored_result)
 
 
-def test_the_clock_defaults_to_now(stored_result):
+def test_the_clock_defaults_to_now(stored_result, monkeypatch):
+    monkeypatch.delenv("SOURCE_DATE_EPOCH", raising=False)
     before = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     assert build_ctrf_report(stored_result)['results']['timestamp'] >= before
+
+
+def test_source_date_epoch_pins_the_timestamp(stored_result, monkeypatch):
+    # Pinned, the date can be asserted outright rather than bounded, which is what makes a
+    # CTRF file comparable against an expected one. 1792056600 is 2026-10-15 09:30:00Z.
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1792056600")
+
+    assert build_ctrf_report(stored_result)['results']['timestamp'] == "2026-10-15 09:30:00"
+
+
+def test_two_builds_under_source_date_epoch_are_byte_identical(stored_result, monkeypatch):
+    # The whole point: with the clock pinned nothing else in the report varies, so the
+    # serialised file is stable and a diff of two runs is empty.
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1792056600")
+
+    first = json.dumps(build_ctrf_report(stored_result), indent=4)
+    second = json.dumps(build_ctrf_report(stored_result), indent=4)
+
+    assert first == second
 
 
 def test_writing_puts_the_given_report_on_disk(stored_result, tmp_path):

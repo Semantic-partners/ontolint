@@ -126,17 +126,24 @@ test asserting two renders match. `test_it_renders_the_same_text_under_any_hash_
 covers that class of bug by rendering in a subprocess per seed. It samples a few seeds,
 so it is a detector rather than a proof.
 
-**CTRF is not, by default**: its timestamp comes from `datetime.now()`, so two runs over
-identical inputs differ. The clock is injected — `build_ctrf_report(result,
-date_time_provider=…)` — so a caller can fix it, and the tests do, which is what makes the
-projection a pure function of the `QAResult`. Nothing else in the report varies, so having
-the CLI pass a provider that honours `SOURCE_DATE_EPOCH` would make CTRF reproducible too.
+**CTRF honours it too**, through `ctrf_timestamp()`, the default clock for
+`build_ctrf_report()`. Nothing else in a CTRF report varies between two runs over the same
+inputs, so with the clock pinned the file is byte-identical and can be compared against an
+expected one. The clock stays injectable — `build_ctrf_report(result,
+date_time_provider=…)` — so a test can fix it without touching the environment, which is
+what makes the projection a pure function of the `QAResult`.
+
+Only the pinned branch is UTC: unpinned, CTRF keeps the local clock it has always
+rendered, so turning this on adds reproducibility to a published format without restating
+every existing report's timestamp in another zone. The DQV report is UTC either way, where
+the ISO offset says so.
 
 ## Todo
 
 - **Cover verbose output with tests.** `-v` adds tables the default run doesn't emit, and
   nothing exercises them. It is reproducible now, so it can be pinned; it just isn't yet.
-- **Make Markdown a projection of `QAResult`** — see above.
+- **Make Markdown a projection of `QAResult`** — see above. Tracked as its own change,
+  since it moves where every check's text is produced.
 - **Collapse the two `main()` paths**, so `--per-file` only decides what the checks run
   over and nothing else differs between the modes.
 
