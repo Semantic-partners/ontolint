@@ -40,8 +40,14 @@ computed on, and the configuration that ran.
 Each is pinned the same way: one stored copy of the whole output under `tests/data/`, and
 one lead test asserting the reporter still produces it — per case, because several checks
 answer differently depending only on how the inputs were batched. The cases are
-`reporters.ttl` alone, `reporters_fragment.ttl` alone, and the two merged; DQV's are run
-shapes instead (one file, two checked separately, two merged), since it describes a run. The assertions after that lead test
+`reporters.ttl` alone, `reporters_fragment.ttl` alone, and the two merged.
+
+DQV gets one report per case like the others, but only ever over a single result. A report
+covering several results is **not** the union of their individual ones: `_mint` hashes the
+assessment node into every measurement IRI, and a two-result report has one assessment
+where two one-result reports have two, so every measurement IRI differs. Multi-result runs
+are therefore pinned end-to-end in `tests/dqv/`, where `per-file/` and `merged/` already
+run the CLI over two inputs each. The assertions after that lead test
 are not a second expectation — they say *why* parts of it must hold, so a failure explains
 itself instead of handing over a thousand-line diff. CTRF and DQV regenerate with
 `UPDATE_GOLDEN=1`; the stored Markdown and `QAResult` are still updated by hand.

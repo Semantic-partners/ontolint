@@ -18,7 +18,7 @@ import rdflib
 from rdflib.compare import graph_diff
 
 from scripts.dqv import build_dqv_graph, DQV_METRICS, DQV, OLQ, DEFAULT_BASE_URI
-from tests.conftest import DQV_RUNS, stored_dqv_for, stored_qa_result_for
+from tests.conftest import CASES, stored_dqv_for, stored_qa_result_for
 
 EX = "https://example.org/reporters#"
 ROLLUP = rdflib.URIRef(f"{DEFAULT_BASE_URI}metric-ontolint-conformance")
@@ -45,19 +45,23 @@ AT = datetime(2026, 10, 15, 9, 30, 0, tzinfo=timezone.utc)
 DATA = Path(__file__).parent / 'data'
 
 
-@pytest.mark.parametrize('run', DQV_RUNS)
-def test_it_builds_the_stored_report(run):
+@pytest.mark.parametrize('case', CASES)
+def test_it_builds_the_stored_report(case):
     """
-    The projection, whole, for each run shape: one file, two checked separately, two
-    merged. DQV describes a run rather than a result, so these are its cases.
+    The projection, whole. Everything below says which part of it must hold, and why.
+
+    One report per case, as for the other reporters. A report covering several results is
+    not the union of theirs — a measurement IRI hashes the assessment node it hangs from —
+    so multi-result runs are pinned end-to-end in tests/dqv/, where `per-file/` and
+    `merged/` cover both shapes against the CLI.
     """
-    graph = build_dqv_graph([stored_qa_result_for(c) for c in DQV_RUNS[run]], timestamp=AT)
-    stored_path = DATA / f'{run.replace("-", "_")}_dqv.ttl'
+    graph = build_dqv_graph([stored_qa_result_for(case)], timestamp=AT)
+    stored_path = DATA / f'{case}_dqv.ttl'
     if os.environ.get('UPDATE_GOLDEN'):
         stored_path.write_text(graph.serialize(format='turtle'), encoding='utf-8')
         pytest.skip(f"updated {stored_path.name}")
 
-    in_report, in_stored = graph_diff(graph, stored_dqv_for(run))[1:]
+    in_report, in_stored = graph_diff(graph, stored_dqv_for(case))[1:]
     assert not list(in_report) and not list(in_stored), _diff_message(in_report, in_stored)
 
 

@@ -66,15 +66,6 @@ CASES = {
     'merged': ['reporters.ttl', 'reporters_fragment.ttl'],
 }
 
-# The DQV report describes a run, not a result, so its cases are run shapes rather than
-# inputs: one file, two files checked separately, two files merged into one graph.
-DQV_RUNS = {
-    'single': ['reporters'],
-    'per-file': ['reporters', 'fragment'],
-    'merged': ['merged'],
-}
-
-
 def _offline(uri):
     raise OSError(f"the reporter fixture must not need the network: {uri}")
 
@@ -126,9 +117,16 @@ def stored_ctrf_for(case):
     return json.loads((DATA / f'{case}_ctrf.json').read_text())
 
 
-def stored_dqv_for(run):
-    """The DQV report stored under tests/data/, parsed back into a graph."""
-    return rdflib.Graph().parse(DATA / f'{run.replace("-", "_")}_dqv.ttl', format='turtle')
+def stored_dqv_for(case):
+    """
+    The DQV report stored under tests/data/, parsed back into a graph.
+
+    One per case, as for the other reporters. A report covering several results is not the
+    union of their individual ones — a measurement IRI hashes the assessment node it hangs
+    from, so every one of them differs — so multi-result runs are pinned end-to-end in
+    tests/dqv/ instead, where `per-file/` and `merged/` already cover both shapes.
+    """
+    return rdflib.Graph().parse(DATA / f'{case}_dqv.ttl', format='turtle')
 
 
 @pytest.fixture
@@ -165,7 +163,7 @@ def stored_ctrf():
 
 @pytest.fixture
 def stored_dqv():
-    return stored_dqv_for('single')
+    return stored_dqv_for('reporters')
 
 
 def render_case(case):
