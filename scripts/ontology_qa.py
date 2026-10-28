@@ -271,18 +271,15 @@ def ontologies_by_source(graph, in_metrics):
     {source IRI: [owl:Ontology IRI, ...]} for each input the graph was built from, or
     None when the graph does not record which source a triple came from.
 
-    The CLI loads into a Dataset with one named graph per file, so a source is a context
-    and this is read straight off it — the record #104 exists to keep. A plain Graph has
-    no contexts: it answers for one source when that is all it was built from (the
-    programmatic API hands over one graph per dataset), and for nothing when several files
-    were merged into it, since the merge is exactly what destroys the record.
+    The CLI loads into a Dataset with one named graph per file, so a source is a context.
+    A plain Graph has no contexts: it answers for one source when that is all it was built
+    from, and for nothing when several files were merged into it, since the merge is what
+    destroys the record.
     """
     if isinstance(graph, rdflib.Dataset):
         declared = {}
         for context in graph.graphs():
             source = str(context.identifier)
-            # Neither of these stands for an input: inferred triples came from no file,
-            # and the default graph holds nothing the loader put there.
             if source == str(INFERRED_CONTEXT) or source.startswith('urn:x-rdflib:default'):
                 continue
             declared[source] = ontology_iris(context)
@@ -945,14 +942,8 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     c, log = qa_check_results(name, c)
     results = exec_sparql(graph, 'owl_declaration')
 
-    # Count the sources that declared nothing. Subtracting one per declaration found took
-    # the count below zero for a file declaring two ontologies, which matched neither
-    # violation branch and so logged PASS while CheckResult (count == 0) called it a
-    # failure (#97). "No more than one" is check_one_ontology_per_file's job.
     declared = ontologies_by_source(graph, in_metrics)
     if declared is None:
-        # Several files merged into one graph, so which of them declared nothing cannot be
-        # known: fall back to counting the shortfall, floored so it cannot go negative.
         metrics[check] = max(num_files - len(results), 0)
     else:
         metrics[check] = sum(1 for iris in declared.values() if not iris)
