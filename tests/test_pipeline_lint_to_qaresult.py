@@ -60,6 +60,13 @@ def test_no_stored_expectation_embeds_a_checkout_path():
         if 'file:///' in text:
             # Minted from the working directory, so it is a checkout path by construction.
             offenders.append(f"{stored.name}: contains a file: IRI")
+    # The golden DQV reports too: a report that names one of its input files names it by
+    # absolute path, which is how this escaped to CI a third time. There a file: IRI is
+    # legitimate once rewritten to the fixed prefix test_e2e_dqv.py normalises to, so it
+    # is the checkout path itself that is the offence.
+    for stored in sorted((repo / 'tests' / 'dqv').glob('*/expected.ttl')):
+        if str(repo) in stored.read_text():
+            offenders.append(f"{stored.parent.name}/{stored.name}: contains the repo root")
 
     assert not offenders, "\n".join(offenders)
 

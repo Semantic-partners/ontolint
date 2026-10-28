@@ -57,17 +57,22 @@ Check the input files individually to find out which one violates this check.
 
 --------------------
 
-Check 2: Ontology without description.
+Check 2: Multiple ontologies in one file.
+PASS - No violations found.
+
+--------------------
+
+Check 3: Ontology without description.
 WARNING - No ontology declared, invalid metric.
 
 --------------------
 
-Check 3: Unresolvable imports.
+Check 4: Unresolvable imports.
 WARNING - No owl:imports statements found.
 
 --------------------
 
-Check 4: Undefined terms.
+Check 5: Undefined terms.
 VIOLATION - Found 3 term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):
  - https://example.org/fragment#Tool (fetch failure)
  - https://example.org/fragment#Worker (fetch failure)
@@ -83,99 +88,99 @@ WARNING - No owl:Ontology declared; local namespace is unknown. Local dangling r
 
 --------------------
 
-Check 5: Class without label.
+Check 6: Class without label.
 PASS - All classes have a label annotation.
 
 --------------------
 
-Check 6: Property without label.
+Check 7: Property without label.
 PASS - All properties have a label annotation.
 
 --------------------
 
-Check 7: NodeShape without label.
+Check 8: NodeShape without label.
 WARNING - No NodeShape defined, invalid metric.
 
 --------------------
 
-Check 8: PropertyShape without label.
+Check 9: PropertyShape without label.
 WARNING - No PropertyShapes defined, invalid metric.
 
 --------------------
 
-Check 9: Class without description.
+Check 10: Class without description.
 PASS - All classes have a description annotation.
 
 --------------------
 
-Check 10: Property without description.
+Check 11: Property without description.
 PASS - All properties have a description annotation.
 
 --------------------
 
-Check 11: NodeShape without description.
+Check 12: NodeShape without description.
 WARNING - No NodeShape defined, invalid metric.
 
 --------------------
 
-Check 12: PropertyShape without description.
+Check 13: PropertyShape without description.
 WARNING - No PropertyShapes defined, invalid metric.
 
 --------------------
 
-Check 13: Classes with the same label.
+Check 14: Classes with the same label.
 PASS - No classes share the same label.
 
 --------------------
 
-Check 14: Properties with the same label.
+Check 15: Properties with the same label.
 PASS - No property share the same label.
 
 --------------------
 
-Check 15: NodeShapes with the same label.
+Check 16: NodeShapes with the same label.
 WARNING - No NodeShape defined, invalid metric.
 
 --------------------
 
-Check 16: PropertyShapes with the same label.
+Check 17: PropertyShapes with the same label.
 WARNING - No PropertyShapes defined, invalid metric.
 
 --------------------
 
-Check 17: Isolated classes.
+Check 18: Isolated classes.
 PASS - All classes are connected to another class through a subclass or property relation.
 
 --------------------
 
-Check 18: Missing Domain in Properties.
+Check 19: Missing Domain in Properties.
 INFO - All properties have domain and range defined.
 PASS - All properties have domain defined.
 
 --------------------
 
-Check 19: Missing Range in Properties.
+Check 20: Missing Range in Properties.
 PASS - All properties have range defined.
 
 --------------------
 
-Check 20: Non-unique identifiers.
+Check 21: Non-unique identifiers.
 PASS - No violations found.
 
 --------------------
 
-Check 21: Subclass Cycles.
+Check 22: Subclass Cycles.
 PASS - No violations found.
 
 --------------------
 
-Check 22: Untyped Classes.
+Check 23: Untyped Classes.
 PASS - No violations found.
 WARNING - Ontology namespace undefined. No way to confirm if a class is defined in the ontology or an external vocabulary.
 
 --------------------
 
-Check 23: Untyped Properties.
+Check 24: Untyped Properties.
 VIOLATION - Found 5 property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:
 http://www.w3.org/1999/02/22-rdf-syntax-ns#type
  - http://www.w3.org/2000/01/rdf-schema#comment
@@ -186,7 +191,7 @@ WARNING - Ontology namespace undefined. No way to confirm if a property is defin
 
 --------------------
 
-Check 24: Namespace hijacking.
+Check 25: Namespace hijacking.
 PASS - No violations found.
 WARNING - Ontology namespace undefined. The reported violations may be incorrect.
 
@@ -198,7 +203,7 @@ WARNING - Ontology namespace undefined. The reported violations may be incorrect
 | fragment.ttl | 11 | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
 
 ## Quality Assurance Metrics
-| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| fragment.ttl | 1 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
+| Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+| fragment.ttl | 1 | 0 | 1 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
 """

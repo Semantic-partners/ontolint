@@ -266,6 +266,30 @@ def ontology_iris(graph):
                   if isinstance(o, rdflib.URIRef))
 
 
+def ontologies_by_source(graph, in_metrics):
+    """
+    {source IRI: [owl:Ontology IRI, ...]} for each input the graph was built from, or
+    None when the graph does not record which source a triple came from.
+
+    The CLI loads into a Dataset with one named graph per file, so a source is a context.
+    A plain Graph has no contexts: it answers for one source when that is all it was built
+    from, and for nothing when several files were merged into it, since the merge is what
+    destroys the record.
+    """
+    if isinstance(graph, rdflib.Dataset):
+        declared = {}
+        for context in graph.graphs():
+            source = str(context.identifier)
+            if source == str(INFERRED_CONTEXT) or source.startswith('urn:x-rdflib:default'):
+                continue
+            declared[source] = ontology_iris(context)
+        return declared
+    if len(in_metrics.get('filesProcessed') or []) > 1:
+        return None
+    names = source_iris(in_metrics)
+    return {names[0] if names else '': ontology_iris(graph)}
+
+
 def declared_ontology_sources(sources):
     """
     {ontology IRI: [source IRIs]} from an iterable of (source IRI, graph) pairs.
@@ -483,13 +507,14 @@ def print_qa_table(metrics, checks):
     """
     name = get_ontology_name(metrics)
     log = "\n## Quality Assurance Metrics\n"
-    log += "| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
+    log += "| Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label "
     log += "| Class without description | Property without description | NodeShapes without description | PropertyShape without description "
     log += "| Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes "
     log += "| Property without domain | Property without range "
     log += "| Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |\n"
-    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
+    log += "|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|\n"
     log += f"| {name} | {normalise_if_executed_len(metrics, checks, 'ontologyNotDeclared', 'filesProcessed')} "
+    log += f"| {normalise_if_executed_len(metrics, checks, 'multipleOntologies', 'filesProcessed')} "
     log += f"| {normalise_if_executed_len(metrics, checks, 'ontologyDescription', 'filesProcessed')} "
     log += f"| {print_if_executed(metrics, checks, 'unresolvedImports')} "
     log += f"| {print_if_executed(metrics, checks, 'undefinedTerms')} "
@@ -913,17 +938,21 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     metrics = {}
     violations = {}
     num_files = max(len(in_metrics['filesProcessed']), 1)
-    metrics[check] = num_files # 'ontologyNotDeclared': Assume no ontology has been declared.
     metrics['ontologyURI'] = [ ]
     c, log = qa_check_results(name, c)
     results = exec_sparql(graph, 'owl_declaration')
+
+    declared = ontologies_by_source(graph, in_metrics)
+    if declared is None:
+        metrics[check] = max(num_files - len(results), 0)
+    else:
+        metrics[check] = sum(1 for iris in declared.values() if not iris)
 
     if not results:
         status += 1
     else:
         for row in results:
             metrics['ontologyURI'].append(row.ont)
-            metrics[check] -= 1
     
     # Record the violation elements.
     num_uri = len(metrics['ontologyURI'])
@@ -967,6 +996,61 @@ def check_owl_declaration(in_metrics, graph, name, check, c, status, verbose):
     
     log += sep()
     return metrics, violations, log, c, status
+
+def check_one_ontology_per_file(in_metrics, graph, name, check, c, status, verbose):
+    """
+    QA test verifying that no single input declares more than one `owl:Ontology`.
+
+    Ontolint's rule is one file, one ontology. `check_owl_declaration` covers "no less";
+    this covers "no more". It is judged per source rather than over the merged graph,
+    where several declarations are normal and correct — one per file.
+
+    Args:
+        in_metrics (dict): Number of violations for various ontology metrics.
+        graph (rdflib.Graph): The RDF graph object to parse into.
+        name (str): Name of the QA check being carried out.
+        check (str): Dictionary key of the QA check being carried out.
+        c (int): Counter for the QA checks selected.
+        status (int): Number of violations before the check.
+        verbose (bool): Logical flag for printing additional information.
+
+    Returns:
+        metrics (dict): Number of violations for various ontology metrics.
+        violations (dict): List of elements violating the ontology metrics.
+        log (str): Result of the QA test, formatted in markdown.
+        c (int): Incremented counter, tracking QA tests selected.
+        status (int): Incremental number of violations.
+    """
+    metrics = {}
+    violations = {}
+    c, log = qa_check_results(name, c)
+    declared = ontologies_by_source(graph, in_metrics)
+    offenders = {} if declared is None else {
+        source: iris for source, iris in sorted(declared.items()) if len(iris) > 1}
+    metrics[check] = len(offenders) # 'multipleOntologies'
+    violations[check] = ""
+
+    if declared is None:
+        log += "WARNING - Several files merged into one graph with no record of their sources, invalid metric.\n"
+    elif not offenders:
+        log += "PASS - No violations found.\n"
+    else:
+        log += f"VIOLATION - Found {metrics[check]} file(s) declaring more than one `owl:Ontology`:\n - "
+        status += 1
+        string = violation_formatting(
+            [f"{source} declares {len(iris)}: {', '.join(iris)}" for source, iris in offenders.items()])
+        violations[check] = string
+        violations[records_key(check)] = [
+            dqv.Violation(rdflib.URIRef(source),
+                          comment=f"declares {len(iris)} ontologies; one file, one ontology",
+                          related=[rdflib.URIRef(iri) for iri in iris])
+            for source, iris in offenders.items()
+        ]
+        log += string.replace(",<br> ", "\n - ") + "\n"
+
+    log += sep()
+    return metrics, violations, log, c, status
+
 
 def check_owl_description(in_metrics, graph, name, check, c, status, verbose):
     """
@@ -2718,6 +2802,7 @@ def lint_selection(selection, checklist, rule_reasons=None):
 
 CHECKLIST = [
     [True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ],
+    [True, check_one_ontology_per_file,          "Multiple ontologies in one file",    'multipleOntologies'        ],
     [True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ],
     [True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ],
     [True, check_undefined_terms,                "Undefined terms",                    'undefinedTerms'            ],

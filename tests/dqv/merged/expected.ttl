@@ -8,10 +8,10 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-2be0244fbbe6465e> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-0906918bf4a2fee8>,
-        <https://example.org/qa#measurement-13d72212bff6875f>,
-        <https://example.org/qa#measurement-7f1fb451374f82ab> ;
+<https://example.org/qa#assessment-805d02de7e3fb7cc> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-0c821e53ad331a0d>,
+        <https://example.org/qa#measurement-7dc7d06d88de1ad6>,
+        <https://example.org/qa#measurement-8ae7ac009bc3979f> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -27,6 +27,13 @@
     skos:prefLabel "Isolated classes" ;
     dqv:inDimension <https://example.org/qa#dimension-structure> ;
     olq:severity sh:Warning .
+
+<https://example.org/qa#metric-multiple-ontologies-in-one-file> a dqv:Metric ;
+    rdfs:label "Multiple ontologies in one file" ;
+    skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
+    skos:prefLabel "Multiple ontologies in one file" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
 
 <https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
     rdfs:label "Namespace hijacking" ;
@@ -172,27 +179,27 @@
 
 <https://example.org/ontology/two#> rdfs:label "Two" .
 
-<https://example.org/qa#measurement-0906918bf4a2fee8> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-0c821e53ad331a0d> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 2 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-7dc7d06d88de1ad6> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-3c3d9fe7cd97f9ee> .
+    olq:violation <https://example.org/qa#violation-4a186bef4455c237> .
 
-<https://example.org/qa#measurement-13d72212bff6875f> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-8ae7ac009bc3979f> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-3e8641408e3cfd2c> .
-
-<https://example.org/qa#measurement-7f1fb451374f82ab> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/qa#dataset-48b4ad21227722d4> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 2 ;
-    olq:conforms false .
+    olq:violation <https://example.org/qa#violation-cd34ba39b8ea989d> .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -214,25 +221,25 @@
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> .
 
-<https://example.org/qa#violation-3c3d9fe7cd97f9ee> a sh:ValidationResult ;
+<https://example.org/qa#violation-4a186bef4455c237> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/one#Cat> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-3e8641408e3cfd2c> a sh:ValidationResult ;
+<https://example.org/qa#violation-cd34ba39b8ea989d> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/one#Cat> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#dimension-metadata> a dqv:Dimension ;
-    rdfs:label "Metadata" ;
-    skos:definition "The ontology declares itself and describes its purpose." ;
-    skos:prefLabel "Metadata" .
 
 <https://example.org/qa#dataset-48b4ad21227722d4> a dcat:Dataset ;
     rdfs:label "Merged: One, Two" ;
     dcterms:hasPart <https://example.org/ontology/one#>,
         <https://example.org/ontology/two#> .
+
+<https://example.org/qa#dimension-metadata> a dqv:Dimension ;
+    rdfs:label "Metadata" ;
+    skos:definition "The ontology declares itself and describes its purpose." ;
+    skos:prefLabel "Metadata" .
 
 <https://example.org/qa#dimension-structure> a dqv:Dimension ;
     rdfs:label "Structure" ;

@@ -70,18 +70,23 @@ WARNING - The following ontology URIs were found:
 
 --------------------
 
-Check 2: Ontology without description.
+Check 2: Multiple ontologies in one file.
+WARNING - Several files merged into one graph with no record of their sources, invalid metric.
+
+--------------------
+
+Check 3: Ontology without description.
 PASS - All declared ontologies have a description.
 
 --------------------
 
-Check 3: Unresolvable imports.
+Check 4: Unresolvable imports.
 VIOLATION - Found 1 unresolvable or empty import(s):
  - https://example.invalid/upstream
 
 --------------------
 
-Check 4: Undefined terms.
+Check 5: Undefined terms.
 VIOLATION - Found 5 term(s) used but not defined locally or in their vocabulary (bundled, local or fetched):
  - https://example.invalid/upstream (fetch failure)
  - https://example.org/fragment#Tool (fetch failure)
@@ -101,55 +106,55 @@ VIOLATION - Found 5 term(s) used but not defined locally or in their vocabulary 
 
 --------------------
 
-Check 5: Class without label.
+Check 6: Class without label.
 VIOLATION - Found 1 classes missing a label annotation:
  - https://example.org/reporters#Cat
 
 --------------------
 
-Check 6: Property without label.
+Check 7: Property without label.
 VIOLATION - Found 1 properties missing a label annotation.
  - https://example.org/reporters#unlabelled
 
 --------------------
 
-Check 7: NodeShape without label.
+Check 8: NodeShape without label.
 VIOLATION - Found 1 NodeShape missing a label annotation.
  - https://example.org/reporters#UnlabelledShape
 
 --------------------
 
-Check 8: PropertyShape without label.
+Check 9: PropertyShape without label.
 VIOLATION - Found 1 PropertyShape missing a label annotation.
  - https://example.org/reporters#unlabelledNameShape
 
 --------------------
 
-Check 9: Class without description.
+Check 10: Class without description.
 VIOLATION - Found 1 classes missing a description annotation:
  - https://example.org/reporters#Fish
 
 --------------------
 
-Check 10: Property without description.
+Check 11: Property without description.
 VIOLATION - Found 1 properties missing a description annotation.
  - https://example.org/reporters#undescribed
 
 --------------------
 
-Check 11: NodeShape without description.
+Check 12: NodeShape without description.
 VIOLATION - Found 1 NodeShape missing a description annotation:
  - https://example.org/reporters#UndescribedShape
 
 --------------------
 
-Check 12: PropertyShape without description.
+Check 13: PropertyShape without description.
 VIOLATION - Found 1 PropertyShape missing a description annotation:
  - https://example.org/reporters#undescribedNameShape
 
 --------------------
 
-Check 13: Classes with the same label.
+Check 14: Classes with the same label.
 VIOLATION - Found 1 labels shared by multiple classes.
 | Label | Label Property | Classes |
 |--|--|--|
@@ -157,7 +162,7 @@ VIOLATION - Found 1 labels shared by multiple classes.
 
 --------------------
 
-Check 14: Properties with the same label.
+Check 15: Properties with the same label.
 VIOLATION - Found 1 labels shared by multiple properties.
 | Label | Label Property | Properties |
 |--|--|--|
@@ -165,7 +170,7 @@ VIOLATION - Found 1 labels shared by multiple properties.
 
 --------------------
 
-Check 15: NodeShapes with the same label.
+Check 16: NodeShapes with the same label.
 VIOLATION - Found 1 labels shared by multiple NodeShapes.
 | Label | Label Property | NodeShapes |
 |--|--|--|
@@ -173,7 +178,7 @@ VIOLATION - Found 1 labels shared by multiple NodeShapes.
 
 --------------------
 
-Check 16: PropertyShapes with the same label.
+Check 17: PropertyShapes with the same label.
 VIOLATION - Found 1 labels shared by multiple PropertyShapes.
 | Label | Label Property | PropertyShapes |
 |--|--|--|
@@ -181,13 +186,13 @@ VIOLATION - Found 1 labels shared by multiple PropertyShapes.
 
 --------------------
 
-Check 17: Isolated classes.
+Check 18: Isolated classes.
 VIOLATION - Found 1 isolated classes:
  - https://example.org/reporters#Mineral
 
 --------------------
 
-Check 18: Missing Domain in Properties.
+Check 19: Missing Domain in Properties.
 WARNING - Found 2 properties without `rdfs:domain` or `rdfs:range` declaration:
 
 | Property | Domain | Range |
@@ -200,13 +205,13 @@ VIOLATION - Found 1 properties without `rdfs:domain` declaration:
 
 --------------------
 
-Check 19: Missing Range in Properties.
+Check 20: Missing Range in Properties.
 VIOLATION - Found 1 properties without `rdfs:range` declaration:
  - https://example.org/reporters#withoutRange
 
 --------------------
 
-Check 20: Non-unique identifiers.
+Check 21: Non-unique identifiers.
 VIOLATION - Found 1 elements with non-unique identifiers.
 | URI | Declared as |
 |--|--|
@@ -214,28 +219,28 @@ VIOLATION - Found 1 elements with non-unique identifiers.
 
 --------------------
 
-Check 21: Subclass Cycles.
+Check 22: Subclass Cycles.
 VIOLATION - Found 2 classes involved in subclass cycles:
  - https://example.org/reporters#Carnivore
  - https://example.org/reporters#Predator
 
 --------------------
 
-Check 22: Untyped Classes.
+Check 23: Untyped Classes.
 VIOLATION - Found 1 classes without `owl:Class` or `rdfs:Class` declaration:
  - https://example.org/reporters#Habitat
 WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.
 
 --------------------
 
-Check 23: Untyped Properties.
+Check 24: Untyped Properties.
 VIOLATION - Found 1 property without `rdf:Property`, `owl:ObjectProperty`, or `owl:DatatypeProperty` declaration:
 https://example.org/reporters#curatedBy
 WARNING - Some ontology namespaces are not defined. The reported violations may be incorrect.
 
 --------------------
 
-Check 24: Namespace hijacking.
+Check 25: Namespace hijacking.
 VIOLATION - Found 4 resources defined using an external vocabulary prefix:
  - http://www.w3.org/2004/02/skos/core#editorialNote
  - https://example.org/fragment#Tool
@@ -251,7 +256,7 @@ WARNING - Some ontology namespaces are not defined. The reported violations may 
 | https://example.org/reporters#,<br> 1 URIs not found. | 141 | 11 | 12 | 4 | 4 | 4 | 4 | 1 | 0 | 7 | 1 | N/A | 2.333 | 0 |
 
 ## Quality Assurance Metrics
-| Name | Ontology not declared | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-| https://example.org/reporters#,<br> 1 URIs not found. | 0.500 | 0 | 1 | 5 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.083 | 1 | 2 | 1 | 1 | 4 |
+| Name | Ontology not declared | Multiple ontologies in one file | Ontology without description | Unresolvable Imports | Undefined Terms | Class without label | Property without label | NodeShapes without label | PropertyShape without label | Class without description | Property without description | NodeShapes without description | PropertyShape without description | Non-Unique Class Labels | Non-Unique Property Labels | Non-Unique NodeShape Labels | Non-Unique PropertyShape Labels | Isolated Classes | Property without domain | Property without range | Non-Unique Identifiers | Subclass Cycles | Untyped Classes | Untyped Properties | Namespace hijacking |
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+| https://example.org/reporters#,<br> 1 URIs not found. | 0.500 | 0 | 0 | 1 | 5 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.250 | 0.250 | 0.091 | 0.083 | 0.083 | 1 | 2 | 1 | 1 | 4 |
 """

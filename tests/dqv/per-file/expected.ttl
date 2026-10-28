@@ -6,12 +6,12 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-7e4fde937589b6f7> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-1e1e65e7af14873d>,
-        <https://example.org/qa#measurement-2640dd12035cee10>,
-        <https://example.org/qa#measurement-2a75aadcc493afe4>,
-        <https://example.org/qa#measurement-2e280bc7f60fdb60>,
-        <https://example.org/qa#measurement-a1d7e81402449d8c> ;
+<https://example.org/qa#assessment-6d6f98fec329fe06> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-1f7528488b49b5a1>,
+        <https://example.org/qa#measurement-4805d48ba53e531e>,
+        <https://example.org/qa#measurement-5cc24e5f35906d51>,
+        <https://example.org/qa#measurement-6ac4a4b498013048>,
+        <https://example.org/qa#measurement-a9da7824aef946f7> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -27,6 +27,13 @@
     skos:prefLabel "Isolated classes" ;
     dqv:inDimension <https://example.org/qa#dimension-structure> ;
     olq:severity sh:Warning .
+
+<https://example.org/qa#metric-multiple-ontologies-in-one-file> a dqv:Metric ;
+    rdfs:label "Multiple ontologies in one file" ;
+    skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
+    skos:prefLabel "Multiple ontologies in one file" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
 
 <https://example.org/qa#metric-node-shapes-missing-description> a dqv:Metric ;
     rdfs:label "NodeShape without description" ;
@@ -163,43 +170,43 @@
 
 <https://example.org/ontology/a#> rdfs:label "A" .
 
-<https://example.org/qa#measurement-1e1e65e7af14873d> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/b#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
-    dqv:value 2 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-a38455c2dcfd63b6>,
-        <https://example.org/qa#violation-e9ba41ee729224d1> .
-
-<https://example.org/qa#measurement-2640dd12035cee10> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/b#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 3 ;
-    olq:conforms false .
-
-<https://example.org/qa#measurement-2a75aadcc493afe4> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-1f7528488b49b5a1> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-namespace-hijacking> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-075eaeaf17aa773f> .
+    olq:violation <https://example.org/qa#violation-76c5bc1b1ca82c78> .
 
-<https://example.org/qa#measurement-2e280bc7f60fdb60> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/a#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 0 ;
-    olq:conforms true .
-
-<https://example.org/qa#measurement-a1d7e81402449d8c> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-4805d48ba53e531e> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/b#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 2 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-362fc7851cb3484f>,
-        <https://example.org/qa#violation-d202f6920c3fd7a7> .
+    olq:violation <https://example.org/qa#violation-804a52a9e0e1b7d5>,
+        <https://example.org/qa#violation-f2087be6a3af5060> .
+
+<https://example.org/qa#measurement-5cc24e5f35906d51> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 3 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-6ac4a4b498013048> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/a#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 0 ;
+    olq:conforms true .
+
+<https://example.org/qa#measurement-a9da7824aef946f7> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/b#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-0c6516f7fabb5027>,
+        <https://example.org/qa#violation-3fba5ac66f87ac27> .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -222,41 +229,41 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-075eaeaf17aa773f> a sh:ValidationResult ;
+<https://example.org/qa#violation-0c6516f7fabb5027> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Base> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-3fba5ac66f87ac27> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/b#Thing> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-76c5bc1b1ca82c78> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/a#borrowed> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-362fc7851cb3484f> a sh:ValidationResult ;
+<https://example.org/qa#violation-804a52a9e0e1b7d5> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Base> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-a38455c2dcfd63b6> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/b#Base> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-d202f6920c3fd7a7> a sh:ValidationResult ;
+<https://example.org/qa#violation-f2087be6a3af5060> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/b#Thing> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-e9ba41ee729224d1> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/b#Thing> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#dimension-metadata> a dqv:Dimension ;
-    rdfs:label "Metadata" ;
-    skos:definition "The ontology declares itself and describes its purpose." ;
-    skos:prefLabel "Metadata" .
 
 <https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
     rdfs:label "Ontolint conformance" ;
     skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
     skos:prefLabel "Ontolint conformance" ;
     dqv:inDimension <https://example.org/qa#dimension-conformance> .
+
+<https://example.org/qa#dimension-metadata> a dqv:Dimension ;
+    rdfs:label "Metadata" ;
+    skos:definition "The ontology declares itself and describes its purpose." ;
+    skos:prefLabel "Metadata" .
 
 <https://example.org/ontology/b#> rdfs:label "B" .
 

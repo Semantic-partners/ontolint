@@ -5,13 +5,17 @@
             "version": "2025-11-17"
         },
         "summary": {
-            "tests": 24,
-            "passed": 2,
+            "tests": 25,
+            "passed": 3,
             "failed": 22
         },
         "tests": [
             {
                 "name": "Ontology without declaration",
+                "status": "passed"
+            },
+            {
+                "name": "Multiple ontologies in one file",
                 "status": "passed"
             },
             {

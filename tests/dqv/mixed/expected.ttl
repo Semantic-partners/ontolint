@@ -6,18 +6,18 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/qa#assessment-aef7a566261bfacb> a dqv:QualityMetadata ;
-    dqv:hasQualityMeasurement <https://example.org/qa#measurement-01d02492a63fa8ea>,
-        <https://example.org/qa#measurement-1619d7647c75a056>,
-        <https://example.org/qa#measurement-1bd1b9a5ee7d8faf>,
-        <https://example.org/qa#measurement-348893c9296c4add>,
-        <https://example.org/qa#measurement-422de07712b08898>,
-        <https://example.org/qa#measurement-5addca0d74e2ab09>,
-        <https://example.org/qa#measurement-7afb15c3cacf46ab>,
-        <https://example.org/qa#measurement-a0c32f6b9af9c753>,
-        <https://example.org/qa#measurement-eb30863447a1caac>,
-        <https://example.org/qa#measurement-f15f9fe1b149aa27>,
-        <https://example.org/qa#measurement-f7cd03e36de7780f> ;
+<https://example.org/qa#assessment-404891fbe399629f> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-0368cab2e3701233>,
+        <https://example.org/qa#measurement-0792643b59e48ba5>,
+        <https://example.org/qa#measurement-1db5737beb517bd4>,
+        <https://example.org/qa#measurement-2a2a512e786bda03>,
+        <https://example.org/qa#measurement-3c56d7393e91c719>,
+        <https://example.org/qa#measurement-607ab39effe7b314>,
+        <https://example.org/qa#measurement-746110c0621bf51d>,
+        <https://example.org/qa#measurement-9f7f0eaac4a2a717>,
+        <https://example.org/qa#measurement-a77043f38ed153fb>,
+        <https://example.org/qa#measurement-dfce80becb2242ae>,
+        <https://example.org/qa#measurement-fadc28684b9061a3> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime .
 
 <https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
@@ -25,6 +25,13 @@
     skos:definition "Two or more classes share a label in the same language and with the same predicate." ;
     skos:prefLabel "Classes with the same label" ;
     dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-multiple-ontologies-in-one-file> a dqv:Metric ;
+    rdfs:label "Multiple ontologies in one file" ;
+    skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
+    skos:prefLabel "Multiple ontologies in one file" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
     olq:severity sh:Violation .
 
 <https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
@@ -118,94 +125,94 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#measurement-01d02492a63fa8ea> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-0368cab2e3701233> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/mixed#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-b0d569b667523aef> .
+    olq:violation <https://example.org/qa#violation-2f5701dba9d395d6> .
 
-<https://example.org/qa#measurement-1619d7647c75a056> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontology-missing-description> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-1456a42b415ef322> .
-
-<https://example.org/qa#measurement-1bd1b9a5ee7d8faf> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-range> ;
-    dqv:value 2 ;
-    olq:conforms false ;
-    olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-3ae1b00fcc7eb594>,
-        <https://example.org/qa#violation-d554f973c1d117f3> .
-
-<https://example.org/qa#measurement-348893c9296c4add> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
-    dqv:value 10 ;
-    olq:conforms false .
-
-<https://example.org/qa#measurement-422de07712b08898> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-domain> ;
-    dqv:value 2 ;
-    olq:conforms false ;
-    olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-d99b3ed96e7c1fe7>,
-        <https://example.org/qa#violation-f5fbb7b5501a52f7> .
-
-<https://example.org/qa#measurement-5addca0d74e2ab09> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-subclass-cycles> ;
-    dqv:value 2 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-3543421f35a00410>,
-        <https://example.org/qa#violation-fbe1829abd3c7e6d> .
-
-<https://example.org/qa#measurement-7afb15c3cacf46ab> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-untyped-classes> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-6813afa9e4abff12> .
-
-<https://example.org/qa#measurement-a0c32f6b9af9c753> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-2d6618305b8dd00a> .
-
-<https://example.org/qa#measurement-eb30863447a1caac> a dqv:QualityMeasurement ;
-    dqv:computedOn <https://example.org/ontology/mixed#> ;
-    dqv:isMeasurementOf <https://example.org/qa#metric-isolated-classes> ;
-    dqv:value 1 ;
-    olq:conforms false ;
-    olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-603779f5364f077f> .
-
-<https://example.org/qa#measurement-f15f9fe1b149aa27> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-0792643b59e48ba5> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/mixed#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-non-unique-identifiers> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Violation ;
-    olq:violation <https://example.org/qa#violation-56374c28240a89e6> .
+    olq:violation <https://example.org/qa#violation-be67657393007882> .
 
-<https://example.org/qa#measurement-f7cd03e36de7780f> a dqv:QualityMeasurement ;
+<https://example.org/qa#measurement-1db5737beb517bd4> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-domain> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-76d374ead6aa2cc1>,
+        <https://example.org/qa#violation-bb65ca41e2fd092a> .
+
+<https://example.org/qa#measurement-2a2a512e786bda03> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 10 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-3c56d7393e91c719> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/mixed#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
     dqv:value 1 ;
     olq:conforms false ;
     olq:severity sh:Warning ;
-    olq:violation <https://example.org/qa#violation-8280239951a56afe> .
+    olq:violation <https://example.org/qa#violation-df6942bc38752c14> .
+
+<https://example.org/qa#measurement-607ab39effe7b314> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-subclass-cycles> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-a6338c5b16ab3e38>,
+        <https://example.org/qa#violation-b03a06d9bfdfab29> .
+
+<https://example.org/qa#measurement-746110c0621bf51d> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontology-missing-description> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-274f5e9a0bd18771> .
+
+<https://example.org/qa#measurement-9f7f0eaac4a2a717> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-untyped-classes> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-8e71cab852517a68> .
+
+<https://example.org/qa#measurement-a77043f38ed153fb> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-dfa8f5fcd0af4e9e> .
+
+<https://example.org/qa#measurement-dfce80becb2242ae> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-range> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-86ee0ace884f6e76>,
+        <https://example.org/qa#violation-eb8cd35764a10167> .
+
+<https://example.org/qa#measurement-fadc28684b9061a3> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-isolated-classes> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-01aa6bd5a36f21ac> .
 
 <https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
     rdfs:label "Class without description" ;
@@ -283,70 +290,70 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
-<https://example.org/qa#violation-1456a42b415ef322> a sh:ValidationResult ;
+<https://example.org/qa#violation-01aa6bd5a36f21ac> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Orphan> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-274f5e9a0bd18771> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/mixed#> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-2d6618305b8dd00a> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Food> ;
+<https://example.org/qa#violation-2f5701dba9d395d6> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Cat> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-3543421f35a00410> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Chicken> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-3ae1b00fcc7eb594> a sh:ValidationResult ;
+<https://example.org/qa#violation-76d374ead6aa2cc1> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/mixed#weight> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-56374c28240a89e6> a sh:ValidationResult ;
+<https://example.org/qa#violation-86ee0ace884f6e76> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-8e71cab852517a68> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Food> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-a6338c5b16ab3e38> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Chicken> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-b03a06d9bfdfab29> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Egg> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-bb65ca41e2fd092a> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-be67657393007882> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/mixed#Animal> ;
     sh:resultMessage "declared as owl#Class, owl#ObjectProperty" ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-603779f5364f077f> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Orphan> ;
+<https://example.org/qa#violation-df6942bc38752c14> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Cat> ;
     sh:resultSeverity sh:Warning ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-6813afa9e4abff12> a sh:ValidationResult ;
+<https://example.org/qa#violation-dfa8f5fcd0af4e9e> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/mixed#Food> ;
     sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
-<https://example.org/qa#violation-8280239951a56afe> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Cat> ;
-    sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-b0d569b667523aef> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Cat> ;
-    sh:resultSeverity sh:Violation ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-d554f973c1d117f3> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
-    sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-d99b3ed96e7c1fe7> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
-    sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-f5fbb7b5501a52f7> a sh:ValidationResult ;
+<https://example.org/qa#violation-eb8cd35764a10167> a sh:ValidationResult ;
     sh:focusNode <https://example.org/ontology/mixed#weight> ;
     sh:resultSeverity sh:Warning ;
-    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
-
-<https://example.org/qa#violation-fbe1829abd3c7e6d> a sh:ValidationResult ;
-    sh:focusNode <https://example.org/ontology/mixed#Egg> ;
-    sh:resultSeverity sh:Violation ;
     sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
 
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;

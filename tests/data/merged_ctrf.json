@@ -5,8 +5,8 @@
             "version": "2025-11-17"
         },
         "summary": {
-            "tests": 24,
-            "passed": 1,
+            "tests": 25,
+            "passed": 2,
             "failed": 23
         },
         "tests": [
@@ -17,6 +17,10 @@
                     "violations": 1,
                     "elements": "**Some** processed files missing ontology declaration.<br> Check files individually."
                 }
+            },
+            {
+                "name": "Multiple ontologies in one file",
+                "status": "passed"
             },
             {
                 "name": "Ontology without description",
