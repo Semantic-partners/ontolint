@@ -283,6 +283,30 @@ What remains open is the deeper question of scope, tracked in #96: a check compu
 their files, which is why uniqueness can be reported for two independent ontologies that
 merely share a label.
 
+**A run resolves against itself.** The files of one invocation that a run is not checking
+are registered as things it may resolve against, exactly as a bundled vocabulary is
+(`sibling_imports()`). So a family of ontologies that refers to itself before it is
+published needs no `imports.local` entries for its own members — which is what people were
+writing by hand, and what #108 was about.
+
+An input speaks for the ontology it **declares**, and for nothing else. Registering every
+namespace it has subjects in — what `defined_namespaces()` gives, and what is right for a
+vocabulary a caller hands over — would let one input shadow a real vocabulary by minting a
+term in its namespace. `tests/example_failure.ttl` does exactly that to SKOS, and
+registering it for SKOS made `skos:prefLabel` undefined in the file beside it.
+
+Resolving against a sibling is **not** configuration, and is deliberately absent from the
+`olq:Configuration` block: nobody configured it, it is derived from what was passed in, and
+recording it would give every per-file run a configuration of its own, differing only in
+which siblings it was not checking. Where a namespace resolved from is reported as
+resolution — the remote namespace activity block says `another input:` — and the run's
+provenance belongs in #113.
+
+**This does not make `--per-file` safe as a default.** It removes the *resolution* reason to
+prefer a merged run, not the *scope* one. A check still sees one file: linting a two-file
+family per file reports `core:Thing` as an isolated class, because the subclass that
+connects it is in the other file. Scope is the unit model below, and #107.
+
 **Where this is going: the unit.** One concept replaces the two modes. A **unit** is one
 ontology — one to many files, with exactly one `owl:Ontology` declaration across the whole
 unit. A **run** is a set of units. **Context** is every unit in the run, available to
