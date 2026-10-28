@@ -15,8 +15,10 @@ exercises each kind of setting. The other reports show only the results.
 
 The test runs ontolint's CLI (main()) from inside the case directory, so input paths and
 config resolution match a real run, and compares the report with expected.ttl as RDF graphs.
-main() takes no clock, so dqv.utc_now is patched to pin the report timestamp, and with it
-every minted IRI.
+main() takes no clock and no path resolver, so two things are pinned at the point they are
+made: dqv.utc_now, which fixes the report timestamp and with it every minted IRI, and
+dqv.file_iri, which names an input relative to the case directory instead of to this
+checkout. Both are hashed into minted IRIs, so neither can be corrected after the fact.
 
 After an intentional change to the report, regenerate the expected files and review the diff:
 
@@ -50,6 +52,29 @@ def test_cases_exist():
         assert (CASES_DIR / case / 'expected.ttl').exists(), f"{case} has no expected.ttl"
 
 
+CASE_PREFIX = 'file:///case/'
+
+
+def _case_file_iri(path):
+    """
+    The IRI naming an input, relative to the case directory rather than the checkout.
+
+    A report that names one of its input files names it by file: IRI, which is an absolute
+    path — and the violation IRI minted from it *hashes* that path, so a golden written
+    here would match only this machine. Rewriting the report afterwards does not help: the
+    hash is taken before anyone can rewrite anything. So the IRI is pinned where it is
+    made, the same way the clock is pinned with dqv.utc_now.
+
+    _run_case has chdir'd into the case directory, so a path under the working directory
+    is one of the case's own files; anything else keeps its real IRI.
+    """
+    resolved = Path(path).resolve()
+    try:
+        return CASE_PREFIX + resolved.relative_to(Path.cwd()).as_posix()
+    except ValueError:
+        return resolved.as_uri()
+
+
 def _run_case(case_dir, out_dir):
     inputs = sorted(p.name for p in case_dir.glob('*.ttl') if p.name != 'expected.ttl')
     assert inputs, f"no input .ttl files in {case_dir}"
@@ -61,7 +86,8 @@ def _run_case(case_dir, out_dir):
     cwd = os.getcwd()
     os.chdir(case_dir)
     try:
-        with patch('sys.argv', argv), patch.object(dqv, 'utc_now', lambda: AT):
+        with patch('sys.argv', argv), patch.object(dqv, 'utc_now', lambda: AT), \
+             patch.object(dqv, 'file_iri', _case_file_iri):
             main()
     finally:
         os.chdir(cwd)
@@ -77,28 +103,8 @@ def _without_configuration(g):
     return g
 
 
-CASE_PREFIX = 'file:///case/'
-
-
-def _portable(g, case_dir):
-    """Rewrite file: IRIs under the case directory to a fixed prefix.
-
-    A report that names one of its input files names it by absolute path, so a golden
-    written on one machine could only ever match that machine — green locally, red in CI.
-    Nothing else in a report depends on where the checkout lives.
-    """
-    nt = g.serialize(format='nt')
-    rewritten = nt.replace(case_dir.resolve().as_uri().rstrip('/') + '/', CASE_PREFIX)
-    if rewritten == nt:
-        return g
-    out = rdflib.Graph()
-    out.parse(data=rewritten, format='nt')
-    return out
-
-
-def _report(case, path, case_dir):
+def _report(case, path):
     g = rdflib.Graph().parse(path, format='turtle')
-    g = _portable(g, case_dir)
     return g if case == CONFIG_CASE else _without_configuration(g)
 
 
@@ -116,7 +122,7 @@ def test_dqv_report_matches_expected(case, tmp_path):
     expected_path = case_dir / 'expected.ttl'
     actual_path = _run_case(case_dir, tmp_path)
 
-    actual = _report(case, actual_path, case_dir)
+    actual = _report(case, actual_path)
     if os.environ.get('UPDATE_GOLDEN'):
         expected_path.write_text(actual.serialize(format='turtle'), encoding='utf-8')
         pytest.skip(f"updated {expected_path.relative_to(CASES_DIR.parent.parent)}")
