@@ -92,7 +92,7 @@ reporter is pinned per case rather than once:
 | `fragment` | `fragment.ttl` |
 | `merged` | both, in one graph |
 
-`reporters.ttl` is deliberately mixed and fails 22 of the 24 checks. `fragment.ttl`
+`reporters.ttl` is deliberately mixed and fails 22 of the 25 checks. `fragment.ttl`
 declares no `owl:Ontology`, which is the only way to fail the two ontology-metadata checks —
 a file cannot both declare a described ontology and fail to. Together they give every check
 a failing case, so a check that silently stops detecting anything is caught. Merged, they

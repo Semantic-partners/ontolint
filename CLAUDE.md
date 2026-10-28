@@ -88,7 +88,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | File | What it covers |
 |---|---|
 | `test_profiling.py` | `profiling()` — class/property/shape counts, deprecated, vocabularies |
-| `test_ontology_metadata.py` | `owl:Ontology` declaration and description checks |
+| `test_ontology_metadata.py` | `owl:Ontology` declaration and description checks, and *one file, one ontology* in both directions — a file declaring none, and one declaring several (#97) |
 | `test_labels.py` | Missing label checks for classes, properties, NodeShapes, PropertyShapes |
 | `test_descriptions.py` | Missing description checks for all four entity types |
 | `test_unique_labels.py` | Duplicate label checks for all four entity types |
@@ -240,11 +240,12 @@ triples but not bindings. `dqv.REPORT_PREFIXES` lists what the DQV report binds.
 
 ### Adding a new QA check
 
-1. Add a `.sparql` file to `sparql/` — it will be auto-loaded
+1. Add a `.sparql` file to `sparql/` — it will be auto-loaded. A check judged per input
+   rather than over the graph has no query: `ontologies_by_source()` reads the Dataset's
+   contexts instead (see `check_one_ontology_per_file`)
 2. Write a `check_*` function in `ontology_qa.py` following the pattern above
-3. Add an entry to `TEST_CHECKLIST` (module-level constant, before `run_qa`)
-4. Add the metric key to `CHECKS` (module-level constant, after the dataclasses)
-5. Add the column to `print_qa_table()`
-6. Add a `DQV_METRICS` entry in `scripts/dqv.py` (metric slug, definition, dimension, severity) — `tests/test_dqv.py` fails if one is missing
-7. Store structured violations with `violations[records_key(check)] = [dqv.Violation(term, ...)]` alongside the CTRF string, so the DQV report can list each offending resource. Pass RDF terms (e.g. `row.c`), not strings, so blank nodes are skolemized correctly
-8. Add positive and negative tests to the appropriate `tests/test_*.py` file
+3. Add an entry to `CHECKLIST` (module-level constant, before `run_qa`)
+4. Add the column to `print_qa_table()` — the header, the `|--|` row and the cell
+5. Add a `DQV_METRICS` entry in `scripts/dqv.py` (metric slug, definition, dimension, severity) — `tests/test_dqv.py` fails if one is missing
+6. Store structured violations with `violations[records_key(check)] = [dqv.Violation(term, ...)]` alongside the CTRF string, so the DQV report can list each offending resource. Pass RDF terms (e.g. `row.c`), not strings, so blank nodes are skolemized correctly
+7. Add positive and negative tests to the appropriate `tests/test_*.py` file

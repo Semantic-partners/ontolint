@@ -43,8 +43,9 @@ EXPECTED = QAResult(
         'aveBranchFactor': Literal('2.333333333333333333333333333', datatype=XSD.decimal),
         'CardinalityRestrictions': Literal(0),
         'instances': 1,
-        'ontologyNotDeclared': 0,
         'ontologyURI': [URIRef('https://example.org/reporters#')],
+        'ontologyNotDeclared': 0,
+        'multipleOntologies': 0,
         'ontologyDescription': 0,
         'unresolvedImports': 1,
         'undefinedTerms': 2,
@@ -73,6 +74,9 @@ EXPECTED = QAResult(
     },
     checks=[
         CheckResult(name='Ontology without declaration', key='ontologyNotDeclared', passed=True, count=0,
+                    elements='',
+                    violations=[]),
+        CheckResult(name='Multiple ontologies in one file', key='multipleOntologies', passed=True, count=0,
                     elements='',
                     violations=[]),
         CheckResult(name='Ontology without description', key='ontologyDescription', passed=True, count=0,
@@ -154,6 +158,7 @@ EXPECTED = QAResult(
     datasets=[Dataset(iri='https://example.org/reporters#', label='Reporter fixture')],
     settings=[
         ConfigSetting('checks', 'ontologyNotDeclared', 'default', reason='Enabled by default', enabled=True, label='Ontology without declaration'),
+        ConfigSetting('checks', 'multipleOntologies', 'default', reason='Enabled by default', enabled=True, label='Multiple ontologies in one file'),
         ConfigSetting('checks', 'ontologyDescription', 'default', reason='Enabled by default', enabled=True, label='Ontology without description'),
         ConfigSetting('checks', 'unresolvedImports', 'default', reason='Enabled by default', enabled=True, label='Unresolvable imports'),
         ConfigSetting('checks', 'undefinedTerms', 'default', reason='Enabled by default', enabled=True, label='Undefined terms'),
