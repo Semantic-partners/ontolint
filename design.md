@@ -283,6 +283,33 @@ What remains open is the deeper question of scope, tracked in #96: a check compu
 their files, which is why uniqueness can be reported for two independent ontologies that
 merely share a label.
 
+**A run resolves against itself.** The files of one invocation that a run is not checking
+are registered as things it may resolve against, exactly as a bundled vocabulary is
+(`sibling_imports()`). So a family of ontologies that refers to itself before it is
+published needs no `imports.local` entries for its own members — which is what people were
+writing by hand, and what #108 was about.
+
+An input speaks for the ontology it **declares**, and for nothing else. Registering every
+namespace it has subjects in — what `defined_namespaces()` gives, and what is right for a
+vocabulary a caller hands over — would let one input shadow a real vocabulary by minting a
+term in its namespace. `tests/example_failure.ttl` does exactly that to SKOS, and
+registering it for SKOS made `skos:prefLabel` undefined in the file beside it.
+
+Every ontology resolved this way is **named in the configuration**, as an `imports.local`
+setting with `olq:origin olq:RunInput` and the input it came from, so it is explicit what
+answered for what. That a per-file run then has a configuration of its own, one per file,
+is not a defect: each run really was given a different resolution context, and a report
+that said otherwise would be describing a run that did not happen.
+
+`imports.siblings: false` turns the whole thing off for a project that lints unrelated
+ontologies together and wants each judged strictly alone. The flag is recorded whether it
+was set or defaulted, because it changes what an undefined-terms result means.
+
+**This does not make `--per-file` safe as a default.** It removes the *resolution* reason to
+prefer a merged run, not the *scope* one. A check still sees one file: linting a two-file
+family per file reports `core:Thing` as an isolated class, because the subclass that
+connects it is in the other file. Scope is the unit model below, and #107.
+
 **Where this is going: the unit.** One concept replaces the two modes. A **unit** is one
 ontology — one to many files, with exactly one `owl:Ontology` declaration across the whole
 unit. A **run** is a set of units. **Context** is every unit in the run, available to

@@ -100,16 +100,32 @@ def lint(datasets: Datasets, config: Config | None = None) -> rdflib.Graph:
     checklist, lint_config, rule_reasons = qa.select_checks(config.checks)
     provenance = {'lint_config': lint_config, 'rule_reasons': rule_reasons}
 
-    def run(graph, names):
+    def run(graph, names, context_imports=None):
         return qa.lint_graph(graph, names, config, checklist=checklist, provenance=provenance,
+                             context_imports=context_imports,
                              source_iris=[dqv.dataset_iri(config.base_iri, name) for name in names])
 
     if config.per_file:
-        results = [run(graph, [name]) for name, _, graph in prepared]
+        # Each dataset resolves against the others of the same call, as a per-file CLI run
+        # resolves against the files it is not checking (#108). A dataset answers only for
+        # the ontology it declares, so one cannot shadow a vocabulary by minting into it.
+        results = [run(graph, [name], _siblings(prepared, name) if config.resolve_siblings else None)
+                   for name, _, graph in prepared]
     else:
         results = [run(_merge(graph for *_, graph in prepared), [name for name, *_ in prepared])]
     return dqv.build_dqv_graph(results, base_uri=config.base_iri,
                                duplicate_ontologies=duplicates)
+
+
+def _siblings(prepared, name):
+    """{namespace: the dataset that declares it} for every dataset of this call but one."""
+    context = {}
+    for other, _, graph in prepared:
+        if other == name:
+            continue
+        for namespace in qa.ontology_iris(graph):
+            context.setdefault(namespace, qa.RunInput(other, graph))
+    return context
 
 
 def _check_base_iri(base_iri):

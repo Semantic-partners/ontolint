@@ -261,6 +261,7 @@ EXPECTED = QAResult(
         ConfigSetting('imports.local', 'http://www.w3.org/2006/vcard/ns#', 'bundled', reason='Bundled with ontolint; resolved offline', local_file='vcard.ttl', derived_from='https://ontolint.org/vocabulary-vcard'),
         ConfigSetting('imports.local', 'http://www.w3.org/2003/06/sw-vocab-status/ns#', 'bundled', reason='Bundled with ontolint; resolved offline', local_file='vs.ttl', derived_from='https://ontolint.org/vocabulary-vs'),
         ConfigSetting('imports.local', 'http://www.w3.org/2001/XMLSchema#', 'bundled', reason='Bundled with ontolint; resolved offline', local_file='xsd.ttl', derived_from='https://ontolint.org/vocabulary-xsd'),
+        ConfigSetting('imports.siblings', True, 'default', reason='References may resolve against the other inputs of this run, without fetching them'),
         ConfigSetting('undefined-terms.skip-object-of', 'http://www.w3.org/2000/01/rdf-schema#seeAlso', 'default', reason='ontolint default; undefined-terms.skip-object-of is not set'),
         ConfigSetting('undefined-terms.skip-object-of', 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy', 'default', reason='ontolint default; undefined-terms.skip-object-of is not set'),
         ConfigSetting('undefined-terms.skip-object-of', 'http://purl.org/dc/terms/license', 'default', reason='ontolint default; undefined-terms.skip-object-of is not set'),

@@ -208,6 +208,7 @@ and `.rdf-lint.yml`, and you build one directly.
 | `ignore_imports` | `Sequence[IRI]` | `()` | `imports.ignore` |
 | `exclude_types` | `Sequence[IRI]` | `()` | `exclude.types` (a CURIE is a `str`, so the type is a union) |
 | `skip_object_of` | `Sequence[IRI] \| None` | `None` | `undefined-terms.skip-object-of` (`None` keeps the defaults) |
+| `resolve_siblings` | `bool` | `True` | `imports.siblings` — with `per_file`, each dataset resolves against the others of the same call |
 | `checks` | `Sequence[str] \| None` | `None` (all) | the `enable:` list, named the same way |
 | `base_iri` | `IRI \| None` | `urn:ontolint:` | `--base-uri` |
 | `inference` | `bool` | `False` | `-i` / `--inference` |
@@ -570,9 +571,41 @@ imports:
   local:
     http://www.w3.org/ns/shacl#: vocab/shacl-1.2.ttl
     https://example.org/partner/ontology: vocab/partner.ttl
+  # Resolve references against the other inputs of the same run, so a family of ontologies
+  # that refers to itself before it is published needs no `local` entries for its own
+  # members. On unless you set this. An input answers only for the ontology it declares.
+  siblings: true
 ```
 
 Entries match **with or without a trailing `#` or `/`**, so `http://www.w3.org/2004/02/skos/core` and `http://www.w3.org/2004/02/skos/core#` are the same entry. One entry covers both the namespace (used by undefined-terms) and the ontology IRI (used by owl-imports). Relative `local` paths are resolved from the config file's directory.
+
+#### `imports.siblings` — resolving against the rest of the run
+
+A family of ontologies usually refers to itself long before any of it is published. Rather
+than making you list each member under `local`, ontolint resolves a reference against **the
+other inputs of the same invocation**:
+
+```
+Check 5: Undefined terms.
+PASS - All used terms are defined locally or in their respective remote ontologies.
+
+>   - ✅ `https://example.org/core#` — another input: `./core.ttl`
+```
+
+Three things are worth knowing:
+
+- **An input answers only for the ontology it declares**, not for every namespace it has
+  subjects in. Otherwise a file that mints a term in someone else's namespace would shadow
+  that vocabulary for every file beside it.
+- **An input resolves only for the runs it is not part of.** Linting one file on its own has
+  no siblings, so a reference to a file outside that run still needs a `local` entry.
+- **Precedence** is bundled < another input of the run < `local`, which stays an explicit
+  instruction.
+
+Every ontology resolved this way is named in the report's `olq:Configuration`, with
+`olq:origin olq:RunInput` and the input it came from, so it is explicit what answered for
+what. Turn it off with `siblings: false` — a project linting a directory of unrelated
+ontologies may want each judged strictly alone.
 
 ### Pinning to a version
 

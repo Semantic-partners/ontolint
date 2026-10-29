@@ -75,6 +75,7 @@ CONFIG_DEFAULTS = {
     "ignore_imports": (),
     "exclude_types": (),
     "skip_object_of": None,
+    "resolve_siblings": True,
     "checks": None,
     "base_iri": None,
     "inference": False,
@@ -726,3 +727,48 @@ def test_dataset_iri_helper_matches_what_the_report_mints():
     report = lint({"activities": _graph(":Thing a owl:Class .")}, Config(checks=["class-missing-label"]))
 
     assert _computed_on(report) == {str(dataset_iri(None, "activities"))}
+
+
+# ── resolving against the other datasets of the same call (#108) ──────────────
+
+CORE = """
+@prefix core: <https://example.org/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+core: a owl:Ontology ; rdfs:label "Core" ; rdfs:comment "Shared concepts." .
+core:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "Anything at all." .
+"""
+
+DOMAIN = """
+@prefix dom:  <https://example.org/domain#> .
+@prefix core: <https://example.org/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+dom: a owl:Ontology ; rdfs:label "Domain" ; rdfs:comment "Builds on core." .
+dom:Widget a owl:Class ; rdfs:label "Widget" ; rdfs:comment "A widget." ;
+    rdfs:subClassOf core:Thing .
+"""
+
+
+def _undefined_terms(report):
+    """The resources each undefined-terms measurement names, across all datasets."""
+    query = """
+    PREFIX dqv: <http://www.w3.org/ns/dqv#>
+    PREFIX olq: <https://ontolint.org/ns#>
+    PREFIX sh: <http://www.w3.org/ns/shacl#>
+    SELECT ?focus WHERE {
+      ?m dqv:isMeasurementOf ?metric ; olq:violation [ sh:focusNode ?focus ] .
+      FILTER(CONTAINS(STR(?metric), "undefined-terms")) }"""
+    return {str(row.focus) for row in report.query(query)}
+
+
+def test_per_file_datasets_resolve_against_each_other():
+    # Each is linted alone, so without this core:Thing is a term in a namespace the domain
+    # dataset cannot fetch — the same gap a per-file CLI run had.
+    report = lint({'core': CORE, 'domain': DOMAIN}, Config(per_file=True))
+    assert not _undefined_terms(report)
+
+
+def test_resolve_siblings_false_checks_each_dataset_alone():
+    report = lint({'core': CORE, 'domain': DOMAIN}, Config(per_file=True, resolve_siblings=False))
+    assert 'https://example.org/core#Thing' in _undefined_terms(report)

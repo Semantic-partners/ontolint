@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import rdflib
 
-from scripts.ontology_qa import main
+from scripts.ontology_qa import main, parse_lint_config
 from scripts import dqv
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
@@ -231,9 +231,15 @@ def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
     rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric-ontolint-conformance')))
     assert len(rollups) == 2
     assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
-    # Both files ran under the same configuration, so they share one configuration node.
+    # One configuration per run, not one for the report: each file resolved against the
+    # other, so what each run was given genuinely differs and the report names it (#108).
     configurations = set(g.subjects(rdflib.RDF.type, OLQ.Configuration))
-    assert len(configurations) == 1
+    assert len(configurations) == 2
+    resolved = {str(g.value(setting, OLQ.value))
+                for configuration in configurations
+                for setting in g.objects(configuration, OLQ.setting)
+                if g.value(setting, OLQ.origin) == OLQ.RunInput}
+    assert resolved, "a per-file run should name the inputs it resolved against"
     [assessment] = g.subjects(rdflib.RDF.type, DQV.QualityMetadata)
     assert set(g.objects(assessment, OLQ.configuration)) == configurations
 
@@ -505,3 +511,101 @@ def test_verbose_renders_the_same_text_every_time(tmp_path, capsys):
     # blank node identifier or an unsorted list.
     assert capsys.readouterr().out == first
 
+
+# ── resolving against the other inputs of the same run (#108) ─────────────────
+
+def _family(tmp_path):
+    """Two ontologies developed together: one refers to the other, neither is published."""
+    (tmp_path / 'core.ttl').write_text("""
+@prefix core: <https://example.org/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+core: a owl:Ontology ; rdfs:label "Core" ; rdfs:comment "Shared concepts." .
+core:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "Anything at all." .
+""")
+    (tmp_path / 'domain.ttl').write_text("""
+@prefix dom:  <https://example.org/domain#> .
+@prefix core: <https://example.org/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+dom: a owl:Ontology ; rdfs:label "Domain" ; rdfs:comment "Builds on core." .
+dom:Widget a owl:Class ; rdfs:label "Widget" ; rdfs:comment "A widget." ;
+    rdfs:subClassOf core:Thing .
+""")
+    return str(tmp_path / 'core.ttl'), str(tmp_path / 'domain.ttl')
+
+
+def test_a_per_file_run_resolves_against_the_other_inputs(tmp_path, capsys):
+    """
+    A family linted per file needs no imports.local entries for its own members.
+
+    Without this each file is linted alone, so a reference to a sibling is a term in a
+    namespace that cannot be fetched — the report said `(fetch failure)` for an ontology
+    sitting in the same directory.
+    """
+    core, domain = _family(tmp_path)
+    run_main(core, domain, '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'))
+    report = capsys.readouterr().out
+    assert 'fetch failure' not in report
+    assert "another input: `" in report, "the report should say which input resolved it"
+
+
+def test_an_input_speaks_only_for_the_ontology_it_declares(tmp_path, capsys):
+    """
+    A sibling is registered for what it declares, not for every namespace it touches.
+
+    Registering it for all of them lets one input shadow a real vocabulary by minting a
+    term in its namespace — which tests/example_failure.ttl does to SKOS, and which made
+    skos:prefLabel undefined in the file linted beside it.
+    """
+    core, domain = _family(tmp_path)
+    (tmp_path / 'hijacker.ttl').write_text("""
+@prefix hij:  <https://example.org/hijacker#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+hij: a owl:Ontology ; rdfs:label "Hijacker" ; rdfs:comment "Mints in someone else's namespace." .
+skos:inventedHere a owl:Class ; rdfs:label "Invented" ; rdfs:comment "Not a SKOS term." .
+""")
+    (tmp_path / 'uses_skos.ttl').write_text("""
+@prefix u:    <https://example.org/uses#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+u: a owl:Ontology ; rdfs:label "Uses" ; rdfs:comment "Uses a real SKOS term." .
+u:Term a owl:Class ; rdfs:label "Term" ; rdfs:comment "A term." ; skos:prefLabel "term" .
+""")
+    run_main(str(tmp_path / 'hijacker.ttl'), str(tmp_path / 'uses_skos.ttl'),
+             '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'))
+    report = capsys.readouterr().out
+    assert 'skos/core#prefLabel' not in report, "the bundled SKOS must still answer for skos:"
+
+
+def test_a_merged_run_needs_no_sibling_context(tmp_path, capsys):
+    """Merged, every input is already in the graph, so nothing is resolved as a sibling."""
+    core, domain = _family(tmp_path)
+    run_main(core, domain, '--ctrf-dir', str(tmp_path / 'ctrf'))
+    report = capsys.readouterr().out
+    assert 'fetch failure' not in report
+    assert "another input: `" not in report
+
+
+def test_imports_siblings_false_checks_each_input_alone(tmp_path, capsys):
+    """
+    A project can turn sibling resolution off, and is told in the report that it did.
+
+    Resolving against the run is on by default, but a directory of unrelated ontologies
+    may want each judged strictly on its own — with a reference to a neighbour reported
+    as the unresolvable reference it would be anywhere else.
+    """
+    core, domain = _family(tmp_path)
+    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: false\n")
+    run_main(core, domain, '--per-file', '--config', str(tmp_path / '.rdf-lint.yml'),
+             '--ctrf-dir', str(tmp_path / 'ctrf'))
+    assert 'fetch failure' in capsys.readouterr().out
+
+
+def test_imports_siblings_must_be_a_boolean(tmp_path):
+    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: sometimes\n")
+    with pytest.raises(ValueError, match="imports.siblings must be true or false"):
+        parse_lint_config(str(tmp_path / '.rdf-lint.yml'))

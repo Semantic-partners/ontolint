@@ -268,6 +268,7 @@ SETTING_ORIGINS = {
     'bundled': OLQ.BundledVocabulary,
     'rule':    OLQ.OntolintRule,
     'caller':  OLQ.CallerArgument,
+    'input':   OLQ.RunInput,
 }
 
 

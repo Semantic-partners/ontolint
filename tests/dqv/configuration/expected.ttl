@@ -104,6 +104,7 @@
         <https://example.org/qa#setting-imports-local-f614ea5b>,
         <https://example.org/qa#setting-imports-local-fbab5230>,
         <https://example.org/qa#setting-imports-local-ffe8a048>,
+        <https://example.org/qa#setting-imports-siblings-035f9b2a>,
         <https://example.org/qa#setting-undefined-terms-skip-object-of-f449ca13> .
 
 <https://example.org/qa#measurement-classes-missing-description-8f093ef1> a dqv:QualityMeasurement ;
@@ -667,6 +668,13 @@
     olq:localFile "shacl.ttl" ;
     olq:origin olq:BundledVocabulary ;
     olq:value sh: .
+
+<https://example.org/qa#setting-imports-siblings-035f9b2a> a olq:Setting ;
+    rdfs:label "imports.siblings: True" ;
+    rdfs:comment "References may resolve against the other inputs of this run, without fetching them" ;
+    olq:key "imports.siblings" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value "True" .
 
 <https://example.org/qa#setting-undefined-terms-skip-object-of-f449ca13> a olq:Setting ;
     rdfs:label "undefined-terms.skip-object-of: http://www.w3.org/2000/01/rdf-schema#seeAlso" ;

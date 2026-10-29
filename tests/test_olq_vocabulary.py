@@ -5,7 +5,7 @@ import rdflib
 from rdflib import OWL, RDF, RDFS
 
 from scripts.dqv import OLQ, build_dqv_graph
-from scripts.ontology_qa import CHECKLIST, deepcopy_list, lint_selection, parse_lint_config, run_qa
+from scripts.ontology_qa import RunInput, CHECKLIST, deepcopy_list, lint_selection, parse_lint_config, run_qa
 
 REPO = os.path.join(os.path.dirname(__file__), '..')
 VOCAB = os.path.join(REPO, 'ontology', 'olq.ttl')
@@ -49,7 +49,10 @@ def _sample_report(make_graph):
     # given two file names over one plain graph, which is how a caller merges inputs: the
     # per-input check then has no record of which file a triple came from, the one case
     # that is not assessed for olq:SourcesNotRecorded.
+    # A sibling input, as a run of several files registers for the ones it is not checking.
+    sibling = make_graph(": a owl:Ontology .")
     called = run_qa(g, uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)),
+                    local_imports={'http://example.org#': RunInput('b.ttl', sibling)},
                     ignore_imports=[MISSING_IMPORT], files_processed=['a.ttl', 'b.ttl'],
                     source_iris=['https://example.org/input/a.ttl',
                                  'https://example.org/input/b.ttl'])
@@ -86,7 +89,7 @@ def test_every_term_is_labelled_and_described():
 def test_vocabulary_passes_ontolint():
     # Offline: the vocabulary's own config ignores link targets; DQV and SHACL terms are
     # external vocabularies we don't fetch in tests.
-    _, ignore_imports, _, _, _ = parse_lint_config(VOCAB_CONFIG)
+    _, ignore_imports, _, _, _, _ = parse_lint_config(VOCAB_CONFIG)
     ignore_imports += ["http://www.w3.org/ns/dqv#"]
     result = run_qa(_vocab(), files_processed=[VOCAB], ignore_imports=ignore_imports,
                     uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)))

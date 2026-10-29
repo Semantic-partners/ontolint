@@ -166,6 +166,11 @@ olq:OntolintRule a olq:SettingOrigin, owl:NamedIndividual ;
     rdfs:comment "ontolint changed the setting because another setting depends on it, e.g. enabling a check another selected check needs."@en ;
     rdfs:isDefinedBy olq: .
 
+olq:RunInput a olq:SettingOrigin, owl:NamedIndividual ;
+    rdfs:label "run input"@en ;
+    rdfs:comment "The setting comes from another input of the same invocation: a file being checked in its own right, whose declared ontology the rest of the run resolves against without fetching it."@en ;
+    rdfs:isDefinedBy olq: .
+
 olq:CallerArgument a olq:SettingOrigin, owl:NamedIndividual ;
     rdfs:label "caller argument"@en ;
     rdfs:comment "The setting was passed directly to ontolint's run_qa() by the program calling it, with no configuration file."@en ;

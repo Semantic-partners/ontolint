@@ -118,6 +118,7 @@
         <urn:ontolint:setting-imports-local-f614ea5b>,
         <urn:ontolint:setting-imports-local-fbab5230>,
         <urn:ontolint:setting-imports-local-ffe8a048>,
+        <urn:ontolint:setting-imports-siblings-035f9b2a>,
         <urn:ontolint:setting-undefined-terms-skip-object-of-0d638ae5>,
         <urn:ontolint:setting-undefined-terms-skip-object-of-3211d790>,
         <urn:ontolint:setting-undefined-terms-skip-object-of-4c3304d8>,
@@ -751,6 +752,13 @@
     olq:localFile "shacl.ttl" ;
     olq:origin olq:BundledVocabulary ;
     olq:value sh: .
+
+<urn:ontolint:setting-imports-siblings-035f9b2a> a olq:Setting ;
+    rdfs:label "imports.siblings: True" ;
+    rdfs:comment "References may resolve against the other inputs of this run, without fetching them" ;
+    olq:key "imports.siblings" ;
+    olq:origin olq:OntolintDefault ;
+    olq:value "True" .
 
 <urn:ontolint:setting-undefined-terms-skip-object-of-0d638ae5> a olq:Setting ;
     rdfs:label "undefined-terms.skip-object-of: http://xmlns.com/foaf/0.1/homepage" ;
