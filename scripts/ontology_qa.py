@@ -139,6 +139,11 @@ class Config:
                     reported, never resolved (`imports.ignore`).
     exclude_types:  type IRIs, or CURIEs in ontolint's config prefixes, whose instances the
                     class checks skip (`exclude.types`).
+    resolve_siblings: with per_file, let each dataset resolve references against the
+                    other datasets of the same call, so a family that refers to itself
+                    needs no `imports` entries for its own members. A dataset answers only
+                    for the ontology it declares. Set False to check each one strictly
+                    alone.
     skip_object_of: predicate IRIs or `<namespace>*` wildcards whose objects the
                     undefined-terms check treats as links to documents rather than terms
                     (`undefined-terms.skip-object-of`). None keeps ontolint's defaults; an
@@ -160,6 +165,7 @@ class Config:
     ignore_imports: Sequence[IRI] = ()
     exclude_types: Sequence[IRI] = ()
     skip_object_of: Sequence[IRI] | None = None
+    resolve_siblings: bool = True
     checks: Sequence[str] | None = None
     base_iri: IRI | None = None
     inference: bool = False
@@ -478,11 +484,12 @@ class RunInput:
     """
     Another input of the same invocation, registered as something to resolve against.
 
-    It carries its path as well as its graph so a report can say which file a definition
-    came from. Without the path it would be indistinguishable from a graph the programmatic
-    API handed over, which is a different thing and reads differently.
+    It carries what the input is called as well as its graph, so a report can say where a
+    definition came from: a file path from the CLI, a dataset name from the API. Without
+    that it would be indistinguishable from a vocabulary graph a caller handed over, which
+    is a different thing and reads differently.
     """
-    path: str
+    source: str
     graph: rdflib.Graph
 
 
@@ -2274,7 +2281,7 @@ def _reference_predicate_matcher(predicates):
 
 def _describe_local(source):
     if isinstance(source, RunInput):
-        return f"another input: `{source.path}`"
+        return f"another input: `{source.source}`"
     if isinstance(source, rdflib.Graph):
         return f"graph supplied by the caller ({len(source)} triples)"
     return f"bundled: `{Path(source).name}`" if _is_bundled(source) else f"local file: `{source}`"
@@ -2831,15 +2838,19 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     datasets = bundled_datasets()
     bundled_by_key = {iri_key(ns): ns for ns in bundled_vocabularies()}
     for k, (iri, path) in user_local.items():
-        # Another input of the same invocation is not a setting: nobody configured it, it
-        # is derived from what was passed in, and recording it here would give every
-        # per-file run a configuration of its own — one per file, differing only in which
-        # siblings it was not checking. Where the run resolved a namespace from is
-        # reported as resolution, not as configuration (see the remote namespace activity
-        # block, and #113 for the run's provenance).
-        if isinstance(path, RunInput):
-            continue
         overrides = bundled_by_key.get(k)
+        if isinstance(path, RunInput):
+            # Another input of the same invocation, named so it is explicit which ontology
+            # the run resolved from where. Nobody configured it — it is derived from what
+            # was passed in — so it is its own origin, and a per-file run's configuration
+            # then differs per file, because its resolution context genuinely does.
+            shown = path.source
+            reason = ("Resolved from another input of this run, which declares it"
+                      + ("; overrides the bundled vocabulary" if overrides else ""))
+            settings.append(dqv.ConfigSetting('imports.local', iri, 'input', reason,
+                                              local_file=shown,
+                                              derived_from=datasets.get(overrides) if overrides else None))
+            continue
         if isinstance(path, rdflib.Graph):
             # Supplied through the programmatic API: there is no file to name.
             shown = None

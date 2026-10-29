@@ -231,9 +231,15 @@ def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
     rollups = list(g.subjects(DQV.isMeasurementOf, rdflib.URIRef('urn:ontolint:metric-ontolint-conformance')))
     assert len(rollups) == 2
     assert {g.value(m, OLQ.conforms).toPython() for m in rollups} == {True, False}
-    # Both files ran under the same configuration, so they share one configuration node.
+    # One configuration per run, not one for the report: each file resolved against the
+    # other, so what each run was given genuinely differs and the report names it (#108).
     configurations = set(g.subjects(rdflib.RDF.type, OLQ.Configuration))
-    assert len(configurations) == 1
+    assert len(configurations) == 2
+    resolved = {str(g.value(setting, OLQ.value))
+                for configuration in configurations
+                for setting in g.objects(configuration, OLQ.setting)
+                if g.value(setting, OLQ.origin) == OLQ.RunInput}
+    assert resolved, "a per-file run should name the inputs it resolved against"
     [assessment] = g.subjects(rdflib.RDF.type, DQV.QualityMetadata)
     assert set(g.objects(assessment, OLQ.configuration)) == configurations
 

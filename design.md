@@ -295,12 +295,15 @@ vocabulary a caller hands over — would let one input shadow a real vocabulary 
 term in its namespace. `tests/example_failure.ttl` does exactly that to SKOS, and
 registering it for SKOS made `skos:prefLabel` undefined in the file beside it.
 
-Resolving against a sibling is **not** configuration, and is deliberately absent from the
-`olq:Configuration` block: nobody configured it, it is derived from what was passed in, and
-recording it would give every per-file run a configuration of its own, differing only in
-which siblings it was not checking. Where a namespace resolved from is reported as
-resolution — the remote namespace activity block says `another input:` — and the run's
-provenance belongs in #113.
+Every ontology resolved this way is **named in the configuration**, as an `imports.local`
+setting with `olq:origin olq:RunInput` and the input it came from, so it is explicit what
+answered for what. That a per-file run then has a configuration of its own, one per file,
+is not a defect: each run really was given a different resolution context, and a report
+that said otherwise would be describing a run that did not happen.
+
+`imports.siblings: false` turns the whole thing off for a project that lints unrelated
+ontologies together and wants each judged strictly alone. The flag is recorded whether it
+was set or defaulted, because it changes what an undefined-terms result means.
 
 **This does not make `--per-file` safe as a default.** It removes the *resolution* reason to
 prefer a merged run, not the *scope* one. A check still sees one file: linting a two-file
