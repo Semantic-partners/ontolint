@@ -7,20 +7,12 @@ import re
 
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, note,
-                               records_key, violation_formatting)
-    from scripts.queries import exec_sparql
-    from scripts.resolution import _describe_local, _parse_local
-    from scripts.terms import expand_curie, get_namespace, iri_key, ontology_iris
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, note, records_key,
-                       violation_formatting)
-    from queries import exec_sparql
-    from resolution import _describe_local, _parse_local
-    from terms import expand_curie, get_namespace, iri_key, ontology_iris
+from .. import dqv
+from ..model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, note, records_key,
+                     violation_formatting)
+from ..queries import exec_sparql
+from ..resolution import _describe_local, _parse_local
+from ..terms import expand_curie, get_namespace, iri_key, ontology_iris
 
 
 # rdf:_1, rdf:_2, ... (container membership properties) are defined by RDF but can't be listed.

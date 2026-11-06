@@ -5,10 +5,7 @@ A projection of a QAResult. A check records what it found through decided(), not
 tabulate() and renders nothing; everything about layout - section numbers, headings, rules,
 how a list or table is drawn, whether a verbose-only table appears - is decided here.
 """
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts.resolution import _describe_local
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    from resolution import _describe_local
+from ..resolution import _describe_local
 
 
 def normalise(count, total):

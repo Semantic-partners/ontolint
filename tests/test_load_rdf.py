@@ -3,7 +3,7 @@ Tests for the load_rdf() and load_rdf_file() functions in ontology_qa.py
 """
 import os
 import rdflib
-from scripts.ontology_qa import load_rdf, load_rdf_file
+from ontolint.loading import load_rdf, load_rdf_file
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
@@ -423,7 +423,8 @@ def test_the_checks_still_see_one_graph(tmp_path):
 
 
 def test_inferred_triples_are_not_attributed_to_a_file(tmp_path):
-    from scripts.ontology_qa import INFERRED_CONTEXT, infer_subclass_relations
+    from ontolint.model import INFERRED_CONTEXT
+    from ontolint.profiling import infer_subclass_relations
     one = tmp_path / "one.ttl"
     one.write_text("""
     @prefix : <http://example.org#> .

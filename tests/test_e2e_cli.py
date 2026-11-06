@@ -4,8 +4,9 @@ from unittest.mock import patch
 import pytest
 import rdflib
 
-from scripts.ontology_qa import main, parse_lint_config
-from scripts import dqv
+from ontolint.cli import main
+from ontolint.config import parse_lint_config
+from ontolint import dqv
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
@@ -210,7 +211,7 @@ def test_dqv_dir_writes_default_filename(tmp_path):
 
 
 def test_dqv_filename_and_base_uri(tmp_path):
-    from scripts.dqv import DQV
+    from ontolint.dqv import DQV
     import rdflib
     ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path),
@@ -222,7 +223,7 @@ def test_dqv_filename_and_base_uri(tmp_path):
 
 
 def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
-    from scripts.dqv import DQV, OLQ
+    from ontolint.dqv import DQV, OLQ
     import rdflib
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')

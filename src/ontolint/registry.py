@@ -6,48 +6,23 @@ CHECKLIST is the one list: each row says whether a check is on, the function tha
 it, the name a report gives it and the key its result is filed under. The configuration
 file's enable: and disable: lists, and Config.checks, are both resolved against it.
 """
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts.checks.annotations import (check_class_missing_comment,
-                                            check_class_missing_label,
-                                            check_node_shape_missing_comment,
-                                            check_node_shape_missing_label,
-                                            check_property_missing_comment,
-                                            check_property_missing_label,
-                                            check_property_shape_missing_comment,
-                                            check_property_shape_missing_label)
-    from scripts.checks.metadata import (check_one_ontology_per_file, check_owl_declaration,
-                                         check_owl_description, check_owl_imports)
-    from scripts.checks.namespaces import (check_hijacking, check_undefined_terms,
-                                           check_untyped_class, check_untyped_property)
-    from scripts.checks.structure import (check_isolated_classes,
-                                          check_property_missing_domain,
-                                          check_property_missing_range,
-                                          check_subclass_cycles)
-    from scripts.checks.uniqueness import (check_class_same_label,
-                                           check_node_shape_same_label,
-                                           check_property_same_label,
-                                           check_property_shape_same_label,
-                                           check_unique_identifiers)
-    from scripts.config import config_check_name, lint_selection
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    from checks.annotations import (check_class_missing_comment, check_class_missing_label,
-                                    check_node_shape_missing_comment,
-                                    check_node_shape_missing_label,
-                                    check_property_missing_comment,
-                                    check_property_missing_label,
-                                    check_property_shape_missing_comment,
-                                    check_property_shape_missing_label)
-    from checks.metadata import (check_one_ontology_per_file, check_owl_declaration,
-                                 check_owl_description, check_owl_imports)
-    from checks.namespaces import (check_hijacking, check_undefined_terms,
-                                   check_untyped_class, check_untyped_property)
-    from checks.structure import (check_isolated_classes, check_property_missing_domain,
-                                  check_property_missing_range, check_subclass_cycles)
-    from checks.uniqueness import (check_class_same_label, check_node_shape_same_label,
-                                   check_property_same_label,
-                                   check_property_shape_same_label,
-                                   check_unique_identifiers)
-    from config import config_check_name, lint_selection
+from .checks.annotations import (check_class_missing_comment, check_class_missing_label,
+                                 check_node_shape_missing_comment,
+                                 check_node_shape_missing_label,
+                                 check_property_missing_comment,
+                                 check_property_missing_label,
+                                 check_property_shape_missing_comment,
+                                 check_property_shape_missing_label)
+from .checks.metadata import (check_one_ontology_per_file, check_owl_declaration,
+                              check_owl_description, check_owl_imports)
+from .checks.namespaces import (check_hijacking, check_undefined_terms, check_untyped_class,
+                                check_untyped_property)
+from .checks.structure import (check_isolated_classes, check_property_missing_domain,
+                               check_property_missing_range, check_subclass_cycles)
+from .checks.uniqueness import (check_class_same_label, check_node_shape_same_label,
+                                check_property_same_label, check_property_shape_same_label,
+                                check_unique_identifiers)
+from .config import config_check_name, lint_selection
 
 
 CHECKLIST = [

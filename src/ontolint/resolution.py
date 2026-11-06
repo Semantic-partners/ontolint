@@ -16,10 +16,7 @@ from urllib.request import url2pathname
 
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts.terms import get_namespace, iri_key, ontology_iris
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    from terms import get_namespace, iri_key, ontology_iris
+from .terms import get_namespace, iri_key, ontology_iris
 
 
 # ── Bundled vocabularies ─────────────────────────────────────────────────────
@@ -31,7 +28,7 @@ except ImportError:  # run as a script: scripts/ itself is on sys.path
 # bundled, their namespaces, and where each file is (its dcat:downloadURL, resolved
 # relative to the catalog). Found relative to this module so the CLI and the composite
 # action work from any working directory.
-VOCAB_CATALOG = Path(__file__).resolve().parent.parent / 'vocabularies' / 'catalog.ttl'
+VOCAB_CATALOG = Path(__file__).resolve().parent / 'vocabularies' / 'catalog.ttl'
 
 
 @lru_cache(maxsize=1)

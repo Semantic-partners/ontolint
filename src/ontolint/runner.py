@@ -9,29 +9,16 @@ before they are merged.
 """
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.checks.metadata import check_owl_declaration, check_owl_imports
-    from scripts.checks.namespaces import check_undefined_terms
-    from scripts.config import config_kwargs, describe_configuration
-    from scripts.model import (body_key, CheckResult, Config, outcome_key, QAResult,
-                               records_key, skipped_key)
-    from scripts.profiling import infer_subclass_relations, profiling
-    from scripts.registry import (CHECKLIST, deepcopy_list, select_checks,
-                                  TYPE_EXCLUDABLE_CHECKS)
-    from scripts.resolution import merge_local_imports
-    from scripts.terms import ontology_iris
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from checks.metadata import check_owl_declaration, check_owl_imports
-    from checks.namespaces import check_undefined_terms
-    from config import config_kwargs, describe_configuration
-    from model import (body_key, CheckResult, Config, outcome_key, QAResult, records_key,
-                       skipped_key)
-    from profiling import infer_subclass_relations, profiling
-    from registry import CHECKLIST, deepcopy_list, select_checks, TYPE_EXCLUDABLE_CHECKS
-    from resolution import merge_local_imports
-    from terms import ontology_iris
+from . import dqv
+from .checks.metadata import check_owl_declaration, check_owl_imports
+from .checks.namespaces import check_undefined_terms
+from .config import config_kwargs, describe_configuration
+from .model import (body_key, CheckResult, Config, outcome_key, QAResult, records_key,
+                    skipped_key)
+from .profiling import infer_subclass_relations, profiling
+from .registry import CHECKLIST, deepcopy_list, select_checks, TYPE_EXCLUDABLE_CHECKS
+from .resolution import merge_local_imports
+from .terms import ontology_iris
 
 
 def declared_ontology_sources(sources):

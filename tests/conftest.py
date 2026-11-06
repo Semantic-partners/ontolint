@@ -1,12 +1,4 @@
-import os
 from pathlib import Path
-
-# Must run before scripts.ontology_qa is imported so module-level SPARQL loading
-# resolves the sparql/ directory correctly regardless of where pytest is invoked from.
-os.environ.setdefault(
-    'QA_SPARQL_DIR',
-    os.path.join(os.path.dirname(__file__), '..', 'sparql')
-)
 
 import socket
 
@@ -86,7 +78,8 @@ SOURCE_IRI = 'https://example.org/input/'
 
 def lint_case(case):
     """The QAResult linting a case produces — what test_pipeline_lint_to_qaresult.py checks."""
-    from scripts.ontology_qa import Config, lint_graph
+    from ontolint.model import Config
+    from ontolint.runner import lint_graph
     names = list(CASES[case])
     return lint_graph(case_graph(case), names, Config(uri_parser=_offline),
                       source_iris=[SOURCE_IRI + name for name in names])
@@ -183,7 +176,8 @@ def render_result(result):
     rather than anything the checks produced, and carrying input paths, so test_e2e_cli.py
     covers those.
     """
-    from scripts.ontology_qa import CHECKLIST, deepcopy_list, render_markdown
+    from ontolint.registry import CHECKLIST, deepcopy_list
+    from ontolint.report.markdown import render_markdown
     return render_markdown(result, deepcopy_list(CHECKLIST))
 
 

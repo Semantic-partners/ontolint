@@ -1,6 +1,8 @@
 import pytest
 import rdflib
-from scripts.ontology_qa import DEFAULT_SKIP_OBJECT_OF, expand_curie, run_qa
+from ontolint.checks.namespaces import DEFAULT_SKIP_OBJECT_OF
+from ontolint.runner import run_qa
+from ontolint.terms import expand_curie
 
 CHECK_NAME = "Undefined terms"
 

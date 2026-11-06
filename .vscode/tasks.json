@@ -4,7 +4,7 @@
     {
       "label": "ontolint: lint",
       "type": "shell",
-      "command": "source ${workspaceFolder}/.venv/bin/activate && ruff check scripts/ tests/",
+      "command": "source ${workspaceFolder}/.venv/bin/activate && ruff check src/ scripts/ tests/",
       "options": {
         "cwd": "${workspaceFolder}"
       },

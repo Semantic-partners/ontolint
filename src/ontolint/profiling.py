@@ -7,14 +7,9 @@ relations.
 import networkx as nx
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts.model import INFERRED_CONTEXT
-    from scripts.queries import exec_sparql
-    from scripts.terms import get_namespace
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    from model import INFERRED_CONTEXT
-    from queries import exec_sparql
-    from terms import get_namespace
+from .model import INFERRED_CONTEXT
+from .queries import exec_sparql
+from .terms import get_namespace
 
 
 def prefixes(g):

@@ -2,6 +2,7 @@
 
 from dataclasses import fields
 from pathlib import Path
+from types import ModuleType
 
 import rdflib
 import pytest
@@ -9,8 +10,9 @@ import pytest
 import ontolint
 
 from ontolint import Config, lint
-from scripts.ontology_qa import CHECKLIST, deepcopy_list, lint_graph, run_qa
-from scripts.dqv import DQV, OLQ, DEFAULT_BASE_URI, dataset_iri
+from ontolint.registry import CHECKLIST, deepcopy_list
+from ontolint.runner import lint_graph, run_qa
+from ontolint.dqv import DQV, OLQ, DEFAULT_BASE_URI, dataset_iri
 
 OWL = "http://www.w3.org/2002/07/owl#"
 # undefined-terms reads the ontology IRI that owl-declaration records, to tell a local
@@ -87,7 +89,11 @@ README = Path(__file__).parent.parent / "readme.md"
 
 def test_the_package_exports_exactly_config_and_lint():
     assert sorted(ontolint.__all__) == ["Config", "lint"]
-    assert sorted(n for n in vars(ontolint) if not n.startswith("_")) == ["Config", "api", "lint"]
+    # The engine's modules live in the package too and appear here once imported. They
+    # are internal: what is supported is __all__, so nothing else may be a public name.
+    names = {n for n, v in vars(ontolint).items()
+             if not n.startswith("_") and not isinstance(v, ModuleType)}
+    assert names == {"Config", "lint"}
 
 
 def test_config_is_the_documented_set_of_settings():

@@ -11,13 +11,8 @@ import os
 from rdflib.util import guess_format
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv, graphutil
-    from scripts.terms import ontology_iris
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    import graphutil
-    from terms import ontology_iris
+from . import dqv, graphutil
+from .terms import ontology_iris
 
 
 def load_rdf_file(file):

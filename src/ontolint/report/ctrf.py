@@ -8,10 +8,7 @@ from datetime import datetime
 import json
 import os
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts.model import not_assessed_message, QAResult
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    from model import not_assessed_message, QAResult
+from ..model import not_assessed_message, QAResult
 
 
 def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):

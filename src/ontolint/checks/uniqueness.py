@@ -4,18 +4,11 @@ sharing a label, and one IRI declared as two different kinds of thing.
 """
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.model import (concat_members, decided, EMPTY_POPULATION, not_assessed,
-                               records_key, tabulate, violation_formatting)
-    from scripts.queries import exec_sparql
-    from scripts.terms import _term_from_string
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from model import (concat_members, decided, EMPTY_POPULATION, not_assessed, records_key,
-                       tabulate, violation_formatting)
-    from queries import exec_sparql
-    from terms import _term_from_string
+from .. import dqv
+from ..model import (concat_members, decided, EMPTY_POPULATION, not_assessed, records_key,
+                     tabulate, violation_formatting)
+from ..queries import exec_sparql
+from ..terms import _term_from_string
 
 
 def check_class_same_label(in_metrics, graph, check, status, verbose, exclude_types=None):

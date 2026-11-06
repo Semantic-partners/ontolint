@@ -13,12 +13,8 @@ from typing import TypeAlias
 
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.terms import term_text
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from terms import term_text
+from . import dqv
+from .terms import term_text
 
 
 # An IRI, as an rdflib term or the string form of one. Some of these also accept a CURIE

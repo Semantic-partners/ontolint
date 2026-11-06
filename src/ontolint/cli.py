@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Ontology Quality Assessment Script
 # SEMANTIC PARTNERS LTD, 2026
 # Authors: Simon Shapiro, Otello M Roscioni, John Placek, Pel Olson.
@@ -13,40 +12,23 @@ import argparse
 import os
 import sys
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.checks.metadata import check_owl_declaration
-    from scripts.config import (_display_path, lint_selection, parse_lint_config,
-                                write_lint_config)
-    from scripts.loading import _collect_files, load_rdf, _parse_failure_log, parse_inputs
-    from scripts.model import Config
-    from scripts.profiling import infer_subclass_relations, profiling
-    from scripts.queries import sparql_dir
-    from scripts.registry import CHECKLIST, deepcopy_list
-    from scripts.report.ctrf import build_ctrf_report, write_ctrf_report
-    from scripts.report.markdown import (print_profiling_metrics, print_profiling_table,
-                                         render_markdown)
-    from scripts.resolution import sibling_imports
-    from scripts.runner import duplicate_ontology_iris, lint_graph
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from checks.metadata import check_owl_declaration
-    from config import _display_path, lint_selection, parse_lint_config, write_lint_config
-    from loading import _collect_files, load_rdf, _parse_failure_log, parse_inputs
-    from model import Config
-    from profiling import infer_subclass_relations, profiling
-    from queries import sparql_dir
-    from registry import CHECKLIST, deepcopy_list
-    from report.ctrf import build_ctrf_report, write_ctrf_report
-    from report.markdown import (print_profiling_metrics, print_profiling_table,
-                                 render_markdown)
-    from resolution import sibling_imports
-    from runner import duplicate_ontology_iris, lint_graph
+from . import dqv
+from .checks.metadata import check_owl_declaration
+from .config import _display_path, lint_selection, parse_lint_config, write_lint_config
+from .loading import _collect_files, load_rdf, _parse_failure_log, parse_inputs
+from .model import Config
+from .profiling import infer_subclass_relations, profiling
+from .queries import sparql_dir
+from .registry import CHECKLIST, deepcopy_list
+from .report.ctrf import build_ctrf_report, write_ctrf_report
+from .report.markdown import print_profiling_metrics, print_profiling_table, render_markdown
+from .resolution import sibling_imports
+from .runner import duplicate_ontology_iris, lint_graph
 
 
 # check that the directory exists
 if not os.path.isdir(sparql_dir):
-    sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
+    sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before running ontolint.\n")
     sys.exit(1)
 
 

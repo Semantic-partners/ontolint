@@ -1,4 +1,6 @@
-from scripts.ontology_qa import CHECKLIST, render_markdown, run_qa
+from ontolint.registry import CHECKLIST
+from ontolint.report.markdown import render_markdown
+from ontolint.runner import run_qa
 
 
 # ── Classes ──────────────────────────────────────────────────────────────────

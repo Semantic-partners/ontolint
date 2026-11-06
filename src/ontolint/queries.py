@@ -2,15 +2,13 @@
 The SPARQL every check runs: loaded once from sparql/, and run against a graph.
 
 Queries are read at import time from the directory named by QA_SPARQL_DIR, defaulting to
-the repository's sparql/ beside this module, into a dict keyed by filename stem. The tests
-set QA_SPARQL_DIR before importing anything, so they find the queries whatever directory
-pytest is run from.
+the sparql/ directory shipped inside the package, into a dict keyed by filename stem.
 """
 import os
 
 
 # Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
+sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sparql'))
 
 
 def load_sparql_queries(directory):

@@ -2,18 +2,11 @@
 How the classes and properties connect: isolated classes, properties without a
 domain or range, and subclass cycles.
 """
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, note,
-                               records_key, tabulate, violation_formatting)
-    from scripts.queries import exec_sparql
-    from scripts.terms import term_text
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, note, records_key,
-                       tabulate, violation_formatting)
-    from queries import exec_sparql
-    from terms import term_text
+from .. import dqv
+from ..model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, note, records_key,
+                     tabulate, violation_formatting)
+from ..queries import exec_sparql
+from ..terms import term_text
 
 
 def check_isolated_classes(in_metrics, graph, check, status, verbose, exclude_types=None):

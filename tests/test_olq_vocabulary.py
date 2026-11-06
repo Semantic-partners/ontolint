@@ -4,8 +4,11 @@ import os
 import rdflib
 from rdflib import OWL, RDF, RDFS
 
-from scripts.dqv import OLQ, build_dqv_graph
-from scripts.ontology_qa import RunInput, CHECKLIST, deepcopy_list, lint_selection, parse_lint_config, run_qa
+from ontolint.dqv import OLQ, build_dqv_graph
+from ontolint.config import lint_selection, parse_lint_config
+from ontolint.registry import CHECKLIST, deepcopy_list
+from ontolint.resolution import RunInput
+from ontolint.runner import run_qa
 
 REPO = os.path.join(os.path.dirname(__file__), '..')
 VOCAB = os.path.join(REPO, 'ontology', 'olq.ttl')

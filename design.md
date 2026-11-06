@@ -128,7 +128,7 @@ run the CLI over two inputs each.
 A report carries three things that depend on *where and when it ran* rather than on what
 the checks found, and all three are hashed into the IRIs it mints, so none can be corrected
 after the report is built. Each is pinned at the point it is made, by replacing a
-module-level function in `scripts/dqv.py` that is looked up when the report is built rather
+module-level function in `ontolint/dqv.py` that is looked up when the report is built rather
 than bound in — the same device three times over, because `main()` takes no arguments for
 any of them.
 
@@ -140,7 +140,7 @@ any of them.
 
 The first two are parameters of `build_dqv_graph` and `write_dqv_report`, so a test calling
 either passes one in — `test_pipeline_qaresult_to_dqv.py` does. `dqv.file_iri` is not, and
-deliberately: it is called from `load_rdf` in `ontology_qa.py`, so a parameter would have to
+deliberately: it is called from `load_rdf` in `loading.py`, so a parameter would have to
 run through `load_rdf` → `run_qa` → `lint_graph` → `main` to reach the one test that wants
 it. It stays a module-level function replaced in place.
 

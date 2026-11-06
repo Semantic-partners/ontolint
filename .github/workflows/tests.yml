@@ -28,7 +28,7 @@ jobs:
         run: poetry install
 
       - name: Lint
-        run: poetry run ruff check scripts/ ontolint/ tests/
+        run: poetry run ruff check src/ scripts/ tests/
 
   test:
     runs-on: ubuntu-latest
@@ -58,7 +58,6 @@ jobs:
           poetry run pytest \
             -n auto \
             --junitxml=test-results.xml \
-            --cov=scripts \
             --cov=ontolint \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml

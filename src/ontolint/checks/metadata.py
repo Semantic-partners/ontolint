@@ -4,21 +4,12 @@ described, and that what it imports can be resolved.
 """
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.model import (AS_LIST, decided, INFERRED_CONTEXT, not_assessed, note,
-                               records_key, source_iris, SOURCES_NOT_RECORDED, tabulate,
-                               violation_formatting)
-    from scripts.queries import exec_sparql
-    from scripts.resolution import _describe_local, _parse_local
-    from scripts.terms import iri_key, ontology_iris
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from model import (AS_LIST, decided, INFERRED_CONTEXT, not_assessed, note, records_key,
-                       source_iris, SOURCES_NOT_RECORDED, tabulate, violation_formatting)
-    from queries import exec_sparql
-    from resolution import _describe_local, _parse_local
-    from terms import iri_key, ontology_iris
+from .. import dqv
+from ..model import (AS_LIST, decided, INFERRED_CONTEXT, not_assessed, note, records_key,
+                     source_iris, SOURCES_NOT_RECORDED, tabulate, violation_formatting)
+from ..queries import exec_sparql
+from ..resolution import _describe_local, _parse_local
+from ..terms import iri_key, ontology_iris
 
 
 def ontologies_by_source(graph, in_metrics):

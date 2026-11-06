@@ -2,16 +2,10 @@
 Whether each class, property, NodeShape and PropertyShape carries a label and a
 description — eight checks of one shape, differing only in what they look at.
 """
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed,
-                               records_key, tabulate, violation_formatting)
-    from scripts.queries import exec_sparql
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, records_key,
-                       tabulate, violation_formatting)
-    from queries import exec_sparql
+from .. import dqv
+from ..model import (AS_LIST, decided, EMPTY_POPULATION, not_assessed, records_key,
+                     tabulate, violation_formatting)
+from ..queries import exec_sparql
 
 
 def check_class_missing_label(in_metrics, graph, check, status, verbose, exclude_types=None):

@@ -12,18 +12,10 @@ import sys
 import rdflib
 import yaml
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import dqv
-    from scripts.checks.namespaces import DEFAULT_SKIP_OBJECT_OF
-    from scripts.resolution import (bundled_datasets, bundled_vocabularies,
-                                    local_imports_from, RunInput)
-    from scripts.terms import expand_curie, iri_key
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import dqv
-    from checks.namespaces import DEFAULT_SKIP_OBJECT_OF
-    from resolution import (bundled_datasets, bundled_vocabularies, local_imports_from,
-                            RunInput)
-    from terms import expand_curie, iri_key
+from . import dqv
+from .checks.namespaces import DEFAULT_SKIP_OBJECT_OF
+from .resolution import bundled_datasets, bundled_vocabularies, local_imports_from, RunInput
+from .terms import expand_curie, iri_key
 
 
 def parse_lint_config(config):
