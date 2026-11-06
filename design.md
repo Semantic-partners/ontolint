@@ -459,22 +459,23 @@ replaced, which is how `tests/test_e2e_dqv.py` compares against committed report
 
 ## Todo
 
-- **Make Markdown a projection of `QAResult`** (#101) — see above. Tracked as its own
-  change, since it moves where every check's text is produced.
-- **#108 — a unit cannot see its siblings.** `load_rdf()` is called inside `main()`'s loop,
-  so a per-file run's graph holds one file and nothing else: an ontology referencing a
-  sibling in the same invocation reports every borrowed term as undefined unless the user
-  lists it in `imports.local` by hand. Load the invocation once and scope each unit to its
-  own share of it. #104 landed the substrate — every triple is already keyed by its file.
-- **#107 — hijacking and undefined terms go silent in a merged run.** The same confusion
-  from the other end: both ask "is this namespace declared?" against whatever graph they
-  are handed, so a sibling file that legitimately declares the namespace excuses a hijack.
-  Separating scope from context is one change, so #107 and #108 are likely one PR. It moves
-  numbers in the goldens, since it changes what ontolint finds.
-- **Smaller, once those exist.** "Exactly one declaration per unit" is not a rule anywhere
-  (`check_owl_declaration` counts *files*); a merged run that states several ontologies is
-  accepted and papered over with the synthetic `Merged: …` dataset; and one boolean flag
-  cannot describe a run whose units have different shapes.
+- **#96 — what a unit is.** The keystone, and a decision rather than an implementation.
+  Every check that asks *"is this term in my declared namespace?"* needs it, and today the
+  answer is "whatever was in this invocation". #107 closed into it (the merged-run silence
+  is correct under one reading of a unit and wrong under the other) and #116 waits on it
+  (what to do when two inputs claim to be the *same* unit). Until it is settled,
+  `--per-file` cannot become the default: a two-file family linted per file still reports
+  `core:Thing` as isolated, because the subclass connecting it is in the other file.
+- **#112 — the metric catalogue as data.** Would let a set-level metric be a prerequisite,
+  which is what #116 needs, and removes the three-kinds-of-metric special-casing: a check's
+  metric, a set-level one and the roll-up are all `dqv:Metric`s differing only in how they
+  are computed.
+- **#113 — PROV for the run itself.** The assessment carries `prov:generatedAtTime` but
+  nothing generated it: no `prov:Activity`, no `prov:used` for the inputs, no agent. The
+  resolution provenance `fetchActivity` already collects never reaches the report.
+- **#90 — report legibility.** Failures first is cheap now that `render_markdown()` is one
+  function over `result.checks`; a link to the line a violation was declared on is not,
+  since rdflib discards source positions.
 
 **What the unit model deletes.** Per-ontology attribution of measurements was the plan here
 until the model settled it away: a unit yields one result on one ontology, so a check's
@@ -484,11 +485,15 @@ inside a unit of five files, one header and four files without it is **correct**
 today `check_owl_declaration` reports that as a violation and `tests/data/fragment.ttl`
 exists on the premise that it is a defect.
 
+## Landed
+
+- **#97** — one file, one ontology, in both directions.
+- **#101** — Markdown is a projection of `QAResult`, like the other two reporters.
+- **#102** — the untyped checks refuse to answer without a declared namespace.
+- **#104** — one named graph per file, so a triple's source survives the load.
+- **#108** — a run resolves against the files it is not checking, with `imports.siblings`.
+
 ## In flight
 
 - **#94** — publish to PyPI; moves these modules into the package.
-- **#96** — what per-file versus grouped linting means. Its plumbing landed as #104; the
-  unit model above is the rest of it, carried by #107 and #108.
-- **#97** — a file declaring two ontologies fails the build while the report says PASS.
-- **#102** — the untyped checks report every term when no `owl:Ontology` is declared.
-- **#107 / #108** — separating a unit's scope from the run's resolution context.
+- **#91** — property shapes count the comment and label of their `sh:path` property.
