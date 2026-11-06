@@ -32,6 +32,8 @@ try:  # imported as part of the scripts package (e.g. by the tests)
                                     defined_namespaces, _describe_local, _is_bundled,
                                     local_imports_from, merge_local_imports, _parse_bundled,
                                     _parse_local, RunInput, sibling_imports, VOCAB_CATALOG)
+    from scripts.queries import (EXCLUDE_TYPES_PLACEHOLDER, exec_sparql,  # noqa: F401
+                                 load_sparql_queries, sparql_dir, sparql_queries)
     from scripts.terms import (CONFIG_PREFIXES, _term_from_string, expand_curie,  # noqa: F401
                                get_namespace, iri_key, ontology_iris, term_text)
 except ImportError:  # run as a script: scripts/ itself is on sys.path
@@ -46,30 +48,16 @@ except ImportError:  # run as a script: scripts/ itself is on sys.path
                             _describe_local, _is_bundled, local_imports_from,
                             merge_local_imports, _parse_bundled, _parse_local, RunInput,
                             sibling_imports, VOCAB_CATALOG)
+    from queries import (EXCLUDE_TYPES_PLACEHOLDER, exec_sparql, load_sparql_queries,  # noqa: F401
+                         sparql_dir, sparql_queries)
     from terms import (CONFIG_PREFIXES, _term_from_string, expand_curie,  # noqa: F401
                        get_namespace, iri_key, ontology_iris, term_text)
 
-# Create a dictionary with SPARQL queries, from files.
-sparql_dir = os.getenv('QA_SPARQL_DIR', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'sparql'))
 
 # check that the directory exists
 if not os.path.isdir(sparql_dir):
     sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before executing ontology_qa.")
     sys.exit(1)
-
-def load_sparql_queries(directory):
-    """
-    Create a dictionary of SPARQL queries, using file names as keys.
-    """
-    queries = {}
-    for filename in os.listdir(directory):
-        if filename.endswith('.sparql'):
-            var_name = os.path.splitext(filename)[0]
-            with open(os.path.join(directory, filename), 'r', encoding='utf-8') as f:
-                queries[var_name] = f.read()
-    return queries
-
-sparql_queries = load_sparql_queries(sparql_dir)
 
 
 def source_iris(in_metrics):
@@ -82,30 +70,6 @@ def source_iris(in_metrics):
     """
     named = in_metrics.get('sourceIRIs') or []
     return [str(iri) for iri in named] or [dqv.file_iri(f) for f in in_metrics.get('filesProcessed', [])]
-
-# Placeholder comment in a SPARQL query marking where the exclude-types filter is injected.
-EXCLUDE_TYPES_PLACEHOLDER = "# {{EXCLUDE_TYPES}}"
-
-def exec_sparql(graph, key, exclude_types=None):
-    """
-    Execute a SPARQL query from the input RDFLib graph, retrieving it from a global dictionary.
-
-    If exclude_types is given, resources (bound to ?c) typed with any of those IRIs are
-    filtered out. The query must contain the EXCLUDE_TYPES_PLACEHOLDER comment.
-    """
-    sparql_query = sparql_queries[key]
-    if exclude_types:
-        if EXCLUDE_TYPES_PLACEHOLDER not in sparql_query:
-            raise ValueError(f"Query '{key}' does not support exclude-types")
-        values = " ".join(f"<{t}>" for t in exclude_types)
-        sparql_query = sparql_query.replace(
-            EXCLUDE_TYPES_PLACEHOLDER,
-            f"FILTER NOT EXISTS {{ VALUES ?excludedType {{ {values} }} ?c a ?excludedType . }}"
-        )
-    results = graph.query(sparql_query)
-    if results.type == 'SELECT':
-        return sorted(results, key=lambda row: tuple(str(value) for value in row))
-    return results
 
 
 def ontologies_by_source(graph, in_metrics):
