@@ -17,7 +17,7 @@ import pytest
 import rdflib
 from rdflib.compare import graph_diff
 
-from scripts.dqv import build_dqv_graph, DQV_METRICS, DQV, DEFAULT_BASE_URI
+from ontolint.dqv import build_dqv_graph, DQV_METRICS, DQV, DEFAULT_BASE_URI
 from tests.conftest import CASES, stored_dqv_for, stored_qa_result_for
 from tests.golden import stable_mint_id
 

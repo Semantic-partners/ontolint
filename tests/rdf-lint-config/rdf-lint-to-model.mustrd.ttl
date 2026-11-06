@@ -8,7 +8,7 @@
 ontolint-test:rdf_lint_config_to_model
     a must:TestSpec ;
     must:given [ a must:FileDataset ; must:file "expected-rdf-lint.ttl" ] ,
-               [ a must:FileDataset ; must:file "../../vocabularies/catalog.ttl" ] ;
+               [ a must:FileDataset ; must:file "../../src/ontolint/vocabularies/catalog.ttl" ] ;
     must:when  [ a must:FileSparqlSource ;
                  must:file "rdf-lint-to-model.rq" ;
                  must:queryType must:ConstructSparql ] ;

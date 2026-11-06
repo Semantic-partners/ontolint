@@ -19,10 +19,7 @@ from urllib.parse import quote
 
 import rdflib
 
-try:  # imported as part of the scripts package (e.g. by the tests)
-    from scripts import graphutil
-except ImportError:  # run as a script: scripts/ itself is on sys.path
-    import graphutil
+from . import graphutil
 
 
 @dataclass

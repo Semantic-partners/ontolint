@@ -1,4 +1,7 @@
-from scripts.ontology_qa import CHECKLIST, exec_sparql, render_markdown, run_qa
+from ontolint.queries import exec_sparql
+from ontolint.registry import CHECKLIST
+from ontolint.report.markdown import render_markdown
+from ontolint.runner import run_qa
 
 
 # ── Isolated Classes ──────────────────────────────────────────────────────────

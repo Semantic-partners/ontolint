@@ -64,16 +64,14 @@ HASH_SEEDS = ("0", "1", "5")
 RENDER_UNDER_SEED = """
 import os, socket, sys
 root, ctrf = sys.argv[1], sys.argv[2]
-sys.path.insert(0, root)
-os.environ.setdefault('QA_SPARQL_DIR', os.path.join(root, 'sparql'))
 
 def blocked(*args, **kwargs):
     raise OSError("network access is blocked")
 socket.getaddrinfo = blocked
 socket.socket.connect = blocked
 
-from scripts.ontology_qa import CHECKLIST, main
-sys.argv = ['ontology_qa.py', os.path.join(root, 'tests/data/reporters.ttl'),
+from ontolint.cli import main
+sys.argv = ['ontolint', os.path.join(root, 'tests/data/reporters.ttl'),
             '--ctrf-dir', ctrf]
 main()
 """

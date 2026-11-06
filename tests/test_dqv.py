@@ -5,12 +5,15 @@ from rdflib import RDF, RDFS, SKOS, URIRef, Literal
 
 import pytest
 
-from scripts.ontology_qa import run_qa, _same_label_records, CHECKLIST, DEFAULT_SKIP_OBJECT_OF, expand_curie
-from scripts import dqv
-from scripts.dqv import (
-    build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
-    duplicate_ontology_graph, dataset_iri, DQV_METRICS, DQV, OLQ, PROV, SH, DEFAULT_BASE_URI,
-)
+from ontolint.checks.namespaces import DEFAULT_SKIP_OBJECT_OF
+from ontolint.checks.uniqueness import _same_label_records
+from ontolint.registry import CHECKLIST
+from ontolint.runner import run_qa
+from ontolint.terms import expand_curie
+from ontolint import dqv
+from ontolint.dqv import (build_dqv_graph, write_dqv_report, file_iri, check_dqv_filename,
+                          duplicate_ontology_graph, dataset_iri, DQV_METRICS, DQV, OLQ,
+                          PROV, SH, DEFAULT_BASE_URI)
 
 EX = rdflib.Namespace("http://example.org#")
 TS = datetime(2026, 9, 29, 10, 0, 0, tzinfo=timezone.utc)
@@ -570,7 +573,7 @@ def test_duplicate_ontology_graph_reads_on_its_own():
 def test_the_duplicate_metric_is_not_a_checklist_check():
     # It is about the inputs taken together, so it has no check_* function and no CHECKLIST
     # entry; the invariant that every CHECKLIST key has a metric is unaffected.
-    from scripts.dqv import DQV_DUPLICATE_ONTOLOGY_METRIC
+    from ontolint.dqv import DQV_DUPLICATE_ONTOLOGY_METRIC
     assert DQV_DUPLICATE_ONTOLOGY_METRIC[0] not in {slug for slug, *_ in DQV_METRICS.values()}
 
 

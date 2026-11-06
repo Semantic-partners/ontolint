@@ -10,14 +10,25 @@ readme = "readme.md"
 requires-python = ">=3.11"
 dependencies = [
     "rdflib (>=7.6.0,<8.0.0)",
-    "argparse (>=1.4.0,<2.0.0)",
-    "datetime (>=6.0,<7.0)",
     "pyyaml (>=6.0.3,<7.0.0)",
     "networkx (>=3.2,<4.0)"
 ]
 
+[project.urls]
+Homepage = "https://github.com/Semantic-partners/ontolint"
+Documentation = "https://github.com/Semantic-partners/ontolint/tree/main/docs"
+Issues = "https://github.com/Semantic-partners/ontolint/issues"
+
+[project.scripts]
+ontolint = "ontolint.cli:main"
+ontolint-report = "ontolint.report.ctrf_summary:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
-package-mode = false
+packages = [{ include = "ontolint", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3"
@@ -34,17 +45,17 @@ pytest-xdist = ">=3.6"
 testpaths = ["tests"]
 pythonpath = ["."]
 # --mustrd runs the SPARQL Given-When-Then specs (*.mustrd.ttl) listed in tests/mustrd_configuration.ttl.
-addopts = "-v --cov=scripts --cov=ontolint --cov-report=xml --mustrd --config=tests/mustrd_configuration.ttl"
+addopts = "-v --cov=ontolint --cov-report=xml --mustrd --config=tests/mustrd_configuration.ttl"
 
 [tool.coverage.run]
-source = ["scripts", "ontolint"]
+source = ["ontolint"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true
 
 [tool.ruff]
-src = ["scripts", "ontolint", "tests"]
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 ignore = ["E701"]  # inline `if x: y` — intentional style in this codebase

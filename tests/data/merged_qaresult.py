@@ -20,8 +20,8 @@ projection of this instance and needs it (#101).
 
 from rdflib import XSD, Literal, URIRef
 
-from scripts.dqv import ConfigSetting, Dataset, Violation
-from scripts.ontology_qa import CheckResult, QAResult
+from ontolint.dqv import ConfigSetting, Dataset, Violation
+from ontolint.model import CheckResult, QAResult
 
 EXPECTED = QAResult(
     profiling={
@@ -48,7 +48,7 @@ EXPECTED = QAResult(
         'ontologyDescription': 0,
         'unresolvedImports': 1,
         'undefinedTerms': 5,
-        'fetchActivity': {'local': {'http://purl.org/dc/terms/': 'vocabularies/dcterms.ttl', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'vocabularies/rdf.ttl', 'http://www.w3.org/2000/01/rdf-schema#': 'vocabularies/rdfs.ttl', 'http://www.w3.org/2002/07/owl#': 'vocabularies/owl.ttl', 'http://www.w3.org/2004/02/skos/core#': 'vocabularies/skos.ttl', 'http://www.w3.org/ns/shacl#': 'vocabularies/shacl.ttl'}, 'fetched': {}, 'failed': ['https://example.invalid/', 'https://example.org/fragment#']},
+        'fetchActivity': {'local': {'http://purl.org/dc/terms/': 'src/ontolint/vocabularies/dcterms.ttl', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'src/ontolint/vocabularies/rdf.ttl', 'http://www.w3.org/2000/01/rdf-schema#': 'src/ontolint/vocabularies/rdfs.ttl', 'http://www.w3.org/2002/07/owl#': 'src/ontolint/vocabularies/owl.ttl', 'http://www.w3.org/2004/02/skos/core#': 'src/ontolint/vocabularies/skos.ttl', 'http://www.w3.org/ns/shacl#': 'src/ontolint/vocabularies/shacl.ttl'}, 'fetched': {}, 'failed': ['https://example.invalid/', 'https://example.org/fragment#']},
         'missingClassLabel': 1,
         'missingPropertyLabel': 1,
         'missingNSLabel': 1,

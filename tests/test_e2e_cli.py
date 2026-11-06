@@ -4,14 +4,15 @@ from unittest.mock import patch
 import pytest
 import rdflib
 
-from scripts.ontology_qa import main, parse_lint_config
-from scripts import dqv
+from ontolint.cli import main
+from ontolint.config import parse_lint_config
+from ontolint import dqv
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
 
 def run_main(*args):
-    with patch('sys.argv', ['ontology_qa.py', *args]):
+    with patch('sys.argv', ['ontolint', *args]):
         main()
 
 
@@ -210,7 +211,7 @@ def test_dqv_dir_writes_default_filename(tmp_path):
 
 
 def test_dqv_filename_and_base_uri(tmp_path):
-    from scripts.dqv import DQV
+    from ontolint.dqv import DQV
     import rdflib
     ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(ttl, '--ctrf-dir', str(tmp_path / 'ctrf'), '--dqv-dir', str(tmp_path),
@@ -222,7 +223,7 @@ def test_dqv_filename_and_base_uri(tmp_path):
 
 
 def test_dqv_per_file_writes_single_report_covering_all_files(tmp_path):
-    from scripts.dqv import DQV, OLQ
+    from ontolint.dqv import DQV, OLQ
     import rdflib
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
@@ -609,3 +610,18 @@ def test_imports_siblings_must_be_a_boolean(tmp_path):
     (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: sometimes\n")
     with pytest.raises(ValueError, match="imports.siblings must be true or false"):
         parse_lint_config(str(tmp_path / '.rdf-lint.yml'))
+
+
+def test_init_writes_a_config_naming_every_check(tmp_path, monkeypatch):
+    # The names it lists are the ones enable:/disable: accept, so the file it writes
+    # parses back to a configuration that leaves every check as it was.
+    from ontolint.config import config_check_name
+    from ontolint.registry import CHECKLIST
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exit_info:
+        run_main('--init')
+    assert exit_info.value.code == 0
+    written = (tmp_path / '.rdf-lint.yml').read_text()
+    for _, func, _, key in CHECKLIST:
+        assert f"# - {config_check_name(func, key)}\n" in written
+    parse_lint_config(str(tmp_path / '.rdf-lint.yml'))

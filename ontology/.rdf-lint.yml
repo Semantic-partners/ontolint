@@ -1,5 +1,5 @@
 # Lint configuration for the olq vocabulary:
-#   poetry run scripts/ontology_qa.py ontology/olq.ttl -e -c ontology/.rdf-lint.yml
+#   poetry run ontolint ontology/olq.ttl -e -c ontology/.rdf-lint.yml
 #
 # No entries are needed: the licence and spec links are objects of reference properties
 # (skipped by undefined-terms), and VANN, SHACL, RDF/RDFS/OWL etc. are bundled vocabularies
