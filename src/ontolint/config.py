@@ -260,17 +260,7 @@ def write_lint_config(checklist):
         sys.stderr.write(f"ERROR: configuration file already exists: {path}\n\n")
         sys.exit(1)
 
-    sequence = []
-    for item in checklist:
-        name = item[1].__name__.replace("check_", "").replace("_", "-")
-        sequence.append(name)
-    
-    # Replace the "property-missing-domain-range" check with two separate checks for domain and range.
-    sequence.remove("property-missing-domain-range")
-    sequence.remove("property-missing-domain-range")
-    sequence.append("property-missing-domain")
-    sequence.append("property-missing-range")
-    sequence.sort()
+    sequence = sorted(config_check_name(func, key) for _, func, _, key in checklist)
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(f"""\
