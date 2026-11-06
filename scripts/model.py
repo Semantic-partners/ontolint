@@ -14,8 +14,10 @@ from typing import TypeAlias
 import rdflib
 
 try:  # imported as part of the scripts package (e.g. by the tests)
+    from scripts import dqv
     from scripts.terms import term_text
 except ImportError:  # run as a script: scripts/ itself is on sys.path
+    import dqv
     from terms import term_text
 
 
@@ -271,3 +273,19 @@ def violation_formatting(array, unique=False):
         formatted_string += f"{element},<br> "
     
     return formatted_string.removesuffix(",<br> ")
+
+
+# Where inferred triples live in a Dataset: not a file, so not one of the file contexts.
+INFERRED_CONTEXT = rdflib.URIRef("urn:ontolint:inferred")
+
+
+def source_iris(in_metrics):
+    """
+    One IRI per processed source, to name it in a violation.
+
+    'sourceIRIs' is set when the caller named its sources itself (the programmatic API,
+    whose graphs are not files); otherwise each entry of 'filesProcessed' is a path and
+    gets a file: IRI.
+    """
+    named = in_metrics.get('sourceIRIs') or []
+    return [str(iri) for iri in named] or [dqv.file_iri(f) for f in in_metrics.get('filesProcessed', [])]
