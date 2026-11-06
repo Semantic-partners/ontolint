@@ -2320,8 +2320,6 @@ def _parse_failure_log(files_failed):
         log += f"> - `{f}`\n"
     return log
 
-# Prefixes accepted in compact IRIs in the lint config (e.g. `rdf:PropositionForm`).
-
 # Reference/documentation properties whose objects are links to documents, not term uses:
 # the undefined-terms check neither reports nor fetches them. `prefix:*` matches a whole
 # namespace. Overridden by `undefined-terms: skip-object-of:` in the lint config.

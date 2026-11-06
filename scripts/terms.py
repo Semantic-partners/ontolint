@@ -47,6 +47,7 @@ def term_text(term):
     return "[anonymous]" if isinstance(term, rdflib.BNode) else term
 
 
+# Prefixes accepted in compact IRIs in the lint config (e.g. `rdf:PropositionForm`).
 CONFIG_PREFIXES = {
     'rdf': str(rdflib.RDF),
     'rdfs': str(rdflib.RDFS),
