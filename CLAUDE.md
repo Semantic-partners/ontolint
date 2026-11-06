@@ -20,19 +20,19 @@ poetry install
 
 ```bash
 # Run QA against an ontology file (outputs Markdown to stdout, CTRF JSON to ./ctrf/)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl
+poetry run ontolint tests/example_pass.ttl
 
 # Run with exit code 1 if violations found (for CI)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl -e --ctrf-dir ctrf
+poetry run ontolint tests/example_pass.ttl -e --ctrf-dir ctrf
 
 # Profile only (no QA checks)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl -p
+poetry run ontolint tests/example_pass.ttl -p
 
 # Verbose output (lists violating elements per check)
-poetry run scripts/ontology_qa.py tests/example_pass.ttl -v
+poetry run ontolint tests/example_pass.ttl -v
 
 # Aggregate CTRF JSON files into a single Markdown report
-poetry run scripts/generate_custom_report.py --ctrf-dir ctrf --template-path templates/ctrf-report.hbs --output-path out/ctrf_report.md
+poetry run ontolint-report --ctrf-dir ctrf --output-path out/ctrf_report.md
 ```
 
 ```bash
@@ -55,10 +55,10 @@ poetry run pytest tests/test_labels.py::test_class_without_label_fails
 UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
 
 # Run with coverage (HTML report in htmlcov/)
-poetry run pytest --cov=scripts --cov-report=html
+poetry run pytest --cov=ontolint --cov-report=html
 
 # Run with coverage summary in terminal
-poetry run pytest --cov=scripts --cov-report=term-missing
+poetry run pytest --cov=ontolint --cov-report=term-missing
 ```
 
 ### Test suite
@@ -108,9 +108,21 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_e2e_cli.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
 
 
-`tests/conftest.py` sets `QA_SPARQL_DIR` to an absolute path before any import, so tests work regardless of working directory. Its autouse `no_network` fixture blocks sockets, so tests never fetch from the network: an unmocked fetch fails at once, as offline. Use a fake `uri_parser` or `imports.local` to test resolution.
+Tests import the installed (editable) package, so they work from any directory. `tests/conftest.py`'s autouse `no_network` fixture blocks sockets, so tests never fetch from the network: an unmocked fetch fails at once, as offline. Use a fake `uri_parser` or `imports.local` to test resolution.
 
 ## Architecture
+
+### Package layout
+
+Everything is one package, `src/ontolint/` (src layout): the public API (`__init__.py`,
+`api.py`), the `ontolint` command (`cli.py`, also `python -m ontolint`) and the engine
+behind both. `DEVELOPING.md` maps the modules and their layer order; each imports only from
+those below it, with **relative imports** — never a `try: from scripts.x / except
+ImportError` pair, which existed only while the code was both a package and a script
+directory. `sparql/`, `vocabularies/` and `report/templates/` are package data, found beside
+the code, so the wheel carries them. `scripts/` holds only deprecated shims for the old
+`scripts/*.py` invocations. User docs: `readme.md` is the overview (and the PyPI page, so its
+links are absolute); the reference is in `docs/`.
 
 `design.md` has the shape of a run — the pipeline, the three reporters and their
 granularity, what `--per-file` should mean, and why Markdown is not yet a projection of
@@ -118,7 +130,7 @@ granularity, what `--per-file` should mean, and why Markdown is not yet a projec
 
 ### Data flow
 
-1. `ontology_qa.py` loads one or more RDF files/directories into an `rdflib.Dataset` with
+1. `loading.load_rdf()` loads one or more RDF files/directories into an `rdflib.Dataset` with
    one named graph per file, so which file a triple came from survives the load. It is
    built with `default_union`, so SPARQL, `len()` and `triples()` all read the union and
    a check cannot tell the inputs were separate. Inferred triples get a context of their
@@ -131,7 +143,7 @@ granularity, what `--per-file` should mean, and why Markdown is not yet a projec
 
 ### SPARQL query loading
 
-All `.sparql` files in `./sparql/` are loaded at **module import time** into the global `sparql_queries` dict (filename stem → query string). The directory is controlled by the `QA_SPARQL_DIR` environment variable; the default `./sparql` is relative to the working directory, so the script must be run from the repo root (or `QA_SPARQL_DIR` must be set).
+All `.sparql` files in `src/ontolint/sparql/` are loaded at **module import time** by `queries.py` into the global `sparql_queries` dict (filename stem → query string). The directory is found beside the module; the `QA_SPARQL_DIR` environment variable overrides it.
 
 ### QA check function signature
 
@@ -150,37 +162,37 @@ QA metrics are normalised (0–1) against their totals in `print_qa_table()`; ra
 
 ### DQV report
 
-`scripts/dqv.py` holds all DQV code and has no dependency on `ontology_qa.py`:
+`dqv.py` holds all DQV code and depends only on `graphutil`:
 - `Violation` / `Dataset` records, which the checks and `run_qa()` fill in;
 - the metric and dimension catalogue (`DQV_METRICS`, `DQV_DIMENSIONS`);
 - `build_dqv_graph()` / `write_dqv_report()`, IRI minting under the base URI, and blank-node skolemization (`canonical_bnode_labels()`).
 
-`ontology_qa.py` imports it as `dqv` (`from scripts import dqv`, falling back to `import dqv` when run as a script, since `scripts/` is then on `sys.path`). The CLI flags and `_write_dqv()` stay in `ontology_qa.py`. The report also records the effective configuration: `describe_configuration()` in `ontology_qa.py` builds `dqv.ConfigSetting` records (key, value, origin, reason) from the checklist, the parsed `.rdf-lint.yml` and the ontolint defaults and bundled vocabularies. `run_qa()` stores them on `QAResult.settings`, and `dqv._add_configuration()` writes them as an `olq:Configuration`. `lint_selection(..., rule_reasons)` records why a rule changed a check. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
+The CLI flags and `_write_dqv()` are in `cli.py`. The report also records the effective configuration: `describe_configuration()` in `config.py` builds `dqv.ConfigSetting` records (key, value, origin, reason) from the checklist, the parsed `.rdf-lint.yml` and the ontolint defaults and bundled vocabularies. `run_qa()` stores them on `QAResult.settings`, and `dqv._add_configuration()` writes them as an `olq:Configuration`. `lint_selection(..., rule_reasons)` records why a rule changed a check. The `olq:` vocabulary is defined in `ontology/olq.ttl`.
 
 ### Bundled vocabularies
 
-`vocabularies/` holds Turtle copies of the core vocabularies (RDF incl. RDF 1.2 terms, RDFS, OWL, XSD, SHACL, SKOS, Dublin Core, FOAF, VANN, PROV, schema.org, …), catalogued in `vocabularies/catalog.ttl`, a DCAT catalog with one `dcat:Dataset` per vocabulary (namespace via `vann:preferredNamespaceUri`, file via `dcat:distribution`/`dcat:downloadURL`, plus source, licence, version and `skos:changeNote`). `run_qa()` merges them into `imports.local` via `merge_local_imports()`, with the project's own entries winning. So the undefined-terms check validates core-vocabulary terms offline, and owl-imports of them resolves locally. There is no list of trusted namespaces; projects trust a namespace with `imports.ignore`.
+`src/ontolint/vocabularies/` holds Turtle copies of the core vocabularies (RDF incl. RDF 1.2 terms, RDFS, OWL, XSD, SHACL, SKOS, Dublin Core, FOAF, VANN, PROV, schema.org, …), catalogued in `catalog.ttl` there, a DCAT catalog with one `dcat:Dataset` per vocabulary (namespace via `vann:preferredNamespaceUri`, file via `dcat:distribution`/`dcat:downloadURL`, plus source, licence, version and `skos:changeNote`). `run_qa()` merges them into `imports.local` via `merge_local_imports()`, with the project's own entries winning. So the undefined-terms check validates core-vocabulary terms offline, and owl-imports of them resolves locally. There is no list of trusted namespaces; projects trust a namespace with `imports.ignore`.
 A run also resolves against the inputs it is *not* checking (`sibling_imports()`, #108),
-each answering only for the ontology it declares; `imports.siblings: false` turns that off. `imports.ignore`/`imports.local` keys are matched through `iri_key()`, which strips a trailing `#`/`/`. `VOCAB_DIR` is module-relative, and bundled files are parsed once per process (`_parse_bundled`). Provenance, licences and local edits are in `vocabularies/README.md`; `tests/test_vocabularies.py` checks the bundle.
+each answering only for the ontology it declares; `imports.siblings: false` turns that off. `imports.ignore`/`imports.local` keys are matched through `iri_key()`, which strips a trailing `#`/`/`. `resolution.VOCAB_CATALOG` is module-relative, and bundled files are parsed once per process (`_parse_bundled`). Provenance, licences and local edits are in the bundle's `README.md`; `tests/test_vocabularies.py` checks the bundle.
 
 ### Programmatic API
 
-`ontolint/` is the public package, and exposes exactly two names: `Config` and
+The package exposes exactly two supported names: `Config` and
 `lint(datasets, config) -> rdflib.Graph`, which takes graphs the caller already holds and
 returns the DQV report as a graph (issue #92). Keep that surface small — anything richer
 belongs on the engine side, where the CLI can use it too.
 
-**Where the surface is specified.** `ontolint/api.py`'s `__all__` block is the statement of
+**Where the surface is specified.** `api.py`'s `__all__` block is the statement of
 it; `Config`'s docstring documents every setting; the readme tabulates them. All three are
-enforced by `tests/test_api.py`, which pins `__all__`, the package's public names, and
+enforced by `tests/test_api.py`, which pins `__all__`, the package's public non-module names, and
 `Config`'s field names and defaults, and fails if a field is missing from either the
-docstring or the readme. `Config` is defined in `scripts/ontology_qa.py` (the CLI builds
-one too) but its `__module__` is reset to `ontolint` in `api.py`, so `help()`, pickle and
-generated docs name the supported import path rather than an implementation module — undo
-that once the module is split and `Config` lives in the package.
+docstring or the readme. `Config` is defined in `model.py` (the CLI builds one too) but its
+`__module__` is reset to `ontolint` in `api.py`, so `help()`, pickle and generated docs name
+the supported import path rather than an implementation module. The other modules are
+importable but internal.
 
 **One run, two front ends.** `Config` is the single description of a lint run, and
-`ontology_qa.lint_graph(graph, names, config, …)` is the single entry point that performs
+`runner.lint_graph(graph, names, config, …)` is the single entry point that performs
 one: inference, then every selected check. `main()` calls it for each file (or for the
 merged graph) and `ontolint.lint()` calls it for each dataset, so neither front end has its
 own idea of what a run is. The pieces around it are what differ — the CLI adds file
@@ -190,8 +202,8 @@ file's `enable:` list is resolved; the CLI passes its own checklist instead.
 
 `lint()` returns only the graph, so a consumer reads pass/fail from the per-dataset
 `ontolint-conformance` measurement (`olq:conforms`, and `dqv:value` for the number of
-failed checks). `tests/test_api.py` asserts on that query, so the readme's snippet can't
-rot.
+failed checks). `tests/test_api.py` asserts on that query, so the snippet in
+`docs/python-api.md` can't rot.
 
 **Naming is optional.** `lint()` takes one graph, an iterable of them, or a mapping of
 names; `Config.imports` takes a mapping or a plain iterable of vocabularies. An unnamed
@@ -219,7 +231,7 @@ module-level tuple (`DQV_DUPLICATE_ONTOLOGY_METRIC`) like `DQV_ROLLUP_METRIC`, l
 distinct from its dataset name: an unnamed graph is named after the ontology it declares, so
 two inputs declaring the same one would otherwise be reported as the same input twice.
 
-Two things in `scripts/` exist for the API:
+Two things in the engine exist for the API:
 - **Graph-valued `imports.local`.** `_parse_local()`, `_is_bundled()` and `_describe_local()`
   accept an `rdflib.Graph` as well as a path, so a caller can supply a dependency vocabulary
   it already holds; `describe_configuration()` records such a setting with no `olq:localFile`.
@@ -231,25 +243,25 @@ Two things in `scripts/` exist for the API:
 
 ### Shared graph helpers
 
-`scripts/graphutil.py` holds the rdflib helpers with no ontolint knowledge in them —
-`bound_graph(prefixes)` and `copy_namespaces(target, source)` — so `ontology_qa` and `dqv`
-can both use them without importing each other. `copy_namespaces` had been written twice
+`graphutil.py` holds the rdflib helpers with no ontolint knowledge in them —
+`bound_graph(prefixes)` and `copy_namespaces(target, source)` — so `loading`, `api` and `dqv`
+can all use them without importing each other. `copy_namespaces` had been written twice
 (`load_rdf`'s inner `_bind_namespaces` and `api._bind`); prefixes are not decoration here,
 since the hijacking and profiling checks report on what the input declared, and `+=` copies
 triples but not bindings. `dqv.REPORT_PREFIXES` lists what the DQV report binds.
 
 ### Report generation
 
-`generate_custom_report.py` aggregates all CTRF JSON files from a directory and renders a Markdown report using `templates/ctrf-report.hbs`. The Handlebars rendering (`simple_handlebars_render`) is implemented from scratch with no external dependency — it supports `{{#each}}`, `{{#if}}`, `{{else}}`, and `{{variable}}`.
+`report/ctrf_summary.py` (the `ontolint-report` command) aggregates all CTRF JSON files from a directory and renders a Markdown report using the bundled `report/templates/ctrf-report.hbs`. The Handlebars rendering (`simple_handlebars_render`) is implemented from scratch with no external dependency — it supports `{{#each}}`, `{{#if}}`, `{{else}}`, and `{{variable}}`.
 
 ### Adding a new QA check
 
-1. Add a `.sparql` file to `sparql/` — it will be auto-loaded. A check judged per input
+1. Add a `.sparql` file to `src/ontolint/sparql/` — it will be auto-loaded. A check judged per input
    rather than over the graph has no query: `ontologies_by_source()` reads the Dataset's
    contexts instead (see `check_one_ontology_per_file`)
-2. Write a `check_*` function in `ontology_qa.py` following the pattern above
-3. Add an entry to `CHECKLIST` (module-level constant, before `run_qa`)
-4. Add the column to `print_qa_table()` — the header, the `|--|` row and the cell
-5. Add a `DQV_METRICS` entry in `scripts/dqv.py` (metric slug, definition, dimension, severity) — `tests/test_dqv.py` fails if one is missing
+2. Write a `check_*` function in the right `checks/` module following the pattern above
+3. Add an entry to `CHECKLIST` in `registry.py`
+4. Add the column to `print_qa_table()` in `report/markdown.py` — the header, the `|--|` row and the cell
+5. Add a `DQV_METRICS` entry in `dqv.py` (metric slug, definition, dimension, severity) — `tests/test_dqv.py` fails if one is missing
 6. Store structured violations with `violations[records_key(check)] = [dqv.Violation(term, ...)]` alongside the CTRF string, so the DQV report can list each offending resource. Pass RDF terms (e.g. `row.c`), not strings, so blank nodes are skolemized correctly
-7. Add positive and negative tests to the appropriate `tests/test_*.py` file
+7. Add positive and negative tests to the appropriate `tests/test_*.py` file, and a row to the readme's check table

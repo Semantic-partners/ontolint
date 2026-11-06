@@ -461,7 +461,7 @@ def test_imports_resolve_from_a_supplied_graph_without_touching_the_network():
     "http://vocab.example.org/core/",   # a trailing slash instead
 ])
 def test_an_imports_key_matches_however_the_namespace_is_written(key):
-    # Documented in the readme so callers don't derive a vocabulary's "real" namespace.
+    # Documented in docs/python-api.md so callers don't derive a vocabulary's "real" namespace.
     vocabulary = rdflib.Graph().parse(data=f"""
     @prefix owl: <{OWL}> .
     <http://vocab.example.org/core> a owl:Ontology .

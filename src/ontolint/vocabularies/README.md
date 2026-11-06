@@ -13,7 +13,7 @@ ontolint reads the catalog and adds every namespace to `imports.local` automatic
 - **undefined-terms** checks terms in these namespaces against these files. A typo such as `skos:scopNote` or `xsd:strin` is reported, and no network fetch is made.
 - **owl:imports** of these ontologies (e.g. `<http://www.w3.org/2004/02/skos/core>`) resolves from these files.
 
-A project can override any of them with its own `imports.local` entry, or trust a namespace without checking it via `imports.ignore`. See the main [README](../readme.md#bundled-vocabularies).
+A project can override any of them with its own `imports.local` entry, or trust a namespace without checking it via `imports.ignore`. See the [configuration reference](../../../docs/configuration.md#bundled-vocabularies).
 
 ## Contents
 

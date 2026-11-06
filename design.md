@@ -251,7 +251,7 @@ was not selected, `skipped` for one that ran and could not measure.
 The same split had been in the aggregated CTRF report, where
 `{{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}}` rendered a skipped check as a
 **failure**. Its summary now carries a Skipped column, and each row's status cell is worked
-out in `generate_custom_report.describe_status()` rather than in the template — the
+out in `report.ctrf_summary.describe_status()` rather than in the template — the
 hand-rolled renderer has no nested conditionals, and a three-way status needs one.
 
 **How the move was checked.** The stored Markdown under `tests/data/*_report.md` was the
