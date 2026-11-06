@@ -75,3 +75,9 @@ def expand_curie(value, allow_wildcard=False):
     if sep and prefix in CONFIG_PREFIXES:
         return CONFIG_PREFIXES[prefix] + local
     raise ValueError(f"Cannot expand '{value}': use a full IRI or one of the prefixes {', '.join(CONFIG_PREFIXES)}")
+
+
+def ontology_iris(graph):
+    """The owl:Ontology IRIs a graph declares, sorted."""
+    return sorted(str(o) for o in graph.subjects(rdflib.RDF.type, rdflib.OWL.Ontology)
+                  if isinstance(o, rdflib.URIRef))

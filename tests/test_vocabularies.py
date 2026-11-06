@@ -11,6 +11,7 @@ import rdflib
 from rdflib import namespace as N
 
 import scripts.ontology_qa as qa
+from scripts import resolution
 from scripts.ontology_qa import VOCAB_CATALOG, bundled_vocabularies, iri_key, run_qa
 
 CATALOG = VOCAB_CATALOG
@@ -75,7 +76,7 @@ def test_discovery_starts_from_the_catalog(make_graph, tmp_path, monkeypatch):
         vann:preferredNamespaceUri "http://example.org/vocab#" ;
         dcat:distribution [ a dcat:Distribution ; dcat:downloadURL <../files/example.ttl> ] .
     """)
-    monkeypatch.setattr(qa, "VOCAB_CATALOG", catalog)
+    monkeypatch.setattr(resolution, "VOCAB_CATALOG", catalog)
     bundled_vocabularies.cache_clear()
     try:
         assert bundled_vocabularies() == {"http://example.org/vocab#": str(vocab.resolve())}
@@ -97,7 +98,7 @@ def test_catalog_entry_without_namespace_is_rejected(tmp_path, monkeypatch):
     @prefix dcat: <http://www.w3.org/ns/dcat#> .
     <https://ontolint.org/test-broken> a dcat:Dataset .
     """)
-    monkeypatch.setattr(qa, "VOCAB_CATALOG", catalog)
+    monkeypatch.setattr(resolution, "VOCAB_CATALOG", catalog)
     bundled_vocabularies.cache_clear()
     try:
         with pytest.raises(ValueError):
