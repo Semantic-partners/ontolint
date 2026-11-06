@@ -67,6 +67,8 @@ try:  # imported as part of the scripts package (e.g. by the tests)
     from scripts.config import (config_check_name, config_kwargs, describe_configuration,  # noqa: F401
                                 _display_path, lint_selection, parse_lint_config,
                                 _relative_path, write_lint_config)
+    from scripts.registry import (CHECKLIST, deepcopy_list, select_checks,  # noqa: F401
+                                  TYPE_EXCLUDABLE_CHECKS)
     from scripts.terms import (CONFIG_PREFIXES, _term_from_string, expand_curie,  # noqa: F401
                                get_namespace, iri_key, ontology_iris, term_text)
 except ImportError:  # run as a script: scripts/ itself is on sys.path
@@ -118,6 +120,7 @@ except ImportError:  # run as a script: scripts/ itself is on sys.path
     from config import (config_check_name, config_kwargs, describe_configuration,  # noqa: F401
                         _display_path, lint_selection, parse_lint_config, _relative_path,
                         write_lint_config)
+    from registry import (CHECKLIST, deepcopy_list, select_checks, TYPE_EXCLUDABLE_CHECKS)  # noqa: F401
     from terms import (CONFIG_PREFIXES, _term_from_string, expand_curie,  # noqa: F401
                        get_namespace, iri_key, ontology_iris, term_text)
 
@@ -168,56 +171,6 @@ def qa_terminate(file, log):
             f.write(log)
     else:
         print(log)
-
-
-CHECKLIST = [
-    [True, check_owl_declaration,                "Ontology without declaration",       'ontologyNotDeclared'       ],
-    [True, check_one_ontology_per_file,          "Multiple ontologies in one file",    'multipleOntologies'        ],
-    [True, check_owl_description,                "Ontology without description",       'ontologyDescription'       ],
-    [True, check_owl_imports,                    "Unresolvable imports",               'unresolvedImports'         ],
-    [True, check_undefined_terms,                "Undefined terms",                    'undefinedTerms'            ],
-    [True, check_class_missing_label,            "Class without label",                'missingClassLabel'         ],
-    [True, check_property_missing_label,         "Property without label",             'missingPropertyLabel'      ],
-    [True, check_node_shape_missing_label,       "NodeShape without label",            'missingNSLabel'            ],
-    [True, check_property_shape_missing_label,   "PropertyShape without label",        'missingPSLabel'            ],
-    [True, check_class_missing_comment,          "Class without description",          'missingClassDescription'   ],
-    [True, check_property_missing_comment,       "Property without description",       'missingPropertyDescription'],
-    [True, check_node_shape_missing_comment,     "NodeShape without description",      'missingNSDescription'      ],
-    [True, check_property_shape_missing_comment, "PropertyShape without description",  'missingPSDescription'      ],
-    [True, check_class_same_label,               "Classes with the same label",        'nonUniqueClassLabels'      ],
-    [True, check_property_same_label,            "Properties with the same label",     'nonUniquePropertyLabels'   ],
-    [True, check_node_shape_same_label,          "NodeShapes with the same label",     'nonUniqueNSLabels'         ],
-    [True, check_property_shape_same_label,      "PropertyShapes with the same label", 'nonUniquePSLabels'         ],
-    [True, check_isolated_classes,               "Isolated classes",                   'isolatedClasses'           ],
-    [True, check_property_missing_domain,        "Property without domain",            'missingDomain'             ],
-    [True, check_property_missing_range,         "Property without range",             'missingRange'              ],
-    [True, check_unique_identifiers,             "Non-unique identifiers",             'nonUniqueIdentifiers'      ],
-    [True, check_subclass_cycles,                "Subclass Cycles",                    'subclassCycles'            ],
-    [True, check_untyped_class,                  "Untyped Classes",                    'untypedClasses'            ],
-    [True, check_untyped_property,               "Untyped Properties",                 'untypedProperties'         ],
-    [True, check_hijacking,                      "Namespace hijacking",                'hijacking'                 ],
-]
-
-def deepcopy_list(nested_list):
-    """
-    Creates a true deep copy of a list of lists (of lists...) 
-    using recursion.
-    """
-    # Base case: if the item is not a list, return it as-is (primitive value)
-    if not isinstance(nested_list, list):
-        return nested_list
-    
-    # Recursive case: map the function over every element in the list
-    return [deepcopy_list(item) for item in nested_list]
-
-# Class checks that skip resources typed with a configured `exclude.types` IRI.
-TYPE_EXCLUDABLE_CHECKS = (
-    check_class_missing_label,
-    check_class_missing_comment,
-    check_class_same_label,
-    check_isolated_classes,
-    check_untyped_class,
-)
 
 
 def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | None = None, source_iris: list | None = None, checklist=None, ignore_imports: list | None = None, uri_parser=None, local_imports: dict | None = None, exclude_types: list | None = None, skip_object_of: list | None = None, lint_config: dict | None = None, rule_reasons: dict | None = None, config_file: str | None = None, resolve_siblings: bool | None = None) -> QAResult:
@@ -309,32 +262,6 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
         settings=settings,
         config_file=config_file,
     )
-
-def select_checks(checks):
-    """
-    (checklist, lint_config, rule_reasons) for the checks named in Config.checks.
-
-    The names are the ones .rdf-lint.yml uses under `enable:`, so a selection made in code
-    behaves exactly as the same selection in the config file — including the rules that
-    pull in a check another one depends on. None selects every check.
-    """
-    checklist = deepcopy_list(CHECKLIST)
-    if checks is None:
-        return checklist, None, {}
-
-    valid = {config_check_name(func, key) for _, func, _, key in CHECKLIST}
-    requested, unknown = [], []
-    for name in checks:
-        canonical = str(name).removeprefix('check_').replace('_', '-')
-        (requested if canonical in valid else unknown).append(canonical)
-    if unknown:
-        raise ValueError(f"Unknown check(s): {', '.join(sorted(unknown))}. "
-                         f"Available: {', '.join(sorted(valid))}")
-
-    lint_config = {'enable': [f"check_{name.replace('-', '_')}" for name in requested]}
-    rule_reasons = {}
-    checklist, _ = lint_selection(lint_config, checklist, rule_reasons)
-    return checklist, lint_config, rule_reasons
 
 
 def lint_graph(graph: rdflib.Graph, names, config: Config | None = None, checklist=None,
