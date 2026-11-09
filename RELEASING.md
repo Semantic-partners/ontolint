@@ -44,8 +44,12 @@ git push origin v2.1.0
 CI tests that commit on every supported OS and Python version, publishes `sp-ontolint 2.1.0`
 to PyPI and creates GitHub Release `v2.1.0`.
 
-**Push the tag; don't create the release in the GitHub UI.** The workflow creates the
-release itself, and fails if one already exists.
+**Or create the release in the GitHub UI.** Under **Releases → Draft a new release**,
+choose **Create new tag: `v2.1.0`** on publish, targeting `main`; click **Generate release
+notes**; tick **Set as a pre-release** for an `a`/`b`/`rc` version; and publish. Publishing
+creates the tag, which starts the same workflow. It publishes to PyPI and keeps your
+release as you wrote it rather than creating another. A *draft* creates no tag, so nothing
+runs until it is published.
 
 ## Cut a candidate / beta
 
