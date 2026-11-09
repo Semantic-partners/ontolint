@@ -106,6 +106,7 @@ Tests live in `tests/` and call `run_qa(graph) -> QAResult` — the clean seam e
 | `test_pipeline_qaresult_to_dqv.py` | **Suite 4.** The **stored** QAResult projected to DQV: a measurement per failed check, violations as `sh:ValidationResult`, the conformance roll-up, no blank nodes |
 | `test_api.py` | The programmatic API (`ontolint.lint`): dataset naming, per-file vs merged, graph-valued `imports`, check selection, and that caller graphs are never mutated |
 | `test_e2e_cli.py` | End-to-end `main()` tests: CTRF output, exit codes, `--profile-only`, `--ctrf-filename` |
+| `test_shims.py` | The deprecated `scripts/*.py` shims run the installed commands, and without ontolint installed print how to install it (exit 2) instead of a traceback |
 
 
 Tests import the installed (editable) package, so they work from any directory. `tests/conftest.py`'s autouse `no_network` fixture blocks sockets, so tests never fetch from the network: an unmocked fetch fails at once, as offline. Use a fake `uri_parser` or `imports.local` to test resolution.

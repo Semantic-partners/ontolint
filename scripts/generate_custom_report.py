@@ -2,7 +2,7 @@
 """Deprecated: run `ontolint-report` instead. Kept so existing invocations keep working."""
 import sys
 
-from ontolint.report.ctrf_summary import main
+from _shim import run
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run("ontolint.report.ctrf_summary", "ontolint-report"))
