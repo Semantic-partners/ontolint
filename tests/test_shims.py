@@ -12,7 +12,7 @@ SHIMS = [("ontology_qa.py", "ontolint"), ("generate_custom_report.py", "ontolint
 @pytest.mark.parametrize("script, command", SHIMS)
 def test_a_shim_runs_the_installed_command(script, command):
     run = subprocess.run([sys.executable, str(SCRIPTS / script), "--help"],
-                         capture_output=True, text=True)
+                         capture_output=True, text=True, encoding="utf-8")
     assert run.returncode == 0, run.stderr
     assert "usage:" in run.stdout
 
@@ -21,7 +21,7 @@ def test_a_shim_runs_the_installed_command(script, command):
 def test_a_shim_says_how_to_install_ontolint_when_it_is_missing(script, command):
     # -S leaves site-packages off sys.path: an interpreter where ontolint was never installed.
     run = subprocess.run([sys.executable, "-S", str(SCRIPTS / script), "--help"],
-                         capture_output=True, text=True)
+                         capture_output=True, text=True, encoding="utf-8")
     assert run.returncode == 2
     assert "Traceback" not in run.stderr
     assert "ontolint is not installed" in run.stderr

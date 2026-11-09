@@ -82,7 +82,7 @@ def _case_file_iri(path):
 def _run_case(case_dir, out_dir, mint=stable_mint_id):
     inputs = sorted(p.name for p in case_dir.glob('*.ttl') if p.name != 'expected.ttl')
     assert inputs, f"no input .ttl files in {case_dir}"
-    extra = shlex.split((case_dir / 'args.txt').read_text()) if (case_dir / 'args.txt').exists() else []
+    extra = shlex.split((case_dir / 'args.txt').read_text(encoding="utf-8")) if (case_dir / 'args.txt').exists() else []
     argv = ['ontology_qa.py', *inputs, *extra,
             '--ctrf-dir', str(out_dir / 'ctrf'),
             '--dqv-dir', str(out_dir), '--dqv-filename', 'actual.ttl',

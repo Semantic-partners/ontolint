@@ -1,0 +1,9 @@
+# LF in every text file, on every platform. Byte-exact content is part of what is tested
+# and shipped: the bundled vocabularies are pinned by checksum in their catalog, and the
+# expected reports are compared byte for byte. A Windows checkout with core.autocrlf
+# would otherwise rewrite them all as CRLF.
+* text=auto eol=lf
+
+# The bundled vocabularies are upstream files, kept byte for byte as published (some with
+# CRLF) because the catalog pins their checksums. Never convert them.
+src/ontolint/vocabularies/*.ttl -text

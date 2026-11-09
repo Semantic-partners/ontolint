@@ -82,14 +82,14 @@ def test_it_renders_the_same_text_under_any_hash_seed(tmp_path):
     # goes through main() rather than the render_markdown fixture: the fixture's seam was
     # stable under every seed while the CLI was not, so only the full path shows it.
     script = tmp_path / "render_under_seed.py"
-    script.write_text(RENDER_UNDER_SEED)
+    script.write_text(RENDER_UNDER_SEED, encoding="utf-8")
     root = str(Path(__file__).resolve().parent.parent)
 
     rendered = {}
     for seed in HASH_SEEDS:
         env = dict(os.environ, PYTHONHASHSEED=seed)
         run = subprocess.run([sys.executable, str(script), root, str(tmp_path / "ctrf")],
-                             capture_output=True, text=True, env=env, check=True)
+                             capture_output=True, text=True, encoding="utf-8", env=env, check=True)
         rendered[seed] = run.stdout
 
     first, *rest = HASH_SEEDS

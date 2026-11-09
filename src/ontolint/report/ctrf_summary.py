@@ -49,7 +49,7 @@ def aggregate_ctrf_reports(ctrf_dir):
     
     for ctrf_file in sorted(ctrf_files):
         try:
-            with open(ctrf_file, 'r') as f:
+            with open(ctrf_file, 'r', encoding='utf-8') as f:
                 ctrf_data = json.load(f)
             
             # Extract ontology name from filename
@@ -256,7 +256,7 @@ def main():
         print(f"Error: Template file not found: {args.template_path}")
         return 1
     
-    with open(args.template_path, 'r') as f:
+    with open(args.template_path, 'r', encoding='utf-8') as f:
         template_content = f.read()
     
     # Aggregate reports
@@ -281,7 +281,7 @@ def main():
     
     # Write output
     os.makedirs(os.path.dirname(args.output_path) or '.', exist_ok=True)
-    with open(args.output_path, 'w') as f:
+    with open(args.output_path, 'w', encoding='utf-8') as f:
         f.write(rendered_report)
     
     print(f"\nCustom report generated: {args.output_path}")

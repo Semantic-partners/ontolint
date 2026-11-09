@@ -18,18 +18,11 @@ from .config import _display_path, lint_selection, parse_lint_config, write_lint
 from .loading import _collect_files, load_rdf, _parse_failure_log, parse_inputs
 from .model import Config
 from .profiling import infer_subclass_relations, profiling
-from .queries import sparql_dir
 from .registry import CHECKLIST, deepcopy_list
 from .report.ctrf import build_ctrf_report, write_ctrf_report
 from .report.markdown import print_profiling_metrics, print_profiling_table, render_markdown
 from .resolution import sibling_imports
 from .runner import duplicate_ontology_iris, lint_graph
-
-
-# check that the directory exists
-if not os.path.isdir(sparql_dir):
-    sys.stderr.write(f"SPARQL directory '{sparql_dir}' does not exist.\nSet the QA_SPARQL_DIR environment variable before running ontolint.\n")
-    sys.exit(1)
 
 
 def qa_terminate(file, log):
@@ -109,6 +102,12 @@ def _write_dqv(args, config, results, ontology_sources=None):
     sys.stderr.write(log.lstrip())
 
 def main():
+    # The report is UTF-8 (it carries ✅ and ❌). A redirected stream on Windows defaults to
+    # the ANSI code page, which can't encode them, so `ontolint x.ttl > report.md` failed.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8')
+
     # Set up argument parser
     parser = argparse.ArgumentParser(add_help=False, description=__doc__)
     parser.add_argument('-h', '--help', action='help', help='Show this help message and exit.')

@@ -1,5 +1,6 @@
 """The programmatic API: lint in-memory graphs, get a DQV graph back (issue #92)."""
 
+import os
 from dataclasses import fields
 from pathlib import Path
 from types import ModuleType
@@ -107,7 +108,7 @@ def test_config_is_published_as_ontolints_own():
 
 
 def test_every_setting_is_documented():
-    readme = README.read_text()
+    readme = README.read_text(encoding="utf-8")
     assert [f.name for f in fields(Config) if f"`{f.name}`" not in readme] == []
     assert [f.name for f in fields(Config) if f"{f.name}:" not in (Config.__doc__ or "")] == []
 
@@ -591,7 +592,7 @@ def test_a_supplied_graph_is_recorded_in_the_configuration_without_a_file():
 
 def test_imports_may_still_be_a_file_path(tmp_path):
     vocabulary = tmp_path / "external.ttl"
-    vocabulary.write_text(f"@prefix owl: <{OWL}> .\n<{EXTERNAL}Thing> a owl:Class .\n")
+    vocabulary.write_text(f"@prefix owl: <{OWL}> .\n<{EXTERNAL}Thing> a owl:Class .\n", encoding="utf-8")
     graph = _graph(f"""
     : a owl:Ontology .
     :Local rdfs:subClassOf <{EXTERNAL}Thing> ; a owl:Class .
@@ -778,3 +779,17 @@ def test_per_file_datasets_resolve_against_each_other():
 def test_resolve_siblings_false_checks_each_dataset_alone():
     report = lint({'core': CORE, 'domain': DOMAIN}, Config(per_file=True, resolve_siblings=False))
     assert 'https://example.org/core#Thing' in _undefined_terms(report)
+
+
+def test_importing_ontolint_raises_rather_than_exiting_when_its_queries_are_missing():
+    # A library must never end the process that imports it: a missing SPARQL directory is
+    # an exception the caller can handle, not a sys.exit.
+    import subprocess
+    import sys
+    probe = ("try:\n    import ontolint\nexcept FileNotFoundError as e:\n"
+             "    print('raised:', e)\nprint('still running')\n")
+    run = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, encoding="utf-8",
+                         env={**os.environ, "QA_SPARQL_DIR": "/no/such/directory"})
+    assert run.returncode == 0, run.stderr
+    assert "raised: ontolint's SPARQL directory '/no/such/directory' does not exist" in run.stdout
+    assert "still running" in run.stdout

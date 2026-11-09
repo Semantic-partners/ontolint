@@ -15,6 +15,11 @@ def load_sparql_queries(directory):
     """
     Create a dictionary of SPARQL queries, using file names as keys.
     """
+    # Raised, never sys.exit: importing ontolint must not end the importing process.
+    if not os.path.isdir(directory):
+        raise FileNotFoundError(
+            f"ontolint's SPARQL directory '{directory}' does not exist. It ships inside the "
+            "package; if QA_SPARQL_DIR is set, it must name a directory of .sparql files.")
     queries = {}
     for filename in os.listdir(directory):
         if filename.endswith('.sparql'):

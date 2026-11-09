@@ -142,7 +142,7 @@ def write_qaresult(case, result, inputs):
     imports = f"from rdflib import {', '.join(used)}\n\n" if used else ""
     path = DATA / f'{case}_qaresult.py'
     path.write_text(QARESULT_HEADER.format(inputs=_inputs_phrase(inputs), imports=imports)
-                    + text + ")\n")
+                    + text + ")\n", encoding="utf-8")
     return path
 
 
@@ -156,7 +156,7 @@ def write_markdown(case, rendered, inputs):
     that did would be part of the expectation — see test_pipeline_qaresult_to_markdown.py.
     """
     path = DATA / f'{case}_report.md'
-    path.write_text(rendered)
+    path.write_text(rendered, encoding="utf-8")
     return path
 
 

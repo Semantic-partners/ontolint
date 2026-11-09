@@ -66,7 +66,7 @@ def test_discovery_starts_from_the_catalog(make_graph, tmp_path, monkeypatch):
     vocab.write_text("""
     @prefix ex: <http://example.org/vocab#> .
     ex:known a <http://www.w3.org/2000/01/rdf-schema#Class> .
-    """)
+    """, encoding="utf-8")
     catalog = tmp_path / "catalogs" / "catalog.ttl"
     catalog.parent.mkdir()
     catalog.write_text("""
@@ -76,7 +76,7 @@ def test_discovery_starts_from_the_catalog(make_graph, tmp_path, monkeypatch):
     <https://ontolint.org/test-example> a dcat:Dataset ;
         vann:preferredNamespaceUri "http://example.org/vocab#" ;
         dcat:distribution [ a dcat:Distribution ; dcat:downloadURL <../files/example.ttl> ] .
-    """)
+    """, encoding="utf-8")
     monkeypatch.setattr(resolution, "VOCAB_CATALOG", catalog)
     bundled_vocabularies.cache_clear()
     try:
@@ -98,7 +98,7 @@ def test_catalog_entry_without_namespace_is_rejected(tmp_path, monkeypatch):
     catalog.write_text("""
     @prefix dcat: <http://www.w3.org/ns/dcat#> .
     <https://ontolint.org/test-broken> a dcat:Dataset .
-    """)
+    """, encoding="utf-8")
     monkeypatch.setattr(resolution, "VOCAB_CATALOG", catalog)
     bundled_vocabularies.cache_clear()
     try:
@@ -236,7 +236,7 @@ def test_project_local_import_overrides_bundled_file(make_graph, tmp_path):
     skos_override.write_text("""
     @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
     skos:customNote a <http://www.w3.org/2002/07/owl#AnnotationProperty> .
-    """)
+    """, encoding="utf-8")
     # Configured with the ontology IRI form (no '#'): still overrides the namespace.
     check, _ = _undefined(make_graph, """
     :Foo a owl:Class ; skos:customNote "x" ; skos:scopeNote "y" .

@@ -10,7 +10,7 @@ from ontolint.runner import run_qa
 
 def test_parse_lint_config_disable_transforms_keys(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("disable:\n  - class-missing-label\n  - hijacking\n")
+    cfg.write_text("disable:\n  - class-missing-label\n  - hijacking\n", encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert result == {"disable": ["check_class_missing_label", "check_hijacking"]}
     assert ignore == []
@@ -19,7 +19,7 @@ def test_parse_lint_config_disable_transforms_keys(tmp_path):
 
 def test_parse_lint_config_enable_transforms_keys(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("enable:\n  - class-missing-label\n")
+    cfg.write_text("enable:\n  - class-missing-label\n", encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert result == {"enable": ["check_class_missing_label"]}
     assert ignore == []
@@ -28,7 +28,7 @@ def test_parse_lint_config_enable_transforms_keys(tmp_path):
 
 def test_parse_lint_config_empty_file_returns_disable_empty(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("")
+    cfg.write_text("", encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert result == {"disable": []}
     assert ignore == []
@@ -43,7 +43,7 @@ def test_parse_lint_config_imports_ignore_returned_separately(tmp_path):
         "  ignore:\n"
         "    - http://www.w3.org/ns/shacl\n"
         "    - https://schema.org/\n"
-    )
+    , encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert result == {"disable": ["check_hijacking"]}
     assert ignore == ["http://www.w3.org/ns/shacl", "https://schema.org/"]
@@ -52,7 +52,7 @@ def test_parse_lint_config_imports_ignore_returned_separately(tmp_path):
 
 def test_parse_lint_config_imports_ignore_only(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("imports:\n  ignore:\n    - http://example.org/ont\n")
+    cfg.write_text("imports:\n  ignore:\n    - http://example.org/ont\n", encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert result == {}
     assert ignore == ["http://example.org/ont"]
@@ -61,11 +61,11 @@ def test_parse_lint_config_imports_ignore_only(tmp_path):
 
 def test_parse_lint_config_imports_local_absolute_path(tmp_path):
     local_file = tmp_path / "copy.ttl"
-    local_file.write_text("")
+    local_file.write_text("", encoding="utf-8")
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text(
         f"imports:\n  local:\n    http://remote.example.org/ont.ttl: {local_file}\n"
-    )
+    , encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert ignore == []
     assert local == {"http://remote.example.org/ont.ttl": str(local_file)}
@@ -75,7 +75,7 @@ def test_parse_lint_config_imports_local_relative_path_resolved(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text(
         "imports:\n  local:\n    http://remote.example.org/ont.ttl: copy.ttl\n"
-    )
+    , encoding="utf-8")
     _, _, local, _, _, _ = parse_lint_config(str(cfg))
     expected = str(tmp_path / "copy.ttl")
     assert local == {"http://remote.example.org/ont.ttl": expected}
@@ -89,7 +89,7 @@ def test_parse_lint_config_imports_ignore_and_local_together(tmp_path):
         "    - http://ignored.invalid/ont.ttl\n"
         "  local:\n"
         "    http://remote.example.org/ont.ttl: copy.ttl\n"
-    )
+    , encoding="utf-8")
     result, ignore, local, _, _, _ = parse_lint_config(str(cfg))
     assert ignore == ["http://ignored.invalid/ont.ttl"]
     assert "http://remote.example.org/ont.ttl" in local
@@ -102,7 +102,7 @@ def test_parse_lint_config_exclude_types_expands_curies(tmp_path):
         "  types:\n"
         "    - rdf:PropositionForm\n"
         "    - http://example.org/ns#StandIn\n"
-    )
+    , encoding="utf-8")
     result, _, _, exclude_types, _, _ = parse_lint_config(str(cfg))
     assert exclude_types == [
         "http://www.w3.org/1999/02/22-rdf-syntax-ns#PropositionForm",
@@ -114,14 +114,14 @@ def test_parse_lint_config_exclude_types_expands_curies(tmp_path):
 
 def test_parse_lint_config_exclude_types_defaults_empty(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("disable:\n  - hijacking\n")
+    cfg.write_text("disable:\n  - hijacking\n", encoding="utf-8")
     _, _, _, exclude_types, _, _ = parse_lint_config(str(cfg))
     assert exclude_types == []
 
 
 def test_parse_lint_config_exclude_types_unknown_prefix_raises(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("exclude:\n  types:\n    - ex:StandIn\n")
+    cfg.write_text("exclude:\n  types:\n    - ex:StandIn\n", encoding="utf-8")
     with pytest.raises(ValueError):
         parse_lint_config(str(cfg))
 
@@ -134,7 +134,7 @@ def test_parse_lint_config_skip_object_of_expands_curies_and_wildcards(tmp_path)
         "    - rdfs:seeAlso\n"
         "    - vs:*\n"
         "    - http://example.org/ns#docs\n"
-    )
+    , encoding="utf-8")
     result, _, _, _, skip_object_of, _ = parse_lint_config(str(cfg))
     assert skip_object_of == [
         "http://www.w3.org/2000/01/rdf-schema#seeAlso",
@@ -147,26 +147,26 @@ def test_parse_lint_config_skip_object_of_expands_curies_and_wildcards(tmp_path)
 
 def test_parse_lint_config_skip_object_of_absent_is_none(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("disable:\n  - hijacking\n")
+    cfg.write_text("disable:\n  - hijacking\n", encoding="utf-8")
     assert parse_lint_config(str(cfg))[4] is None
 
 
 def test_parse_lint_config_skip_object_of_empty_is_empty_list(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("undefined-terms:\n  skip-object-of: []\n")
+    cfg.write_text("undefined-terms:\n  skip-object-of: []\n", encoding="utf-8")
     assert parse_lint_config(str(cfg))[4] == []
 
 
 def test_parse_lint_config_skip_object_of_unknown_prefix_raises(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("undefined-terms:\n  skip-object-of:\n    - ex:docs\n")
+    cfg.write_text("undefined-terms:\n  skip-object-of:\n    - ex:docs\n", encoding="utf-8")
     with pytest.raises(ValueError):
         parse_lint_config(str(cfg))
 
 
 def test_parse_lint_config_exclude_types_rejects_wildcard(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("exclude:\n  types:\n    - vs:*\n")
+    cfg.write_text("exclude:\n  types:\n    - vs:*\n", encoding="utf-8")
     with pytest.raises(ValueError):
         parse_lint_config(str(cfg))
 
@@ -293,7 +293,7 @@ def run_main(*args):
 
 def test_main_accepts_config_flag(tmp_path):
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("disable:\n  - hijacking\n")
+    cfg.write_text("disable:\n  - hijacking\n", encoding="utf-8")
     ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     # should not raise
     run_main(ttl, '-c', str(cfg), '--ctrf-dir', str(tmp_path))
@@ -304,32 +304,34 @@ def test_main_accepts_config_flag(tmp_path):
 def test_main_disable_via_config_marks_check_as_passed_in_ctrf(tmp_path):
     import json
     cfg = tmp_path / ".rdf-lint.yml"
-    cfg.write_text("disable:\n  - hijacking\n")
+    cfg.write_text("disable:\n  - hijacking\n", encoding="utf-8")
     # example_failure.ttl has Namespace hijacking violations; disabling it should not appear in results
     ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(ttl, '-c', str(cfg), '--ctrf-dir', str(tmp_path))
-    data = json.loads(list(tmp_path.glob('*.json'))[0].read_text())
+    data = json.loads(list(tmp_path.glob('*.json'))[0].read_text(encoding="utf-8"))
     assert not any(t['name'] == 'Namespace hijacking' for t in data['results']['tests'])
 
 
 # ── config paths as shown in reports ─────────────────────────────────────────
+# Always with /: the DQV report hashes these paths into IRIs, so a platform separator
+# would make the same configuration a different report on Windows.
 
 def test_display_path_relative_inside_working_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert _display_path(str(tmp_path / 'cfg' / '.rdf-lint.yml')) == os.path.join('cfg', '.rdf-lint.yml')
+    assert _display_path(str(tmp_path / 'cfg' / '.rdf-lint.yml')) == 'cfg/.rdf-lint.yml'
 
 
 def test_display_path_keeps_paths_outside_working_directory(tmp_path, monkeypatch):
     (tmp_path / 'work').mkdir()
     monkeypatch.chdir(tmp_path / 'work')
     outside = str(tmp_path / 'other' / '.rdf-lint.yml')
-    assert _display_path(outside) == outside
+    assert _display_path(outside) == (tmp_path / 'other' / '.rdf-lint.yml').as_posix()
 
 
 def test_display_path_dot_dot_named_directory_is_inside(tmp_path, monkeypatch):
     # '..config' starts with '..' but is a directory in the working tree, not its parent.
     monkeypatch.chdir(tmp_path)
-    assert _display_path(str(tmp_path / '..config' / 'x.yml')) == os.path.join('..config', 'x.yml')
+    assert _display_path(str(tmp_path / '..config' / 'x.yml')) == '..config/x.yml'
 
 
 def _relpath_across_drives(path, start=None):

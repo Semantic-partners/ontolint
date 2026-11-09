@@ -40,6 +40,9 @@ pip install git+https://github.com/Semantic-partners/ontolint
 Ontolint needs Python 3.11 or later. This installs the `ontolint` and `ontolint-report`
 commands and the `ontolint` Python package.
 
+The [`ontolint` package on PyPI](https://pypi.org/project/ontolint/) is an unrelated
+project, so `pip install ontolint` does not install this one.
+
 ## Use it
 
 ### From the command line

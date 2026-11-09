@@ -251,7 +251,7 @@ def test_local_imports_substitutes_namespace_fetch(make_graph, tmp_path):
     local_file.write_text(
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
         "<http://remote.example.org#Mammal> a owl:Class .\n"
-    )
+    , encoding="utf-8")
     g = make_graph("""
     : a owl:Ontology .
     :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .
@@ -268,7 +268,7 @@ def test_local_imports_term_absent_in_local_file_fails(make_graph, tmp_path):
     local_file.write_text(
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
         "<http://remote.example.org#Other> a owl:Class .\n"
-    )
+    , encoding="utf-8")
     g = make_graph("""
     : a owl:Ontology .
     :Dog rdfs:subClassOf <http://remote.example.org#Mammal> .

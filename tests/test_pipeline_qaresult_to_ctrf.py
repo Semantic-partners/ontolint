@@ -64,7 +64,7 @@ def test_writing_puts_the_given_report_on_disk(stored_qa_result, tmp_path):
 
     log = write_ctrf_report(report, str(tmp_path), 'report.json')
 
-    assert json.loads((tmp_path / 'report.json').read_text()) == report
+    assert json.loads((tmp_path / 'report.json').read_text(encoding="utf-8")) == report
     assert 'report.json' in log
 
 

@@ -21,7 +21,7 @@ def test_valid_import_passes(make_graph, tmp_path):
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
         "<http://imported.example.org#> a owl:Ontology .\n"
         "<http://imported.example.org#Thing> a owl:Class .\n"
-    )
+    , encoding="utf-8")
     import_url = ont_file.as_uri()
 
     g = make_graph(f"""
@@ -39,7 +39,7 @@ def test_multiple_valid_imports_pass(make_graph, tmp_path):
         f.write_text(
             "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
             f"<http://example.org/{name}#> a owl:Class .\n"
-        )
+        , encoding="utf-8")
 
     url_a = (tmp_path / "a.ttl").as_uri()
     url_b = (tmp_path / "b.ttl").as_uri()
@@ -71,7 +71,7 @@ def test_unresolvable_url_fails(make_graph):
 def test_import_resolves_but_is_empty_fails(make_graph, tmp_path):
     # A syntactically valid turtle file with no triples
     ont_file = tmp_path / "empty.ttl"
-    ont_file.write_text("# no triples here\n")
+    ont_file.write_text("# no triples here\n", encoding="utf-8")
     import_url = ont_file.as_uri()
 
     g = make_graph(f"""
@@ -91,7 +91,7 @@ def test_mixed_imports_count_reflects_only_failures(make_graph, tmp_path):
     good_file.write_text(
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
         "<http://good.example.org#A> a owl:Class .\n"
-    )
+    , encoding="utf-8")
 
     g = make_graph(f"""
     : a owl:Ontology .
@@ -173,7 +173,7 @@ def test_local_substitute_resolves_otherwise_failing_import(make_graph, tmp_path
     local_file.write_text(
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
         "<http://remote.example.org#Thing> a owl:Class .\n"
-    )
+    , encoding="utf-8")
     remote_url = "http://does-not-exist.invalid/ont.ttl"
     g = make_graph(f"""
     : a owl:Ontology .
@@ -186,7 +186,7 @@ def test_local_substitute_resolves_otherwise_failing_import(make_graph, tmp_path
 
 def test_local_substitute_empty_file_still_fails(make_graph, tmp_path):
     local_file = tmp_path / "empty.ttl"
-    local_file.write_text("# no triples\n")
+    local_file.write_text("# no triples\n", encoding="utf-8")
     remote_url = "http://does-not-exist.invalid/ont.ttl"
     g = make_graph(f"""
     : a owl:Ontology .
@@ -202,7 +202,7 @@ def test_local_substitute_only_affects_mapped_url(make_graph, tmp_path):
     local_file.write_text(
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
         "<http://remote.example.org#Thing> a owl:Class .\n"
-    )
+    , encoding="utf-8")
     mapped_url = "http://does-not-exist.invalid/mapped.ttl"
     unmapped_url = "http://does-not-exist.invalid/unmapped.ttl"
     g = make_graph(f"""

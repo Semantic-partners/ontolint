@@ -5,6 +5,8 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # publish.yml runs this whole workflow before it uploads anything.
+  workflow_call:
 
 permissions:
   contents: read
@@ -31,18 +33,31 @@ jobs:
         run: poetry run ruff check src/ scripts/ tests/
 
   test:
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report every cell; one failing cell must not cancel the rest.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # Every version requires-python admits, and the classifiers name.
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    defaults:
+      run:
+        # git-bash on the Windows runners, so the steps read the same on both.
+        shell: bash
+    env:
+      # One cell reports the test results and coverage, so the matrix doesn't post eight.
+      REPORTING_CELL: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
 
     steps:
       - name: Check out repository code
         uses: actions/checkout@v5
 
-      # Match local development. On 3.14 coverage uses the cheap sys.monitoring tracer by
-      # default; the runner's system Python (3.12) used ctrace, which doubled the run time.
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -62,14 +77,22 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml
 
+      # ontolint as a user gets it: built into a wheel, installed non-editable into a
+      # clean venv, run from outside this repo. Every step above runs against the source
+      # tree, so package data missing from the wheel would pass them. Both OSes, at the
+      # oldest supported Python: the platform is what changes paths and venv layout.
+      - name: Smoke-test the built wheel as a consumer
+        if: matrix.python-version == '3.11'
+        run: ./scripts/consumer_smoke.sh
+
       - name: Publish test report
         uses: mikepenz/action-junit-report@v6
-        if: success() || failure()
+        if: (success() || failure()) && env.REPORTING_CELL == 'true'
         with:
           report_paths: test-results.xml
 
       - name: Write coverage summary
-        if: success() || failure()
+        if: (success() || failure()) && env.REPORTING_CELL == 'true'
         run: |
           echo '## Coverage' >> $GITHUB_STEP_SUMMARY
           poetry run python -m coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
