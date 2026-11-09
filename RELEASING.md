@@ -1,5 +1,9 @@
 # Releasing ontolint
 
+On PyPI the package is **`sp-ontolint`**: [`ontolint`](https://pypi.org/project/ontolint/)
+there is an unrelated project. Users still import `ontolint` and run the `ontolint`
+command; only the name they install changes.
+
 Releases are cut by **pushing a version tag onto a commit**. The tag is the single source
 of truth: it selects the exact SHA that ships and the version it ships under. CI
 ([`.github/workflows/publish.yml`](.github/workflows/publish.yml)) runs the full test matrix
@@ -8,7 +12,7 @@ generated notes.
 
 **One tag, one version, everywhere.** The same `v2.1.0` tag is the version of the GitHub
 Action (`uses: Semantic-partners/ontolint@v2.1.0`), the GitHub Release, and the PyPI
-package (`ontolint==2.1.0`; PyPI versions carry no `v`). Releases have used `v` tags since
+package (`sp-ontolint==2.1.0`; PyPI versions carry no `v`). Releases have used `v` tags since
 `v0.1.0`, and the PyPI package continues from them: the latest release before PyPI was
 `v2.0.1`.
 
@@ -37,7 +41,7 @@ git tag v2.1.0 <sha>        # omit <sha> to tag HEAD
 git push origin v2.1.0
 ```
 
-CI tests that commit on every supported OS and Python version, publishes `ontolint 2.1.0`
+CI tests that commit on every supported OS and Python version, publishes `sp-ontolint 2.1.0`
 to PyPI and creates GitHub Release `v2.1.0`.
 
 **Push the tag; don't create the release in the GitHub UI.** The workflow creates the
@@ -52,12 +56,12 @@ git tag v2.1.0rc1 <sha>
 git push origin v2.1.0rc1
 ```
 
-pip **hides pre-releases from normal installs**. `pip install ontolint` keeps resolving the
+pip **hides pre-releases from normal installs**. `pip install sp-ontolint` keeps resolving the
 latest *final* version; a pre-release only lands if the user opts in:
 
 ```bash
-pip install --pre ontolint          # newest, including pre-releases
-pip install ontolint==2.1.0rc1      # or pin the exact candidate
+pip install --pre sp-ontolint       # newest, including pre-releases
+pip install sp-ontolint==2.1.0rc1   # or pin the exact candidate
 ```
 
 The GitHub Release is marked "pre-release" automatically when the version has an

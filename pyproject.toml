@@ -1,5 +1,7 @@
 [project]
-name = "ontolint"
+# The distribution name on PyPI. `ontolint` there is an unrelated project, so ours is
+# sp-ontolint; what users import and run is still `ontolint` (packages, scripts below).
+name = "sp-ontolint"
 # Cosmetic: the release workflow stamps the version from the pushed tag (see RELEASING.md).
 version = "2.0.1"
 description = "Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline"

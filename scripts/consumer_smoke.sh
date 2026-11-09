@@ -67,7 +67,7 @@ assert vocabularies and not missing, f"wheel is missing bundled vocabularies: {m
 assert (root / "report" / "templates" / "ctrf-report.hbs").is_file(), "wheel is missing the CTRF template"
 
 # The stdlib-named PyPI packages a published release must never pull in.
-shadowing = [r for r in requires("ontolint") or [] if r.split()[0].lower() in ("argparse", "datetime")]
+shadowing = [r for r in requires("sp-ontolint") or [] if r.split()[0].lower() in ("argparse", "datetime")]
 assert not shadowing, f"published metadata requires stdlib-shadowing packages: {shadowing}"
 
 graph = rdflib.Graph().parse("ontology.ttl")
