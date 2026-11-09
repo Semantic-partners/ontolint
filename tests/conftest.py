@@ -100,13 +100,13 @@ def stored_qa_result_for(case):
 
 def stored_markdown_for(case):
     """The Markdown stored under tests/data/, which linting the case should still render."""
-    return (DATA / f'{case}_report.md').read_text()
+    return (DATA / f'{case}_report.md').read_text(encoding="utf-8")
 
 
 def stored_ctrf_for(case):
     """The CTRF report stored under tests/data/, as the dict build_ctrf_report returns."""
     import json
-    return json.loads((DATA / f'{case}_ctrf.json').read_text())
+    return json.loads((DATA / f'{case}_ctrf.json').read_text(encoding="utf-8"))
 
 
 def stored_dqv_for(case):

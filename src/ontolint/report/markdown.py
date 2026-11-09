@@ -5,6 +5,8 @@ A projection of a QAResult. A check records what it found through decided(), not
 tabulate() and renders nothing; everything about layout - section numbers, headings, rules,
 how a list or table is drawn, whether a verbose-only table appears - is decided here.
 """
+import re
+
 from ..resolution import _describe_local
 
 
@@ -40,7 +42,7 @@ def get_ontology_name(metrics):
             count += 1
     if count == 1 and num_uri == 0:
         # special case if one file without ontology declaration is found
-        names = metrics['filesProcessed'][0].split('/')[-1]
+        names = re.split(r'[\\/]', metrics['filesProcessed'][0])[-1]   # either separator
     elif count >= 1:
         names += f"{count} URIs not found.,<br> "
     names = names.removesuffix(",<br> ")

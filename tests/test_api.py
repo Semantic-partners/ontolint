@@ -108,7 +108,7 @@ def test_config_is_published_as_ontolints_own():
 
 
 def test_every_setting_is_documented():
-    readme = README.read_text()
+    readme = README.read_text(encoding="utf-8")
     assert [f.name for f in fields(Config) if f"`{f.name}`" not in readme] == []
     assert [f.name for f in fields(Config) if f"{f.name}:" not in (Config.__doc__ or "")] == []
 
@@ -592,7 +592,7 @@ def test_a_supplied_graph_is_recorded_in_the_configuration_without_a_file():
 
 def test_imports_may_still_be_a_file_path(tmp_path):
     vocabulary = tmp_path / "external.ttl"
-    vocabulary.write_text(f"@prefix owl: <{OWL}> .\n<{EXTERNAL}Thing> a owl:Class .\n")
+    vocabulary.write_text(f"@prefix owl: <{OWL}> .\n<{EXTERNAL}Thing> a owl:Class .\n", encoding="utf-8")
     graph = _graph(f"""
     : a owl:Ontology .
     :Local rdfs:subClassOf <{EXTERNAL}Thing> ; a owl:Class .
@@ -788,7 +788,7 @@ def test_importing_ontolint_raises_rather_than_exiting_when_its_queries_are_miss
     import sys
     probe = ("try:\n    import ontolint\nexcept FileNotFoundError as e:\n"
              "    print('raised:', e)\nprint('still running')\n")
-    run = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+    run = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, encoding="utf-8",
                          env={**os.environ, "QA_SPARQL_DIR": "/no/such/directory"})
     assert run.returncode == 0, run.stderr
     assert "raised: ontolint's SPARQL directory '/no/such/directory' does not exist" in run.stdout

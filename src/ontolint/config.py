@@ -180,7 +180,7 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
             # the run resolved from where. Nobody configured it — it is derived from what
             # was passed in — so it is its own origin, and a per-file run's configuration
             # then differs per file, because its resolution context genuinely does.
-            shown = path.source
+            shown = _portable(path.source)
             reason = ("Resolved from another input of this run, which declares it"
                       + ("; overrides the bundled vocabulary" if overrides else ""))
             settings.append(dqv.ConfigSetting('imports.local', iri, 'input', reason,
@@ -194,9 +194,9 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
                       if overrides else "Resolved from a graph supplied by the caller")
         else:
             try:
-                shown = os.path.relpath(path, config_dir) if config_dir else path
+                shown = _portable(os.path.relpath(path, config_dir) if config_dir else path)
             except ValueError:  # Windows: the file is on another drive than the config file
-                shown = path
+                shown = _portable(path)
             reason = ("Resolved from a local file instead of the network; overrides the bundled vocabulary"
                       if overrides else "Resolved from a local file instead of the network")
         settings.append(dqv.ConfigSetting('imports.local', iri, given, reason, local_file=shown,
@@ -321,4 +321,15 @@ def _relative_path(path, start=None):
 
 def _display_path(path):
     """A path as shown in reports: relative to the working directory when inside it."""
-    return _relative_path(path) or path
+    return _portable(_relative_path(path) or path)
+
+
+def _portable(path):
+    """
+    A path as the reports record it: with / on every platform.
+
+    The DQV report hashes these into setting IRIs, so a \\ on Windows made the same
+    configuration a different report there. Only the separator changes, so an IRI (which
+    has no backslash) passes through untouched, where Path.as_posix() could fold its //.
+    """
+    return str(path).replace(os.sep, '/') if os.sep != '/' else str(path)

@@ -70,7 +70,7 @@ def write_ctrf_report(ctrf_report, file_path, filename):
     if not filename:
         filename = f'ontology-qa-report-{os.getpid()}.json'
     output_file = os.path.join(file_path, filename)
-    with open(output_file, 'w') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(ctrf_report, f, indent=2)
 
     return f"\nCTRF report written to: {output_file}\n"

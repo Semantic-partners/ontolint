@@ -102,6 +102,12 @@ def _write_dqv(args, config, results, ontology_sources=None):
     sys.stderr.write(log.lstrip())
 
 def main():
+    # The report is UTF-8 (it carries ✅ and ❌). A redirected stream on Windows defaults to
+    # the ANSI code page, which can't encode them, so `ontolint x.ttl > report.md` failed.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8')
+
     # Set up argument parser
     parser = argparse.ArgumentParser(add_help=False, description=__doc__)
     parser.add_argument('-h', '--help', action='help', help='Show this help message and exit.')

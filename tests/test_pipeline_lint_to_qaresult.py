@@ -54,7 +54,7 @@ def test_no_stored_expectation_embeds_a_checkout_path():
     for stored in sorted((repo / 'tests' / 'data').iterdir()):
         if stored.suffix not in ('.py', '.json', '.ttl'):
             continue
-        text = stored.read_text()
+        text = stored.read_text(encoding="utf-8")
         if str(repo) in text:
             offenders.append(f"{stored.name}: contains the repo root")
         if 'file:///' in text:
@@ -65,7 +65,7 @@ def test_no_stored_expectation_embeds_a_checkout_path():
     # legitimate once rewritten to the fixed prefix test_e2e_dqv.py normalises to, so it
     # is the checkout path itself that is the offence.
     for stored in sorted((repo / 'tests' / 'dqv').glob('*/expected.ttl')):
-        if str(repo) in stored.read_text():
+        if str(repo) in stored.read_text(encoding="utf-8"):
             offenders.append(f"{stored.parent.name}/{stored.name}: contains the repo root")
 
     assert not offenders, "\n".join(offenders)

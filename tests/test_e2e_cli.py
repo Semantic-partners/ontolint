@@ -21,7 +21,7 @@ def test_example_pass_produces_no_failures(tmp_path):
     run_main(ttl, '--ctrf-dir', str(tmp_path))
     reports = list(tmp_path.glob('*.json'))
     assert len(reports) == 1
-    data = json.loads(reports[0].read_text())
+    data = json.loads(reports[0].read_text(encoding="utf-8"))
     assert data['results']['summary']['failed'] == 0
 
 
@@ -30,7 +30,7 @@ def test_example_failure_produces_failures(tmp_path):
     run_main(ttl, '--ctrf-dir', str(tmp_path))
     reports = list(tmp_path.glob('*.json'))
     assert len(reports) == 1
-    data = json.loads(reports[0].read_text())
+    data = json.loads(reports[0].read_text(encoding="utf-8"))
     assert data['results']['summary']['failed'] > 0
 
 
@@ -64,7 +64,7 @@ def test_ctrf_filename_option(tmp_path):
 def test_ctrf_report_structure(tmp_path):
     ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     run_main(ttl, '--ctrf-dir', str(tmp_path))
-    data = json.loads(list(tmp_path.glob('*.json'))[0].read_text())
+    data = json.loads(list(tmp_path.glob('*.json'))[0].read_text(encoding="utf-8"))
     assert 'results' in data
     assert 'summary' in data['results']
     assert 'tests' in data['results']
@@ -87,7 +87,7 @@ def test_inference_example_via_run_main(tmp_path, capsys):
     :Animal a rdfs:Class.
     :Cat a rdfs:Class ; rdfs:subClassOf :Animal .
     :Fluffy a rdfs:Class, :Cat .
-    """)
+    """, encoding="utf-8")
     run_main(str(ttl), '-i')
     out = capsys.readouterr().out
     assert "Added 1 new triples" in out
@@ -101,7 +101,7 @@ def test_no_inference(tmp_path, capsys):
     :Animal a rdfs:Class.
     :Cat a rdfs:Class ; rdfs:subClassOf :Animal .
     :Fluffy a :Cat .
-    """)
+    """, encoding="utf-8")
     run_main(str(ttl))
     out = capsys.readouterr().out
     assert "| inference_test.ttl | 4 | 2 | 0 |" in out
@@ -123,8 +123,8 @@ def test_per_file_ctrf_contents_reflect_individual_file(tmp_path):
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     fail_ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(pass_ttl, fail_ttl, '--per-file', '--ctrf-dir', str(tmp_path))
-    pass_data = json.loads((tmp_path / 'example_pass-qa-report.json').read_text())
-    fail_data = json.loads((tmp_path / 'example_failure-qa-report.json').read_text())
+    pass_data = json.loads((tmp_path / 'example_pass-qa-report.json').read_text(encoding="utf-8"))
+    fail_data = json.loads((tmp_path / 'example_failure-qa-report.json').read_text(encoding="utf-8"))
     assert pass_data['results']['summary']['failed'] == 0
     assert fail_data['results']['summary']['failed'] > 0
 
@@ -178,12 +178,12 @@ def test_exclude_types_config_applied_via_main(tmp_path, capsys):
     :Dog a owl:Class .
     :hasFur a owl:ObjectProperty ; rdfs:range :standIn1 .
     :standIn1 a rdf:PropositionForm .
-    """)
+    """, encoding="utf-8")
     cfg = tmp_path / "lint.yml"
-    cfg.write_text("exclude:\n  types:\n    - rdf:PropositionForm\n")
+    cfg.write_text("exclude:\n  types:\n    - rdf:PropositionForm\n", encoding="utf-8")
     ctrf_dir = tmp_path / "ctrf"
     run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(ctrf_dir))
-    data = json.loads(next(ctrf_dir.glob('*.json')).read_text())
+    data = json.loads(next(ctrf_dir.glob('*.json')).read_text(encoding="utf-8"))
     untyped = [t for t in data['results']['tests'] if t['name'] == 'Untyped Classes'][0]
     assert untyped['status'] == 'passed'
     assert 'rdf-syntax-ns#PropositionForm' in capsys.readouterr().out
@@ -265,7 +265,7 @@ def test_relative_base_uri_is_rejected(tmp_path):
 # ── undefined-terms.skip-object-of config ─────────────────────────────────────
 
 def _undefined_terms_status(ctrf_dir):
-    data = json.loads(next(ctrf_dir.glob('*.json')).read_text())
+    data = json.loads(next(ctrf_dir.glob('*.json')).read_text(encoding="utf-8"))
     return [t for t in data['results']['tests'] if t['name'] == 'Undefined terms'][0]['status']
 
 
@@ -276,13 +276,13 @@ def test_skip_object_of_config_applied_via_main(tmp_path):
     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
     : a owl:Ontology .
     :Dog a owl:Class ; rdfs:seeAlso <https://example.invalid/docs/dog.html> .
-    """)
+    """, encoding="utf-8")
     run_main(str(ttl), '--ctrf-dir', str(tmp_path / 'default'))
     assert _undefined_terms_status(tmp_path / 'default') == 'passed'
 
     # An empty list overrides the defaults, so the seeAlso target is checked (and fails).
     cfg = tmp_path / "lint.yml"
-    cfg.write_text("undefined-terms:\n  skip-object-of: []\n")
+    cfg.write_text("undefined-terms:\n  skip-object-of: []\n", encoding="utf-8")
     run_main(str(ttl), '-c', str(cfg), '--ctrf-dir', str(tmp_path / 'override'))
     assert _undefined_terms_status(tmp_path / 'override') == 'failed'
 
@@ -292,7 +292,7 @@ def test_skip_object_of_config_applied_via_main(tmp_path):
 
 def test_parse_failure_exits_nonzero_without_exit_status_flag(tmp_path):
     bad = tmp_path / 'bad.ttl'
-    bad.write_text('not valid turtle @@@ !!!')
+    bad.write_text('not valid turtle @@@ !!!', encoding="utf-8")
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     ctrf_dir = tmp_path / 'ctrf'
     with pytest.raises(SystemExit) as exc:
@@ -304,7 +304,7 @@ def test_parse_failure_exits_nonzero_without_exit_status_flag(tmp_path):
 
 def test_parse_failure_reported_in_output(tmp_path, capsys):
     bad = tmp_path / 'bad.ttl'
-    bad.write_text('not valid turtle @@@ !!!')
+    bad.write_text('not valid turtle @@@ !!!', encoding="utf-8")
     with pytest.raises(SystemExit):
         run_main(str(bad), '--ctrf-dir', str(tmp_path))
     captured = capsys.readouterr()
@@ -314,7 +314,7 @@ def test_parse_failure_reported_in_output(tmp_path, capsys):
 
 def test_per_file_parse_failure_exits_nonzero_but_reports_other_files(tmp_path):
     bad = tmp_path / 'bad.ttl'
-    bad.write_text('not valid turtle @@@ !!!')
+    bad.write_text('not valid turtle @@@ !!!', encoding="utf-8")
     pass_ttl = os.path.join(TESTS_DIR, 'example_pass.ttl')
     ctrf_dir = tmp_path / 'ctrf'
     with pytest.raises(SystemExit) as exc:
@@ -350,7 +350,7 @@ def _duplicate_sources(report_path):
 def two_files_one_ontology(tmp_path):
     """Two input files declaring the same owl:Ontology IRI."""
     for name in ('alpha', 'beta'):
-        (tmp_path / f"{name}.ttl").write_text(SAME_ONTOLOGY % (name, name))
+        (tmp_path / f"{name}.ttl").write_text(SAME_ONTOLOGY % (name, name), encoding="utf-8")
     return tmp_path, [dqv.file_iri(tmp_path / f"{name}.ttl") for name in ('alpha', 'beta')]
 
 
@@ -381,7 +381,7 @@ def test_a_duplicate_does_not_stop_the_run(two_files_one_ontology, tmp_path):
 def test_distinct_ontologies_raise_no_duplicate_finding(tmp_path):
     for name in ('one', 'two'):
         (tmp_path / f"{name}.ttl").write_text(
-            SAME_ONTOLOGY.replace('thing', name) % ('Thing', 'Thing'))
+            SAME_ONTOLOGY.replace('thing', name) % ('Thing', 'Thing'), encoding="utf-8")
     out = tmp_path / 'out'
 
     run_main(str(tmp_path), '--per-file', '--ctrf-dir', str(out / 'ctrf'), '--dqv-dir', str(out))
@@ -404,7 +404,7 @@ def test_output_option_writes_the_report_to_a_file(tmp_path, capsys):
     out = tmp_path / 'report.md'
     run_main(REPORTERS, '-o', str(out), '--ctrf-dir', str(tmp_path / 'ctrf'))
 
-    report = out.read_text()
+    report = out.read_text(encoding="utf-8")
     assert '## Quality Assurance Checks' in report
     # Written *instead of* printed, not as well as.
     assert capsys.readouterr().out == ''
@@ -424,7 +424,7 @@ def test_output_option_holds_every_report_with_per_file(tmp_path, capsys):
 
     # Per-file already concatenated its reports onto one stream; -o writes that stream to
     # a file rather than dropping it, so the flag means the same thing in both modes.
-    report = out.read_text()
+    report = out.read_text(encoding="utf-8")
     assert report.count('# Ontology Quality Assurance') == 2
     assert 'reporters.ttl' in report and 'fragment.ttl' in report
     assert capsys.readouterr().out == ''
@@ -523,7 +523,7 @@ def _family(tmp_path):
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 core: a owl:Ontology ; rdfs:label "Core" ; rdfs:comment "Shared concepts." .
 core:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "Anything at all." .
-""")
+""", encoding="utf-8")
     (tmp_path / 'domain.ttl').write_text("""
 @prefix dom:  <https://example.org/domain#> .
 @prefix core: <https://example.org/core#> .
@@ -532,7 +532,7 @@ core:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "Anything at all." .
 dom: a owl:Ontology ; rdfs:label "Domain" ; rdfs:comment "Builds on core." .
 dom:Widget a owl:Class ; rdfs:label "Widget" ; rdfs:comment "A widget." ;
     rdfs:subClassOf core:Thing .
-""")
+""", encoding="utf-8")
     return str(tmp_path / 'core.ttl'), str(tmp_path / 'domain.ttl')
 
 
@@ -567,7 +567,7 @@ def test_an_input_speaks_only_for_the_ontology_it_declares(tmp_path, capsys):
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 hij: a owl:Ontology ; rdfs:label "Hijacker" ; rdfs:comment "Mints in someone else's namespace." .
 skos:inventedHere a owl:Class ; rdfs:label "Invented" ; rdfs:comment "Not a SKOS term." .
-""")
+""", encoding="utf-8")
     (tmp_path / 'uses_skos.ttl').write_text("""
 @prefix u:    <https://example.org/uses#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
@@ -575,7 +575,7 @@ skos:inventedHere a owl:Class ; rdfs:label "Invented" ; rdfs:comment "Not a SKOS
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 u: a owl:Ontology ; rdfs:label "Uses" ; rdfs:comment "Uses a real SKOS term." .
 u:Term a owl:Class ; rdfs:label "Term" ; rdfs:comment "A term." ; skos:prefLabel "term" .
-""")
+""", encoding="utf-8")
     run_main(str(tmp_path / 'hijacker.ttl'), str(tmp_path / 'uses_skos.ttl'),
              '--per-file', '--ctrf-dir', str(tmp_path / 'ctrf'))
     report = capsys.readouterr().out
@@ -600,14 +600,14 @@ def test_imports_siblings_false_checks_each_input_alone(tmp_path, capsys):
     as the unresolvable reference it would be anywhere else.
     """
     core, domain = _family(tmp_path)
-    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: false\n")
+    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: false\n", encoding="utf-8")
     run_main(core, domain, '--per-file', '--config', str(tmp_path / '.rdf-lint.yml'),
              '--ctrf-dir', str(tmp_path / 'ctrf'))
     assert 'fetch failure' in capsys.readouterr().out
 
 
 def test_imports_siblings_must_be_a_boolean(tmp_path):
-    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: sometimes\n")
+    (tmp_path / '.rdf-lint.yml').write_text("imports:\n  siblings: sometimes\n", encoding="utf-8")
     with pytest.raises(ValueError, match="imports.siblings must be true or false"):
         parse_lint_config(str(tmp_path / '.rdf-lint.yml'))
 
@@ -621,7 +621,7 @@ def test_init_writes_a_config_naming_every_check(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as exit_info:
         run_main('--init')
     assert exit_info.value.code == 0
-    written = (tmp_path / '.rdf-lint.yml').read_text()
+    written = (tmp_path / '.rdf-lint.yml').read_text(encoding="utf-8")
     for _, func, _, key in CHECKLIST:
         assert f"# - {config_check_name(func, key)}\n" in written
     parse_lint_config(str(tmp_path / '.rdf-lint.yml'))
