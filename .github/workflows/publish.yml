@@ -17,6 +17,11 @@
 # Manual run (Actions -> Publish to PyPI -> Run workflow) re-publishes a one-off version
 # without tagging (no GitHub Release is cut in that case).
 #
+# Auth is PyPI Trusted Publishing (OIDC): PyPI trusts this workflow file in this repo,
+# running in the `pypi` environment, and GitHub proves that identity on each run. There
+# is no token to store, rotate or leak. Configured on PyPI under the project's
+# Publishing settings (or, before the first upload, as a pending publisher).
+#
 # Rehearsing without touching real PyPI: pushing a candidate tag (e.g. v2.1.0rc1) is
 # already a safe rehearsal, since pip hides pre-releases from normal installs. TestPyPI
 # (https://test.pypi.org) would be a fully separate sandbox with its own account and
@@ -47,9 +52,14 @@ jobs:
   publish:
     needs: tests
     runs-on: ubuntu-latest
+    # The environment PyPI's trusted publisher names. Protect it (Settings -> Environments)
+    # with required reviewers to make every release wait for an approval.
+    environment: pypi
     permissions:
       # Needed to create the GitHub Release from the tag.
       contents: write
+      # Lets the job request the OIDC token PyPI's trusted publishing verifies.
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -88,10 +98,8 @@ jobs:
           poetry build
 
       - name: Publish to PyPI
-        env:
-          # Poetry reads this env var as the PyPI upload token automatically.
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
-        run: poetry publish
+        # Uploads dist/ using the OIDC identity above; no token or secret involved.
+        uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Create GitHub Release
         # Only on a tag push — a manual dispatch has no tag to attach notes to.

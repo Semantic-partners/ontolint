@@ -86,10 +86,20 @@ as CI does before every publish.
 
 ## Auth
 
-Publishing uses the `PYPI_API_TOKEN` repo secret (Poetry reads it as
-`POETRY_PYPI_TOKEN_PYPI`). To rotate: regenerate the token on PyPI and update the secret
-under repo **Settings → Secrets and variables → Actions**.
+Publishing uses PyPI [Trusted Publishing](https://docs.pypi.org/trusted-publishers/):
+PyPI trusts `.github/workflows/publish.yml` in `Semantic-partners/ontolint`, running in the
+`pypi` GitHub environment, and GitHub proves that identity on every run. There is no token
+or secret to store, share or rotate, and no other repo or workflow can publish ontolint.
 
-The first upload creates the `ontolint` project on PyPI, so a token scoped to that project
-can't exist before it. Use an account-scoped token for the first release, then replace it
-with one scoped to `ontolint` and revoke the account-scoped one.
+Setting it up, once:
+
+1. **On PyPI:** before the first upload, add a *pending publisher* under **Your account →
+   Publishing** (afterwards, under the project's own **Settings → Publishing**). Use the
+   **GitHub** tab: owner `Semantic-partners`, repository `ontolint`, workflow
+   `publish.yml`, environment `pypi`. A pending publisher does **not** reserve the
+   project name — only the first upload does.
+2. **On GitHub:** under **Settings → Environments**, create the `pypi` environment. Adding
+   required reviewers makes every release wait for an approval before it publishes.
+
+If a publish fails with an authentication error, the four values on PyPI must match the
+repository, the workflow file name and the environment exactly.
