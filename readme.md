@@ -34,12 +34,11 @@ have.
 ## Install
 
 ```bash
-pip install ontolint
+pip install git+https://github.com/Semantic-partners/ontolint
 ```
 
-Ontolint needs Python 3.11 or later. Until the first PyPI release
-([#94](https://github.com/Semantic-partners/ontolint/issues/94)), install it from GitHub:
-`pip install git+https://github.com/Semantic-partners/ontolint`.
+Ontolint needs Python 3.11 or later. This installs the `ontolint` and `ontolint-report`
+commands and the `ontolint` Python package.
 
 ## Use it
 

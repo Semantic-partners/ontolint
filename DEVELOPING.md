@@ -107,8 +107,7 @@ poetry build            # dist/ontolint-<version>-py3-none-any.whl and the sdist
 
 The wheel carries `sparql/`, `vocabularies/` and the CTRF template, and declares the
 `ontolint` and `ontolint-report` commands. To check it before publishing, install it into a
-fresh virtualenv and run it from outside the repository. Publishing to PyPI is tracked in
-[#94](https://github.com/Semantic-partners/ontolint/issues/94).
+fresh virtualenv and run it from outside the repository.
 
 ## Backlog
 
