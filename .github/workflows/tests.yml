@@ -3,10 +3,37 @@ name: Tests
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      # Files no test reads. Not every .md is safe to skip: readme.md (test_api checks it
+      # documents every Config field), the vocabularies' README.md (test_vocabularies) and
+      # the expected reports in tests/data/ are all tested, so they are not listed here.
+      # If these checks are ever made required in branch protection, a skipped run never
+      # reports and the PR waits; switch to path filtering inside the job then.
+      - 'docs/**'
+      - 'examples/**'
+      - 'design.md'
+      - 'DEVELOPING.md'
+      - 'RELEASING.md'
+      - 'CLAUDE.md'
+      - 'LICENSE*'
   push:
     branches: [main]
-  # publish.yml runs this whole workflow before it uploads anything.
+    paths-ignore:   # the same list as pull_request's
+      - 'docs/**'
+      - 'examples/**'
+      - 'design.md'
+      - 'DEVELOPING.md'
+      - 'RELEASING.md'
+      - 'CLAUDE.md'
+      - 'LICENSE*'
+  # publish.yml runs this whole workflow before it uploads anything, whatever changed.
   workflow_call:
+
+# A newer push to a PR replaces the run for the older one. Pushes to main and releases are
+# never cancelled, only queued: each is a commit someone may need a result for.
+concurrency:
+  group: tests-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -68,14 +95,21 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Run tests with coverage
+      # Coverage only where it is reported. Measuring it roughly doubles the run on
+      # Python < 3.14 (no cheap sys.monitoring tracer by default), and the other cells'
+      # numbers were never read. pyproject's addopts turn it on, hence --no-cov.
+      - name: Run tests
         run: |
-          poetry run pytest \
-            -n auto \
-            --junitxml=test-results.xml \
-            --cov=ontolint \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage.xml
+          if [ "$REPORTING_CELL" = true ]; then
+            poetry run pytest \
+              -n auto \
+              --junitxml=test-results.xml \
+              --cov=ontolint \
+              --cov-report=term-missing \
+              --cov-report=xml:coverage.xml
+          else
+            poetry run pytest -n auto --no-cov
+          fi
 
       # ontolint as a user gets it: built into a wheel, installed non-editable into a
       # clean venv, run from outside this repo. Every step above runs against the source
