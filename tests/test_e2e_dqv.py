@@ -36,8 +36,8 @@ from unittest.mock import patch
 import pytest
 import rdflib
 
-from scripts import dqv
-from scripts.ontology_qa import main
+from ontolint import dqv
+from ontolint.cli import main
 from tests.golden import stable_mint_id
 
 CASES_DIR = Path(__file__).parent / 'dqv'

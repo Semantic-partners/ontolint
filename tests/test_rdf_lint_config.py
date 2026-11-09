@@ -27,9 +27,9 @@ import pytest
 import rdflib
 import yaml
 
-from scripts import dqv
-from scripts.ontology_qa import (CHECKLIST, deepcopy_list, describe_configuration,
-                                 lint_selection, parse_lint_config)
+from ontolint import dqv
+from ontolint.config import describe_configuration, lint_selection, parse_lint_config
+from ontolint.registry import CHECKLIST, deepcopy_list
 
 DIR = Path(__file__).parent / 'rdf-lint-config'
 CONFIG = DIR / 'rdf-lint.yml'

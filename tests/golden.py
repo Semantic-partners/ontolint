@@ -35,8 +35,8 @@ what was deprecated — and it is stored like the rest, because the Markdown rep
 projection of this instance and needs it (#101).
 """
 
-{imports}from scripts.dqv import ConfigSetting, Dataset, Violation
-from scripts.ontology_qa import CheckResult, QAResult
+{imports}from ontolint.dqv import ConfigSetting, Dataset, Violation
+from ontolint.model import CheckResult, QAResult
 
 EXPECTED = QAResult(
 '''

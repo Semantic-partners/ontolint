@@ -17,7 +17,7 @@ Neither the datasets nor the vocabularies need naming: each is identified by wha
 declares and defines. Pass a mapping where you want to name one yourself.
 
 `report` is a DQV graph: the same one the CLI writes with --dqv-dir, built by the same
-run that the CLI performs (`ontology_qa.lint_graph`).
+run that the CLI performs (`runner.lint_graph`).
 """
 
 from collections.abc import Iterable, Mapping
@@ -25,25 +25,28 @@ from typing import TypeAlias
 
 import rdflib
 
-from scripts import dqv, graphutil
-from scripts import ontology_qa as qa
-from scripts.ontology_qa import IRI, Config
+from . import dqv, graphutil
+from .model import IRI, Config
+from .resolution import RunInput
+from .registry import select_checks
+from .runner import declared_ontology_sources, duplicate_ontology_iris, lint_graph
+from .terms import ontology_iris
 
 # The whole public surface: two names, and nothing else here is supported.
 #
 #   Config  — every setting a run takes, with its default (defined in
-#             scripts.ontology_qa, because the CLI builds one too; it moves here when
-#             that module is split for packaging). `help(ontolint.Config)` lists the
-#             fields, the readme tabulates them, and tests/test_api.py pins both.
+#             ontolint.model, because the CLI builds one too). `help(ontolint.Config)`
+#             lists the fields, the readme tabulates them, and tests/test_api.py pins both.
 #   lint    — run the checks over named graphs, return the DQV report as a graph.
 #
 # Anything added to __all__ is a promise to keep, so prefer putting new behaviour on the
-# engine side (scripts.ontology_qa), where the CLI can use it too.
+# engine side (the other modules in this package), where the CLI can use it too.
+# Those modules are importable but internal: nothing outside __all__ is supported.
 __all__ = ["Config", "lint"]
 
-# Config is defined in the engine module so both front ends can build one, but `ontolint`
+# Config is defined in ontolint.model so both front ends can build one, but `ontolint`
 # is where it is published: say so, or help(), pickle and generated docs all send readers
-# to an implementation module. Remove once the module is split and Config lives here.
+# to an implementation module.
 Config.__module__ = "ontolint"
 
 # A graph to check, or the Turtle to parse into one.
@@ -94,14 +97,14 @@ def lint(datasets: Datasets, config: Config | None = None) -> rdflib.Graph:
     _check_base_iri(config.base_iri)
     # One file, one ontology: two inputs declaring the same owl:Ontology IRI is a finding,
     # not a reason to refuse. Computed here because merging them would hide it.
-    duplicates = qa.duplicate_ontology_iris(qa.declared_ontology_sources(
+    duplicates = duplicate_ontology_iris(declared_ontology_sources(
         (dqv.dataset_iri(config.base_iri, source), graph) for _, source, graph in prepared))
     # Resolved once, so an unknown check name is rejected before anything runs.
-    checklist, lint_config, rule_reasons = qa.select_checks(config.checks)
+    checklist, lint_config, rule_reasons = select_checks(config.checks)
     provenance = {'lint_config': lint_config, 'rule_reasons': rule_reasons}
 
     def run(graph, names, context_imports=None):
-        return qa.lint_graph(graph, names, config, checklist=checklist, provenance=provenance,
+        return lint_graph(graph, names, config, checklist=checklist, provenance=provenance,
                              context_imports=context_imports,
                              source_iris=[dqv.dataset_iri(config.base_iri, name) for name in names])
 
@@ -123,8 +126,8 @@ def _siblings(prepared, name):
     for other, _, graph in prepared:
         if other == name:
             continue
-        for namespace in qa.ontology_iris(graph):
-            context.setdefault(namespace, qa.RunInput(other, graph))
+        for namespace in ontology_iris(graph):
+            context.setdefault(namespace, RunInput(other, graph))
     return context
 
 
@@ -197,7 +200,7 @@ def _derive_name(graph, index):
     saves the caller extracting it. Position is only a fallback — it is stable for the same
     order and no more, which is why the caller should name such graphs.
     """
-    declared = qa.ontology_iris(graph)
+    declared = ontology_iris(graph)
     return declared[0] if declared else f"unnamed-{index}"
 
 

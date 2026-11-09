@@ -27,7 +27,7 @@ jobs:
 
       - name: Run ontolint on tests/ (per-file)
         run: |
-          poetry run scripts/ontology_qa.py tests/ \
+          poetry run ontolint tests/ \
             --per-file \
             --ctrf-dir ctrf \
             -e
@@ -35,9 +35,8 @@ jobs:
 
       - name: Generate summary report
         run: |
-          poetry run scripts/generate_custom_report.py \
+          poetry run ontolint-report \
             --ctrf-dir ctrf \
-            --template-path templates/ctrf-report.hbs \
             --output-path out/ctrf_report.md
         if: always()
 

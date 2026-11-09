@@ -20,8 +20,8 @@ projection of this instance and needs it (#101).
 
 from rdflib import Literal
 
-from scripts.dqv import ConfigSetting, Dataset, Violation
-from scripts.ontology_qa import CheckResult, QAResult
+from ontolint.dqv import ConfigSetting, Dataset, Violation
+from ontolint.model import CheckResult, QAResult
 
 EXPECTED = QAResult(
     profiling={
@@ -48,7 +48,7 @@ EXPECTED = QAResult(
         'ontologyDescription': 1,
         'unresolvedImports': 0,
         'undefinedTerms': 3,
-        'fetchActivity': {'local': {'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'vocabularies/rdf.ttl', 'http://www.w3.org/2000/01/rdf-schema#': 'vocabularies/rdfs.ttl', 'http://www.w3.org/2002/07/owl#': 'vocabularies/owl.ttl'}, 'fetched': {}, 'failed': ['https://example.org/fragment#']},
+        'fetchActivity': {'local': {'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'src/ontolint/vocabularies/rdf.ttl', 'http://www.w3.org/2000/01/rdf-schema#': 'src/ontolint/vocabularies/rdfs.ttl', 'http://www.w3.org/2002/07/owl#': 'src/ontolint/vocabularies/owl.ttl'}, 'fetched': {}, 'failed': ['https://example.org/fragment#']},
         'missingClassLabel': 0,
         'missingPropertyLabel': 0,
         'missingNSLabel': 0,

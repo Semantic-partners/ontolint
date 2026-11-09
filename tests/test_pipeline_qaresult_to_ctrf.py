@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.ontology_qa import build_ctrf_report, write_ctrf_report
+from ontolint.report.ctrf import build_ctrf_report, write_ctrf_report
 from tests.conftest import CASES, stored_ctrf_for, stored_qa_result_for
 
 # The instant the stored report was built at. Injected rather than read from the

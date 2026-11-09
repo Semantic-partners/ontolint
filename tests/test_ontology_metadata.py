@@ -1,6 +1,6 @@
 import rdflib
 
-from scripts.ontology_qa import run_qa
+from ontolint.runner import run_qa
 from tests.conftest import PREFIXES
 
 

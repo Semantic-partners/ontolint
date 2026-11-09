@@ -10,8 +10,10 @@ import pytest
 import rdflib
 from rdflib import namespace as N
 
-import scripts.ontology_qa as qa
-from scripts.ontology_qa import VOCAB_CATALOG, bundled_vocabularies, iri_key, run_qa
+from ontolint import resolution
+from ontolint.resolution import VOCAB_CATALOG, bundled_vocabularies
+from ontolint.runner import run_qa
+from ontolint.terms import iri_key
 
 CATALOG = VOCAB_CATALOG
 VOCAB_DIR = VOCAB_CATALOG.parent  # repo layout: the catalogued files live next to it
@@ -75,11 +77,11 @@ def test_discovery_starts_from_the_catalog(make_graph, tmp_path, monkeypatch):
         vann:preferredNamespaceUri "http://example.org/vocab#" ;
         dcat:distribution [ a dcat:Distribution ; dcat:downloadURL <../files/example.ttl> ] .
     """)
-    monkeypatch.setattr(qa, "VOCAB_CATALOG", catalog)
+    monkeypatch.setattr(resolution, "VOCAB_CATALOG", catalog)
     bundled_vocabularies.cache_clear()
     try:
         assert bundled_vocabularies() == {"http://example.org/vocab#": str(vocab.resolve())}
-        assert qa._is_bundled(vocab)
+        assert resolution._is_bundled(vocab)
         check, fetch = _undefined(make_graph, """
         :Foo a owl:Class ; rdfs:subClassOf <http://example.org/vocab#known>, <http://example.org/vocab#unknown> .
         """)
@@ -97,7 +99,7 @@ def test_catalog_entry_without_namespace_is_rejected(tmp_path, monkeypatch):
     @prefix dcat: <http://www.w3.org/ns/dcat#> .
     <https://ontolint.org/test-broken> a dcat:Dataset .
     """)
-    monkeypatch.setattr(qa, "VOCAB_CATALOG", catalog)
+    monkeypatch.setattr(resolution, "VOCAB_CATALOG", catalog)
     bundled_vocabularies.cache_clear()
     try:
         with pytest.raises(ValueError):
@@ -260,7 +262,7 @@ def test_ignored_namespace_is_trusted_in_either_form(make_graph, form):
 
 
 def test_trusted_namespaces_constant_is_removed():
-    assert not hasattr(qa, "TRUSTED_NAMESPACES")
+    assert not hasattr(resolution, "TRUSTED_NAMESPACES")
 
 
 def test_iri_key_matches_namespace_and_ontology_forms():
