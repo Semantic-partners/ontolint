@@ -313,23 +313,25 @@ def test_main_disable_via_config_marks_check_as_passed_in_ctrf(tmp_path):
 
 
 # ── config paths as shown in reports ─────────────────────────────────────────
+# Always with /: the DQV report hashes these paths into IRIs, so a platform separator
+# would make the same configuration a different report on Windows.
 
 def test_display_path_relative_inside_working_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert _display_path(str(tmp_path / 'cfg' / '.rdf-lint.yml')) == os.path.join('cfg', '.rdf-lint.yml')
+    assert _display_path(str(tmp_path / 'cfg' / '.rdf-lint.yml')) == 'cfg/.rdf-lint.yml'
 
 
 def test_display_path_keeps_paths_outside_working_directory(tmp_path, monkeypatch):
     (tmp_path / 'work').mkdir()
     monkeypatch.chdir(tmp_path / 'work')
     outside = str(tmp_path / 'other' / '.rdf-lint.yml')
-    assert _display_path(outside) == outside
+    assert _display_path(outside) == (tmp_path / 'other' / '.rdf-lint.yml').as_posix()
 
 
 def test_display_path_dot_dot_named_directory_is_inside(tmp_path, monkeypatch):
     # '..config' starts with '..' but is a directory in the working tree, not its parent.
     monkeypatch.chdir(tmp_path)
-    assert _display_path(str(tmp_path / '..config' / 'x.yml')) == os.path.join('..config', 'x.yml')
+    assert _display_path(str(tmp_path / '..config' / 'x.yml')) == '..config/x.yml'
 
 
 def _relpath_across_drives(path, start=None):
