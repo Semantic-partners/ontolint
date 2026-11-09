@@ -11,7 +11,7 @@ Every key is optional. With no file, every check runs with the defaults below.
 ## Choosing checks
 
 ```yaml
-# Run only these checks (empty or absent = all of them).
+# Run only these checks. Leave the key out to run all of them.
 enable:
   - owl-description
   - class-missing-label
@@ -21,6 +21,10 @@ disable:
   - property-missing-domain
   - property-missing-range
 ```
+
+Leaving `enable` out runs every check, and so does an `enable:` with nothing under it,
+which YAML reads as null. An explicit empty list, `enable: []`, runs **none** — and a run
+with no checks passes, even with `-e`.
 
 Checks are named as in the [check list](../readme.md#checks). A check that another one
 needs is turned back on, and the report says why: `owl-description`, for example, needs

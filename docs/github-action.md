@@ -74,7 +74,7 @@ All inputs are strings (composite action convention). Pass booleans as `'true'` 
 | `fail-on-violations` | `'true'` | Exit with code 1 if any check fails, causing the step to fail. |
 | `verbose` | `'false'` | List every violating element under each failed check. |
 | `profile-only` | `'false'` | Run profiling metrics only; skip all QA checks. |
-| `per-file` | `'false'` | Run QA separately on each ontology file (directories expanded) rather than on one merged graph. Produces a CTRF file and report section per file (none when combined with `profile-only`; profiling is only printed to the step log). |
+| `per-file` | `'false'` | Run QA separately on each ontology file (directories expanded) rather than on one merged graph. Produces a CTRF file and report section per file (no CTRF with `profile-only`, which reports profiling only). |
 | `config-path` | _(auto-detect)_ | Path to a lint configuration file relative to the repository root. If omitted, the action looks for `.rdf-lint.yml` at the repository root and uses it when present. |
 | `dqv` | `'false'` | Also write a [DQV](reports.md#dqv) Turtle report to `ctrf/<dqv-filename>`. It is included in the uploaded artifact and exposed as the `dqv-path` output. |
 | `dqv-filename` | `'ontolint-dqv.ttl'` | Filename of the DQV report. |
@@ -105,9 +105,8 @@ Use it to upload or publish the report in a later step:
 Each run writes a Markdown report to the Actions job summary (visible directly in the GitHub
 UI) and uploads a CTRF JSON artifact. Both are published whether the job passes or fails.
 
-The one exception is `per-file: 'true'` combined with `profile-only: 'true'`: no QA checks
-run, so no CTRF files or report are produced. There is no job summary or artifact, and the
-profiling output appears only in the step log.
+With `profile-only: 'true'` no checks run, so no CTRF JSON is written: the job summary and
+the artifact hold the profiling report instead, with or without `per-file`.
 
 ## Configuring the checks
 

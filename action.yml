@@ -30,10 +30,10 @@ inputs:
     description: |
       Run QA independently on each ontology file (directories are expanded to their
       RDF files) instead of on a single merged graph. Produces one CTRF file and one
-      report section per ontology file. Note that cross-file references are not
-      resolved in this mode, since each file is checked on its own.
-      When combined with `profile-only: 'true'`, no CTRF files, report, job summary
-      or artifact are produced; profiling output is only printed to the step log.
+      report section per ontology file. References to the other inputs still resolve,
+      against those files rather than the network (`imports.siblings`).
+      With `profile-only: 'true'` no checks run, so no CTRF files are written; the
+      profiling report is still published to the job summary and the artifact.
     required: false
     default: 'false'
   config-path:

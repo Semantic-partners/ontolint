@@ -268,7 +268,7 @@ def write_lint_config(checklist):
 # Place this file as .rdf-lint.yml in your project root.\n
 # Available checks:
 {chr(10).join(f'# - {s}' for s in sequence)}\n
-# Enable only specific checks (empty = all checks enabled)
+# Enable only specific checks (leave commented out to run all; `enable: []` runs none)
 # enable:
 #   - owl-description
 #   - class-missing-label
