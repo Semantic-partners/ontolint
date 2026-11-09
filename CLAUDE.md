@@ -54,6 +54,9 @@ poetry run pytest tests/test_labels.py::test_class_without_label_fails
 # Regenerate golden DQV reports in tests/dqv/*/expected.ttl after an intended change
 UPDATE_GOLDEN=1 poetry run pytest tests/test_e2e_dqv.py
 
+# Build the wheel, install it in a clean venv and run it from outside the repo (CI does too)
+poetry run ./scripts/consumer_smoke.sh
+
 # Run with coverage (HTML report in htmlcov/)
 poetry run pytest --cov=ontolint --cov-report=html
 

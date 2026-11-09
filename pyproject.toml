@@ -1,13 +1,34 @@
 [project]
 name = "ontolint"
-version = "0.2.1"
+# Cosmetic: the release workflow stamps the version from the pushed tag (see RELEASING.md).
+version = "2.0.1"
 description = "Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline"
 license = "MIT OR Apache-2.0"
 authors = [
-    {name = "Otello M Roscioni",email = "otello.roscioni@semanticpartners.com"}
+    {name = "Otello M Roscioni", email = "otello.roscioni@semanticpartners.com"},
+    {name = "Simon Shapiro"},
+    {name = "John Placek", email = "john.placek@semanticpartners.com"},
+    {name = "Pel Olson"},
 ]
 readme = "readme.md"
+# Every version in this range is tested in CI (tests.yml), and publish.yml runs the same
+# matrix before anything is uploaded.
 requires-python = ">=3.11"
+keywords = ["ontology", "rdf", "owl", "shacl", "sparql", "lint", "quality", "dqv", "ci"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
     "rdflib (>=7.6.0,<8.0.0)",
     "pyyaml (>=6.0.3,<7.0.0)",

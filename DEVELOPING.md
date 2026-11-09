@@ -61,6 +61,8 @@ poetry run pytest tests/test_labels.py    # one file
 poetry run ruff check src/ scripts/ tests/   # CI lints too
 ```
 
+CI runs the suite on Linux and Windows, on every Python from 3.11 to 3.14.
+
 Tests never touch the network: `tests/conftest.py` blocks sockets, so an unmocked fetch
 fails at once. Use a fake `uri_parser` or `imports.local` to test resolution.
 
@@ -99,15 +101,15 @@ the same `pytest` command.
    than strings, so blank nodes are skolemized correctly.
 7. Add passing and failing tests, and a row to the check table in the readme.
 
-## Building a release
+## Releasing
 
-```bash
-poetry build            # dist/ontolint-<version>-py3-none-any.whl and the sdist
-```
+`poetry build` writes a wheel and an sdist to `dist/`. The wheel carries `sparql/`,
+`vocabularies/` and the CTRF template, and declares the `ontolint` and `ontolint-report`
+commands. `scripts/consumer_smoke.sh` builds one, installs it into a clean virtualenv and
+runs it from outside the repository, which is the only check of what a user actually
+installs. CI runs it on Linux and Windows.
 
-The wheel carries `sparql/`, `vocabularies/` and the CTRF template, and declares the
-`ontolint` and `ontolint-report` commands. To check it before publishing, install it into a
-fresh virtualenv and run it from outside the repository.
+A release is cut by pushing a `v` tag; [`RELEASING.md`](RELEASING.md) has the process.
 
 ## Backlog
 
