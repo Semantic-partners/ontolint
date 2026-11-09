@@ -34,11 +34,12 @@ have.
 ## Install
 
 ```bash
-pip install git+https://github.com/Semantic-partners/ontolint
+pip install sp-ontolint
 ```
 
-Ontolint needs Python 3.11 or later. This installs the `ontolint` and `ontolint-report`
-commands and the `ontolint` Python package.
+Ontolint is published on PyPI as [**sp-ontolint**](https://pypi.org/project/sp-ontolint/)
+and needs Python 3.11 or later. It installs the `ontolint` and `ontolint-report` commands
+and the `ontolint` Python package, so it is still `from ontolint import Config, lint`.
 
 The [`ontolint` package on PyPI](https://pypi.org/project/ontolint/) is an unrelated
 project, so `pip install ontolint` does not install this one.
