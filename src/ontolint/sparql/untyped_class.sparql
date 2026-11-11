@@ -14,10 +14,14 @@ WHERE {
   UNION
   { ?s rdfs:subClassOf ?c . }
   UNION
-  { ?s rdf:first ?c . }
+  { 
+    # We don't care what is the content of a list, as long as the resource is defined somehow.
+    ?s rdf:first ?c .
+    MINUS { ?c a ?anytype }
+  }
   UNION
   {
-	VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
+	  VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
     ?r a owl:Restriction ;
     ?restriction ?c .
   }
