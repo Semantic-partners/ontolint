@@ -369,6 +369,28 @@ def test_untyped_class_fails_on_other_list(make_graph):
     """)
     assert not run_qa(g).get("Untyped Classes").passed
 
+
+def test_untyped_class_fails_on_other_list_instance(make_graph):
+    """
+    This test currently fails because instance data is removed from the graph prior to linting.
+    This is intentionally done in `run_qa()` to avoid linting instance data with ontology
+    QA checks. However, the unintended consequence is to hide legitimate use of instances
+    in e.g. lists. This problem will be resolved by using SHACL shapes instead of SPARQL
+    queries for linting.
+    """
+    g = make_graph("""
+    : a owl:Ontology .
+    :hasFur a owl:ObjectProperty .
+    :FurShape a sh:PropertyShape ;
+        sh:path :hasFur ;
+        sh:in ( :Fur :RedFur ) ;
+        sh:severity sh:Warning .
+    :Fur a owl:Class .
+    :RedFur a :Fur .
+    """)
+    assert not run_qa(g).get("Untyped Classes").passed
+
+
 def test_exclude_types_applies_to_other_class_checks(make_graph):
     # A stand-in that is also typed as a class, with no label/comment and no connections.
     g = make_graph("""
