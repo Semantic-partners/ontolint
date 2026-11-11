@@ -52,7 +52,7 @@ jobs:
       - name: Lint
         run: poetry run ruff check src/ scripts/ tests/
 
-  test:
+  test-matrix:
     name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -124,3 +124,17 @@ jobs:
         run: |
           echo '## Coverage' >> $GITHUB_STEP_SUMMARY
           poetry run python -m coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+
+  # Keep the stable `test` status context required by branch protection. The matrix
+  # job has a dynamic name, so it cannot satisfy a requirement for exactly `test`.
+  test:
+    name: test
+    if: always()
+    needs: test-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the test matrix passed
+        if: needs.test-matrix.result != 'success'
+        run: exit 1
+      - name: Confirm the test matrix passed
+        run: echo "All test matrix jobs passed."
