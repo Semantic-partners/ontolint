@@ -14,10 +14,27 @@ WHERE {
   UNION
   { ?s rdfs:subClassOf ?c . }
   UNION
-  { ?s rdf:first ?c . }
+  { 
+    # Class-valued lists still require class declarations; other lists allow any type.
+    ?s rdf:first ?c .
+    FILTER (
+      NOT EXISTS { ?c a ?anytype } ||
+      EXISTS {
+        {
+          VALUES ?operator { owl:unionOf owl:intersectionOf owl:disjointUnionOf }
+          ?expression ?operator ?head .
+        }
+        UNION
+        {
+          ?expression a owl:AllDisjointClasses ; owl:members ?head .
+        }
+        ?head rdf:rest* ?s .
+      }
+    )
+  }
   UNION
   {
-	VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
+	  VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
     ?r a owl:Restriction ;
     ?restriction ?c .
   }
