@@ -15,9 +15,22 @@ WHERE {
   { ?s rdfs:subClassOf ?c . }
   UNION
   { 
-    # We don't care what is the content of a list, as long as the resource is defined somehow.
+    # Class-valued lists still require class declarations; other lists allow any type.
     ?s rdf:first ?c .
-    MINUS { ?c a ?anytype }
+    FILTER (
+      NOT EXISTS { ?c a ?anytype } ||
+      EXISTS {
+        {
+          VALUES ?operator { owl:unionOf owl:intersectionOf owl:disjointUnionOf }
+          ?expression ?operator ?head .
+        }
+        UNION
+        {
+          ?expression a owl:AllDisjointClasses ; owl:members ?head .
+        }
+        ?head rdf:rest* ?s .
+      }
+    )
   }
   UNION
   {
