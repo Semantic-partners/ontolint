@@ -130,12 +130,15 @@ NOT_SELECTED = "N/A"
 NOT_ASSESSED = "skipped"
 
 
+DISABLED = "disabled"
+
+
 def _no_score(checks, key):
     """The cell for a check with no score, or None when it has one."""
     status = checks.get(key)
     if not status:
         return NOT_SELECTED
-    return NOT_ASSESSED if status == 'skipped' else None
+    return {'skipped': NOT_ASSESSED, 'disabled': DISABLED}.get(status)
 
 
 def normalise_if_executed(metrics, checks, key, total):
@@ -245,6 +248,9 @@ def render_outcome(check, verbose=False):
     A check's section, from the parts it recorded.
 
     """
+    if check.status == 'disabled':
+        # It never ran, so it recorded nothing: the reporter says why it is here at all.
+        return f"DISABLED - {check.reason}.\n"
     out = ""
     for kind, *payload in check.body:
         if kind == 'text':
@@ -258,7 +264,7 @@ def render_outcome(check, verbose=False):
     return out
 
 
-def render_markdown(result, checklist, verbose=False):
+def render_markdown(result, verbose=False):
     """
     The Markdown body of a report, from a QAResult.
 
@@ -272,8 +278,7 @@ def render_markdown(result, checklist, verbose=False):
     log = result.inference_log
     # What each check did, not merely whether it was selected: a check that could not be
     # computed has no score to show, and a 0 would read as a clean result.
-    outcomes = {check.key: check.status for check in result.checks}
-    tests = {key: outcomes.get(key) if enabled else None for enabled, _, _, key in checklist}
+    tests = {check.key: check.status for check in result.checks}
     log += print_profiling_metrics(result.profiling, result.elements, verbose)
     log += "\n## Quality Assurance Checks\n"
     # Numbering, titling and separating a check's section is the reporter's job: the check

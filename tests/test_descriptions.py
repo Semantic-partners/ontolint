@@ -1,4 +1,3 @@
-from ontolint.registry import CHECKLIST
 from ontolint.report.markdown import render_markdown
 from ontolint.runner import run_qa
 
@@ -50,7 +49,7 @@ def test_class_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :Cat a owl:Class ; rdfs:comment "The class of all cats." .
     """)
-    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    rendered = render_markdown(run_qa(g, verbose=True), verbose=True)
     assert "The class of all cats." in rendered
 
 
@@ -77,7 +76,7 @@ def test_property_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFur a owl:ObjectProperty ; rdfs:comment "Connects to fur." .
     """)
-    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    rendered = render_markdown(run_qa(g, verbose=True), verbose=True)
     assert "Connects to fur." in rendered
 
 
@@ -103,7 +102,7 @@ def test_node_shape_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :CatShape a sh:NodeShape ; rdfs:comment "Validates cat entities." .
     """)
-    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    rendered = render_markdown(run_qa(g, verbose=True), verbose=True)
     assert "Validates cat entities." in rendered
 
 
@@ -129,5 +128,5 @@ def test_property_shape_with_rdfs_comment_verbose_is_printed(make_graph):
     g = make_graph("""
     :hasFurShape a sh:PropertyShape ; rdfs:comment "Validates fur property." .
     """)
-    rendered = render_markdown(run_qa(g, verbose=True), CHECKLIST, verbose=True)
+    rendered = render_markdown(run_qa(g, verbose=True), verbose=True)
     assert "Validates fur property." in rendered

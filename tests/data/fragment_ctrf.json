@@ -8,7 +8,8 @@
             "tests": 25,
             "passed": 14,
             "failed": 2,
-            "skipped": 9
+            "skipped": 9,
+            "other": 0
         },
         "tests": [
             {

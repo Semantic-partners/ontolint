@@ -30,18 +30,22 @@ VocabularySource: TypeAlias = rdflib.Graph | str | os.PathLike
 @dataclass
 class CheckResult:
     name: str
-    status: str                       # 'passed', 'failed' or 'skipped'
+    status: str                       # 'passed', 'failed', 'skipped' or 'disabled'
     count: int
     elements: str
     key: str = ''
     violations: list = field(default_factory=list)
-    reason: str | None = None         # why a 'skipped' check could not be computed
+    reason: str | None = None         # why a 'skipped' check could not be computed, or why
+                                      # a 'disabled' one was not run
     outcome: tuple | None = None      # (sentence, detail) a reporter renders; see decided()
     body: list = field(default_factory=list)    # the parts of its section, in order
 
     @property
     def passed(self):
-        """A check that could not be computed is not a failure, so it does not fail a build."""
+        """
+        Only a failure fails a build. A check that could not be computed, or that the
+        configuration turned off, has found nothing wrong.
+        """
         return self.status != 'failed'
 
 

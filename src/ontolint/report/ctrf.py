@@ -3,6 +3,10 @@ The CTRF report: one test per check, for CI to read.
 
 A check that could not be computed is reported as skipped, with a message naming what it
 needed, rather than as the pass its count of zero would otherwise suggest.
+
+A disabled check is not skipped: it was never run. CTRF has no status for that, so it is
+`other`, with `rawStatus: disabled` (CTRF's field for the tool's own status) and the reason
+as its message.
 """
 from datetime import datetime
 import json
@@ -13,8 +17,8 @@ from ..model import not_assessed_message, QAResult
 
 def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     """
-    A QAResult as a CTRF (Common Test Result Format) report: one test case per executed
-    check, with the run's summary. Returns the report; writing it is write_ctrf_report's
+    A QAResult as a CTRF (Common Test Result Format) report: one test case per check,
+    disabled ones included, with the run's summary. Returns the report; writing it is write_ctrf_report's
     job, so the projection can be built and inspected without touching the filesystem.
 
     date_time_provider supplies the report's timestamp. It is injected so a caller can fix
@@ -22,16 +26,19 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
     reports built over the same result differ. It is also the only way to fix it: a CTRF
     report written by the CLI carries the wall clock and is not reproducible.
     """
-    counts = {'passed': 0, 'failed': 0, 'skipped': 0}
+    counts = {'passed': 0, 'failed': 0, 'skipped': 0, 'other': 0}
     by_key = {c.key: c for c in result.checks}
     test_cases = []
 
     for check in result.checks:
         test_case = {
             "name": check.name,
-            "status": check.status
+            "status": 'other' if check.status == 'disabled' else check.status
         }
-        if check.status == 'failed':
+        if check.status == 'disabled':
+            test_case["rawStatus"] = 'disabled'
+            test_case["message"] = f"disabled: {check.reason}"
+        elif check.status == 'failed':
             test_case["failure"] = {
                 "violations": check.count,
                 "elements": check.elements
@@ -39,7 +46,7 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
         elif check.status == 'skipped':
             # Not a pass: the check could not be computed, so the 0 means nothing.
             test_case["message"] = not_assessed_message(check, by_key)
-        counts[check.status] += 1
+        counts[test_case["status"]] += 1
         test_cases.append(test_case)
     
     # Build CTRF report
@@ -53,7 +60,8 @@ def build_ctrf_report(result: QAResult, date_time_provider=datetime.now):
                 "tests": len(test_cases),
                 "passed": counts['passed'],
                 "failed": counts['failed'],
-                "skipped": counts['skipped']
+                "skipped": counts['skipped'],
+                "other": counts['other']
             },
             "tests": test_cases,
             "filesProcessed": result.profiling.get("filesProcessed", []),

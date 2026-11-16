@@ -24,6 +24,7 @@
         <https://example.org/qa#measurement-ontolint-conformance-f778ba22> ;
     prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime ;
     olq:configuration <https://example.org/qa#configuration-effective> ;
+    olq:disabled <https://example.org/qa#disabled-configuration-ttl-837c1f28> ;
     olq:notAssessed <https://example.org/qa#not-assessed-configuration-ttl-13f4b5f8>,
         <https://example.org/qa#not-assessed-configuration-ttl-6d1de1ba>,
         <https://example.org/qa#not-assessed-configuration-ttl-a0bc20a3>,
@@ -107,6 +108,12 @@
         <https://example.org/qa#setting-imports-siblings-035f9b2a>,
         <https://example.org/qa#setting-undefined-terms-skip-object-of-f449ca13> .
 
+<https://example.org/qa#disabled-configuration-ttl-837c1f28> a olq:Disabled ;
+    rdfs:comment "Disabled: listed under disable: in .rdf-lint.yml" ;
+    dqv:computedOn <https://example.org/ontology/configuration#> ;
+    olq:disabledBy <https://example.org/qa#setting-checks-e58859c1> ;
+    olq:metric <https://example.org/qa#metric-namespace-hijacking> .
+
 <https://example.org/qa#measurement-classes-missing-description-8f093ef1> a dqv:QualityMeasurement ;
     dqv:computedOn <https://example.org/ontology/configuration#> ;
     dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
@@ -147,13 +154,6 @@
     skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
     skos:prefLabel "Multiple ontologies in one file" ;
     dqv:inDimension <https://example.org/qa#dimension-metadata> ;
-    olq:severity sh:Violation .
-
-<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
-    rdfs:label "Namespace hijacking" ;
-    skos:definition "A resource is defined using an external vocabulary's namespace." ;
-    skos:prefLabel "Namespace hijacking" ;
-    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
 <https://example.org/qa#metric-non-unique-identifiers> a dqv:Metric ;
@@ -424,14 +424,6 @@
     olq:origin olq:OntolintDefault ;
     olq:value <https://example.org/qa#metric-classes-missing-label> .
 
-<https://example.org/qa#setting-checks-e58859c1> a olq:Setting ;
-    rdfs:label "checks: Namespace hijacking (disabled)" ;
-    rdfs:comment "Listed under disable:" ;
-    olq:enabled false ;
-    olq:key "checks" ;
-    olq:origin olq:ConfigFile ;
-    olq:value <https://example.org/qa#metric-namespace-hijacking> .
-
 <https://example.org/qa#setting-checks-ef28d911> a olq:Setting ;
     rdfs:label "checks: Multiple ontologies in one file (enabled)" ;
     rdfs:comment "Enabled by default" ;
@@ -695,6 +687,13 @@
     dqv:inDimension <https://example.org/qa#dimension-documentation> ;
     olq:severity sh:Warning .
 
+<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
+    rdfs:label "Namespace hijacking" ;
+    skos:definition "A resource is defined using an external vocabulary's namespace." ;
+    skos:prefLabel "Namespace hijacking" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
 <https://example.org/qa#metric-node-shapes-missing-description> a dqv:Metric ;
     rdfs:label "NodeShape without description" ;
     skos:definition "A SHACL NodeShape has no description annotation." ;
@@ -769,6 +768,14 @@
     dqv:inDimension <https://example.org/qa#dimension-conformance> ;
     olq:severity sh:Violation .
 
+<https://example.org/qa#setting-checks-e58859c1> a olq:Setting ;
+    rdfs:label "checks: Namespace hijacking (disabled)" ;
+    rdfs:comment "Listed under disable:" ;
+    olq:enabled false ;
+    olq:key "checks" ;
+    olq:origin olq:ConfigFile ;
+    olq:value <https://example.org/qa#metric-namespace-hijacking> .
+
 <https://example.org/qa#dimension-metadata> a dqv:Dimension ;
     rdfs:label "Metadata" ;
     skos:definition "The ontology declares itself and describes its purpose." ;
@@ -789,12 +796,12 @@
     skos:definition "Terms are declared, resolvable and minted in the ontology's own namespace." ;
     skos:prefLabel "Conformance" .
 
-<https://example.org/ontology/configuration#> rdfs:label "Configuration" .
-
 <https://example.org/qa#dimension-documentation> a dqv:Dimension ;
     rdfs:label "Documentation" ;
     skos:definition "Terms carry human-readable labels and descriptions." ;
     skos:prefLabel "Documentation" .
+
+<https://example.org/ontology/configuration#> rdfs:label "Configuration" .
 
 <https://example.org/qa#metric-ontology-not-declared> a dqv:Metric ;
     rdfs:label "Ontology without declaration" ;

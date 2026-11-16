@@ -19,8 +19,10 @@ profiling metrics, and the QA metrics.
 The QA metrics are normalised by the element count: a value of 0.5 for *Class without
 label* means half of the ontology's classes have no label. A value above 1 means some
 entities violate the same check more than once — several classes sharing a label under the
-same predicate, for example. A check that was not selected reads `N/A`; one that could not be
-computed is marked as skipped. For [`tests/example_failure.ttl`](../tests/example_failure.ttl):
+same predicate, for example. A check that could not be computed is marked as skipped. A check
+the configuration turned off is still listed in its place, as `DISABLED - listed under
+disable: in .rdf-lint.yml.` (or whichever reason applies), and reads `disabled` in the table.
+For [`tests/example_failure.ttl`](../tests/example_failure.ttl):
 
 ```
 ## Profiling Metrics
@@ -33,11 +35,14 @@ computed is marked as skipped. For [`tests/example_failure.ttl`](../tests/exampl
 
 [CTRF](https://ctrf.io) is a common JSON format for test results, so CI tooling that
 understands test reports can show ontolint's: one test per check, `passed`, `failed` or
-`skipped`, with the violation count and offending elements. `--per-file` writes one file per
-input, named after it.
+`skipped`, with the violation count and offending elements. A disabled check is listed too.
+CTRF has no status for a check that was never run, so it is `other`, with `rawStatus:
+"disabled"` and the reason as its `message`, and counted under the summary's `other`.
+`--per-file` writes one file per input, named after it.
 
 `ontolint-report` combines every CTRF file in a directory into one Markdown summary — what
-the GitHub Action posts as the job summary:
+the GitHub Action posts as the job summary, with passed, failed, skipped and disabled counts
+per file and each check's status:
 
 ```bash
 ontolint-report --ctrf-dir ctrf --output-path out/ctrf_report.md
@@ -91,6 +96,8 @@ What gets emitted:
 | `dqv:QualityMetadata` | `<base>assessment-<hash>` | One per run, with `prov:generatedAtTime` and `dqv:hasQualityMeasurement` linking every measurement, and `olq:configuration` linking the configuration that ran. |
 | `olq:Configuration` | `<base>configuration-<hash>` | The configuration the run actually used (see below). Identical configurations get the same IRI. |
 | `olq:Setting` | `<base>setting-<hash>` | One setting of that configuration. |
+| `olq:NotAssessed` | `<base>not-assessed-<hash>` | One per (dataset, skipped check): the check ran but could not be computed. `olq:metric`, `dqv:computedOn` and `olq:reason`. |
+| `olq:Disabled` | `<base>disabled-<hash>` | One per (dataset, disabled check): the configuration turned it off, so it was never run. `olq:metric`, `dqv:computedOn`, `rdfs:comment` with why, and `olq:disabledBy` the `olq:Setting` that turned it off. Linked from the assessment by `olq:disabled`. |
 
 - `olq:` is `https://ontolint.org/ns#`, defined in [`ontology/olq.ttl`](../ontology/olq.ttl). It covers what DQV and SHACL don't. For results, that's `olq:conforms` and `olq:violation` on measurements (`sh:conforms` and `sh:result` have the domain `sh:ValidationReport`), `olq:severity` on metrics and measurements (`sh:severity` and `sh:resultSeverity` have the domains `sh:Shape` and `sh:AbstractResult`; its values are `sh:Severity` IRIs), and `olq:relatedResource` (SHACL has no equivalent). It also describes the effective configuration (`olq:Configuration`, `olq:Setting` and friends).
 - **SHACL results:** violation nodes use the SHACL result vocabulary, so consumers can read them like a SHACL validation report. They omit `sh:sourceShape` (the checks are SPARQL queries, not shapes yet), so they are SHACL-shaped rather than strictly conforming results. The metric linked from the measurement identifies the check. Where a check can't name the offending resource (e.g. "some processed files have no `owl:Ontology`" in a merged run), the result has a message but no `sh:focusNode`.

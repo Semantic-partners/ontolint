@@ -232,6 +232,23 @@ def describe_configuration(checklist, lint_config=None, rule_reasons=None, ignor
     return settings
 
 
+def disabled_reason(setting, config_file=None):
+    """
+    Why a check did not run, as every report says it, from the setting that turned it off.
+
+    A disabled check is not a skipped one: skipped ran and could not be computed, disabled
+    was never run because the configuration said so. Named by where that came from, so a
+    reader knows which file, or which list in it, to change.
+    """
+    if setting.origin != 'config' or not config_file:
+        # Through the API, Config.checks is resolved like an enable: list, but the caller
+        # never wrote one: name what they did, not the mechanism.
+        return "not selected by the caller"
+    why = {"Listed under disable:": "listed under disable:",
+           "Not listed under enable:, so not run": "not listed under enable:"}.get(setting.reason)
+    return f"{why or 'disabled'} in {config_file}"
+
+
 def config_kwargs(config):
     """The run_qa() arguments a Config maps to, leaving the empty ones at their defaults."""
     kwargs = {}
