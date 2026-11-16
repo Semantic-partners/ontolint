@@ -12,7 +12,8 @@ import argparse
 
 TEMPLATE = Path(__file__).resolve().parent / 'templates' / 'ctrf-report.hbs'
 
-STATUS_LABELS = {'passed': "✅ PASS", 'failed': "❌ FAIL", 'skipped': "⚠️ SKIPPED"}
+STATUS_LABELS = {'passed': "✅ PASS", 'failed': "❌ FAIL", 'skipped': "⚠️ SKIPPED",
+                 'disabled': "⏸️ DISABLED"}
 
 
 def describe_status(test):
@@ -24,7 +25,8 @@ def describe_status(test):
     a check it could not compute, the template's two-way `passed` or `else` was enough, and
     a skipped check would read as a failure.
     """
-    status = test.get('status', 'other')
+    # A disabled check is CTRF `other`; its own status is what the reader needs to see.
+    status = test.get('rawStatus') if test.get('rawStatus') == 'disabled' else test.get('status', 'other')
     failure = test.get('failure') or {}
     return {
         'statusLabel': STATUS_LABELS.get(status, status),
@@ -40,12 +42,13 @@ def aggregate_ctrf_reports(ctrf_dir):
     
     if not ctrf_files:
         print(f"Warning: No CTRF JSON files found in {ctrf_dir}")
-        return reports, 0, 0, 0, 0
+        return reports, 0, 0, 0, 0, 0
     
     total_tests = 0
     total_passed = 0
     total_failed = 0
     total_skipped = 0
+    total_disabled = 0
     
     for ctrf_file in sorted(ctrf_files):
         try:
@@ -60,8 +63,13 @@ def aggregate_ctrf_reports(ctrf_dir):
             for test in ctrf_data['results']['tests']:
                 test.update(describe_status(test))
             
+            # Disabled checks are CTRF `other` with rawStatus `disabled`; counted by the
+            # latter, so `other` can never be mistaken for them.
+            disabled = sum(1 for t in ctrf_data['results']['tests'] if t.get('rawStatus') == 'disabled')
+
             report_entry = {
                 'ontologyFile': ontology_file,
+                'disabledCount': disabled,
                 'filesProcessed': ctrf_data['results'].get('filesProcessed', []),
                 'results': ctrf_data['results'],
                 'failedTests': failed_tests,
@@ -77,13 +85,14 @@ def aggregate_ctrf_reports(ctrf_dir):
             # A check that could not be computed is neither passed nor failed, and older
             # reports predate the distinction, so it defaults to none rather than failing.
             total_skipped += ctrf_data['results']['summary'].get('skipped', 0)
+            total_disabled += disabled
             
         except json.JSONDecodeError as e:
             print(f"Error parsing {ctrf_file}: {e}")
         except KeyError as e:
             print(f"Error: Missing expected key in {ctrf_file}: {e}")
     
-    return reports, total_tests, total_passed, total_failed, total_skipped
+    return reports, total_tests, total_passed, total_failed, total_skipped, total_disabled
 
 
 def simple_handlebars_render(template_content, context):
@@ -260,7 +269,7 @@ def main():
         template_content = f.read()
     
     # Aggregate reports
-    reports, total_tests, total_passed, total_failed, total_skipped = aggregate_ctrf_reports(args.ctrf_dir)
+    reports, total_tests, total_passed, total_failed, total_skipped, total_disabled = aggregate_ctrf_reports(args.ctrf_dir)
     
     if not reports:
         print("No reports to process.")
@@ -273,6 +282,7 @@ def main():
         'totalPassed': total_passed,
         'totalFailed': total_failed,
         'totalSkipped': total_skipped,
+        'totalDisabled': total_disabled,
         'generatedAt': datetime.now().isoformat()
     }
     

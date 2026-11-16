@@ -301,15 +301,21 @@ def test_main_accepts_config_flag(tmp_path):
     assert len(reports) == 1
 
 
-def test_main_disable_via_config_marks_check_as_passed_in_ctrf(tmp_path):
+def test_main_disable_via_config_lists_the_check_as_disabled_in_ctrf(tmp_path):
+    # A disabled check is listed, not dropped (#125): CTRF has no "disabled" status, so it is
+    # `other` with rawStatus `disabled` — never `skipped`, which means ran but not computable.
     import json
     cfg = tmp_path / ".rdf-lint.yml"
     cfg.write_text("disable:\n  - hijacking\n", encoding="utf-8")
-    # example_failure.ttl has Namespace hijacking violations; disabling it should not appear in results
+    # example_failure.ttl has hijacking violations, which must not be counted as a failure.
     ttl = os.path.join(TESTS_DIR, 'example_failure.ttl')
     run_main(ttl, '-c', str(cfg), '--ctrf-dir', str(tmp_path))
-    data = json.loads(list(tmp_path.glob('*.json'))[0].read_text(encoding="utf-8"))
-    assert not any(t['name'] == 'Namespace hijacking' for t in data['results']['tests'])
+    results = json.loads(list(tmp_path.glob('*.json'))[0].read_text(encoding="utf-8"))['results']
+    [entry] = [t for t in results['tests'] if t['name'] == 'Namespace hijacking']
+    assert entry['status'] == 'other' and entry['rawStatus'] == 'disabled'
+    assert entry['message'].startswith("disabled: listed under disable: in ")
+    assert 'failure' not in entry
+    assert results['summary']['other'] == 1 and results['summary']['tests'] == len(results['tests'])
 
 
 # ── config paths as shown in reports ─────────────────────────────────────────

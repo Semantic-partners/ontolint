@@ -641,14 +641,20 @@ def test_checks_selects_what_runs():
     [result] = _results({"core": _graph(":Thing a owl:Class .")},
                             Config(checks=["class-missing-label"]))
 
-    assert [c.name for c in result.checks] == ["Class without label"]
+    assert [c.name for c in result.checks if c.status != 'disabled'] == ["Class without label"]
+    # The rest are listed as disabled rather than left out (#125).
+    assert len(result.checks) == len(CHECKLIST)
+    assert {c.reason for c in result.checks if c.status == 'disabled'} == {"not selected by the caller"}
 
 
 def test_check_names_may_be_given_in_either_form():
     [result] = _results({"core": _graph(":Thing a owl:Class .")},
                             Config(checks=["check_class_missing_label"]))
 
-    assert [c.name for c in result.checks] == ["Class without label"]
+    assert [c.name for c in result.checks if c.status != 'disabled'] == ["Class without label"]
+    # The rest are listed as disabled rather than left out (#125).
+    assert len(result.checks) == len(CHECKLIST)
+    assert {c.reason for c in result.checks if c.status == 'disabled'} == {"not selected by the caller"}
 
 
 def test_an_unknown_check_is_an_error_rather_than_a_silent_no_op():

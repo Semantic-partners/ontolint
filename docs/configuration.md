@@ -26,6 +26,11 @@ Leaving `enable` out runs every check, and so does an `enable:` with nothing und
 which YAML reads as null. An explicit empty list, `enable: []`, runs **none** — and a run
 with no checks passes, even with `-e`.
 
+A check that is turned off still appears in every report, in its usual place, marked
+**disabled** with why — e.g. *listed under disable: in .rdf-lint.yml* — so a report never
+looks complete when it isn't. Disabled is not skipped: a skipped check ran and could not be
+computed.
+
 Checks are named as in the [check list](../readme.md#checks). A check that another one
 needs is turned back on, and the report says why: `owl-description`, for example, needs
 `owl-declaration`, and so does `undefined-terms`, to tell the ontology's own namespace from

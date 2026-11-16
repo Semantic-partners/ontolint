@@ -356,6 +356,21 @@ than a reporter inferring it from the log text — behaviour in prose is what th
 the kind measured exists), `olq:SourcesNotRecorded` (a per-input check given a graph that
 does not record its inputs), or **the dependency that was not met**.
 
+### A disabled check is listed, not dropped (#125)
+
+A check the configuration turns off is a fourth outcome, **`disabled`**, and is not skipped:
+skipped ran and could not be computed, disabled was never run. It used to be left out of
+the result altogether, so CTRF (and the job summary built from it) didn't mention it and
+the Markdown table showed only `N/A`: a report with a check missing looked complete.
+
+`run_qa` now gives every check in the checklist a `CheckResult`, in checklist order. A
+disabled one carries its reason, taken from the configuration setting that turned it off
+(`config.disabled_reason`): *listed under disable:* or *not listed under enable:* with the
+config file, or *not selected by the caller* through the API. Each reporter places it among
+the others: Markdown inline as `DISABLED - …`, CTRF as `other` with `rawStatus: disabled`
+(CTRF has no such status, and `skipped` would conflate the two), DQV as an `olq:Disabled`
+record per dataset that points at the `olq:Setting` responsible. It never fails a run.
+
 ### Dependencies between checks are declared, not coded
 
 Four checks need another check's condition to hold: the description and imports checks, and

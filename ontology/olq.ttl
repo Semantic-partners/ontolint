@@ -116,10 +116,29 @@ olq:notAssessed a owl:ObjectProperty ;
     rdfs:range olq:NotAssessed ;
     rdfs:isDefinedBy olq: .
 
+olq:Disabled a owl:Class ;
+    rdfs:label "disabled"@en ;
+    rdfs:comment "A metric deliberately not run for a dataset, because the configuration turned its check off. Distinct from olq:NotAssessed, where the check ran and could not be computed: a disabled check was never run at all."@en ;
+    rdfs:isDefinedBy olq: .
+
+olq:disabled a owl:ObjectProperty ;
+    rdfs:label "disabled"@en ;
+    rdfs:comment "Links a quality assessment to one record per metric its configuration turned off, so a report lists every check, including those that were not run."@en ;
+    rdfs:domain dqv:QualityMetadata ;
+    rdfs:range olq:Disabled ;
+    rdfs:isDefinedBy olq: .
+
+olq:disabledBy a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label "disabled by"@en ;
+    rdfs:comment "The setting of the effective configuration that turned the check off, which records where that came from (olq:origin) and why (rdfs:comment)."@en ;
+    rdfs:domain olq:Disabled ;
+    rdfs:range olq:Setting ;
+    rdfs:isDefinedBy olq: .
+
 olq:metric a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "metric"@en ;
-    rdfs:comment "The metric a not-assessed record is about. Used instead of dqv:isMeasurementOf, whose domain is dqv:QualityMeasurement: nothing was measured, which is the point of the record."@en ;
-    rdfs:domain olq:NotAssessed ;
+    rdfs:comment "The metric a not-assessed or disabled record is about. Used instead of dqv:isMeasurementOf, whose domain is dqv:QualityMeasurement: nothing was measured, which is the point of the record."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( olq:NotAssessed olq:Disabled ) ] ;
     rdfs:range dqv:Metric ;
     rdfs:isDefinedBy olq: ;
     rdfs:seeAlso dqv:isMeasurementOf .

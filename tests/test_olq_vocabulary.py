@@ -40,9 +40,10 @@ def _sample_report(make_graph):
     """)
     # A config that disables owl-declaration, which the owl-description check depends on, so
     # the rule re-enables it: the configuration then has settings of every origin (config
-    # file, default, bundled, rule) while every other check still runs.
+    # file, default, bundled, rule). It also disables hijacking, which stays off, so the
+    # report has a disabled check (olq:Disabled) beside the ones that ran.
     rule_reasons = {}
-    lint_config = {"disable": ["check_owl_declaration"]}
+    lint_config = {"disable": ["check_owl_declaration", "check_hijacking"]}
     checklist, _ = lint_selection(lint_config, deepcopy_list(CHECKLIST), rule_reasons)
     result = run_qa(g, uri_parser=lambda u: (_ for _ in ()).throw(Exception(u)),
                     local_imports={MISSING_IMPORT: "/nonexistent/import.ttl"},

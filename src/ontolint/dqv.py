@@ -282,6 +282,9 @@ def _add_configuration(g, base, settings, config_file=None, node_namer=None):
     setting records the .rdf-lint.yml key it corresponds to, its value, its origin (the
     config file, an ontolint default, a bundled vocabulary or an ontolint rule) and why.
     Identical configurations get the same IRI.
+
+    Returns the configuration and {check key: its setting}, so a disabled check can point
+    at the setting that turned it off.
     """
     # Describe every check's metric, including disabled checks that never ran.
     for s in settings:
@@ -297,12 +300,15 @@ def _add_configuration(g, base, settings, config_file=None, node_namer=None):
     g.add((configuration, rdflib.RDFS.label, rdflib.Literal("Effective ontolint configuration")))
     if config_file:
         g.add((configuration, OLQ.configurationFile, rdflib.Literal(config_file)))
+    check_settings = {}
     for s in settings:
         value = _setting_value(base, s)
         node = _mint(base, 'setting', configuration, s.key, value, s.origin, s.enabled, s.local_file or '',
                      s.reason or '', s.derived_from or '', node_namer=node_namer)
         g.add((configuration, OLQ.setting, node))
         g.add((node, rdflib.RDF.type, OLQ.Setting))
+        if s.key == 'checks':
+            check_settings[s.value] = node
         shown = s.label if s.key == 'checks' and s.label else value
         label = f"{s.key}: {shown}" + ("" if s.enabled is None else (" (enabled)" if s.enabled else " (disabled)"))
         g.add((node, rdflib.RDFS.label, rdflib.Literal(label)))
@@ -317,7 +323,7 @@ def _add_configuration(g, base, settings, config_file=None, node_namer=None):
             g.add((node, PROV.wasDerivedFrom, rdflib.URIRef(s.derived_from)))
         if s.reason:
             g.add((node, rdflib.RDFS.comment, rdflib.Literal(s.reason)))
-    return configuration
+    return configuration, check_settings
 
 
 def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies, node_namer=None):
@@ -436,8 +442,9 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
 
     # Configurations first: the assessment's identity includes them, so the same files
     # assessed under different configurations never share assessment or measurement IRIs.
-    configurations = [_add_configuration(g, base, r.settings, r.config_file, node_namer=node_namer)
-                      for r in results if r.settings]
+    described = {id(r): _add_configuration(g, base, r.settings, r.config_file, node_namer=node_namer)
+                 for r in results if r.settings}
+    configurations = [configuration for configuration, _ in described.values()]
     run_files = sorted(f for r in results for f in r.profiling.get('filesProcessed', []))
     assessment = _mint(base, 'assessment', stamp, *run_files, *sorted(set(configurations)), node_namer=node_namer)
     g.add((assessment, rdflib.RDF.type, DQV.QualityMetadata))
@@ -512,6 +519,24 @@ def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_o
                     g.add((node, SH.value, value))
                 for r in related:
                     g.add((node, OLQ.relatedResource, r))
+
+        # A check the configuration turned off, beside the ones that ran: never run, which
+        # is not the same as run and not computable (olq:NotAssessed, below).
+        check_settings = described.get(id(result), (None, {}))[1]
+        for check in result.checks:
+            if check.status != 'disabled' or check.key not in DQV_METRICS:
+                continue
+            m_slug, m_definition, m_dimension, m_severity = DQV_METRICS[check.key]
+            metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, m_severity)
+            node = _mint(base, 'disabled', assessment, *run_key, dataset, m_slug,
+                         node_namer=node_namer)
+            g.add((assessment, OLQ.disabled, node))
+            g.add((node, rdflib.RDF.type, OLQ.Disabled))
+            g.add((node, OLQ.metric, metric))
+            g.add((node, DQV.computedOn, dataset))
+            g.add((node, rdflib.RDFS.comment, rdflib.Literal(f"Disabled: {check.reason}")))
+            if check.key in check_settings:
+                g.add((node, OLQ.disabledBy, check_settings[check.key]))
 
         # A check that could not be computed, and why. Without this a consumer cannot tell
         # a metric that was assessed and clean from one nothing ever looked at.

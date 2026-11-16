@@ -176,9 +176,8 @@ def render_result(result):
     rather than anything the checks produced, and carrying input paths, so test_e2e_cli.py
     covers those.
     """
-    from ontolint.registry import CHECKLIST, deepcopy_list
     from ontolint.report.markdown import render_markdown
-    return render_markdown(result, deepcopy_list(CHECKLIST))
+    return render_markdown(result)
 
 
 @pytest.fixture

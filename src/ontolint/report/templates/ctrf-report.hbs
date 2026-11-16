@@ -2,12 +2,12 @@
 
 ## Summary
 
-| File | Tests | Passed | Failed | Skipped |
-|------|-------|--------|--------|---------|
-{{#each reports}}| {{ontologyFile}} | {{results.summary.tests}} | {{results.summary.passed}} | {{results.summary.failed}} | {{results.summary.skipped}} |
+| File | Tests | Passed | Failed | Skipped | Disabled |
+|------|-------|--------|--------|---------|----------|
+{{#each reports}}| {{ontologyFile}} | {{results.summary.tests}} | {{results.summary.passed}} | {{results.summary.failed}} | {{results.summary.skipped}} | {{disabledCount}} |
 {{/each}}
 
-**Total**: {{totalTests}} tests | {{totalPassed}} passed | {{totalFailed}} failed | {{totalSkipped}} skipped
+**Total**: {{totalTests}} tests | {{totalPassed}} passed | {{totalFailed}} failed | {{totalSkipped}} skipped | {{totalDisabled}} disabled
 
 ---
 

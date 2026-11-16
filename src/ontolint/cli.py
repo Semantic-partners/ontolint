@@ -72,7 +72,7 @@ def _process_loaded_graph(g, files_processed, args, config, checklist, provenanc
     result = lint_graph(g, files_processed, config, checklist=checklist,
                         verbose=args.verbose, provenance=provenance,
                         context_imports=context_imports)
-    log += render_markdown(result, checklist, args.verbose)
+    log += render_markdown(result, args.verbose)
     return log, result
 
 

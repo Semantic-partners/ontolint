@@ -1,5 +1,4 @@
 from ontolint.queries import exec_sparql
-from ontolint.registry import CHECKLIST
 from ontolint.report.markdown import render_markdown
 from ontolint.runner import run_qa
 
@@ -93,7 +92,7 @@ def test_domain_and_range_are_reported_as_two_checks(make_graph):
         rdfs:domain :Cat ;
         rdfs:range :Fur .
     """)
-    rendered = render_markdown(run_qa(g), CHECKLIST)
+    rendered = render_markdown(run_qa(g))
     assert "Check 19: Property without domain." in rendered
     assert "Check 20: Property without range." in rendered
 
@@ -240,7 +239,7 @@ def test_untyped_checks_say_the_metric_is_invalid_rather_than_passing(make_graph
     # Reporting nothing must not read as PASS: nothing was looked at. Each check says so
     # in its own log, so a reader is not told the file is clean on this point.
     g = make_graph(""":DeclaredClass a owl:Class . :Dog :chases :Cat .""")
-    rendered = render_markdown(run_qa(g), CHECKLIST)
+    rendered = render_markdown(run_qa(g))
     for word in ("class", "property"):
         expected = (f"WARNING - Ontology namespace undefined, invalid metric. No way to confirm "
                     f"if a {word} is defined in the ontology or an external vocabulary.")

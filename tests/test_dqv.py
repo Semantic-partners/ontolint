@@ -503,8 +503,8 @@ def test_settings_differing_only_in_provenance_get_distinct_iris(change):
                    reason="Bundled with ontolint; resolved offline", local_file='skos.ttl',
                    derived_from="https://ontolint.org/vocabulary-skos")
     first, second = rdflib.Graph(), rdflib.Graph()
-    a = dqv._add_configuration(first, DEFAULT_BASE_URI, [dqv.ConfigSetting(**setting)])
-    b = dqv._add_configuration(second, DEFAULT_BASE_URI, [dqv.ConfigSetting(**{**setting, **change})])
+    a, _ = dqv._add_configuration(first, DEFAULT_BASE_URI, [dqv.ConfigSetting(**setting)])
+    b, _ = dqv._add_configuration(second, DEFAULT_BASE_URI, [dqv.ConfigSetting(**{**setting, **change})])
     assert a != b
     assert set(first.objects(a, OLQ.setting)).isdisjoint(second.objects(b, OLQ.setting))
 

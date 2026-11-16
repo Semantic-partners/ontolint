@@ -12,7 +12,7 @@ import rdflib
 from . import dqv
 from .checks.metadata import check_owl_declaration, check_owl_imports
 from .checks.namespaces import check_undefined_terms
-from .config import config_kwargs, describe_configuration
+from .config import config_kwargs, describe_configuration, disabled_reason
 from .model import (body_key, CheckResult, Config, outcome_key, QAResult, records_key,
                     skipped_key)
 from .profiling import infer_subclass_relations, profiling
@@ -81,7 +81,15 @@ def run_qa(graph: rdflib.Graph, verbose: bool = False, files_processed: list | N
 
     checks = []
     num_violations = 0
+    check_settings = {s.value: s for s in settings if s.key == 'checks'}
     for enabled, func, display_name, key in checklist:
+        if not enabled:
+            # Listed in its place, so every report shows it alongside the checks that ran
+            # and says why it didn't, instead of leaving it out.
+            checks.append(CheckResult(
+                name=display_name, status='disabled', count=0, elements='', key=key,
+                reason=disabled_reason(check_settings[key], config_file)))
+            continue
         if enabled:
             kwargs = {}
             if func is check_owl_imports:
