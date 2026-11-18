@@ -1,0 +1,200 @@
+"""
+Writing the stored expectations back out, for UPDATE_GOLDEN=1.
+
+The CTRF and DQV goldens are just JSON and Turtle, so their suites serialise them inline.
+A `QAResult` and the Markdown need a little more: a Python literal that round-trips, and a
+docstring saying what the file is. Both live here rather than in a script beside the repo,
+because a generator that is not in the tree cannot be kept in step with the tests it
+writes about — the names in these headers went stale exactly that way.
+"""
+import hashlib
+import re
+from pathlib import Path
+
+from rdflib import BNode, Literal, URIRef
+
+DATA = Path(__file__).parent / 'data'
+
+QARESULT_HEADER = '''"""
+The QAResult that linting {inputs} produces, written out as data.
+
+This is the input to the reporter suites — `test_pipeline_qaresult_to_ctrf.py` and
+`test_pipeline_qaresult_to_dqv.py` take *these* instances, not ones produced by running the
+linter, so they test the projection alone: a change to what a check finds cannot break
+them, and a change to a reporter cannot be blamed on the checks.
+
+`test_pipeline_lint_to_qaresult.py` is what keeps it honest — it asserts that linting the
+input still produces this. Regenerate with:
+
+    UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_lint_to_qaresult.py
+
+and read the diff: a new check should be a deliberate addition to the expectation.
+
+`elements` is the profiling detail a verbose report lists — which vocabularies were used,
+what was deprecated — and it is stored like the rest, because the Markdown reporter is a
+projection of this instance and needs it (#101).
+"""
+
+{imports}from ontolint.dqv import ConfigSetting, Dataset, Violation
+from ontolint.model import CheckResult, QAResult
+
+EXPECTED = QAResult(
+'''
+
+def _term(value):
+    if isinstance(value, URIRef):
+        return f"URIRef({str(value)!r})"
+    if isinstance(value, BNode):
+        return f"BNode({str(value)!r})"
+    if isinstance(value, Literal):
+        if str(value.datatype) == 'http://www.w3.org/2001/XMLSchema#integer':
+            return f"Literal({int(value)})"
+        if value.datatype:
+            return f"Literal({str(value)!r}, datatype=XSD.{str(value.datatype).rsplit('#', 1)[-1]})"
+        return f"Literal({str(value)!r})"
+    return repr(value)
+
+
+def _violation(violation):
+    parts = [_term(violation.resource)]
+    if violation.comment is not None:
+        parts.append(f"comment={violation.comment!r}")
+    if violation.related:
+        parts.append("related=[" + ", ".join(_term(t) for t in violation.related) + "]")
+    if violation.value is not None:
+        parts.append(f"value={_term(violation.value)}")
+    return "Violation(" + ", ".join(parts) + ")"
+
+
+def _profiling_value(key, value, repo):
+    if key == 'fetchActivity':
+        # Sorted: fetchActivity is built by iterating a set, so dict equality passes while
+        # the file churns on every regeneration. Paths are relative to the repo root,
+        # because an absolute one matches only the machine that wrote it.
+        local = {}
+        for namespace, source in value['local'].items():
+            try:
+                local[namespace] = Path(source).resolve().relative_to(repo).as_posix()
+            except (ValueError, TypeError):
+                local[namespace] = source
+        return ("{'local': " + repr(dict(sorted(local.items())))
+                + ", 'fetched': " + repr(dict(sorted(value['fetched'].items())))
+                + ", 'failed': " + repr(sorted(value['failed'])) + "}")
+    if isinstance(value, list):
+        return "[" + ", ".join(
+            _term(v) if isinstance(v, (URIRef, BNode, Literal)) else repr(v) for v in value) + "]"
+    if isinstance(value, dict):
+        # profiling detail: a column name to the terms under it. repr() would render each
+        # as rdflib.term.URIRef(...), which the stored module does not import.
+        return "{" + ", ".join(
+            f"{k!r}: {_profiling_value(k, v, repo)}" for k, v in sorted(value.items())) + "}"
+    if isinstance(value, (URIRef, BNode, Literal)):
+        return _term(value)
+    return repr(value)
+
+
+def _inputs_phrase(names):
+    return " and ".join(f"`{n}`" for n in names) + (" together" if len(names) > 1 else "")
+
+
+def write_qaresult(case, result, inputs):
+    """Write tests/data/<case>_qaresult.py from a freshly linted result."""
+    repo = Path(__file__).resolve().parent.parent
+    body = ["    profiling={"]
+    for key, value in result.profiling.items():
+        body.append(f"        {key!r}: {_profiling_value(key, value, repo)},")
+    body.append("    },")
+    body.append("    elements={")
+    for key, value in sorted(result.elements.items()):
+        body.append(f"        {key!r}: {_profiling_value(key, value, repo)},")
+    body.append("    },")
+    body.append("    checks=[")
+    for check in result.checks:
+        body.append(f"        CheckResult(name={check.name!r}, key={check.key!r}, "
+                    f"status={check.status!r}, count={check.count},")
+        body.append(f"                    elements={check.elements!r},")
+        if check.reason:
+            body.append(f"                    reason={check.reason!r},")
+        if check.outcome:
+            body.append(f"                    outcome={check.outcome!r},")
+        if check.body:
+            body.append(f"                    body={check.body!r},")
+        if not check.violations:
+            body.append("                    violations=[]),")
+        else:
+            rendered = ",\n                        ".join(_violation(v) for v in check.violations)
+            body.append(f"                    violations=[{rendered}]),")
+    body.append("    ],")
+    body.append("    datasets=[" + ", ".join(
+        f"Dataset(iri={d.iri!r}, label={d.label!r})" for d in result.datasets) + "],")
+    body.append("    settings=[")
+    for setting in result.settings:
+        parts = [repr(setting.key), repr(setting.value), repr(setting.origin)]
+        for name in ('reason', 'enabled', 'local_file', 'derived_from', 'label'):
+            value = getattr(setting, name, None)
+            if value is not None:
+                parts.append(f"{name}={value!r}")
+        body.append("        ConfigSetting(" + ", ".join(parts) + "),")
+    body.append("    ],")
+    text = "\n".join(body) + "\n"
+
+    used = [n for n in ('XSD', 'BNode', 'Literal', 'URIRef') if f'{n}(' in text or f'={n}.' in text]
+    imports = f"from rdflib import {', '.join(used)}\n\n" if used else ""
+    path = DATA / f'{case}_qaresult.py'
+    path.write_text(QARESULT_HEADER.format(inputs=_inputs_phrase(inputs), imports=imports)
+                    + text + ")\n", encoding="utf-8")
+    return path
+
+
+def write_markdown(case, rendered, inputs):
+    """
+    Write tests/data/<case>_report.md from a freshly rendered report.
+
+    Stored as the Markdown it is, not as a string in a Python module: it is the artefact a
+    reviewer reads when a report changes, and a diff of Markdown is legible where a diff of
+    a quoted string literal is not. Nothing explains the file inside it, because anything
+    that did would be part of the expectation — see test_pipeline_qaresult_to_markdown.py.
+    """
+    path = DATA / f'{case}_report.md'
+    path.write_text(rendered, encoding="utf-8")
+    return path
+
+
+# ── naming the nodes in a stored report ───────────────────────────────────────
+
+MINTED = re.compile(r'[#/:](assessment|measurement|violation|dataset|configuration|setting|bnode)-\w{6,}$')
+
+# Which of a node's parts to name it after, per kind. The rest still go into the digest.
+NAMED_AFTER = {'measurement': -1, 'assessment': None}
+
+# A configuration is named from the whole settings list, so adding one check renamed it and
+# with it every olq:setting link — hundreds of lines saying nothing. A report has one
+# configuration per result and the goldens have one result, so a constant name is enough;
+# two differing configurations in one report would collide, which no golden has.
+CONSTANT = {'configuration': 'effective'}
+
+
+def stable_mint_id(kind, *parts):
+    """
+    A node name for the stored reports, in place of dqv.mint_id.
+
+    The real scheme hashes every part that identifies a node, and those parts nest: a
+    violation hashes its measurement, which hashes the assessment, which hashes the
+    effective configuration — which lists every check. So adding one check renamed every
+    node in every stored report, and the diff said nothing about what had changed.
+
+    This drops the parts that are themselves minted IRIs, so a node is named after what it
+    is about rather than after the run it belongs to, and prefixes a readable word. A
+    report's *content* is what these goldens are for; that the real scheme is
+    deterministic, unique per run and sensitive to the configuration is asserted directly
+    in tests/test_dqv.py, which does not use this.
+    """
+    if kind in CONSTANT:
+        return CONSTANT[kind]
+    own = [str(p) for p in parts if p not in (None, '') and not MINTED.search(str(p))]
+    digest = hashlib.sha256("\x1f".join(own).encode("utf-8")).hexdigest()[:8]
+    index = NAMED_AFTER.get(kind, 0)
+    if index is None or not own:
+        return digest
+    word = re.sub(r'[^a-zA-Z0-9]+', '-', own[index].rsplit('/', 1)[-1].rsplit('#', 1)[-1])
+    return f"{word.strip('-')[:40].lower()}-{digest}" if word.strip('-') else digest

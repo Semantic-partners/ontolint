@@ -1,0 +1,6 @@
+# Keep the test offline: resolve the import (and its namespace, for undefined-terms)
+# from a file that doesn't exist, so it is reported as unresolvable.
+imports:
+  local:
+    https://example.org/ontology/some-missing-import: does-not-exist.ttl
+    https://example.org/ontology/: does-not-exist.ttl

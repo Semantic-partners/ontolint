@@ -1,0 +1,22 @@
+# NodeShapes with the same label
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+SELECT ?label ?labelProperty (GROUP_CONCAT(DISTINCT ?ns; separator=", ") AS ?nsList)
+WHERE {
+  ?ns a sh:NodeShape .
+    # Gather all labels
+    {
+      VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+      ?ns ?labelProperty ?label
+    }
+    UNION
+    {
+      ?ns ?labelProperty ?label .
+      ?labelProperty a owl:AnnotationProperty ;
+      rdfs:subPropertyOf* rdfs:label .
+    }
+}
+GROUP BY ?label ?labelProperty
+HAVING (COUNT(DISTINCT ?ns) > 1)

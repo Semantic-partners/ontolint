@@ -1,0 +1,36 @@
+# Count the classes and properties in the current graph.
+# To avoid unbound ?p when evaluating ?c (and vice versa), 
+# two independent sub-SELECT blocks are specified, that both fire in the same solution.
+# UNION is not used as it gives two rows.
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SELECT  ?classCount ?propertyCount
+WHERE {
+ {
+   SELECT (COUNT(DISTINCT ?class) AS ?classCount)
+   WHERE {
+    VALUES ?type { owl:Class rdfs:Class }
+    ?class a ?type .
+    FILTER(isIRI(?class))
+   }
+ }
+ {
+   SELECT (COUNT(DISTINCT ?property) AS ?propertyCount)
+   WHERE {
+    {
+      VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
+      ?property a ?type .
+    }
+    UNION
+    {
+      ?property rdfs:subClassOf+ rdf:Property
+    }
+    UNION
+    {
+      ?property rdfs:subPropertyOf ?parent
+    }
+    FILTER(isIRI(?property))
+   }
+ }
+}

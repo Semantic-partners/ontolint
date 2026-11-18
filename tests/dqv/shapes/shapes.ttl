@@ -1,0 +1,24 @@
+@prefix : <https://example.org/ontology/shapes#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+# Anonymous (blank-node) property shapes. In the report they are skolemized to stable
+# <base>bnode-<hash> IRIs, derived from each shape's content, never bare blank-node ids.
+
+: a owl:Ontology ; rdfs:label "Shapes" ; rdfs:comment "SHACL shapes with anonymous property shapes." .
+
+:Dog a owl:Class ; rdfs:label "Dog" ; rdfs:comment "A dog." ; rdfs:subClassOf :Animal .
+:Animal a owl:Class ; rdfs:label "Animal" ; rdfs:comment "An animal." .
+:name a owl:DatatypeProperty ; rdfs:label "name" ; rdfs:comment "Name." ; rdfs:domain :Animal ; rdfs:range :Animal .
+:age a owl:DatatypeProperty ; rdfs:label "age" ; rdfs:comment "Age." ; rdfs:domain :Animal ; rdfs:range :Animal .
+:tail a owl:DatatypeProperty ; rdfs:label "tail" ; rdfs:comment "Tail." ; rdfs:domain :Dog ; rdfs:range :Animal .
+
+:DogShape a sh:NodeShape ;
+    rdfs:label "Dog shape" ;
+    rdfs:comment "Constraints on dogs." ;
+    sh:targetClass :Dog ;
+    sh:property
+        [ a sh:PropertyShape ; sh:path :name ; rdfs:label "required" ; rdfs:comment "Name is required." ] ,
+        [ a sh:PropertyShape ; sh:path :age ; rdfs:label "required" ; rdfs:comment "Age is required." ] ,   # same label
+        [ a sh:PropertyShape ; sh:path :tail ; rdfs:comment "Unlabelled." ] .                               # no label

@@ -1,0 +1,32 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT DISTINCT ?property ?comment
+WHERE {
+  # Gather OWL and RDFS properties.
+  {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty rdf:Property owl:AnnotationProperty }
+    ?property a ?type .
+  }
+  UNION
+  {
+    ?property rdfs:subClassOf+ rdf:Property
+  }
+  UNION
+  {
+    ?property rdfs:subPropertyOf ?parent
+  }
+  # Gather all comments
+  {
+    VALUES ?commentProperty { rdfs:comment dcterms:description skos:definition }
+    ?property ?commentProperty ?comment .
+  }
+  UNION
+  {
+    ?property ?predicate ?comment .
+    ?predicate a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:comment .
+  }
+}

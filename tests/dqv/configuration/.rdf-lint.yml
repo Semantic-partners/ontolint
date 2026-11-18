@@ -1,0 +1,16 @@
+# Exercises every kind of setting recorded in the report's effective configuration.
+disable:
+  - owl-declaration     # re-enabled by an ontolint rule: owl-description depends on it
+  - hijacking           # disabled by this file
+imports:
+  ignore:
+    - http://example.org/vendor/ns#
+  local:
+    # Overrides the bundled SKOS vocabulary for this project.
+    http://www.w3.org/2004/02/skos/core#: vocab/skos.ttl
+exclude:
+  types:
+    - rdf:PropositionForm
+undefined-terms:
+  skip-object-of:       # replaces the default list
+    - rdfs:seeAlso

@@ -1,8 +1,0 @@
-SELECT (COALESCE(AVG(?childCount), 0) AS ?avgBranchingFactor)
-WHERE {
-    SELECT ?parent (COUNT(DISTINCT ?child) AS ?childCount)
-    WHERE {
-        ?child rdfs:subClassOf ?parent .
-    }
-    GROUP BY ?parent
-}

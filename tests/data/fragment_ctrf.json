@@ -1,0 +1,137 @@
+{
+    "results": {
+        "tool": {
+            "name": "Ontology QA",
+            "version": "2025-11-17"
+        },
+        "summary": {
+            "tests": 25,
+            "passed": 14,
+            "failed": 2,
+            "skipped": 9
+        },
+        "tests": [
+            {
+                "name": "Ontology without declaration",
+                "status": "failed",
+                "failure": {
+                    "violations": 1,
+                    "elements": "**All** processed files missing ontology declaration."
+                }
+            },
+            {
+                "name": "Multiple ontologies in one file",
+                "status": "passed"
+            },
+            {
+                "name": "Ontology without description",
+                "status": "skipped",
+                "message": "not assessed: requires 'Ontology without declaration', which failed"
+            },
+            {
+                "name": "Unresolvable imports",
+                "status": "passed"
+            },
+            {
+                "name": "Undefined terms",
+                "status": "failed",
+                "failure": {
+                    "violations": 3,
+                    "elements": "https://example.org/fragment#Tool (fetch failure),<br> https://example.org/fragment#Worker (fetch failure),<br> https://example.org/fragment#usedBy (fetch failure)"
+                }
+            },
+            {
+                "name": "Class without label",
+                "status": "passed"
+            },
+            {
+                "name": "Property without label",
+                "status": "passed"
+            },
+            {
+                "name": "NodeShape without label",
+                "status": "skipped",
+                "message": "not assessed: nothing of the kind it measures is present"
+            },
+            {
+                "name": "PropertyShape without label",
+                "status": "skipped",
+                "message": "not assessed: nothing of the kind it measures is present"
+            },
+            {
+                "name": "Class without description",
+                "status": "passed"
+            },
+            {
+                "name": "Property without description",
+                "status": "passed"
+            },
+            {
+                "name": "NodeShape without description",
+                "status": "skipped",
+                "message": "not assessed: nothing of the kind it measures is present"
+            },
+            {
+                "name": "PropertyShape without description",
+                "status": "skipped",
+                "message": "not assessed: nothing of the kind it measures is present"
+            },
+            {
+                "name": "Classes with the same label",
+                "status": "passed"
+            },
+            {
+                "name": "Properties with the same label",
+                "status": "passed"
+            },
+            {
+                "name": "NodeShapes with the same label",
+                "status": "skipped",
+                "message": "not assessed: nothing of the kind it measures is present"
+            },
+            {
+                "name": "PropertyShapes with the same label",
+                "status": "skipped",
+                "message": "not assessed: nothing of the kind it measures is present"
+            },
+            {
+                "name": "Isolated classes",
+                "status": "passed"
+            },
+            {
+                "name": "Property without domain",
+                "status": "passed"
+            },
+            {
+                "name": "Property without range",
+                "status": "passed"
+            },
+            {
+                "name": "Non-unique identifiers",
+                "status": "passed"
+            },
+            {
+                "name": "Subclass Cycles",
+                "status": "passed"
+            },
+            {
+                "name": "Untyped Classes",
+                "status": "skipped",
+                "message": "not assessed: requires 'Ontology without declaration', which failed"
+            },
+            {
+                "name": "Untyped Properties",
+                "status": "skipped",
+                "message": "not assessed: requires 'Ontology without declaration', which failed"
+            },
+            {
+                "name": "Namespace hijacking",
+                "status": "passed"
+            }
+        ],
+        "filesProcessed": [
+            "fragment.ttl"
+        ],
+        "timestamp": "2026-10-15 09:30:00"
+    }
+}

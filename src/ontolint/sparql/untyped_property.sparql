@@ -1,0 +1,28 @@
+# Untyped property
+# Property without rdf:Property, owl:ObjectProperty or owl:DatatypeProperty declaration
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+SELECT DISTINCT ?property
+WHERE {
+  # Find resources used as predicates
+  ?s ?property ?o .
+
+  # exclude blank nodes
+  FILTER(isIRI(?s))
+
+  # Restrict to ontology namespace
+  OPTIONAL {
+    ?ontology a owl:Ontology .
+    BIND(STR(?ontology) AS ?ns)
+  }
+  BIND(REPLACE(STR(?property), "[^#/]*$", "") AS ?pns)
+  # An unbound ?ns means no owl:Ontology was declared, so there is no namespace to
+  # judge against: require it, and report nothing rather than everything.
+  FILTER (BOUND(?ns) && ?pns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
+  MINUS {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty rdf:Property sh:ConstraintComponent }
+    ?property a ?type .
+  }
+  MINUS { ?res a sh:Parameter ; sh:path ?property }
+}

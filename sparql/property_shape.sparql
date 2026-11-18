@@ -1,9 +1,0 @@
-SELECT (COUNT(DISTINCT ?ps) AS ?shapeCount)
-WHERE {
-    {
-     	?ps a sh:PropertyShape  
-    } UNION {
-      	?ns sh:property ?ps .
-      	FILTER(isBlank(?ps)) .
-    }
-}

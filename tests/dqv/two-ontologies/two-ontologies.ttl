@@ -1,0 +1,14 @@
+@prefix ont1: <https://example.org/ontology/one#> .
+@prefix ont2: <https://example.org/ontology/two#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# One file, two owl:Ontology declarations — the only failing case for that check, since a
+# file cannot both declare exactly one ontology and declare two (#97). Everything else
+# here is complete, so the report says one thing about this file.
+
+ont1: a owl:Ontology ; rdfs:label "One" ; rdfs:comment "First ontology." .
+ont2: a owl:Ontology ; rdfs:label "Two" ; rdfs:comment "Second ontology." .
+
+ont1:Thing a owl:Class ; rdfs:label "Thing" ; rdfs:comment "A thing." ; rdfs:subClassOf ont1:Base .
+ont1:Base a owl:Class ; rdfs:label "Base" ; rdfs:comment "The base." .

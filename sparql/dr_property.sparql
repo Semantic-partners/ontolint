@@ -1,8 +1,0 @@
-# Print Domain and Range for each property.
-SELECT DISTINCT ?property ?domain ?range
-WHERE {
-  VALUES ?type { owl:ObjectProperty owl:DatatypeProperty owl:AnnotationProperty rdf:Property }
-  ?property a ?type .
-  OPTIONAL { ?property rdfs:domain ?domain }
-  OPTIONAL { ?property rdfs:range  ?range  }
-}

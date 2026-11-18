@@ -1,0 +1,446 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix olq: <https://ontolint.org/ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/qa#assessment-4e0f1eaf> a dqv:QualityMetadata ;
+    dqv:hasQualityMeasurement <https://example.org/qa#measurement-classes-missing-description-a19977c1>,
+        <https://example.org/qa#measurement-classes-missing-label-05eff92e>,
+        <https://example.org/qa#measurement-isolated-classes-f88d7bad>,
+        <https://example.org/qa#measurement-non-unique-identifiers-a2e9df7c>,
+        <https://example.org/qa#measurement-ontolint-conformance-87b9fb4a>,
+        <https://example.org/qa#measurement-ontology-missing-description-44df50c4>,
+        <https://example.org/qa#measurement-properties-missing-domain-1b22795e>,
+        <https://example.org/qa#measurement-properties-missing-range-1b25c567>,
+        <https://example.org/qa#measurement-subclass-cycles-0f0a4cb7>,
+        <https://example.org/qa#measurement-undefined-terms-84dd4f37>,
+        <https://example.org/qa#measurement-untyped-classes-8ed02218> ;
+    prov:generatedAtTime "2026-09-21T14:13:20+00:00"^^xsd:dateTime ;
+    olq:notAssessed <https://example.org/qa#not-assessed-mixed-ttl-19acf7ec>,
+        <https://example.org/qa#not-assessed-mixed-ttl-374b78ec>,
+        <https://example.org/qa#not-assessed-mixed-ttl-6b67ecd2>,
+        <https://example.org/qa#not-assessed-mixed-ttl-a6db1b62>,
+        <https://example.org/qa#not-assessed-mixed-ttl-b16b03ed>,
+        <https://example.org/qa#not-assessed-mixed-ttl-cbc146f4> .
+
+<https://example.org/qa#dependency-metric-ontology-missing-description-99fb3c38> a olq:Dependency ;
+    rdfs:comment "A description is read off the declared owl:Ontology, so there is none to read without one." ;
+    olq:dependent <https://example.org/qa#metric-ontology-missing-description> ;
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
+
+<https://example.org/qa#dependency-metric-unresolvable-imports-b81fcda7> a olq:Dependency ;
+    rdfs:comment "owl:imports statements are read off the declared owl:Ontology." ;
+    olq:dependent <https://example.org/qa#metric-unresolvable-imports> ;
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
+
+<https://example.org/qa#dependency-metric-untyped-classes-06450b30> a olq:Dependency ;
+    rdfs:comment "Without a declared namespace, a class of the ontology's own cannot be told from an external vocabulary's." ;
+    olq:dependent <https://example.org/qa#metric-untyped-classes> ;
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
+
+<https://example.org/qa#dependency-metric-untyped-properties-2bfd47c0> a olq:Dependency ;
+    rdfs:comment "Without a declared namespace, a property of the ontology's own cannot be told from an external vocabulary's." ;
+    olq:dependent <https://example.org/qa#metric-untyped-properties> ;
+    olq:prerequisite <https://example.org/qa#metric-ontology-not-declared> .
+
+<https://example.org/qa#metric-classes-same-label> a dqv:Metric ;
+    rdfs:label "Classes with the same label" ;
+    skos:definition "Two or more classes share a label in the same language and with the same predicate." ;
+    skos:prefLabel "Classes with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-multiple-ontologies-in-one-file> a dqv:Metric ;
+    rdfs:label "Multiple ontologies in one file" ;
+    skos:definition "A single input declares more than one owl:Ontology; one file, one ontology." ;
+    skos:prefLabel "Multiple ontologies in one file" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-namespace-hijacking> a dqv:Metric ;
+    rdfs:label "Namespace hijacking" ;
+    skos:definition "A resource is defined using an external vocabulary's namespace." ;
+    skos:prefLabel "Namespace hijacking" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-missing-description> a dqv:Metric ;
+    rdfs:label "Property without description" ;
+    skos:definition "A property has no description annotation." ;
+    skos:prefLabel "Property without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-missing-label> a dqv:Metric ;
+    rdfs:label "Property without label" ;
+    skos:definition "A property has no label annotation." ;
+    skos:prefLabel "Property without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-properties-same-label> a dqv:Metric ;
+    rdfs:label "Properties with the same label" ;
+    skos:definition "Two or more properties share a label in the same language and with the same predicate." ;
+    skos:prefLabel "Properties with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#measurement-classes-missing-description-a19977c1> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-description> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-measurement-classes-missing-description--199b18e7> .
+
+<https://example.org/qa#measurement-classes-missing-label-05eff92e> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-classes-missing-label> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-classes-missing-label-05eff9-9ac95a4c> .
+
+<https://example.org/qa#measurement-isolated-classes-f88d7bad> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-isolated-classes> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-measurement-isolated-classes-f88d7bad-37230c8a> .
+
+<https://example.org/qa#measurement-non-unique-identifiers-a2e9df7c> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-non-unique-identifiers> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-non-unique-identifiers-a2e9d-6831f3be> .
+
+<https://example.org/qa#measurement-ontolint-conformance-87b9fb4a> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontolint-conformance> ;
+    dqv:value 10 ;
+    olq:conforms false .
+
+<https://example.org/qa#measurement-ontology-missing-description-44df50c4> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-ontology-missing-description> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-ontology-missing-description-a2d6c9c1> .
+
+<https://example.org/qa#measurement-properties-missing-domain-1b22795e> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-domain> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-measurement-properties-missing-domain-1b-20ca4e6c>,
+        <https://example.org/qa#violation-measurement-properties-missing-domain-1b-befea89e> .
+
+<https://example.org/qa#measurement-properties-missing-range-1b25c567> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-properties-missing-range> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Warning ;
+    olq:violation <https://example.org/qa#violation-measurement-properties-missing-range-1b2-7e1774e0>,
+        <https://example.org/qa#violation-measurement-properties-missing-range-1b2-efe2d08c> .
+
+<https://example.org/qa#measurement-subclass-cycles-0f0a4cb7> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-subclass-cycles> ;
+    dqv:value 2 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-subclass-cycles-0f0a4cb7-46b9416f>,
+        <https://example.org/qa#violation-measurement-subclass-cycles-0f0a4cb7-bc3fe37d> .
+
+<https://example.org/qa#measurement-undefined-terms-84dd4f37> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-undefined-terms> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-undefined-terms-84dd4f37-210f20eb> .
+
+<https://example.org/qa#measurement-untyped-classes-8ed02218> a dqv:QualityMeasurement ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    dqv:isMeasurementOf <https://example.org/qa#metric-untyped-classes> ;
+    dqv:value 1 ;
+    olq:conforms false ;
+    olq:severity sh:Violation ;
+    olq:violation <https://example.org/qa#violation-measurement-untyped-classes-8ed02218-e6287ac1> .
+
+<https://example.org/qa#metric-classes-missing-description> a dqv:Metric ;
+    rdfs:label "Class without description" ;
+    skos:definition "A class has no description annotation." ;
+    skos:prefLabel "Class without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-classes-missing-label> a dqv:Metric ;
+    rdfs:label "Class without label" ;
+    skos:definition "A class has no label annotation." ;
+    skos:prefLabel "Class without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-isolated-classes> a dqv:Metric ;
+    rdfs:label "Isolated classes" ;
+    skos:definition "A class is declared but not connected to the rest of the ontology." ;
+    skos:prefLabel "Isolated classes" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-node-shapes-missing-description> a dqv:Metric ;
+    rdfs:label "NodeShape without description" ;
+    skos:definition "A SHACL NodeShape has no description annotation." ;
+    skos:prefLabel "NodeShape without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-node-shapes-missing-label> a dqv:Metric ;
+    rdfs:label "NodeShape without label" ;
+    skos:definition "A SHACL NodeShape has no label annotation." ;
+    skos:prefLabel "NodeShape without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-node-shapes-same-label> a dqv:Metric ;
+    rdfs:label "NodeShapes with the same label" ;
+    skos:definition "Two or more SHACL NodeShapes share a label in the same language and with the same predicate." ;
+    skos:prefLabel "NodeShapes with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-non-unique-identifiers> a dqv:Metric ;
+    rdfs:label "Non-unique identifiers" ;
+    skos:definition "The same IRI is declared as more than one kind of class or property." ;
+    skos:prefLabel "Non-unique identifiers" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-ontolint-conformance> a dqv:Metric ;
+    rdfs:label "Ontolint conformance" ;
+    skos:definition "Number of ontolint checks that failed for the dataset; 0 means every executed check passed." ;
+    skos:prefLabel "Ontolint conformance" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> .
+
+<https://example.org/qa#metric-properties-missing-domain> a dqv:Metric ;
+    rdfs:label "Property without domain" ;
+    skos:definition "A property has no rdfs:domain." ;
+    skos:prefLabel "Property without domain" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-properties-missing-range> a dqv:Metric ;
+    rdfs:label "Property without range" ;
+    skos:definition "A property has no rdfs:range." ;
+    skos:prefLabel "Property without range" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-property-shapes-missing-description> a dqv:Metric ;
+    rdfs:label "PropertyShape without description" ;
+    skos:definition "A SHACL PropertyShape has no description annotation." ;
+    skos:prefLabel "PropertyShape without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Warning .
+
+<https://example.org/qa#metric-property-shapes-missing-label> a dqv:Metric ;
+    rdfs:label "PropertyShape without label" ;
+    skos:definition "A SHACL PropertyShape has no label annotation." ;
+    skos:prefLabel "PropertyShape without label" ;
+    dqv:inDimension <https://example.org/qa#dimension-documentation> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-property-shapes-same-label> a dqv:Metric ;
+    rdfs:label "PropertyShapes with the same label" ;
+    skos:definition "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate." ;
+    skos:prefLabel "PropertyShapes with the same label" ;
+    dqv:inDimension <https://example.org/qa#dimension-uniqueness> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-subclass-cycles> a dqv:Metric ;
+    rdfs:label "Subclass Cycles" ;
+    skos:definition "A class is involved in an rdfs:subClassOf cycle." ;
+    skos:prefLabel "Subclass Cycles" ;
+    dqv:inDimension <https://example.org/qa#dimension-structure> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-undefined-terms> a dqv:Metric ;
+    rdfs:label "Undefined terms" ;
+    skos:definition "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched)." ;
+    skos:prefLabel "Undefined terms" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-unresolvable-imports> a dqv:Metric ;
+    rdfs:label "Unresolvable imports" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
+    skos:definition "An owl:imports target could not be resolved or contains no triples." ;
+    skos:prefLabel "Unresolvable imports" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-untyped-properties> a dqv:Metric ;
+    rdfs:label "Untyped Properties" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
+    skos:definition "A term in the ontology namespace is used as a property but not declared as one." ;
+    skos:prefLabel "Untyped Properties" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#not-assessed-mixed-ttl-19acf7ec> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    olq:metric <https://example.org/qa#metric-node-shapes-missing-description> ;
+    olq:reason olq:EmptyPopulation .
+
+<https://example.org/qa#not-assessed-mixed-ttl-374b78ec> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    olq:metric <https://example.org/qa#metric-property-shapes-missing-description> ;
+    olq:reason olq:EmptyPopulation .
+
+<https://example.org/qa#not-assessed-mixed-ttl-6b67ecd2> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    olq:metric <https://example.org/qa#metric-property-shapes-same-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<https://example.org/qa#not-assessed-mixed-ttl-a6db1b62> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    olq:metric <https://example.org/qa#metric-node-shapes-missing-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<https://example.org/qa#not-assessed-mixed-ttl-b16b03ed> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    olq:metric <https://example.org/qa#metric-node-shapes-same-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<https://example.org/qa#not-assessed-mixed-ttl-cbc146f4> a olq:NotAssessed ;
+    dqv:computedOn <https://example.org/ontology/mixed#> ;
+    olq:metric <https://example.org/qa#metric-property-shapes-missing-label> ;
+    olq:reason olq:EmptyPopulation .
+
+<https://example.org/qa#violation-measurement-classes-missing-description--199b18e7> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Cat> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-classes-missing-label-05eff9-9ac95a4c> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Cat> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-isolated-classes-f88d7bad-37230c8a> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Orphan> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-non-unique-identifiers-a2e9d-6831f3be> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
+    sh:resultMessage "declared as owl#Class, owl#ObjectProperty" ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-ontology-missing-description-a2d6c9c1> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-properties-missing-domain-1b-20ca4e6c> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-properties-missing-domain-1b-befea89e> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#weight> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-properties-missing-range-1b2-7e1774e0> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Animal> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-properties-missing-range-1b2-efe2d08c> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#weight> ;
+    sh:resultSeverity sh:Warning ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-subclass-cycles-0f0a4cb7-46b9416f> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Egg> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-subclass-cycles-0f0a4cb7-bc3fe37d> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Chicken> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-undefined-terms-84dd4f37-210f20eb> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Food> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#violation-measurement-untyped-classes-8ed02218-e6287ac1> a sh:ValidationResult ;
+    sh:focusNode <https://example.org/ontology/mixed#Food> ;
+    sh:resultSeverity sh:Violation ;
+    sh:sourceConstraintComponent sh:SPARQLConstraintComponent .
+
+<https://example.org/qa#metric-ontology-missing-description> a dqv:Metric ;
+    rdfs:label "Ontology without description" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
+    skos:definition "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description." ;
+    skos:prefLabel "Ontology without description" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#metric-untyped-classes> a dqv:Metric ;
+    rdfs:label "Untyped Classes" ;
+    dcterms:requires <https://example.org/qa#metric-ontology-not-declared> ;
+    skos:definition "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class." ;
+    skos:prefLabel "Untyped Classes" ;
+    dqv:inDimension <https://example.org/qa#dimension-conformance> ;
+    olq:severity sh:Violation .
+
+<https://example.org/qa#dimension-metadata> a dqv:Dimension ;
+    rdfs:label "Metadata" ;
+    skos:definition "The ontology declares itself and describes its purpose." ;
+    skos:prefLabel "Metadata" .
+
+<https://example.org/qa#dimension-structure> a dqv:Dimension ;
+    rdfs:label "Structure" ;
+    skos:definition "Terms are connected into a well-formed hierarchy with domains and ranges." ;
+    skos:prefLabel "Structure" .
+
+<https://example.org/qa#dimension-uniqueness> a dqv:Dimension ;
+    rdfs:label "Uniqueness" ;
+    skos:definition "Labels and identifiers unambiguously denote a single term." ;
+    skos:prefLabel "Uniqueness" .
+
+<https://example.org/qa#dimension-conformance> a dqv:Dimension ;
+    rdfs:label "Conformance" ;
+    skos:definition "Terms are declared, resolvable and minted in the ontology's own namespace." ;
+    skos:prefLabel "Conformance" .
+
+<https://example.org/qa#dimension-documentation> a dqv:Dimension ;
+    rdfs:label "Documentation" ;
+    skos:definition "Terms carry human-readable labels and descriptions." ;
+    skos:prefLabel "Documentation" .
+
+<https://example.org/qa#metric-ontology-not-declared> a dqv:Metric ;
+    rdfs:label "Ontology without declaration" ;
+    skos:definition "A processed file has no owl:Ontology declaration." ;
+    skos:prefLabel "Ontology without declaration" ;
+    dqv:inDimension <https://example.org/qa#dimension-metadata> ;
+    olq:severity sh:Violation .
+
+<https://example.org/ontology/mixed#> rdfs:label "Mixed" .
+

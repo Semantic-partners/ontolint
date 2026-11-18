@@ -1,8 +1,10 @@
 @prefix : <http://my.ont.example#> .
+@prefix ex: <http://example.org/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 :Animal a rdfs:Class ;
     rdfs:label "Animal" ;
@@ -50,7 +52,8 @@
 
 : a owl:Ontology ;
     rdfs:label "Animal Ontology" ;
-    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en .
+    rdfs:comment "A collection of loose concepts to verify the Quality Assurance workflow."@en ;
+    owl:imports <http://example.org/> , <http://www.ignored.com> .
 
 :AnimalShape a sh:NodeShape ;
     rdfs:comment "Make sure the entity belongs to the animal kingdom." ;
@@ -63,6 +66,9 @@
 
 :Fuffy a :Dog ;
     rdfs:label "Fuffy the Puddle" .
+
+:Geck a ex:Reptiles ;
+    rdfs:label "Geck the Gecko" .
 
 :ShrimpShape a sh:NodeShape ;
     rdfs:label "Shrimp" ;
@@ -120,3 +126,37 @@
     rdfs:label "Shrimp" ;
     rdfs:comment "The class of all Shrimps" ;
     rdfs:subClassOf :Animal .
+
+# Edge cases: isolated element
+:PetName a owl:Class ;
+    rdfs:label "Pet Name" ;
+    rdfs:comment "The name of a pet. Not an isolated class!" .
+
+:hasName a owl:ObjectProperty ;
+    rdfs:label "has Name" ;
+    rdfs:comment "If an animal has a name, than it's a pet." ;
+    rdfs:domain :Animal ;
+    rdfs:range [
+        a owl:Class ;
+        owl:unionOf ( rdfs:Literal xsd:string :PetName ) ;
+    ] .
+
+:ObiWan a :PetName, owl:NamedIndividual .
+
+:hasPart a owl:ObjectProperty ;
+    rdfs:label "has Part" ;
+    rdfs:comment "Basic Parthood relation" ;
+    rdfs:domain owl:Thing ;
+    rdfs:range owl:Thing .
+
+:Pond a owl:Class ;
+    rdfs:label "Pond" ;
+    rdfs:comment "A region holding freshwater for most time of the year." .
+
+:FreshwaterEcosystem a owl:Class ;
+    rdfs:label "Freshwater Ecosystem" ;
+    rdfs:comment "A geographical area where interactions between living beings form an interconnected and inter-dependent web characterised by the presence of freshwater." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+                        owl:onProperty :hasPart ;
+                        owl:someValuesFrom :Pond 
+                    ] .

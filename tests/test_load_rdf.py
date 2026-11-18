@@ -3,7 +3,7 @@ Tests for the load_rdf() and load_rdf_file() functions in ontology_qa.py
 """
 import os
 import rdflib
-from scripts.ontology_qa import load_rdf, load_rdf_file
+from ontolint.loading import load_rdf, load_rdf_file
 
 TESTS_DIR = os.path.join(os.path.dirname(__file__))
 
@@ -16,7 +16,7 @@ def test_direct_load_single_turtle_file(tmp_path):
     file.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     success, file_graph, log_msg = load_rdf_file(str(file))
     assert success
     assert len(file_graph) > 0
@@ -33,7 +33,7 @@ def test_direct_load_single_rdfxml_file(tmp_path):
             <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
         </rdf:Description>
     </rdf:RDF>
-    """)
+    """, encoding="utf-8")
     success, file_graph, log_msg = load_rdf_file(str(file))
     assert success
     assert len(file_graph) > 0
@@ -53,7 +53,7 @@ def test_direct_load_nonexistent_file(tmp_path):
 def test_direct_load_file_with_syntax_error(tmp_path):
     """Test loading a file with invalid RDF syntax directly"""
     file = tmp_path / "bad.ttl"
-    file.write_text("this is not valid turtle syntax @@@ !!!")
+    file.write_text("this is not valid turtle syntax @@@ !!!", encoding="utf-8")
     success, file_graph, log_msg = load_rdf_file(str(file))
     assert not success
     assert len(file_graph) == 0
@@ -71,8 +71,8 @@ def test_load_single_turtle_file(tmp_path):
     file.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
-    file_counter, files_processed, graph, log_results = load_rdf([str(file)])
+    """, encoding="utf-8")
+    file_counter, files_processed, graph, log_results, _, _ = load_rdf([str(file)])
     assert file_counter == 1
     assert len(files_processed) == 1
     assert str(file) in files_processed[0]
@@ -90,8 +90,8 @@ def test_load_single_rdfxml_file(tmp_path):
             <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
         </rdf:Description>
     </rdf:RDF>
-    """)
-    file_counter, files_processed, graph, log_results = load_rdf([str(file)])
+    """, encoding="utf-8")
+    file_counter, files_processed, graph, log_results, _, _ = load_rdf([str(file)])
     assert file_counter == 1
     assert len(files_processed) == 1
     assert len(graph) > 0
@@ -99,29 +99,29 @@ def test_load_single_rdfxml_file(tmp_path):
     assert str(file) in log_results
 
 def test_load_nonexistent_file(tmp_path):
-    """Test loading a nonexistent file"""
+    """Test loading a nonexistent file is reported as a failure"""
     file = tmp_path / "nonexistent.ttl"
-    file_counter, files_processed, graph, log_results = load_rdf([str(file)])
+    file_counter, files_processed, graph, log_results, files_failed, _ = load_rdf([str(file)])
     assert file_counter == 0
     assert len(files_processed) == 0
     assert len(graph) == 0
-    assert "Loading data from:" not in log_results
-    assert str(file) not in log_results
+    assert files_failed == [str(file)]
+    assert "ERROR" in log_results
 
 def test_load_file_with_syntax_error(tmp_path):
     """Test loading a file with invalid RDF syntax"""
     file = tmp_path / "bad.ttl"
-    file.write_text("this is not valid turtle syntax @@@ !!!")
-    file_counter, files_processed, graph, log_results = load_rdf([str(file)])
+    file.write_text("this is not valid turtle syntax @@@ !!!", encoding="utf-8")
+    file_counter, files_processed, graph, log_results, files_failed, _ = load_rdf([str(file)])
     assert file_counter == 0
     assert len(files_processed) == 0
     assert len(graph) == 0
-    assert "Loading data from:" not in log_results
-    assert str(file) not in log_results
+    assert files_failed == [str(file)]
+    assert "Failed to parse" in log_results
 
 def test_empty_input_returns_empty_graph():
     """Test that empty input returns an empty graph"""
-    file_counter, files_processed, graph, _ = load_rdf([])
+    file_counter, files_processed, graph, _, _, _ = load_rdf([])
     assert file_counter == 0
     assert len(files_processed) == 0
     assert len(graph) == 0
@@ -134,13 +134,13 @@ def test_load_multiple_files(tmp_path):
     file1.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     file2 = tmp_path / "test2.ttl"
     file2.write_text("""
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
-    """)
-    file_counter, files_processed, graph, _ = load_rdf([str(file1), str(file2)])
+    """, encoding="utf-8")
+    file_counter, files_processed, graph, _, _, _ = load_rdf([str(file1), str(file2)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -151,18 +151,19 @@ def test_load_mixed_valid_and_invalid_files(tmp_path):
     valid_file.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     invalid_file = tmp_path / "invalid.ttl"
-    invalid_file.write_text("not valid turtle @@@ !!!")
+    invalid_file.write_text("not valid turtle @@@ !!!", encoding="utf-8")
     
-    file_counter, files_processed, graph, log_results = load_rdf([str(valid_file), str(invalid_file)])
+    file_counter, files_processed, graph, log_results, files_failed, _ = load_rdf([str(valid_file), str(invalid_file)])
     assert file_counter == 1
     assert len(files_processed) == 1
     assert str(valid_file) in files_processed[0]
     assert len(graph) > 0
-    # Test that non-verbose mode only includes logs for successful files
+    assert files_failed == [str(invalid_file)]
+    # Parse failures are logged even in non-verbose mode
     assert str(valid_file) in log_results
-    assert str(invalid_file) not in log_results
+    assert f"Failed to parse {invalid_file}" in log_results
 
 def test_load_multiple_files_graph_merges(tmp_path):
     """Test that classes from multiple files are present in the merged graph"""
@@ -171,14 +172,14 @@ def test_load_multiple_files_graph_merges(tmp_path):
     @prefix : <http://example.org#> .
     @prefix owl: <http://www.w3.org/2002/07/owl#> .
     :Cat a owl:Class .
-    """)
+    """, encoding="utf-8")
     file2 = tmp_path / "test2.ttl"
     file2.write_text("""
     @prefix : <http://example.org#> .
     @prefix owl: <http://www.w3.org/2002/07/owl#> .
     :Dog a owl:Class .
-    """)
-    _, _, graph, _ = load_rdf([str(file1), str(file2)])
+    """, encoding="utf-8")
+    _, _, graph, _, _, _ = load_rdf([str(file1), str(file2)])
     namespace = rdflib.Namespace("http://example.org#")
     assert (namespace.Cat, rdflib.RDF.type, rdflib.OWL.Class) in graph
     assert (namespace.Dog, rdflib.RDF.type, rdflib.OWL.Class) in graph
@@ -192,13 +193,13 @@ def test_load_from_directory(tmp_path):
     file1.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     file2 = tmp_path / "test2.ttl"
     file2.write_text("""
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
-    """)
-    file_counter, files_processed, graph, _ = load_rdf([str(tmp_path)])
+    """, encoding="utf-8")
+    file_counter, files_processed, graph, _, _, _ = load_rdf([str(tmp_path)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -211,13 +212,13 @@ def test_load_from_nested_directory(tmp_path):
     file1.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     file2 = subdir / "test2.ttl"
     file2.write_text("""
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
-    """)
-    file_counter, files_processed, graph, _ = load_rdf([str(tmp_path)])
+    """, encoding="utf-8")
+    file_counter, files_processed, graph, _, _, _ = load_rdf([str(tmp_path)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -226,24 +227,58 @@ def test_load_empty_directory(tmp_path):
     """Test loading from an empty directory"""
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
-    file_counter, files_processed, graph, _ = load_rdf([str(empty_dir)])
+    file_counter, files_processed, graph, _, _, _ = load_rdf([str(empty_dir)])
     assert file_counter == 0
     assert len(files_processed) == 0
     assert len(graph) == 0
 
 def test_load_directory_ignores_non_files(tmp_path):
-    """Test that non-RDF files are attempted to load but fail gracefully"""
+    """Test that files without an RDF extension are skipped when walking a directory"""
     file = tmp_path / "test.ttl"
     file.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     txt_file = tmp_path / "readme.txt"
-    txt_file.write_text("This is not an RDF file")
-    file_counter, files_processed, graph, _ = load_rdf([str(tmp_path)])
-    # Only the TTL file should load successfully
+    txt_file.write_text("This is not an RDF file", encoding="utf-8")
+    file_counter, files_processed, _, _, files_failed, _ = load_rdf([str(tmp_path)])
+    # Only the TTL file is attempted; readme.txt is skipped, not failed
     assert file_counter == 1
     assert len(files_processed) == 1
+    assert files_failed == []
+
+
+def test_load_directory_order_is_deterministic(tmp_path):
+    """Test that files are loaded in sorted order, including across nested directories"""
+    ttl = """
+    @prefix : <http://example.org#> .
+    :Cat a <http://www.w3.org/2002/07/owl#Class> .
+    """
+    # Create directories out of alphabetical order
+    for d in ["c", "a", "b"]:
+        (tmp_path / d).mkdir()
+        (tmp_path / d / "z.ttl").write_text(ttl, encoding="utf-8")
+        (tmp_path / d / "y.ttl").write_text(ttl, encoding="utf-8")
+    (tmp_path / "top.ttl").write_text(ttl, encoding="utf-8")
+    _, files_processed, _, _, _, _ = load_rdf([str(tmp_path)])
+    expected = [str(tmp_path / "top.ttl")] + [
+        str(tmp_path / d / f) for d in ["a", "b", "c"] for f in ["y.ttl", "z.ttl"]
+    ]
+    assert files_processed == expected
+
+
+def test_load_directory_reports_unparseable_rdf_file(tmp_path):
+    """Test that an RDF-extension file in a directory that fails to parse is reported"""
+    good = tmp_path / "good.ttl"
+    good.write_text("""
+    @prefix : <http://example.org#> .
+    :Cat a <http://www.w3.org/2002/07/owl#Class> .
+    """, encoding="utf-8")
+    bad = tmp_path / "bad.ttl"
+    bad.write_text("not valid turtle @@@ !!!", encoding="utf-8")
+    file_counter, _, _, _, files_failed, _ = load_rdf([str(tmp_path)])
+    assert file_counter == 1
+    assert files_failed == [str(bad)]
 
 def test_load_mixed_files_and_directories(tmp_path):
     """Test loading a mix of file and directory paths"""
@@ -254,19 +289,19 @@ def test_load_mixed_files_and_directories(tmp_path):
     dir_file.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     # Create a file outside the directory
     outer_file = tmp_path / "outer_file.ttl"
     outer_file.write_text("""
     @prefix : <http://example.org#> .
     :Dog a <http://www.w3.org/2002/07/owl#Class> .
-    """)
-    file_counter, files_processed, graph, _ = load_rdf([str(outer_file), str(subdir)])
+    """, encoding="utf-8")
+    file_counter, files_processed, graph, _, _, _ = load_rdf([str(outer_file), str(subdir)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
     # Repeat, but navigating the directory.
-    file_counter, files_processed, graph, _ = load_rdf([str(tmp_path)])
+    file_counter, files_processed, graph, _, _, _ = load_rdf([str(tmp_path)])
     assert file_counter == 2
     assert len(files_processed) == 2
     assert len(graph) >= 2
@@ -277,7 +312,7 @@ def test_load_mixed_files_and_directories(tmp_path):
 def test_verbose_mode_nonexistent_file(tmp_path):
     """Test loading a file file"""
     file = tmp_path / "nonexistent.ttl"
-    _, _, _, log_results = load_rdf([str(file)], verbose=True)
+    _, _, _, log_results, _, _ = load_rdf([str(file)], verbose=True)
     assert "Loading data from:" in log_results
     assert str(file) in log_results
     assert "Failed to parse" in log_results
@@ -285,8 +320,8 @@ def test_verbose_mode_nonexistent_file(tmp_path):
 def test_verbose_mode_file_with_syntax_error(tmp_path):
     """Test loading a file with invalid RDF syntax"""
     file = tmp_path / "bad.ttl"
-    file.write_text("this is not valid turtle syntax @@@ !!!")
-    _, _, _, log_results = load_rdf([str(file)], verbose=True)
+    file.write_text("this is not valid turtle syntax @@@ !!!", encoding="utf-8")
+    _, _, _, log_results, _, _ = load_rdf([str(file)], verbose=True)
     assert "Loading data from:" in log_results
     assert str(file) in log_results
     assert "Failed to parse" in log_results
@@ -298,10 +333,10 @@ def test_verbose_mode_includes_all_logs(tmp_path):
     valid_file.write_text("""
     @prefix : <http://example.org#> .
     :Cat a <http://www.w3.org/2002/07/owl#Class> .
-    """)
+    """, encoding="utf-8")
     invalid_file = tmp_path / "invalid.ttl"
-    invalid_file.write_text("not valid turtle @@@ !!!")
-    _, _, _, log_results = load_rdf([str(valid_file), str(invalid_file)], verbose=True)
+    invalid_file.write_text("not valid turtle @@@ !!!", encoding="utf-8")
+    _, _, _, log_results, _, _ = load_rdf([str(valid_file), str(invalid_file)], verbose=True)
     assert str(valid_file) in log_results
     assert str(invalid_file) in log_results
     assert "Bad syntax" in log_results
@@ -316,10 +351,95 @@ def test_namespace_binding_preserved(tmp_path):
     @prefix ex: <http://example.org#> .
     @prefix custom: <http://custom.org#> .
     ex:Cat a ex:Class .
-    """)
-    _, _, graph, _ = load_rdf([str(file1)])
+    """, encoding="utf-8")
+    _, _, graph, _, _, _ = load_rdf([str(file1)])
     # Check that namespaces are bound
     namespaces = dict(graph.namespace_manager.namespaces())
     assert any("example.org" in str(ns) for ns in namespaces.values())
     assert any("custom.org" in str(ns) for ns in namespaces.values())
+
+
+# --- Provenance: one named graph per file ---------------------------------------------
+#
+# The point of loading into a Dataset rather than merging into one Graph. A merge answers
+# "is this triple present"; a Dataset answers "which file put it there", which is what a
+# finding has to name (#96).
+
+TWO_CLASSES = """
+@prefix : <http://example.org#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+:Shared a owl:Class .
+"""
+
+
+def _two_files(tmp_path, first_extra="", second_extra=""):
+    one, two = tmp_path / "one.ttl", tmp_path / "two.ttl"
+    one.write_text(TWO_CLASSES + first_extra, encoding="utf-8")
+    two.write_text(TWO_CLASSES + second_extra, encoding="utf-8")
+    return one, two
+
+
+def test_each_file_gets_its_own_named_graph(tmp_path):
+    one, two = _two_files(tmp_path, ":A a owl:Class .", ":B a owl:Class .")
+
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    named = {str(g.identifier) for g in dataset.graphs() if len(g)}
+    assert named == {one.resolve().as_uri(), two.resolve().as_uri()}
+
+
+def test_a_term_can_be_traced_to_the_file_that_defines_it(tmp_path):
+    one, two = _two_files(tmp_path, ":A a owl:Class .", ":B a owl:Class .")
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    defined_in = {str(c) for _, _, _, c in
+                  dataset.quads((rdflib.URIRef("http://example.org#B"), None, None, None))}
+
+    assert defined_in == {two.resolve().as_uri()}
+
+
+def test_a_triple_in_two_files_keeps_both_sources(tmp_path):
+    # The one a merged Graph cannot answer: :Shared is declared identically in both, and
+    # merging makes that a single triple with no record that two files claimed it.
+    one, two = _two_files(tmp_path)
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    sources = {str(c) for _, _, _, c in
+               dataset.quads((rdflib.URIRef("http://example.org#Shared"), None, None, None))}
+
+    assert sources == {one.resolve().as_uri(), two.resolve().as_uri()}
+
+
+def test_the_checks_still_see_one_graph(tmp_path):
+    # default_union: a check queries the union and cannot tell the inputs were separate.
+    one, two = _two_files(tmp_path, ":A a owl:Class .", ":B a owl:Class .")
+    _, _, dataset, _, _, _ = load_rdf([str(one), str(two)])
+
+    classes = {str(row[0]) for row in dataset.query(
+        "SELECT ?c WHERE { ?c a <http://www.w3.org/2002/07/owl#Class> }")}
+
+    assert classes == {"http://example.org#Shared", "http://example.org#A", "http://example.org#B"}
+    assert len(dataset) == 3, "the shared declaration is one triple in the union"
+
+
+def test_inferred_triples_are_not_attributed_to_a_file(tmp_path):
+    from ontolint.model import INFERRED_CONTEXT
+    from ontolint.profiling import infer_subclass_relations
+    one = tmp_path / "one.ttl"
+    one.write_text("""
+    @prefix : <http://example.org#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    :A a owl:Class . :B a owl:Class ; rdfs:subClassOf :A . :x a :B .
+    """, encoding="utf-8")
+    _, _, dataset, _, _, _ = load_rdf([str(one)])
+    before = len(dataset)
+
+    dataset, _ = infer_subclass_relations(dataset)
+
+    # :x is a :B and :B is a subclass of :A, so :x is also an :A.
+    assert len(dataset) > before, "inference should have added something"
+    inferred = dataset.graph(INFERRED_CONTEXT)
+    assert len(inferred), "inferred triples came from no file, so they get their own context"
+    assert len(dataset.graph(rdflib.URIRef(one.resolve().as_uri()))) == before
 

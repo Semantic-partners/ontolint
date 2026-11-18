@@ -1,9 +1,0 @@
-SELECT ?child ?parent
-WHERE {
-  # Check that child and parent are of the same type
-  ?child a ?type ;
-  rdfs:subClassOf ?parent .
-  ?parent a ?type .
-  FILTER(!isBlank(?child) && !isBlank(?parent))
-} 
-

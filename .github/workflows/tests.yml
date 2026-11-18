@@ -3,8 +3,30 @@ name: Tests
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'examples/**'
+      - 'design.md'
+      - 'DEVELOPING.md'
+      - 'RELEASING.md'
+      - 'CLAUDE.md'
+      - 'LICENSE*'
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'examples/**'
+      - 'design.md'
+      - 'DEVELOPING.md'
+      - 'RELEASING.md'
+      - 'CLAUDE.md'
+      - 'LICENSE*'
+  # publish.yml runs this whole workflow before it uploads anything.
+  workflow_call:
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -28,40 +50,77 @@ jobs:
         run: poetry install
 
       - name: Lint
-        run: poetry run ruff check scripts/ tests/
+        run: poetry run ruff check src/ scripts/ tests/
 
   test:
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report every cell; one failing cell must not cancel the rest.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # Every version requires-python admits, and the classifiers name.
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    defaults:
+      run:
+        # git-bash on the Windows runners, so the steps read the same on both.
+        shell: bash
+    env:
+      # One cell reports the test results and coverage, so the matrix doesn't post eight.
+      REPORTING_CELL: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
 
     steps:
       - name: Check out repository code
         uses: actions/checkout@v5
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Set up Python ${{ matrix.python-version }}
+        id: python
+        uses: actions/setup-python@v6
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Cache the virtualenv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
 
       - name: Install dependencies
         run: poetry install
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
-          poetry run pytest \
-            --junitxml=test-results.xml \
-            --cov=scripts \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage.xml
+          if [ "$REPORTING_CELL" = true ]; then
+            poetry run pytest \
+              -n auto \
+              --junitxml=test-results.xml \
+              --cov=ontolint \
+              --cov-report=term-missing \
+              --cov-report=xml:coverage.xml
+          else
+            poetry run pytest -n auto --no-cov
+          fi
+
+      # ontolint as a user gets it: built into a wheel, installed non-editable into a
+      # clean venv, run from outside this repo. Every step above runs against the source
+      # tree, so package data missing from the wheel would pass them. Both OSes, at the
+      # oldest supported Python: the platform is what changes paths and venv layout.
+      - name: Smoke-test the built wheel as a consumer
+        if: matrix.python-version == '3.11'
+        run: ./scripts/consumer_smoke.sh
 
       - name: Publish test report
         uses: mikepenz/action-junit-report@v6
-        if: success() || failure()
+        if: (success() || failure()) && env.REPORTING_CELL == 'true'
         with:
           report_paths: test-results.xml
 
       - name: Write coverage summary
-        if: success() || failure()
+        if: (success() || failure()) && env.REPORTING_CELL == 'true'
         run: |
           echo '## Coverage' >> $GITHUB_STEP_SUMMARY
           poetry run python -m coverage report --format=markdown >> $GITHUB_STEP_SUMMARY

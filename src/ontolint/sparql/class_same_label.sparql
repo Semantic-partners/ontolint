@@ -1,0 +1,40 @@
+# Classes with the same label
+
+# To add all labels to this and all *same_label.sparql
+
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?label ?labelProperty (GROUP_CONCAT(DISTINCT STR(?c); separator=", ") AS ?classes)
+WHERE {
+  VALUES ?type { owl:Class rdfs:Class }
+  ?c a ?type .
+  # Gather all labels
+  {
+    VALUES ?labelProperty { rdfs:label skos:prefLabel skos:altLabel skos:hiddenLabel }
+    ?c ?labelProperty ?label
+  }
+  UNION
+  {
+    ?c ?labelProperty ?label .
+    ?labelProperty a owl:AnnotationProperty ;
+    rdfs:subPropertyOf* rdfs:label .
+  }
+  
+  # Exclude resources typed with a configured exclude-types IRI (injected at runtime)
+  # {{EXCLUDE_TYPES}}
+  # Exclude deprecated classes
+  FILTER NOT EXISTS {
+    {
+      ?c a owl:DeprecatedClass .
+    }
+    UNION
+    {
+      ?c owl:deprecated ?isDeprecated .
+      FILTER(xsd:boolean(?isDeprecated))
+    }
+  }
+}
+GROUP BY ?label ?labelProperty
+HAVING (COUNT(DISTINCT ?c) > 1)

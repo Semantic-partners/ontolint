@@ -1,0 +1,9 @@
+@prefix : <https://example.org/ontology/one#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# Merged run (no --per-file) over two ontologies: every measurement is computedOn one
+# aggregate dcat:Dataset that dcterms:hasPart both, not on each ontology.
+
+: a owl:Ontology ; rdfs:label "One" ; rdfs:comment "First ontology." .
+:Cat a owl:Class ; rdfs:subClassOf <https://example.org/ontology/two#Animal> .    # no label, no description

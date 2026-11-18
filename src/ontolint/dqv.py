@@ -1,0 +1,621 @@
+"""
+DQV (W3C Data Quality Vocabulary) report for ontolint.
+
+Turns QAResults from ontology_qa.run_qa() into a DQV Turtle graph: one dqv:Metric per check,
+one dqv:QualityMeasurement per (dataset, failed check) whose violations are SHACL
+sh:ValidationResults, a per-dataset roll-up, and a dqv:QualityMetadata assessment. No blank
+nodes are emitted: instance IRIs are minted under a base URI. The olq: vocabulary used here is
+defined in ontology/olq.ttl.
+
+This module has no dependency on ontology_qa; the checks there build the Violation records.
+"""
+import hashlib
+import os
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import quote
+
+import rdflib
+
+from . import graphutil
+
+
+@dataclass
+class Violation:
+    """A single offending resource raised by a QA check (used for the DQV report)."""
+    resource: object = None           # the offending resource: URIRef/BNode, or an IRI string
+    comment: str | None = None        # optional human-readable message
+    related: list = field(default_factory=list)  # other resources involved, e.g. a same-label clash
+    value: object = None              # optional literal, e.g. the shared label
+
+
+@dataclass
+class ConfigSetting:
+    """
+    One setting of the configuration a QA run actually used, with where it came from.
+
+    key:    the .rdf-lint.yml path it corresponds to, e.g. 'checks', 'imports.local'.
+    value:  the IRI or value; for 'checks', the CHECKLIST key of the check.
+    origin: 'config' (the .rdf-lint.yml file), 'default' (an ontolint default),
+            'bundled' (a vocabulary bundled with ontolint), 'rule' (added by an ontolint rule)
+            or 'caller' (passed straight to run_qa(), with no configuration file).
+    """
+    key: str
+    value: object
+    origin: str
+    reason: str | None = None
+    enabled: bool | None = None       # for 'checks'
+    local_file: str | None = None     # for 'imports.local'
+    derived_from: str | None = None   # e.g. the catalog dataset of a bundled vocabulary
+    label: str | None = None          # for 'checks', the check's display name
+
+
+@dataclass
+class Dataset:
+    """A dataset QA was computed on: an owl:Ontology IRI, or a file IRI as fallback."""
+    iri: str
+    label: str | None = None
+
+
+# ── DQV (Data Quality Vocabulary) report ─────────────────────────────────────
+
+DQV = rdflib.Namespace("http://www.w3.org/ns/dqv#")
+PROV = rdflib.Namespace("http://www.w3.org/ns/prov#")
+DCAT = rdflib.DCAT
+OLQ = rdflib.Namespace("https://ontolint.org/ns#")
+SH = rdflib.SH
+
+# All instance IRIs (metrics, dimensions, assessment, measurements, violations) are
+# minted under this base unless --base-uri is given. OLQ holds only vocabulary terms.
+DEFAULT_BASE_URI = "urn:ontolint:"
+DEFAULT_DQV_FILENAME = "ontolint-dqv.ttl"
+
+# Every prefix the report uses, so any part of it serialised on its own stays legible.
+REPORT_PREFIXES = [('dqv', DQV), ('olq', OLQ), ('sh', SH), ('prov', PROV), ('dcat', DCAT),
+                   ('dcterms', rdflib.DCTERMS), ('skos', rdflib.SKOS),
+                   ('rdfs', rdflib.RDFS), ('xsd', rdflib.XSD)]
+
+# slug -> (label, definition)
+DQV_DIMENSIONS = {
+    'metadata':      ("Metadata",      "The ontology declares itself and describes its purpose."),
+    'documentation': ("Documentation", "Terms carry human-readable labels and descriptions."),
+    'uniqueness':    ("Uniqueness",    "Labels and identifiers unambiguously denote a single term."),
+    'structure':     ("Structure",     "Terms are connected into a well-formed hierarchy with domains and ranges."),
+    'conformance':   ("Conformance",   "Terms are declared, resolvable and minted in the ontology's own namespace."),
+}
+
+# CHECKLIST key -> (metric slug, definition, dimension slug, default severity as a sh:Severity)
+DQV_METRICS = {
+    'ontologyNotDeclared':        ('ontology-not-declared',            "A processed file has no owl:Ontology declaration.",                                     'metadata',      SH.Violation),
+    'multipleOntologies':         ('multiple-ontologies-in-one-file',  "A single input declares more than one owl:Ontology; one file, one ontology.",            'metadata',      SH.Violation),
+    'ontologyDescription':        ('ontology-missing-description',     "A declared owl:Ontology has no rdfs:comment, dcterms:abstract or dcterms:description.", 'metadata',      SH.Violation),
+    'unresolvedImports':          ('unresolvable-imports',             "An owl:imports target could not be resolved or contains no triples.",                  'conformance',   SH.Violation),
+    'undefinedTerms':             ('undefined-terms',                  "A term is used but defined neither locally nor in its vocabulary (bundled, local or fetched).",       'conformance',   SH.Violation),
+    'missingClassLabel':          ('classes-missing-label',            "A class has no label annotation.",                                                     'documentation', SH.Violation),
+    'missingPropertyLabel':       ('properties-missing-label',         "A property has no label annotation.",                                                  'documentation', SH.Violation),
+    'missingNSLabel':             ('node-shapes-missing-label',        "A SHACL NodeShape has no label annotation.",                                           'documentation', SH.Violation),
+    'missingPSLabel':             ('property-shapes-missing-label',    "A SHACL PropertyShape has no label annotation.",                                       'documentation', SH.Violation),
+    'missingClassDescription':    ('classes-missing-description',      "A class has no description annotation.",                                               'documentation', SH.Warning),
+    'missingPropertyDescription': ('properties-missing-description',   "A property has no description annotation.",                                            'documentation', SH.Warning),
+    'missingNSDescription':       ('node-shapes-missing-description',  "A SHACL NodeShape has no description annotation.",                                     'documentation', SH.Warning),
+    'missingPSDescription':       ('property-shapes-missing-description', "A SHACL PropertyShape has no description annotation.",                              'documentation', SH.Warning),
+    'nonUniqueClassLabels':       ('classes-same-label',               "Two or more classes share a label in the same language and with the same predicate.",              'uniqueness',    SH.Violation),
+    'nonUniquePropertyLabels':    ('properties-same-label',            "Two or more properties share a label in the same language and with the same predicate.",           'uniqueness',    SH.Violation),
+    'nonUniqueNSLabels':          ('node-shapes-same-label',           "Two or more SHACL NodeShapes share a label in the same language and with the same predicate.",     'uniqueness',    SH.Violation),
+    'nonUniquePSLabels':          ('property-shapes-same-label',       "Two or more SHACL PropertyShapes share a label in the same language and with the same predicate.", 'uniqueness',    SH.Violation),
+    'isolatedClasses':            ('isolated-classes',                 "A class is declared but not connected to the rest of the ontology.",                   'structure',     SH.Warning),
+    'missingDomain':              ('properties-missing-domain',        "A property has no rdfs:domain.",                                                       'structure',     SH.Warning),
+    'missingRange':               ('properties-missing-range',         "A property has no rdfs:range.",                                                        'structure',     SH.Warning),
+    'nonUniqueIdentifiers':       ('non-unique-identifiers',           "The same IRI is declared as more than one kind of class or property.",                 'uniqueness',    SH.Violation),
+    'subclassCycles':             ('subclass-cycles',                  "A class is involved in an rdfs:subClassOf cycle.",                                     'structure',     SH.Violation),
+    'untypedClasses':             ('untyped-classes',                  "A term in the ontology namespace is used as a class but not declared as owl:Class or rdfs:Class.", 'conformance', SH.Violation),
+    'untypedProperties':          ('untyped-properties',               "A term in the ontology namespace is used as a property but not declared as one.",      'conformance',   SH.Violation),
+    'hijacking':                  ('namespace-hijacking',              "A resource is defined using an external vocabulary's namespace.",                      'conformance',   SH.Violation),
+}
+
+# Roll-up metric: one measurement per dataset, so clean datasets still appear.
+DQV_ROLLUP_METRIC = ('ontolint-conformance', "Ontolint conformance",
+                     "Number of ontolint checks that failed for the dataset; 0 means every executed check passed.",
+                     'conformance')
+
+# A set-level metric: it is about the inputs taken together, not about one graph, so it has
+# no CHECKLIST entry and no check_* function. Ontolint's rule is one file, one ontology —
+# two inputs declaring the same owl:Ontology IRI break it, and the evidence only exists
+# before they are merged (the union of two identical declarations is a single triple).
+# Which checks need another check's condition to hold before they can be computed.
+# Declared once and used twice: ontology_qa.lint_selection enables the required check when a
+# dependent one is selected, and build_dqv_graph publishes the dependency with its reason.
+DQV_DEPENDENCIES = {
+    'ontologyDescription': ('ontologyNotDeclared',
+                            "A description is read off the declared owl:Ontology, so there is none to read without one."),
+    'unresolvedImports':   ('ontologyNotDeclared',
+                            "owl:imports statements are read off the declared owl:Ontology."),
+    'untypedClasses':      ('ontologyNotDeclared',
+                            "Without a declared namespace, a class of the ontology's own cannot be told from an external vocabulary's."),
+    'untypedProperties':   ('ontologyNotDeclared',
+                            "Without a declared namespace, a property of the ontology's own cannot be told from an external vocabulary's."),
+}
+
+
+DQV_DUPLICATE_ONTOLOGY_METRIC = ('duplicate-ontology-iri', "Duplicate ontology IRI",
+                                 "An owl:Ontology IRI is declared by more than one input; "
+                                 "each ontology should be declared by exactly one.",
+                                 'uniqueness', SH.Violation)
+
+
+def file_iri(path):
+    """Absolute file: IRI for a local path."""
+    return Path(path).resolve().as_uri()
+
+
+def dataset_iri(base, name):
+    """
+    The IRI a caller-named source is reported under, when it declares no owl:Ontology
+    of its own (see datasets_for).
+
+    A name that is already an absolute IRI — an ontology IRI, say — is used as it stands,
+    so the dataset is identified the same way wherever it is reported on. Any other name
+    is minted under the report's base as <base>dataset-<name>, percent-encoded: stable
+    across runs for the same name, but meaningful only within these reports.
+    """
+    name = str(name)
+    if _ABSOLUTE_IRI.match(name):
+        return rdflib.URIRef(name)
+    return rdflib.URIRef(f"{_normalise_base(base)}dataset-{quote(name, safe='')}")
+
+
+def metric_iri(base, slug):
+    """Stable metric IRI: <base>metric-<slug>, the same for a check across runs and datasets."""
+    return rdflib.URIRef(f"{base}metric-{slug}")
+
+
+def dimension_iri(base, slug):
+    """Stable dimension IRI: <base>dimension-<slug>."""
+    return rdflib.URIRef(f"{base}dimension-{slug}")
+
+
+# An absolute IRI: a scheme, then no whitespace or characters IRIs don't allow.
+_ABSOLUTE_IRI = re.compile(r'^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"{}|\\^`\x00-\x1f\x7f]*$')
+
+
+def check_base_uri(base_uri):
+    """Reject relative or malformed bases: minted IRIs would resolve against the report's location."""
+    if not _ABSOLUTE_IRI.match(base_uri):
+        raise ValueError(f"--base-uri must be an absolute IRI (e.g. https://example.org/qa/), got {base_uri!r}")
+
+
+# Characters a base may already end in, meaning the minted name can be appended directly.
+# '-' and '_' matter because a prefix-style base is a normal way to namespace one run
+# (".../run-123-" giving ".../run-123-dataset-activities"); without them it would be
+# turned into ".../run-123-/dataset-activities", with a separator nobody asked for.
+BASE_SEPARATORS = ('/', '#', ':', '-', '_')
+
+
+def _normalise_base(base_uri):
+    base = base_uri or DEFAULT_BASE_URI
+    check_base_uri(base)
+    return base if base.endswith(BASE_SEPARATORS) else base + '/'
+
+
+def mint_id(kind, *parts):
+    """
+    The local name of an instance IRI: a sha256 of the parts that identify it.
+
+    Looked up on the module when a report is built rather than bound into _mint, so a
+    caller with no way to pass one in (the CLI, and the golden tests through it) can
+    replace the naming scheme, as it can the clock and the input paths.
+    """
+    return hashlib.sha256("\x1f".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:16]
+
+
+def _mint(base, kind, *parts, node_namer=None):
+    """Deterministic, collision-resistant instance IRI: <base><kind>-<name of parts>."""
+    return rdflib.URIRef(f"{base}{kind}-{(node_namer or mint_id)(kind, *parts)}")
+
+
+def _resource_node(base, value, bnode_keys, node_namer=None):
+    """
+    The IRI to emit for a violation's resource. Blank nodes (e.g. anonymous SHACL property
+    shapes) are skolemized to <base>bnode-<hash> of their canonical label in the checked
+    graph: unique per blank node, and stable across parses even though blank-node ids are not.
+    """
+    if value is None:
+        return None
+    if isinstance(value, rdflib.BNode):
+        return _mint(base, 'bnode', bnode_keys.get(value, str(value)), node_namer=node_namer)
+    return rdflib.URIRef(str(value))
+
+
+def _hash_key(value):
+    """Hash-key form of a violation value: N3 for RDF terms, so "x"@en and "x"@fr differ."""
+    if value is None:
+        return ''
+    return value.n3() if isinstance(value, rdflib.term.Node) else str(value)
+
+
+def _add_metric(g, base, slug, label, definition, dimension, severity=None):
+    m = metric_iri(base, slug)
+    g.add((m, rdflib.RDF.type, DQV.Metric))
+    g.add((m, rdflib.SKOS.prefLabel, rdflib.Literal(label)))
+    g.add((m, rdflib.RDFS.label, rdflib.Literal(label)))
+    g.add((m, rdflib.SKOS.definition, rdflib.Literal(definition)))
+    g.add((m, DQV.inDimension, dimension_iri(base, dimension)))
+    if severity:
+        g.add((m, OLQ.severity, severity))
+    d = dimension_iri(base, dimension)
+    d_label, d_definition = DQV_DIMENSIONS[dimension]
+    g.add((d, rdflib.RDF.type, DQV.Dimension))
+    g.add((d, rdflib.RDFS.label, rdflib.Literal(d_label)))
+    g.add((d, rdflib.SKOS.prefLabel, rdflib.Literal(d_label)))
+    g.add((d, rdflib.SKOS.definition, rdflib.Literal(d_definition)))
+    return m
+
+
+def utc_now():
+    """The default clock for a report. Injected as date_time_provider so a caller can fix it."""
+    return datetime.now(timezone.utc)
+
+
+# ConfigSetting.origin -> olq:SettingOrigin individual (defined in ontology/olq.ttl)
+SETTING_ORIGINS = {
+    'config':  OLQ.ConfigFile,
+    'default': OLQ.OntolintDefault,
+    'bundled': OLQ.BundledVocabulary,
+    'rule':    OLQ.OntolintRule,
+    'caller':  OLQ.CallerArgument,
+    'input':   OLQ.RunInput,
+}
+
+
+def _setting_value(base, setting):
+    if setting.key == 'checks':
+        return metric_iri(base, DQV_METRICS[setting.value][0])
+    value = str(setting.value)
+    return rdflib.URIRef(value) if _ABSOLUTE_IRI.match(value) else rdflib.Literal(value)
+
+
+def _add_configuration(g, base, settings, config_file=None, node_namer=None):
+    """
+    The configuration a run actually used, as an olq:Configuration of olq:Settings. Each
+    setting records the .rdf-lint.yml key it corresponds to, its value, its origin (the
+    config file, an ontolint default, a bundled vocabulary or an ontolint rule) and why.
+    Identical configurations get the same IRI.
+    """
+    # Describe every check's metric, including disabled checks that never ran.
+    for s in settings:
+        if s.key == 'checks':
+            slug, definition, dimension, severity = DQV_METRICS[s.value]
+            _add_metric(g, base, slug, s.label or slug, definition, dimension, severity)
+    # Every field a setting emits is in both hashes, so settings that differ only in their
+    # comment or source (e.g. another bundled vocabulary release) never share an IRI.
+    signature = sorted(f"{s.key}|{_setting_value(base, s)}|{s.origin}|{s.enabled}|{s.local_file}"
+                       f"|{s.reason}|{s.derived_from}" for s in settings)
+    configuration = _mint(base, 'configuration', config_file or '', *signature, node_namer=node_namer)
+    g.add((configuration, rdflib.RDF.type, OLQ.Configuration))
+    g.add((configuration, rdflib.RDFS.label, rdflib.Literal("Effective ontolint configuration")))
+    if config_file:
+        g.add((configuration, OLQ.configurationFile, rdflib.Literal(config_file)))
+    for s in settings:
+        value = _setting_value(base, s)
+        node = _mint(base, 'setting', configuration, s.key, value, s.origin, s.enabled, s.local_file or '',
+                     s.reason or '', s.derived_from or '', node_namer=node_namer)
+        g.add((configuration, OLQ.setting, node))
+        g.add((node, rdflib.RDF.type, OLQ.Setting))
+        shown = s.label if s.key == 'checks' and s.label else value
+        label = f"{s.key}: {shown}" + ("" if s.enabled is None else (" (enabled)" if s.enabled else " (disabled)"))
+        g.add((node, rdflib.RDFS.label, rdflib.Literal(label)))
+        g.add((node, OLQ.key, rdflib.Literal(s.key)))
+        g.add((node, OLQ.value, value))
+        g.add((node, OLQ.origin, SETTING_ORIGINS[s.origin]))
+        if s.enabled is not None:
+            g.add((node, OLQ.enabled, rdflib.Literal(s.enabled)))
+        if s.local_file:
+            g.add((node, OLQ.localFile, rdflib.Literal(s.local_file)))
+        if s.derived_from:
+            g.add((node, PROV.wasDerivedFrom, rdflib.URIRef(s.derived_from)))
+        if s.reason:
+            g.add((node, rdflib.RDFS.comment, rdflib.Literal(s.reason)))
+    return configuration
+
+
+def duplicate_ontology_graph(base_uri, assessment, duplicate_ontologies, node_namer=None):
+    """
+    The triples reporting each ontology IRI that more than one input declared, as a graph
+    of their own — empty when there are none.
+
+    Reported once, on the IRI itself, naming the inputs that declared it, rather than once
+    per input, which would put two identical measurements on the same dataset.
+    """
+    g = graphutil.bound_graph(REPORT_PREFIXES)
+    if not duplicate_ontologies:
+        return g
+    base = _normalise_base(base_uri)
+    slug, label, definition, dimension, severity = DQV_DUPLICATE_ONTOLOGY_METRIC
+    metric = _add_metric(g, base, slug, label, definition, dimension, severity)
+    for iri, sources in sorted(duplicate_ontologies.items()):
+        dataset = rdflib.URIRef(iri)
+        sources = sorted(str(source) for source in sources)
+        measurement = _mint(base, 'measurement', assessment, dataset, slug, node_namer=node_namer)
+        g.add((assessment, DQV.hasQualityMeasurement, measurement))
+        g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
+        g.add((measurement, DQV.isMeasurementOf, metric))
+        g.add((measurement, DQV.computedOn, dataset))
+        g.add((measurement, DQV.value, rdflib.Literal(len(sources))))
+        g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
+        g.add((measurement, OLQ.severity, severity))
+        node = _mint(base, 'violation', measurement, dataset, *sources, node_namer=node_namer)
+        g.add((measurement, OLQ.violation, node))
+        g.add((node, rdflib.RDF.type, SH.ValidationResult))
+        g.add((node, SH.resultSeverity, severity))
+        g.add((node, SH.sourceConstraintComponent, SH.SPARQLConstraintComponent))
+        g.add((node, SH.focusNode, dataset))
+        g.add((node, SH.resultMessage, rdflib.Literal(
+            f"declared by {len(sources)} inputs: " + ", ".join(sources))))
+        for source in sources:
+            g.add((node, OLQ.relatedResource, rdflib.URIRef(source)))
+    return g
+
+
+# What a check's reason string means in the report.
+REASON_INDIVIDUALS = {'empty-population': OLQ.EmptyPopulation,
+                      'sources-not-recorded': OLQ.SourcesNotRecorded}
+
+
+def _reason_node(base, check, node_namer=None):
+    """
+    Why a check was not assessed: a shared reason, or the dependency that was not met.
+
+    A reason naming another check means this one needs that check's condition to hold, so
+    the report points at the olq:Dependency that says why rather than repeating it.
+    """
+    if check.reason in REASON_INDIVIDUALS:
+        return REASON_INDIVIDUALS[check.reason]
+    dependent = metric_iri(base, DQV_METRICS[check.key][0])
+    prerequisite = metric_iri(base, DQV_METRICS[check.reason][0])
+    return _mint(base, 'dependency', dependent, prerequisite, node_namer=node_namer)
+
+
+def _add_dependencies(g, base, node_namer=None):
+    """
+    The declared dependencies between the metrics this report describes.
+
+    Stated as an olq:Dependency, which carries why the dependency exists, plus a
+    dcterms:requires shortcut so the relation can be queried without joining through it. Only
+    for metrics the report describes: a dependency on one it never mentions says nothing a
+    reader of this report could use.
+    """
+    described = set(g.subjects(rdflib.RDF.type, DQV.Metric))
+    for key, (required, why) in sorted(DQV_DEPENDENCIES.items()):
+        dependent = metric_iri(base, DQV_METRICS[key][0])
+        prerequisite = metric_iri(base, DQV_METRICS[required][0])
+        if dependent not in described or prerequisite not in described:
+            continue
+        node = _mint(base, 'dependency', dependent, prerequisite, node_namer=node_namer)
+        g.add((node, rdflib.RDF.type, OLQ.Dependency))
+        g.add((node, OLQ.dependent, dependent))
+        g.add((node, OLQ.prerequisite, prerequisite))
+        g.add((node, rdflib.RDFS.comment, rdflib.Literal(why)))
+        # dcterms:requires is exactly this relation — "required by the described resource
+        # to support its function, delivery, or coherence" — so it is used rather than a
+        # term of our own; the olq:Dependency above says why it holds.
+        g.add((dependent, rdflib.DCTERMS.requires, prerequisite))
+
+
+def build_dqv_graph(results, base_uri=None, date_time_provider=None, duplicate_ontologies=None,
+                    node_namer=None):
+    """
+    Build a DQV graph from one or more QAResults (one per per-file run, or one merged run).
+
+    - One dqv:Metric per executed check (<base>metric-<slug>), grouped by dqv:Dimension
+      (<base>dimension-<slug>); both are stable for a given base.
+    - One dqv:QualityMeasurement per (dataset, failed check), linking via olq:violation to one
+      sh:ValidationResult per offending resource (sh:focusNode, sh:value, sh:resultMessage,
+      sh:resultSeverity, sh:sourceConstraintComponent, plus olq:relatedResource).
+    - One roll-up measurement per dataset (<base>metric-ontolint-conformance), so clean datasets appear.
+    - A result is computed on its single dataset (owl:Ontology IRI, or file IRI fallback); a
+      merged result over several is computed on one aggregate dcat:Dataset that
+      dcterms:hasPart each of them, rather than being asserted on every ontology.
+    - A dqv:QualityMetadata assessment node linking every measurement.
+    - duplicate_ontologies ({ontology IRI: [source IRIs]}) adds one set-level measurement
+      per IRI that more than one input declared — a condition no single graph can show,
+      since merging two identical declarations leaves one triple.
+    No blank nodes are used: measurement, violation and assessment IRIs are hashes minted
+    under base_uri. The olq: namespace is used only for vocabulary terms.
+
+    date_time_provider supplies the report's timestamp, and every minted IRI derives from
+    it, so a caller that fixes it gets a byte-for-byte reproducible report. It defaults to
+    utc_now, looked up when the report is built rather than bound here, so a run with no
+    caller to inject one (the CLI) can still have its clock replaced.
+    """
+    base = _normalise_base(base_uri)
+    stamp = (date_time_provider or utc_now)().isoformat()
+
+    g = graphutil.bound_graph(REPORT_PREFIXES)
+
+    # Configurations first: the assessment's identity includes them, so the same files
+    # assessed under different configurations never share assessment or measurement IRIs.
+    configurations = [_add_configuration(g, base, r.settings, r.config_file, node_namer=node_namer)
+                      for r in results if r.settings]
+    run_files = sorted(f for r in results for f in r.profiling.get('filesProcessed', []))
+    assessment = _mint(base, 'assessment', stamp, *run_files, *sorted(set(configurations)), node_namer=node_namer)
+    g.add((assessment, rdflib.RDF.type, DQV.QualityMetadata))
+    g.add((assessment, PROV.generatedAtTime, rdflib.Literal(stamp, datatype=rdflib.XSD.dateTime)))
+    for configuration in configurations:
+        g.add((assessment, OLQ.configuration, configuration))
+
+    g += duplicate_ontology_graph(base, assessment, duplicate_ontologies, node_namer=node_namer)
+
+    slug, label, definition, dimension = DQV_ROLLUP_METRIC
+    rollup = _add_metric(g, base, slug, label, definition, dimension)
+
+    for index, result in enumerate(results):
+        # Distinguishes runs over different files that declare the same ontology IRI.
+        run_key = sorted(result.profiling.get('filesProcessed', []))
+        datasets = []
+        for ds in result.datasets:
+            iri = rdflib.URIRef(ds.iri)
+            datasets.append(iri)
+            if ds.label:
+                g.add((iri, rdflib.RDFS.label, rdflib.Literal(ds.label)))
+        if not datasets:
+            # No owl:Ontology and no input files (e.g. an in-memory graph).
+            dataset = _mint(base, 'dataset', assessment, index, *run_key, node_namer=node_namer)
+        elif len(datasets) == 1:
+            dataset = datasets[0]
+        else:
+            # A merged run over several ontologies can't attribute a violation to the one it
+            # came from, so its results are computed on an aggregate of them (use --per-file
+            # for per-ontology attribution). The aggregate is stable for the same inputs.
+            dataset = _mint(base, 'dataset', *sorted(datasets), *run_key, node_namer=node_namer)
+            names = [ds.label or ds.iri for ds in result.datasets]
+            g.add((dataset, rdflib.RDF.type, DCAT.Dataset))
+            g.add((dataset, rdflib.RDFS.label, rdflib.Literal("Merged: " + ", ".join(names))))
+            for part in datasets:
+                g.add((dataset, rdflib.DCTERMS.hasPart, part))
+
+        for check in result.checks:
+            info = DQV_METRICS.get(check.key)
+            if info is None:
+                continue
+            m_slug, m_definition, m_dimension, severity = info
+            metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, severity)
+            if check.passed:
+                continue
+            measurement = _mint(base, 'measurement', assessment, *run_key, dataset, m_slug, node_namer=node_namer)
+            g.add((assessment, DQV.hasQualityMeasurement, measurement))
+            g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
+            g.add((measurement, DQV.isMeasurementOf, metric))
+            g.add((measurement, DQV.computedOn, dataset))
+            g.add((measurement, DQV.value, rdflib.Literal(check.count)))
+            g.add((measurement, OLQ.conforms, rdflib.Literal(False)))
+            g.add((measurement, OLQ.severity, severity))
+            for v in check.violations:
+                resource = _resource_node(base, v.resource, result.bnode_keys, node_namer=node_namer)
+                related = sorted((_resource_node(base, r, result.bnode_keys, node_namer=node_namer)
+                                  for r in v.related), key=str)
+                node = _mint(base, 'violation', measurement, resource or '', _hash_key(v.value),
+                             v.comment or '', *related, node_namer=node_namer)
+                g.add((measurement, OLQ.violation, node))
+                # Each violation is a SHACL validation result. sh:sourceShape is omitted
+                # until checks are expressed as shapes; the metric identifies the check.
+                g.add((node, rdflib.RDF.type, SH.ValidationResult))
+                g.add((node, SH.resultSeverity, severity))
+                g.add((node, SH.sourceConstraintComponent, SH.SPARQLConstraintComponent))
+                if resource is not None:
+                    g.add((node, SH.focusNode, resource))
+                if v.comment:
+                    g.add((node, SH.resultMessage, rdflib.Literal(v.comment)))
+                if v.value is not None:
+                    value = v.value if isinstance(v.value, rdflib.Literal) else rdflib.Literal(v.value)
+                    g.add((node, SH.value, value))
+                for r in related:
+                    g.add((node, OLQ.relatedResource, r))
+
+        # A check that could not be computed, and why. Without this a consumer cannot tell
+        # a metric that was assessed and clean from one nothing ever looked at.
+        for check in result.checks:
+            if check.status != 'skipped' or check.key not in DQV_METRICS:
+                continue
+            m_slug, m_definition, m_dimension, m_severity = DQV_METRICS[check.key]
+            metric = _add_metric(g, base, m_slug, check.name, m_definition, m_dimension, m_severity)
+            node = _mint(base, 'not-assessed', assessment, *run_key, dataset, m_slug,
+                         node_namer=node_namer)
+            g.add((assessment, OLQ.notAssessed, node))
+            g.add((node, rdflib.RDF.type, OLQ.NotAssessed))
+            g.add((node, OLQ.metric, metric))
+            g.add((node, DQV.computedOn, dataset))
+            g.add((node, OLQ.reason, _reason_node(base, check, node_namer=node_namer)))
+
+        failed = len(result.failures)
+        measurement = _mint(base, 'measurement', assessment, *run_key, dataset, slug, node_namer=node_namer)
+        g.add((assessment, DQV.hasQualityMeasurement, measurement))
+        g.add((measurement, rdflib.RDF.type, DQV.QualityMeasurement))
+        g.add((measurement, DQV.isMeasurementOf, rollup))
+        g.add((measurement, DQV.computedOn, dataset))
+        g.add((measurement, DQV.value, rdflib.Literal(failed)))
+        g.add((measurement, OLQ.conforms, rdflib.Literal(failed == 0)))
+
+    _add_dependencies(g, base, node_namer=node_namer)
+    return g
+
+
+def check_dqv_filename(filename):
+    """Reject anything but a plain file name, so the report can't escape --dqv-dir (and
+    can't inject lines where the path is echoed, e.g. into $GITHUB_OUTPUT)."""
+    if (not filename or filename in ('.', '..') or os.path.isabs(filename)
+            or os.path.basename(filename) != filename or '/' in filename or '\\' in filename
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in filename)):
+        raise ValueError(f"--dqv-filename must be a file name without directories or control characters, got {filename!r}; use --dqv-dir for the location")
+
+
+def write_dqv_report(results, file_path, filename=None, base_uri=None,
+                     date_time_provider=None, duplicate_ontologies=None, node_namer=None):
+    """Serialise the DQV graph for the given QAResults to Turtle. Returns (graph, log)."""
+    filename = filename or DEFAULT_DQV_FILENAME
+    check_dqv_filename(filename)
+    g = build_dqv_graph(results, base_uri=base_uri, date_time_provider=date_time_provider,
+                        duplicate_ontologies=duplicate_ontologies, node_namer=node_namer)
+    os.makedirs(file_path, exist_ok=True)
+    output_file = os.path.join(file_path, filename)
+    g.serialize(destination=output_file, format='turtle')
+    return g, f"\nDQV report written to: {output_file}\n"
+
+def violation_bnodes(checks):
+    return {t for check in checks for v in check.violations
+            for t in (v.resource, *v.related) if isinstance(t, rdflib.BNode)}
+
+
+def canonical_bnode_labels(graph, bnodes):
+    """
+    Canonical labels for the given blank nodes, unique across the whole graph and identical
+    for any isomorphic parse (rdflib's RGDA1 canonicalisation). Structurally identical blank
+    nodes, e.g. two `sh:property [ a sh:PropertyShape ]`, still get distinct labels.
+    """
+    if not bnodes:
+        return {}
+    from rdflib.compare import _TripleCanonicalizer
+    # Canonicalisation is defined over triples, and a Dataset iterates quads, so the union
+    # is materialised first. Blank nodes are scoped to the store rather than to a named
+    # graph, so canonicalising the union is the same question as canonicalising the merge.
+    if not isinstance(graph, rdflib.Graph) or isinstance(graph, rdflib.Dataset):
+        triples = rdflib.Graph()
+        for triple in graph.triples((None, None, None)):
+            triples.add(triple)
+        graph = triples
+    # canonical_triples() yields the graph's triples in iteration order with blank nodes
+    # relabelled, so pairing it with the graph gives the original -> canonical mapping.
+    labels = {}
+    for original, canonical in zip(graph, _TripleCanonicalizer(graph).canonical_triples()):
+        for term, label in zip(original, canonical):
+            if isinstance(term, rdflib.BNode) and labels.setdefault(term, str(label)) != str(label):
+                raise RuntimeError("inconsistent blank-node canonicalisation")
+    return {b: labels[b] for b in bnodes if b in labels}
+
+
+def datasets_for(graph, qa_metrics):
+    """
+    The datasets a QA run was computed on: each declared owl:Ontology IRI (labelled from its
+    rdfs:label, dcterms:title or skos:prefLabel), or, if none is declared, each source's own
+    IRI ('sourceIRIs', set by the programmatic API) or its input file's file: IRI.
+    """
+    ontologies = sorted({str(o) for o in qa_metrics.get('ontologyURI', [])})
+    if not ontologies:
+        sources = qa_metrics.get('filesProcessed', [])
+        # The programmatic API names its sources itself (see source_iris in run_qa); only
+        # a source that really is a file gets a file: IRI and is labelled by its basename.
+        iris = qa_metrics.get('sourceIRIs') or []
+        if iris:
+            return [Dataset(str(iri), name) for iri, name in zip(iris, sources)]
+        return [Dataset(file_iri(f), os.path.basename(f)) for f in sources]
+    datasets = []
+    for iri in ontologies:
+        label = None
+        for p in (rdflib.RDFS.label, rdflib.DCTERMS.title, rdflib.SKOS.prefLabel):
+            labels = sorted(graph.objects(rdflib.URIRef(iri), p), key=lambda lit: (getattr(lit, 'language', None) not in (None, 'en'), str(lit)))
+            if labels:
+                label = str(labels[0])
+                break
+        datasets.append(Dataset(iri, label))
+    return datasets

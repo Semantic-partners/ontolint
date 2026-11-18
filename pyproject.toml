@@ -1,42 +1,84 @@
 [project]
-name = "ontolint"
-version = "0.2.1"
+# The distribution name on PyPI. `ontolint` there is an unrelated project, so ours is
+# sp-ontolint; what users import and run is still `ontolint` (packages, scripts below).
+name = "sp-ontolint"
+# Cosmetic: the release workflow stamps the version from the pushed tag (see RELEASING.md).
+version = "2.0.1"
 description = "Get an instant, user-friendly snapshot of your ontology’s size and health, right in your CI pipeline"
+license = "MIT OR Apache-2.0"
 authors = [
-    {name = "Otello M Roscioni",email = "otello.roscioni@semanticpartners.com"}
+    {name = "Otello M Roscioni", email = "otello.roscioni@semanticpartners.com"},
+    {name = "Simon Shapiro"},
+    {name = "John Placek", email = "john.placek@semanticpartners.com"},
+    {name = "Pel Olson"},
 ]
 readme = "readme.md"
+# Every version in this range is tested in CI (tests.yml), and publish.yml runs the same
+# matrix before anything is uploaded.
 requires-python = ">=3.11"
+keywords = ["ontology", "rdf", "owl", "shacl", "sparql", "lint", "quality", "dqv", "ci"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
     "rdflib (>=7.6.0,<8.0.0)",
-    "argparse (>=1.4.0,<2.0.0)",
-    "datetime (>=6.0,<7.0)",
     "pyyaml (>=6.0.3,<7.0.0)",
     "networkx (>=3.2,<4.0)"
 ]
 
+[project.urls]
+Homepage = "https://github.com/Semantic-partners/ontolint"
+Documentation = "https://github.com/Semantic-partners/ontolint/tree/main/docs"
+Issues = "https://github.com/Semantic-partners/ontolint/issues"
+
+[project.scripts]
+ontolint = "ontolint.cli:main"
+ontolint-report = "ontolint.report.ctrf_summary:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
-package-mode = false
+packages = [{ include = "ontolint", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3"
 pytest-cov = ">=5.0"
 ruff = ">=0.9"
+# mustrd: SPARQL Given-When-Then specs (*.mustrd.ttl, listed in tests/mustrd_configuration.ttl).
+# Pinned to a release candidate: 0.8.0rc5 is the first on PyPI with pytest 8+ / numpy 2
+# support (Python 3.14) that no longer pins coverage and flake8. Move to 0.8.0 once it is
+# out. The python range matches requires-python (mustrd needs an upper bound).
+mustrd = { version = "0.8.0rc5", python = ">=3.11,<4.0" }
+pytest-xdist = ">=3.6"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-v --cov=scripts --cov-report=xml"
+# --mustrd runs the SPARQL Given-When-Then specs (*.mustrd.ttl) listed in tests/mustrd_configuration.ttl.
+addopts = "-v --cov=ontolint --cov-report=xml --mustrd --config=tests/mustrd_configuration.ttl"
 
 [tool.coverage.run]
-source = ["scripts"]
+source = ["ontolint"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true
 
 [tool.ruff]
-src = ["scripts", "tests"]
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 ignore = ["E701"]  # inline `if x: y` — intentional style in this codebase

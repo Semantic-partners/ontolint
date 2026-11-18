@@ -7,5 +7,8 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
-.vscode/
+# VS Code: share the project settings and tasks; keep anything else personal.
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
 .venv

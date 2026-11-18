@@ -1,5 +1,0 @@
-# Count SHACL Shapes
-SELECT (COUNT(DISTINCT ?ns) AS ?shapeCount)
-WHERE {
-  ?ns a sh:NodeShape .
-}

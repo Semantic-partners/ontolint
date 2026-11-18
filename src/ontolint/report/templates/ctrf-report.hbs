@@ -1,0 +1,31 @@
+# Ontology Quality Assessment Report
+
+## Summary
+
+| File | Tests | Passed | Failed | Skipped |
+|------|-------|--------|--------|---------|
+{{#each reports}}| {{ontologyFile}} | {{results.summary.tests}} | {{results.summary.passed}} | {{results.summary.failed}} | {{results.summary.skipped}} |
+{{/each}}
+
+**Total**: {{totalTests}} tests | {{totalPassed}} passed | {{totalFailed}} failed | {{totalSkipped}} skipped
+
+---
+
+{{#each reports}}
+## {{ ontologyFile }}
+
+Generated: `{{ results.timestamp }}`
+
+Files checked:
+{{#each filesProcessed}}- `{{this}}`
+{{/each}}
+
+| Test Name | Status | Violations | Elements |
+|-----------|--------|--------|--------|
+{{#each results.tests}}| {{name}} | {{statusLabel}} | {{violationCount}} | {{detail}} |
+{{/each}}
+
+---
+
+{{/each}}
+

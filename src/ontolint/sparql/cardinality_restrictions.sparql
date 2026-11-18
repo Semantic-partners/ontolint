@@ -1,0 +1,7 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT (COUNT(?restriction) AS ?counter)
+WHERE {
+    ?restriction a owl:Restriction ;
+    ?type ?value .
+    VALUES ?type { owl:allValuesFrom owl:cardinality owl:qualifiedCardinality owl:hasSelf owl:hasValue owl:maxCardinality owl:maxQualifiedCardinality owl:minCardinality owl:minQualifiedCardinality owl:someValuesFrom }
+}

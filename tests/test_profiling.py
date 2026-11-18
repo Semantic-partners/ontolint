@@ -1,4 +1,5 @@
-from scripts.ontology_qa import profiling
+from ontolint.profiling import profiling, exclude_instance_data
+from ontolint.report.markdown import print_profiling_metrics
 
 
 def test_class_count(make_graph):
@@ -6,7 +7,7 @@ def test_class_count(make_graph):
     :Cat a owl:Class .
     :Dog a owl:Class .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['classCount']) == 2
 
 
@@ -14,7 +15,7 @@ def test_rdfs_class_counted(make_graph):
     g = make_graph("""
     :Cat a rdfs:Class .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['classCount']) == 1
 
 
@@ -23,7 +24,7 @@ def test_property_count(make_graph):
     :hasFur a owl:ObjectProperty .
     :hasAge a owl:DatatypeProperty .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['propertyCount']) == 2
 
 
@@ -31,13 +32,13 @@ def test_rdf_property_counted(make_graph):
     g = make_graph("""
     :hasFur a rdf:Property .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['propertyCount']) == 1
 
 
 def test_no_classes_or_properties(make_graph):
     g = make_graph(": a owl:Ontology .")
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['classCount']) == 0
     assert int(metrics['propertyCount']) == 0
 
@@ -47,7 +48,7 @@ def test_node_shape_count(make_graph):
     :CatShape a sh:NodeShape .
     :DogShape a sh:NodeShape .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['nodeShapes']) == 2
 
 
@@ -55,13 +56,13 @@ def test_property_shape_count(make_graph):
     g = make_graph("""
     :hasNameShape a sh:PropertyShape ; sh:path :hasName .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['propertyShapes']) == 1
 
 
 def test_no_shapes(make_graph):
     g = make_graph(": a owl:Ontology .")
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['nodeShapes']) == 0
     assert int(metrics['propertyShapes']) == 0
 
@@ -70,7 +71,7 @@ def test_deprecated_class_count(make_graph):
     g = make_graph("""
     :OldCat a owl:DeprecatedClass .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert metrics['deprecatedClasses'] == 1
 
 
@@ -78,7 +79,7 @@ def test_deprecated_property_count(make_graph):
     g = make_graph("""
     :oldHasFur a owl:DeprecatedProperty .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert metrics['deprecatedProperties'] == 1
 
 
@@ -86,7 +87,7 @@ def test_no_deprecated(make_graph):
     g = make_graph("""
     :Cat a owl:Class .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert metrics['deprecatedClasses'] == 0
     assert metrics['deprecatedProperties'] == 0
 
@@ -96,7 +97,7 @@ def test_vocabularies_used_excludes_ontology_namespace(make_graph):
     : a owl:Ontology .
     :Cat a owl:Class .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     # owl is external; the ontology's own namespace should not be counted
     assert metrics['vocabulariesUsed'] >= 1
 
@@ -106,7 +107,7 @@ def test_classes_in_node_shapes(make_graph):
     :CatShape a sh:NodeShape ; sh:targetClass :Cat .
     :Cat a owl:Class .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert metrics['classesInNodeShapes'] == 1
 
 
@@ -115,7 +116,7 @@ def test_properties_in_property_shapes(make_graph):
     :hasFur a owl:ObjectProperty .
     :hasFurShape a sh:PropertyShape ; sh:path :hasFur .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert metrics['propertiesInPropertyShapes'] == 1
 
 
@@ -125,7 +126,7 @@ def test_ontology_imports(make_graph):
     rdfs:label "Animal Ontology" ;
     owl:imports <http://example.org/>, <http://my.ont.example#> .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert metrics['imports'] == 2
 
 
@@ -137,7 +138,7 @@ def test_ontology_depth_linear(make_graph):
     :Siamese a rdfs:Class ;
     rdfs:subClassOf :Cat .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['HierarchyDepth']) == 2
 
 def test_ontology_depth_multiple_inheritance(make_graph):
@@ -150,7 +151,7 @@ def test_ontology_depth_multiple_inheritance(make_graph):
     :Siamese a rdfs:Class ;
     rdfs:subClassOf :Cat, :Pet .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['HierarchyDepth']) == 2
 
 def test_ontology_depth_non_dag(make_graph):
@@ -158,7 +159,7 @@ def test_ontology_depth_non_dag(make_graph):
     :A a owl:Class ; rdfs:subClassOf :B .
     :B a owl:Class ; rdfs:subClassOf :A .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['HierarchyDepth']) == -1
 
 def test_average_branching_factor(make_graph):
@@ -171,7 +172,7 @@ def test_average_branching_factor(make_graph):
     :Tabby a rdfs:Class ;
     rdfs:subClassOf :Cat .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert float(metrics['aveBranchFactor']) == 1.5
 
 # Examples from https://protegeproject.github.io/protege/class-expression-syntax/
@@ -186,7 +187,7 @@ def test_cardinality_restrictions_some(make_graph):
         owl:someValuesFrom :Dog
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
 
 
@@ -202,7 +203,7 @@ def test_cardinality_restriction_value(make_graph):
         owl:hasValue :Tibbs
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
 
 
@@ -217,7 +218,7 @@ def test_cardinality_restriction_only(make_graph):
         owl:allValuesFrom :Dog
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
 
 
@@ -233,7 +234,7 @@ def test_cardinality_restriction_min(make_graph):
         owl:onClass :Dog
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
 
 
@@ -249,7 +250,7 @@ def test_cardinality_restriction_max(make_graph):
         owl:onClass :Dog
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
 
 
@@ -265,8 +266,9 @@ def test_cardinality_restriction_exactly(make_graph):
         owl:onClass :Dog
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
+
 
 def test_cardinality_restriction_self(make_graph):
     g = make_graph("""
@@ -278,5 +280,48 @@ def test_cardinality_restriction_self(make_graph):
         owl:hasSelf 1
     ] .
     """)
-    metrics, _ = profiling(g)
+    metrics, _, _ = profiling(g)
     assert int(metrics['CardinalityRestrictions']) == 1
+
+
+def test_profiling_metrics_output(make_graph):
+    g = make_graph("""
+    :Cat a owl:Class .
+    :Dog a owl:Class .
+    :hasFur a owl:ObjectProperty .
+    :hasAge a owl:DatatypeProperty .
+    """)
+    metrics = {'filesProcessed': 0, 'triples': len(g), 'instances': 0}
+    p_metrics, violations, _ = profiling(g)
+    metrics.update(p_metrics)
+    output = print_profiling_metrics(metrics, violations, True)
+    assert "RDF/OWL classes: 2" in output
+    assert "RDF/OWL properties: 2" in output
+    assert "Instance data: 0" in output
+    assert "SHACL Node Shapes: 0" in output
+    assert "SHACL Property Shapes: 0" in output
+
+
+def test_instance_data(make_graph):
+    g = make_graph("""
+    :Dog a owl:Class .
+    :fuffy a :Dog; rdfs:label "Fuffy" .
+    """)
+    initial_size = len(g)
+    exclusion_triples, instances = exclude_instance_data(g)
+    g -= exclusion_triples
+    assert initial_size > len(g)
+    assert instances == 1
+
+
+def test_multiple_instance_subjects_are_counted(make_graph):
+    g = make_graph("""
+    :Dog a owl:Class .
+    :fuffy a :Dog; rdfs:label "Fuffy" .
+    :spot a :Dog; rdfs:label "Spot" .
+    :milo a :Dog; rdfs:label "Milo" .
+    """)
+
+    _, instances = exclude_instance_data(g)
+
+    assert instances == 3

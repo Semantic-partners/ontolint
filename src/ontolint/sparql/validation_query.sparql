@@ -1,0 +1,20 @@
+# Domain or Range violations of data.
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?s ?p ?o ?domain ?range WHERE {
+    ?s ?p ?o .
+
+    OPTIONAL { ?p rdfs:domain ?domain . }
+    OPTIONAL { ?p rdfs:range ?range . }
+
+    FILTER (
+      (BOUND(?domain) && NOT EXISTS {
+        ?s a ?stype .
+        ?stype rdfs:subClassOf* ?domain .
+      })
+      ||
+      (isIRI(?o) && BOUND(?range) && NOT EXISTS {
+        ?o a ?otype .
+        ?otype rdfs:subClassOf* ?range .
+      })
+    )
+}

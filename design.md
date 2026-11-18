@@ -1,0 +1,499 @@
+# Design
+
+How a run is put together, and which parts are settled versus in flight. `CLAUDE.md` has
+the module-by-module detail; this is the shape.
+
+## The pipeline
+
+```
+args + .rdf-lint.yml ──→ Config + checklist
+                              │
+parse ──→ graph(s) ──→ lint ──→ QAResult(s)
+                              ├──→ Markdown   (per result)   ← assembled throughout
+                              ├──→ CTRF       (per result)
+                              └──→ DQV        (per RUN, over all results)
+```
+
+**Config + checklist.** `Config` is the single description of a run — the CLI builds one
+from its arguments and `.rdf-lint.yml`, a library caller builds one directly. The checklist
+says which checks are enabled, resolved by `select_checks()` or handed in by the CLI.
+
+**parse → graph(s).** `load_rdf()` builds an `rdflib.Dataset` with one named graph per
+file, keyed by the file's `file:` IRI. A merged `Graph` answers "is this triple present";
+a Dataset also answers "which file put it there", which is what a finding has to name
+(#96) and is why `ontology_sources` had to be collected as each file was read.
+
+`default_union` is set, so SPARQL, `len()` and `triples()` all read the union: the checks
+see one graph and cannot tell the inputs were separate. Two things do not come from a
+file and are handled explicitly — inferred triples get `INFERRED_CONTEXT` rather than
+being folded into an input's context, and blank-node canonicalisation materialises the
+union first, since canonicalisation is defined over triples.
+
+Nothing downstream requires a Dataset: `ontolint.lint()` passes plain graphs, and every
+seam accepts either.
+
+**lint.** `lint_graph()` is the single entry point that performs one run: inference if
+configured, then every selected check. Both front ends call it, so a run means the same
+thing however it was asked for.
+
+**QAResult.** What a run produced: profiling metrics, a `CheckResult` per executed check
+(name, passed, count, offending elements, structured violations), the datasets it was
+computed on, and the configuration that ran.
+
+## The three reporters
+
+| | granularity | built from | pinned by |
+|---|---|---|---|
+| **Markdown** | per result | *mixed — see below* | `<case>_markdown.py`, via `tests/test_pipeline_qaresult_to_markdown.py` |
+| **CTRF** | per result | `QAResult`, via `build_ctrf_report()` | `<case>_ctrf.json`, via `tests/test_pipeline_qaresult_to_ctrf.py` |
+| **DQV** | **per run** | all `QAResult`s + all inputs, via `build_dqv_graph()` | `<case>_dqv.ttl`, via `tests/test_pipeline_qaresult_to_dqv.py`; run shapes in `tests/dqv/*/expected.ttl` |
+
+Each reporter splits building from writing: `build_ctrf_report()` / `write_ctrf_report()`
+and `build_dqv_graph()` / `write_dqv_report()`. The build half is a pure projection of a
+`QAResult`, so it can be asserted without touching the filesystem — which is what the
+reporter suites do. Markdown has no such split yet.
+
+The asymmetry is load-bearing. CTRF and Markdown describe one result each; **DQV describes
+the whole run**, which is why it is written once, outside any per-file loop. Set-level
+findings live there and nowhere else — *one file, one ontology* can only be judged across
+the inputs, and only before they are merged, since the union of two identical
+`owl:Ontology` declarations is a single triple.
+
+## How the reporters are pinned
+
+`tests/data/` holds the whole output of each reporter, written out as data. Each suite
+leads with one assertion that the reporter still produces it, and follows with the
+assertions that say *why* parts of it must hold — so a failure explains itself instead of
+handing over a thousand-line diff.
+
+| suite | input | asserts |
+|---|---|---|
+| `test_pipeline_lint_to_qaresult.py` | the `.ttl` files | lint still produces the stored `QAResult` |
+| `test_pipeline_qaresult_to_markdown.py` | the `.ttl` files | a lint still renders the stored Markdown |
+| `test_pipeline_qaresult_to_ctrf.py` | the stored `QAResult`s | the CTRF projection |
+| `test_pipeline_qaresult_to_dqv.py` | the stored `QAResult`s | the DQV projection |
+
+The last two take the *stored* instance, never one they produced, so they never run a
+check: a change to what a check finds cannot break them, and a reporter bug cannot be
+blamed on the checks. The first two are what keep the stored instances honest.
+
+Verified by sabotage, which is the only way to know a safety net holds: breaking a check
+fails suite 1 alone, one line of report wording fails suite 2 alone, and the DQV reporter
+fails suite 4 alone.
+
+### The cases
+
+Several checks answer differently depending only on how the inputs were batched, so every
+reporter is pinned per case rather than once:
+
+| case | inputs |
+|---|---|
+| `reporters` | `reporters.ttl` |
+| `fragment` | `fragment.ttl` |
+| `merged` | both, in one graph |
+
+`reporters.ttl` is deliberately mixed and fails 22 of the 25 checks. `fragment.ttl`
+declares no `owl:Ontology`, which is the only way to fail the two ontology-metadata checks —
+a file cannot both declare a described ontology and fail to. Together they give every check
+a failing case, so a check that silently stops detecting anything is caught. Merged, they
+also reach the declaration check's middle branch, where *some* of the inputs declared one.
+
+Neither input needs the network: the autouse `no_network` fixture blocks sockets, and the
+unresolvable `owl:imports` points at `example.invalid`, reserved by RFC 2606, so it fails
+the same way online or off.
+
+**One term, one failure.** Every term in `reporters.ttl` is complete except for the single
+thing the comment beside it names, so a check that changes moves one line of the stored
+expectations rather than several, and a term appearing twice in a report is a signal rather
+than noise. One exception, and it is in the checks rather than the fixture: an
+`owl:imports` that cannot be resolved is by construction a namespace whose terms cannot be
+checked, so it fails both. The same rule applies to `fragment.ttl` and to the golden cases
+under `tests/dqv/`.
+
+`fragment.ttl` carries the other direction of the same noise, which it cannot avoid: with
+no declared namespace to compare against, the undefined-terms check reports its own three
+terms and the untyped-property check reports `rdf:type`, `rdfs:label` and friends — terms
+the file never put under test. Those are false positives rather than fixture content, and
+pinning them is part of what the file is for, since they are #102.
+
+Each DQV golden covers a **single** result, unlike the run-level report the reporter
+builds in anger. A report over several results is not the union of their individual ones:
+`_mint` hashes the assessment node into every measurement IRI, and a two-result report has
+one assessment where its two parts have two, so every measurement IRI differs. Multi-result
+run shapes are pinned end-to-end in `tests/dqv/` instead, where `per-file/` and `merged/`
+run the CLI over two inputs each.
+
+### What the stored reports pin, and what they do not
+
+A report carries three things that depend on *where and when it ran* rather than on what
+the checks found, and all three are hashed into the IRIs it mints, so none can be corrected
+after the report is built. Each is pinned at the point it is made, by replacing a
+module-level function in `ontolint/dqv.py` that is looked up when the report is built rather
+than bound in — the same device three times over, because `main()` takes no arguments for
+any of them.
+
+| provider | replaced with | otherwise |
+|---|---|---|
+| `dqv.utc_now`, as `date_time_provider` | a fixed instant | every minted IRI derives from the timestamp, so no two runs agree |
+| `dqv.mint_id`, as `node_namer` | a name taken from what a node is *about* | a node's name nests: a violation hashes its measurement, which hashes the assessment, which hashes the effective configuration — which lists every check. Adding one check renamed every node in every stored report |
+| `dqv.file_iri` | an IRI relative to the case directory | a report naming an input names it by absolute path, so a golden matches only the machine that wrote it |
+
+The first two are parameters of `build_dqv_graph` and `write_dqv_report`, so a test calling
+either passes one in — `test_pipeline_qaresult_to_dqv.py` does. `dqv.file_iri` is not, and
+deliberately: it is called from `load_rdf` in `loading.py`, so a parameter would have to
+run through `load_rdf` → `run_qa` → `lint_graph` → `main` to reach the one test that wants
+it. It stays a module-level function replaced in place.
+
+Every one of them is *also* replaceable in place, because each default is looked up when the
+report is built rather than bound into its definition. A run through `main()` takes no
+arguments for any of this, so `test_e2e_dqv.py` replaces all three that way.
+
+That last one is the difference between a reviewable diff and an unreadable one. Adding a
+check used to move 161 lines of `tests/dqv/mixed/expected.ttl` and 1120 of
+`tests/data/reporters_dqv.ttl`; it now moves 7 and 16, and those are the new metric's own
+definition.
+
+**So the stored reports pin content, not identity.** They say which metrics were emitted,
+on which datasets, with which values, violations and settings. They do not say that the
+real naming scheme is deterministic, unique per run, or sensitive to the configuration —
+with `mint_id` replaced, they cannot. Those properties are asserted directly in
+`tests/test_dqv.py`, which uses the real one: `test_iris_are_deterministic_per_run_and_unique_across_runs`,
+`test_same_inputs_under_different_configurations_get_distinct_assessments`,
+`test_settings_differing_only_in_provenance_get_distinct_iris`,
+`test_same_ontology_iri_in_two_runs_gives_distinct_measurements` and
+`test_aggregate_dataset_iri_is_stable_across_runs`. Change the minting and it is those that
+must fail; the goldens staying green is the point. One e2e test does run the real naming
+through `main()` — `test_a_real_run_mints_hashed_iris` — so the scheme cannot quietly stop
+being wired in, or stay replaced by accident, while every stored report still matches.
+
+One consequence to know about: the substitute names a configuration node by a constant,
+since a report has one per result and the goldens have one result each. Two differing
+configurations in a single stored report would collide into one node.
+
+### Changing a stored expectation
+
+Every stored expectation regenerates the same way — there is no hand-edited one left:
+
+```
+UPDATE_GOLDEN=1 poetry run pytest tests/test_pipeline_*.py tests/test_e2e_dqv.py
+```
+
+Review every regenerated diff; that is the point of storing them. A new check should be a
+deliberate addition to the expectation, not something that appears while you look away.
+
+The writers live in `tests/golden.py`, in the tree rather than in a script beside it. A
+generator that is not in the repo cannot be kept in step with the tests it writes about:
+the file headers went stale exactly that way when the suites were renamed, and a
+regeneration quietly put the old names back.
+
+Two rules for anything that reaches a stored expectation:
+
+- **It must not name the checkout.** An absolute path makes the expectation match only the
+  machine that wrote it, and the symptom is a suite that is green locally and red in CI.
+  It has happened twice — `fetchActivity`'s vocabulary paths, and a violation naming its
+  source file — so `test_no_stored_expectation_embeds_a_checkout_path` now asserts the
+  class rather than the instances. `source_iris` exists so a run can name its inputs
+  without minting a `file:` IRI from the working directory.
+- **Anything derived from a set must be sorted.** Dict and graph comparison ignore order,
+  so an unsorted value passes the test while churning the file on every regeneration.
+
+Running the whole suite from a second checkout at a different path is the cheapest way to
+catch the first before CI does.
+
+## The three reporters are projections of QAResult
+
+`build_ctrf_report()`, `dqv.build_dqv_graph()` and `render_markdown()` each take a finished
+`QAResult` and render it. None of them runs a check, and each is tested at its own boundary
+against the stored instance under `tests/data/`.
+
+Markdown was the exception until #101: each check built its own text as it ran, `run_qa()`
+collected the strings into `result.logs`, and the "reporter" concatenated them. So the only
+boundary that existed was argv → stdout, and a `QAResult → Markdown` test would have
+asserted that concatenation concatenates.
+
+**What a check records now.** `CheckResult.body` is the parts of its section in the order
+the check recorded them, through three calls:
+
+| | |
+|---|---|
+| `decided(violations, check, sentence, detail)` | the verdict, and whether its elements are listed under it. Also kept apart on `CheckResult.outcome`, as the one part a consumer other than a reporter might want |
+| `note(violations, check, line)` | a line of its own — a caveat, an aside, a heading for what follows |
+| `tabulate(violations, check, headers, rows)` | a table as data: column headings and rows of cells, `verbose_only=True` for the ones only a verbose run shows |
+
+An ordered list rather than a verdict plus trailing notes, because several checks compose a
+narrative: owl-imports says *"2 import(s) resolved from local file(s)"* **before** its
+verdict, and undefined-terms lists its remote namespace activity after.
+
+**What the reporter decides.** The number, heading and rule of each section; how a list of
+elements is laid out; how a table is drawn; whether a verbose-only table is drawn at all.
+`check_owl_declaration` used to trim the full stop off a sentence it had already written so
+that a list could follow — something only a check that writes its own report can do. It now
+settles how its verdict ends before saying it.
+
+**Thirteen checks run a second query purely for the verbose table** — every property's
+domain and range, every class's label. Those rows are data on the result, so the reporter
+needs nothing but the result; handing it the graph instead would have defeated the point.
+
+**The boundary this buys.** Breaking a check now fails `test_pipeline_lint_to_qaresult.py`
+and the end-to-end tests, and leaves the Markdown suite alone; breaking the reporter fails
+only the Markdown suite. Nothing asserts that a *lint* renders the stored text any more,
+because nothing needs to: linting produces the stored instance and the stored instance
+renders the stored text, so the composition holds. Both directions verified by sabotage.
+
+**A skipped check gets no score.** Every number in the QA metrics table is one, and
+`normalise(count, total)` ends with `if count == total: out = 1` — so a check with nothing
+to measure, 0 of 0, scored **1**, the same as one where every single element failed.
+*"No NodeShapes exist"* and *"every NodeShape is unlabelled"* rendered identically, while
+the section above said `WARNING - No NodeShape defined, invalid metric.` The table now reads
+`CheckResult.status` rather than re-deriving a verdict from counts: `N/A` for a check that
+was not selected, `skipped` for one that ran and could not measure.
+
+The same split had been in the aggregated CTRF report, where
+`{{#if (eq status "passed")}}✅ PASS{{else}}❌ FAIL{{/if}}` rendered a skipped check as a
+**failure**. Its summary now carries a Skipped column, and each row's status cell is worked
+out in `report.ctrf_summary.describe_status()` rather than in the template — the
+hand-rolled renderer has no nested conditionals, and a three-way status needs one.
+
+**How the move was checked.** The stored Markdown under `tests/data/*_report.md` was the
+expectation throughout, and the conversion went check by check with it green. It moved four
+times, each an inconsistency straightened rather than a change of substance: two checks were
+titled differently in Markdown than in CTRF and DQV, table headings had a stray double
+space, some verbose tables had a blank line before them and others did not, and one
+violation list omitted the `-` bullet every other list has.
+
+## per-file
+
+`--per-file` means one thing: **do the checks run per graph, or across all the graphs at
+once?** `main()` is one loop over a list of runs, where a merged run is the list of length
+one, so everything after the loop — the DQV report, where output goes, the exit code — is
+the same either way.
+
+Two things still differ, both deliberately, and `tests/test_e2e_cli.py` pins them:
+
+- **A CTRF report is named per run.** `--ctrf-filename` names the one a merged run
+  produces; per file each is named after its input, and passing both is refused rather
+  than quietly ignored.
+- **A parse failure aborts a merged run but not a per-file one.** A file that cannot be
+  parsed silently shrinks the graph under test, so there is nothing left to check in a
+  merged run; per file the others are independent and still worth checking. This one
+  follows from what the checks run over, which is the one thing `--per-file` decides.
+
+What remains open is the deeper question of scope, tracked in #96: a check computed over
+"whatever was in this invocation" gives an answer that depends on how the caller batched
+their files, which is why uniqueness can be reported for two independent ontologies that
+merely share a label.
+
+**A run resolves against itself.** The files of one invocation that a run is not checking
+are registered as things it may resolve against, exactly as a bundled vocabulary is
+(`sibling_imports()`). So a family of ontologies that refers to itself before it is
+published needs no `imports.local` entries for its own members — which is what people were
+writing by hand, and what #108 was about.
+
+An input speaks for the ontology it **declares**, and for nothing else. Registering every
+namespace it has subjects in — what `defined_namespaces()` gives, and what is right for a
+vocabulary a caller hands over — would let one input shadow a real vocabulary by minting a
+term in its namespace. `tests/example_failure.ttl` does exactly that to SKOS, and
+registering it for SKOS made `skos:prefLabel` undefined in the file beside it.
+
+Every ontology resolved this way is **named in the configuration**, as an `imports.local`
+setting with `olq:origin olq:RunInput` and the input it came from, so it is explicit what
+answered for what. That a per-file run then has a configuration of its own, one per file,
+is not a defect: each run really was given a different resolution context, and a report
+that said otherwise would be describing a run that did not happen.
+
+`imports.siblings: false` turns the whole thing off for a project that lints unrelated
+ontologies together and wants each judged strictly alone. The flag is recorded whether it
+was set or defaulted, because it changes what an undefined-terms result means.
+
+**This does not make `--per-file` safe as a default.** It removes the *resolution* reason to
+prefer a merged run, not the *scope* one. A check still sees one file: linting a two-file
+family per file reports `core:Thing` as an isolated class, because the subclass that
+connects it is in the other file. Scope is the unit model below, and #107.
+
+**Where this is going: the unit.** One concept replaces the two modes. A **unit** is one
+ontology — one to many files, with exactly one `owl:Ontology` declaration across the whole
+unit. A **run** is a set of units. **Context** is every unit in the run, available to
+*resolve* references but never to widen what a check is computed over. `--per-file` then
+means "each file is a unit", a merged run means "all the files are one unit", and a run may
+hold both shapes at once, which is how a family of ontologies is actually laid out and
+which nothing in the tool can express today.
+
+`main()` already builds `runs` as `list[list[path]]` and produces one report, one CTRF and
+one `QAResult` per entry, so a unit is already the internal shape. What is missing is
+underneath it — see the Todo.
+
+**What owns a term.** A term belongs to the ontology declared in the file it sits in — not
+to the namespace it is minted under. So a term minted in file 1 under ontology 2's
+namespace is ontology 1's defect: file 1 is where someone did the wrong thing, and charging
+it to ontology 2 would let one input degrade another's quality score from outside.
+
+A per-file run already reports exactly this, and `tests/dqv/per-file/` pins it: `a:borrowed`
+is minted in `b.ttl`, the hijack is charged to `b`, the violation's `sh:focusNode` names the
+term, and `a`'s report stays clean.
+
+This is deliberately *not* the longest-matching-namespace rule #96 first proposed. That one
+would make `a:borrowed` ontology a's defect, which lets one input degrade another ontology's
+score from outside. Ownership follows the file; minting into someone else's namespace is the
+finding, not the attribution rule.
+
+## A check that cannot answer says so
+
+A check reports one of three outcomes, not two. `CheckResult.status` is `passed`, `failed`
+or **`skipped`** — the last meaning it could not be computed at all. A skipped check is not
+a failure, so `passed` stays a derived property and the exit code does not change; but it
+is not a pass either, and saying so is the point.
+
+It had been saying so only in prose. All 22 places a check cannot compute its metric
+already logged `WARNING - … invalid metric`, while the metric, the CTRF entry and the DQV
+report carried the 0 it never measured. A two-class ontology with no properties reported
+**25 passed, 0 failed**, of which 12 had never looked at anything. It now reports
+**13 passed, 0 failed, 12 skipped**.
+
+Each check says so explicitly, through `not_assessed(violations, check, reason)`, rather
+than a reporter inferring it from the log text — behaviour in prose is what this is fixing.
+
+**Why it could not run** is carried too. The reasons are `olq:EmptyPopulation` (nothing of
+the kind measured exists), `olq:SourcesNotRecorded` (a per-input check given a graph that
+does not record its inputs), or **the dependency that was not met**.
+
+### Dependencies between checks are declared, not coded
+
+Four checks need another check's condition to hold: the description and imports checks, and
+both untyped checks, all need a declared `owl:Ontology`. Two of those lived as `if` blocks
+in `lint_selection` plus an English sentence; the other two lived nowhere at all, implicit
+in the check.
+
+They are now data — `dqv.DQV_DEPENDENCIES` — used three times from one statement:
+
+- `lint_selection` enables the required check when a dependent one is selected;
+- the report publishes each as an `olq:Dependency`, carrying *why* it exists, plus a
+  `dcterms:requires` shortcut for querying. The relation itself is Dublin Core's — *"a
+  related resource that is required by the described resource to support its function,
+  delivery, or coherence"* is exactly this — so only the explanation needs a term of ours;
+- a skipped check's `olq:reason` points at the dependency it could not meet, so a consumer
+  reading *"untyped properties: not assessed"* can follow it to *"because no ontology was
+  declared"* and on to the measurement that says so.
+
+This is why a headerless file no longer reports a missing ontology **description** as a
+failure: there is nothing to describe, so the check is skipped against its dependency, and
+the declaration check alone names the defect. One term, one failure, applied to checks.
+
+`olq:metric` links a not-assessed record to its metric rather than `dqv:isMeasurementOf`,
+whose domain is `dqv:QualityMeasurement` — nothing was measured, which is the whole point.
+
+A skip caused by a failure elsewhere must not read like the benign kind, so the CTRF message
+names the check it needed and what became of it — `not assessed: requires 'Ontology without
+declaration', which failed` — rather than the internal reason key. The status stays
+`skipped` for both: CTRF's vocabulary is `passed | failed | skipped | pending | other`, and
+`other` would say less, not more. A prerequisite skip is never silently green in any case —
+the check it needs is itself failing, and the dependency rule guarantees that check runs.
+
+
+
+### The case that started it
+
+The untyped-class and untyped-property checks judge a term by whether it is in the
+ontology's own namespace. With no `owl:Ontology` declared there is no such namespace, and
+the guard used to read *"keep it if it is mine, **or if I do not know what mine is**"* —
+so a headerless file had every term it touched reported, `rdf:type` and `rdfs:label`
+included, and the build failed on a list of other people's vocabulary (#102).
+
+The guard now requires a declared namespace, in the queries *and* in the checks: the
+queries return nothing, and the checks say `invalid metric` rather than `PASS`, because
+reporting nothing and finding nothing are different things and only one of them is a
+clean bill of health. It is the same shape as `WARNING - No classes defined, invalid
+metric` elsewhere.
+
+What this gives up is deliberate. A term in the file's own namespace, used and never
+typed, really is a defect and is no longer named — there is no way to tell it from a
+third party's term without a namespace to judge by. Excluding only the vocabularies we
+already know offline would keep it, and is worth revisiting; it is not what this change
+does.
+
+Each half has its own failing test, because they can hide each other: the checks
+short-circuit on the declaration before looking at their results, so a query that went
+back to passing everything would be invisible through `run_qa`.
+
+## Determinism
+
+Reports must be byte-identical for the same inputs, or diffs are unreviewable and no
+expected output can be pinned. Two things are needed and are in place:
+
+- **SELECT results are sorted** in `exec_sparql()`. Rows otherwise arrive in store order,
+  which varies between runs. CONSTRUCT results are graphs and are left alone.
+- **Violation lists are sorted** in `violation_formatting()`.
+- **GROUP_CONCAT cells are sorted** by `concat_members()`. Six queries concatenate a
+  group's members into one cell, and GROUP_CONCAT has no defined order: sorting the rows
+  does not sort within one. The DQV records always sorted their own copy; the text
+  reports carried the concatenation as it came back, so the same inputs rendered a
+  group's members in a different order on roughly half of runs.
+- **Blank nodes are rendered as `[anonymous]`** by `term_text()`, wherever a term reaches a
+  text report. An rdflib blank-node identifier is invented at parse time and differs every
+  run, so printing it varied the output while telling a reader nothing they could act on.
+  Anything needing stable identity has it in the DQV report, where blank nodes are
+  skolemized under the report's base.
+
+The DQV report's clock is injected — `build_dqv_graph(results, date_time_provider=…)` —
+and pinning it makes the report, every minted IRI included, reproducible for the same
+inputs and base URI.
+
+**Rendering twice in one process is not enough to prove it.** `PYTHONHASHSEED` is fixed
+for a process's lifetime, so anything ordered by a hash renders identically both times
+and still varies between runs — which is how the GROUP_CONCAT ordering above survived a
+test asserting two renders match. `test_it_renders_the_same_text_under_any_hash_seed`
+covers that class of bug by rendering in a subprocess per seed. It samples a few seeds,
+so it is a detector rather than a proof.
+
+**CTRF is not reproducible from the CLI**: its timestamp is `datetime.now()`, so two runs
+over identical inputs differ by that one field. The clock is injected —
+`build_ctrf_report(result, date_time_provider=…)` — and that is the only way to fix it.
+Nothing else in the report varies, so a caller that supplies a clock gets a byte-identical
+file, which is what `tests/data/reporters_ctrf.json` is compared against.
+
+Both reporters pin their clocks the same way, through an injected `date_time_provider`.
+The stakes differ: CTRF's timestamp is one field, while DQV's *minted IRIs* derive from
+it, so an unpinned DQV run names every measurement differently. DQV's default is looked
+up as `dqv.utc_now` when the report is built rather than bound as the parameter's
+default, so the CLI — which has no caller to inject one — can still have its clock
+replaced, which is how `tests/test_e2e_dqv.py` compares against committed reports.
+
+## Todo
+
+- **#96 — what a unit is.** The keystone, and a decision rather than an implementation.
+  Every check that asks *"is this term in my declared namespace?"* needs it, and today the
+  answer is "whatever was in this invocation". #107 closed into it (the merged-run silence
+  is correct under one reading of a unit and wrong under the other) and #116 waits on it
+  (what to do when two inputs claim to be the *same* unit). Until it is settled,
+  `--per-file` cannot become the default: a two-file family linted per file still reports
+  `core:Thing` as isolated, because the subclass connecting it is in the other file.
+- **#112 — the metric catalogue as data.** Would let a set-level metric be a prerequisite,
+  which is what #116 needs, and removes the three-kinds-of-metric special-casing: a check's
+  metric, a set-level one and the roll-up are all `dqv:Metric`s differing only in how they
+  are computed.
+- **#113 — PROV for the run itself.** The assessment carries `prov:generatedAtTime` but
+  nothing generated it: no `prov:Activity`, no `prov:used` for the inputs, no agent. The
+  resolution provenance `fetchActivity` already collects never reaches the report.
+- **#90 — report legibility.** Failures first is cheap now that `render_markdown()` is one
+  function over `result.checks`; a link to the line a violation was declared on is not,
+  since rdflib discards source positions.
+
+**What the unit model deletes.** Per-ontology attribution of measurements was the plan here
+until the model settled it away: a unit yields one result on one ontology, so a check's
+violations never split across ontologies, and the aggregate `Merged: …` dataset exists only
+to paper over a run the model makes invalid. It also reverses #96's answered question 4 —
+inside a unit of five files, one header and four files without it is **correct**, where
+today `check_owl_declaration` reports that as a violation and `tests/data/fragment.ttl`
+exists on the premise that it is a defect.
+
+## Landed
+
+- **#97** — one file, one ontology, in both directions.
+- **#101** — Markdown is a projection of `QAResult`, like the other two reporters.
+- **#102** — the untyped checks refuse to answer without a declared namespace.
+- **#104** — one named graph per file, so a triple's source survives the load.
+- **#108** — a run resolves against the files it is not checking, with `imports.siblings`.
+
+## In flight
+
+- **#94** — publish to PyPI; moves these modules into the package.
+- **#91** — property shapes count the comment and label of their `sh:path` property.

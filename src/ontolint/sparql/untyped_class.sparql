@@ -1,0 +1,43 @@
+# Untyped class
+# Class without owl:Class or rdfs:Class declaration
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+SELECT DISTINCT ?c
+WHERE {
+  { ?s rdfs:domain ?c . }
+  UNION
+  { ?s rdfs:range ?c . }
+  UNION
+  { ?s sh:class ?c . }
+  UNION
+  { ?s rdfs:subClassOf ?c . }
+  UNION
+  { ?s rdf:first ?c . }
+  UNION
+  {
+	VALUES ?restriction { owl:allValuesFrom owl:onClass owl:someValuesFrom }
+    ?r a owl:Restriction ;
+    ?restriction ?c .
+  }
+  
+  # Exclude resources typed with a configured exclude-types IRI (injected at runtime)
+  # {{EXCLUDE_TYPES}}
+  # exclude blank nodes
+  FILTER(isIRI(?c))
+
+  # Restrict to ontology namespace
+  OPTIONAL {
+	?ontology a owl:Ontology .
+	BIND(STR(?ontology) AS ?ns)
+  }
+  BIND(REPLACE(STR(?c), "[^#/]*$", "") AS ?cns)
+  # An unbound ?ns means no owl:Ontology was declared, so there is no namespace to
+  # judge against: require it, and report nothing rather than everything.
+  FILTER (BOUND(?ns) && ?cns IN (?ns, CONCAT(?ns, "#"), CONCAT(?ns, "/")))
+  MINUS {
+    VALUES ?type { owl:Class rdfs:Class rdfs:Datatype }
+    ?c a ?type .
+  }
+}

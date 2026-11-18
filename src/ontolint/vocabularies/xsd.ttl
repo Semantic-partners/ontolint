@@ -1,0 +1,100 @@
+# XML Schema Definition (XSD) 1.1 terms, bundled with ontolint.
+#
+# W3C publishes no RDF for the XSD namespace, so this file was written for ontolint from
+# XML Schema 1.1 Part 2: Datatypes (https://www.w3.org/TR/xmlschema11-2/). It lists:
+#   - every built-in datatype, as rdfs:Datatype;
+#   - the constraining facets, used as predicates in OWL datatype restrictions
+#     (owl:withRestrictions), the fundamental facets, and the date/time property names.
+# It exists so the undefined-terms check can validate xsd: terms offline.
+
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<http://www.w3.org/2001/XMLSchema#> a owl:Ontology ;
+    dcterms:title "XML Schema Definition (XSD) 1.1 terms" ;
+    rdfs:seeAlso <https://www.w3.org/TR/xmlschema11-2/> .
+
+# Built-in datatypes
+xsd:anySimpleType a rdfs:Datatype ; rdfs:label "anySimpleType" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:anyAtomicType a rdfs:Datatype ; rdfs:label "anyAtomicType" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:string a rdfs:Datatype ; rdfs:label "string" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:boolean a rdfs:Datatype ; rdfs:label "boolean" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:decimal a rdfs:Datatype ; rdfs:label "decimal" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:float a rdfs:Datatype ; rdfs:label "float" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:double a rdfs:Datatype ; rdfs:label "double" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:duration a rdfs:Datatype ; rdfs:label "duration" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:dateTime a rdfs:Datatype ; rdfs:label "dateTime" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:time a rdfs:Datatype ; rdfs:label "time" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:date a rdfs:Datatype ; rdfs:label "date" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:gYearMonth a rdfs:Datatype ; rdfs:label "gYearMonth" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:gYear a rdfs:Datatype ; rdfs:label "gYear" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:gMonthDay a rdfs:Datatype ; rdfs:label "gMonthDay" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:gDay a rdfs:Datatype ; rdfs:label "gDay" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:gMonth a rdfs:Datatype ; rdfs:label "gMonth" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:hexBinary a rdfs:Datatype ; rdfs:label "hexBinary" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:base64Binary a rdfs:Datatype ; rdfs:label "base64Binary" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:anyURI a rdfs:Datatype ; rdfs:label "anyURI" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:QName a rdfs:Datatype ; rdfs:label "QName" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:NOTATION a rdfs:Datatype ; rdfs:label "NOTATION" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:normalizedString a rdfs:Datatype ; rdfs:label "normalizedString" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:token a rdfs:Datatype ; rdfs:label "token" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:language a rdfs:Datatype ; rdfs:label "language" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:NMTOKEN a rdfs:Datatype ; rdfs:label "NMTOKEN" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:NMTOKENS a rdfs:Datatype ; rdfs:label "NMTOKENS" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:Name a rdfs:Datatype ; rdfs:label "Name" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:NCName a rdfs:Datatype ; rdfs:label "NCName" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:ID a rdfs:Datatype ; rdfs:label "ID" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:IDREF a rdfs:Datatype ; rdfs:label "IDREF" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:IDREFS a rdfs:Datatype ; rdfs:label "IDREFS" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:ENTITY a rdfs:Datatype ; rdfs:label "ENTITY" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:ENTITIES a rdfs:Datatype ; rdfs:label "ENTITIES" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:integer a rdfs:Datatype ; rdfs:label "integer" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:nonPositiveInteger a rdfs:Datatype ; rdfs:label "nonPositiveInteger" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:negativeInteger a rdfs:Datatype ; rdfs:label "negativeInteger" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:long a rdfs:Datatype ; rdfs:label "long" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:int a rdfs:Datatype ; rdfs:label "int" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:short a rdfs:Datatype ; rdfs:label "short" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:byte a rdfs:Datatype ; rdfs:label "byte" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:nonNegativeInteger a rdfs:Datatype ; rdfs:label "nonNegativeInteger" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:unsignedLong a rdfs:Datatype ; rdfs:label "unsignedLong" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:unsignedInt a rdfs:Datatype ; rdfs:label "unsignedInt" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:unsignedShort a rdfs:Datatype ; rdfs:label "unsignedShort" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:unsignedByte a rdfs:Datatype ; rdfs:label "unsignedByte" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:positiveInteger a rdfs:Datatype ; rdfs:label "positiveInteger" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:yearMonthDuration a rdfs:Datatype ; rdfs:label "yearMonthDuration" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:dayTimeDuration a rdfs:Datatype ; rdfs:label "dayTimeDuration" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:dateTimeStamp a rdfs:Datatype ; rdfs:label "dateTimeStamp" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+
+# Constraining facets (used in owl:withRestrictions)
+xsd:length a rdf:Property ; rdfs:label "length" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:minLength a rdf:Property ; rdfs:label "minLength" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:maxLength a rdf:Property ; rdfs:label "maxLength" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:pattern a rdf:Property ; rdfs:label "pattern" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:enumeration a rdf:Property ; rdfs:label "enumeration" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:whiteSpace a rdf:Property ; rdfs:label "whiteSpace" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:maxInclusive a rdf:Property ; rdfs:label "maxInclusive" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:maxExclusive a rdf:Property ; rdfs:label "maxExclusive" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:minInclusive a rdf:Property ; rdfs:label "minInclusive" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:minExclusive a rdf:Property ; rdfs:label "minExclusive" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:totalDigits a rdf:Property ; rdfs:label "totalDigits" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:fractionDigits a rdf:Property ; rdfs:label "fractionDigits" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:explicitTimezone a rdf:Property ; rdfs:label "explicitTimezone" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:assertions a rdf:Property ; rdfs:label "assertions" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+
+# Fundamental facets
+xsd:ordered a rdf:Property ; rdfs:label "ordered" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:bounded a rdf:Property ; rdfs:label "bounded" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:cardinality a rdf:Property ; rdfs:label "cardinality" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:numeric a rdf:Property ; rdfs:label "numeric" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+
+# Date/time seven-property model components
+xsd:year a rdf:Property ; rdfs:label "year" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:month a rdf:Property ; rdfs:label "month" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:day a rdf:Property ; rdfs:label "day" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:hour a rdf:Property ; rdfs:label "hour" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:minute a rdf:Property ; rdfs:label "minute" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:second a rdf:Property ; rdfs:label "second" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
+xsd:timezoneOffset a rdf:Property ; rdfs:label "timezoneOffset" ; rdfs:isDefinedBy <http://www.w3.org/2001/XMLSchema#> .
