@@ -7,7 +7,8 @@ branding:
 inputs:
   ontology-paths:
     description: |
-      One or more paths to ontology files or directories, relative to the repository root.
+      One or more paths or glob patterns (`*`, `?`, `**`) to ontology files or directories,
+      relative to the repository root.
       Provide a single path on one line, or several paths one per line using YAML block scalar syntax:
         ontology-paths: |
           ontologies/core.ttl
@@ -108,15 +109,23 @@ runs:
         CONFIG_PATH: ${{ inputs.config-path }}
       run: |
         ARGS=()
+        # Entries may be glob patterns (`*`, `?`, `[...]`, `**` for any depth), expanded
+        # here by the shell as on a command line: ontolint itself does not expand them.
+        # An entry matching nothing is an error, like a missing path.
+        shopt -s nullglob globstar
         while IFS= read -r path; do
           path="${path%$'\r'}"
           [ -z "$path" ] && continue
-          if [ ! -e "$WORKSPACE/$path" ]; then
-            echo "::error::ontology-paths entry '$path' does not exist in the repository"
+          # IFS empty: the pattern is globbed but never word-split, so spaces survive.
+          IFS= matches=( "$WORKSPACE"/$path )
+          if [ ${#matches[@]} -eq 0 ] || [ ! -e "${matches[0]}" ]; then
+            echo "::error::ontology-paths entry '$path' does not exist in the repository (no file or directory matches)"
             exit 1
           fi
-          ARGS+=("$WORKSPACE/$path")
+          ARGS+=("${matches[@]}")
         done <<< "$ONTOLOGY_PATHS"
+        unset IFS
+        shopt -u nullglob globstar
         if [ ${#ARGS[@]} -eq 0 ]; then
           echo "::error::ontology-paths input is empty — provide at least one path"
           exit 1

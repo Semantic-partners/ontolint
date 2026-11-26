@@ -41,6 +41,11 @@ using YAML block scalar syntax (`|`):
       ontologies/extras/
 ```
 
+An entry may be a glob pattern — `*`, `?`, `[...]`, and `**` for any depth, e.g.
+`ontologies/*/owl/*` or `ontologies/**/*.ttl`. The action expands it with bash before
+calling ontolint, as a shell would on the command line. An entry that matches nothing
+fails the step.
+
 All paths are loaded into a single combined graph before QA runs, so cross-ontology
 references resolve correctly.
 
@@ -70,7 +75,7 @@ All inputs are strings (composite action convention). Pass booleans as `'true'` 
 
 | Input | Default | Description |
 |---|---|---|
-| `ontology-paths` | — | **Required.** One or more paths to ontology files or directories, relative to the repository root. |
+| `ontology-paths` | — | **Required.** One or more paths or glob patterns to ontology files or directories, relative to the repository root. |
 | `fail-on-violations` | `'true'` | Exit with code 1 if any check fails, causing the step to fail. |
 | `verbose` | `'false'` | List every violating element under each failed check. |
 | `profile-only` | `'false'` | Run profiling metrics only; skip all QA checks. |
